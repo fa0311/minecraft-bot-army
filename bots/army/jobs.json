@@ -979,14 +979,14 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Sumire",
+   "by": "Nozomi",
    "portal": [
     -43,
     98,
     -80
    ],
-   "through": 1789915748101,
-   "scoutRev": 4,
+   "through": 1789917143139,
+   "scoutRev": 6,
    "hub": {
     "room": [
      -41,
@@ -1097,8 +1097,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789915748417,
-   "back": 1789915781776,
+   "landingAt": 1789917143437,
+   "back": 1789917176583,
    "lastDeath": 1789911678325,
    "lastDeathBy": "Hotaru",
    "roads": {
@@ -1146,7 +1146,7 @@
     ],
     "left": 0,
     "unloaded": 1330,
-    "at": 1789915761878,
+    "at": 1789917156927,
     "done": false
    },
    "gatePolicy": "LIT PERMANENTLY (owner 15:0xZ): closing it made the game generate spare gates"
@@ -1833,7 +1833,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789916981723
+   "restUntil": 1789917241259
   },
   {
    "id": "fill_ring_field2",
@@ -2298,7 +2298,7 @@
    },
    "rev": 3,
    "note": "03:10Z engineer: 40 obsidian banked (want reached) - paused. Re-activate with a higher params.args.want when more is needed; open spot on record: -54/29:-1 (37 cast obsidian left)",
-   "restUntil": 1789916804095
+   "restUntil": 1789917702919
   },
   {
    "id": "base_infill_n404_n556",
@@ -4222,7 +4222,7 @@
    },
    "rev": 3,
    "note": "needs: dirt (835 cells wait; every cell whose material exists is done or in work)",
-   "restUntil": 1789917130130
+   "restUntil": 1789917742666
   },
   {
    "id": "fill_minehead_pits",
@@ -4356,7 +4356,8 @@
     "order": "near"
    },
    "rev": 3,
-   "note": "needs: dirt (17 cells wait; every cell whose material exists is done or in work)"
+   "note": "needs: dirt (17 cells wait; every cell whose material exists is done or in work)",
+   "restUntil": 1789917702922
   },
   {
    "id": "ladders_for_ravine",
@@ -4495,7 +4496,7 @@
    "type": "portal",
    "priority": 94,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 2,
    "shiftMin": 15,
@@ -4512,7 +4513,8 @@
      -607
     ]
    },
-   "rev": 1
+   "rev": 1,
+   "note": "auto-paused: the spare gate at -284,84,-607 is down, 0 obsidian banked"
   },
   {
    "id": "void_fix_base_mine_pad",

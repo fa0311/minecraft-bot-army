@@ -143,7 +143,9 @@ function simulate (sc, opts = {}) {
       if (b.boxedSince == null) b.boxedSince = t
       else if (t - b.boxedSince > 20) err('entombed', b.id + ' boxed in at ' + K3(b.pos.x, b.pos.y, b.pos.z) + ' for ' + (t - b.boxedSince).toFixed(0) + ' s')
     }
-    if (world.version !== version) { version = world.version; lastChange = t }
+    // "something happened" = a block moved OR the planner wrote a cell off (both are progress)
+    const mark = world.version + map.sealed.size + map.abandoned.size
+    if (mark !== version) { version = mark; lastChange = t }
     const s = FP.summary(map, world, now)
     if (!s.open && !s.left) break
     if (t - lastChange > 120) {

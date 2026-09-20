@@ -576,13 +576,12 @@ function next (bot, tile, world, opts = {}) {
     if (reachSet(map, world, feet).has(K3(d.from.x, d.from.y, d.from.z))) return { type: 'move', target: d.from, why: 'beside the mouth of the shaft at ' + K2(c.x, c.z) }
   }
 
-  // 7. no way in: the pit is deeper than a walkable step
-  if (map.grade - st.layerY > o.maxDrop) return entryAction(map, world, bot, t, o)
-
-  // 8. …else nobody can fill it. A cell is only written off with EVIDENCE (a builder stood in front of
-  // it and could do nothing, five times over 20 s) — a busy second is not a verdict. And a written-off
-  // cell takes the rest of its column with it: a column over a hole we cannot close would hang in the
-  // air, and "never deck a hole" beats "the box is finished". The adapter reports these as void_under_pad.
+  // 7. …else nobody could fill it FROM HERE. A cell is written off only with EVIDENCE (a builder stood
+  // in front of it and could do nothing, five times over 20 s) — a busy second is not a verdict. A
+  // written-off cell takes the rest of its column with it unless a roof stands over it: a column over a
+  // hole we cannot close would hang in the air, and "never deck a hole" beats "the box is finished".
+  // The adapter reports these as void_under_pad. This is counted BEFORE the entry branch: a lane nobody
+  // can work must end, not send builder after builder down a ladder to look at it (measured in (c)).
   const done = []
   for (const c of safe) {
     const k = K3(c.x, c.y, c.z)
@@ -599,8 +598,11 @@ function next (bot, tile, world, opts = {}) {
     done.push(k)
   }
   map.state.delete(t.id)
-  if (!done.length) return { type: 'wait', release: true, why: 'nothing of ' + t.id + ' is reachable from here this second — another lane first' }
-  return { type: 'wait', why: 'wrote off ' + done.join(' ') + ': no stand, no shaft — their columns are not work' }
+  if (done.length) return { type: 'wait', why: 'wrote off ' + done.join(' ') + ': no stand, no shaft, five tries — not work' }
+
+  // 8. a way in, if the pit is deeper than a walkable step and I am still up top
+  if (map.grade - st.layerY > o.maxDrop) return entryAction(map, world, bot, t, o)
+  return { type: 'wait', release: true, why: 'nothing of ' + t.id + ' is reachable from here this second — another lane first' }
 }
 
 function pick (list, feet) {
@@ -628,6 +630,9 @@ function standsIn (map, world, tile, st, targets, mates, o, r) {
         if (!canStand(map, world, x, y, z, mates)) continue
         const s = { x, y, z }
         if (!targets.some(c => !same(c, s) && canPlaceFrom(world, s, c, o.reach))) continue
+        // never walk into a spot with no room (measured, scenario (c): builders stepped into the
+        // 2-high crawl space under an overhang and had to be rescued out of it one by one)
+        if (walkArea(map, world, s, null, o.minArea) < o.minArea) continue
         out.push(s); break
       }
     }

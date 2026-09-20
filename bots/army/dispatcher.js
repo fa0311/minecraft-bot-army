@@ -597,10 +597,10 @@ function dry () {
 // only labels that CHANGED (every 10 s), plus a full refresh every 2 min so a label left behind by a death or relog is re-mounted.
 const labelSent = {}; let labelFull = 0
 // short JAPANESE names (owner: "日本語の短い呼び名にして"): by job id first, then by job type
-const JOB_JA = [[/^mine_obsidian/, '黒曜石'], [/^mine_/, '採掘'], [/^fill_ravine/, '渓谷埋め'], [/^fill_|_void/, '穴埋め'], [/^base_infill|_pad$/, '整地'], [/^base_road/, '道路'], [/^base_cane|^cane/, 'サトウキビ'], [/^base_field/, '畑づくり'], [/^base_dorm/, '寮づくり'], [/^base_/, '建築'],
+const JOB_JA = [[/^nether_|portal/, 'ネザー'], [/^village|^trade|^iron_farm/, '交易'], [/^cap_/, '土かぶせ'], [/^void_fix/, '穴埋め'], [/^armoury|^ladders/, '工作'], [/terrace|_cut/, '掘削'], [/^stray_|^canyon_/, '片付け'], [/^mine_obsidian/, '黒曜石'], [/^mine_/, '採掘'], [/^fill_ravine/, '渓谷埋め'], [/^fill_|_void/, '穴埋め'], [/^base_infill|_pad$/, '整地'], [/^base_road/, '道路'], [/^base_cane|^cane/, 'サトウキビ'], [/^base_field/, '畑づくり'], [/^base_dorm/, '寮づくり'], [/^base_/, '建築'],
   [/^herd_sheep/, '羊の世話'], [/^herd_cows/, '牛の世話'], [/^herd_chickens/, '鶏の世話'], [/^herd_pigs/, '豚の世話'], [/^hunt/, '狩り'], [/^quartermaster/, '補給係'], [/^sleeper/, '就寝係'], [/^guard/, '警備'], [/^tidy/, '片付け'], [/^farm/, '畑'], [/^fish/, '釣り'],
   [/^wood|^lumber/, '伐採'], [/^scout/, '偵察'], [/^toolsmith|^craft_|^smelt/, '工作'], [/^bake/, 'パン焼き'], [/^enchant/, 'エンチャント'], [/^muster$/, '待機']]
-const TYPE_JA = { build: '建築', farm: '畑', cane: 'サトウキビ', herd: '牧畜', hunt: '狩り', guard: '警備', scan: '補給係', tidy: '片付け', lumber: '伐採', fish: '釣り', scout: '偵察', steps: '作業', delegate: '採掘', sleeper: '就寝係', ores: '鉱石拾い', light: '照明', haul: '運搬' }
+const TYPE_JA = { build: '建築', farm: '畑', cane: 'サトウキビ', herd: '牧畜', hunt: '狩り', guard: '警備', scan: '補給係', tidy: '片付け', lumber: '伐採', fish: '釣り', scout: '偵察', steps: '作業', delegate: '採掘', sleeper: '就寝係', ores: '鉱石拾い', light: '照明', haul: '運搬', portal: 'ネザー', trade: '交易', muster: '待機' }
 const TASK_JA = [[/muster|handed back|declined/, '待機'], [/bank|stash/, '預け入れ'], [/withdraw|getting|fetch/, '取り出し'], [/travel|goto|walking|to-face|to-entrance|trunk/, '移動'], [/craft|forg/, 'クラフト'], [/furnace|smelt|cook/, 'かまど'], [/sleep|bed/, '睡眠'], [/eat|canteen/, '食事'], [/shear/, '毛刈り'], [/cull|kill|hunt:work|guard: /, '戦闘'], [/breed|lur|herd/, '誘導'], [/stairs|surface/, '階段'], [/branch|vein|mine|dig/, '掘削'], [/water/, '水入れ'], [/fell|lumber/, '伐採'], [/plant|till|farm|harvest/, '農作業'], [/waiting/, '成長待ち']]
 function labelPass () {
   try {
@@ -609,7 +609,7 @@ function labelPass () {
     const cmds = []
     for (const f of fs.readdirSync(path.join(FIELD, 'hb'))) {
       const h = readJSON(path.join(FIELD, 'hb', f), null); if (!h || !h.bot || Date.now() - (h.t || 0) > 90000) continue
-      const job = String(h.job || 'muster'); const ja = (JOB_JA.find(([re]) => re.test(job)) || [])[1] || TYPE_JA[typeOf[job]] || job.slice(0, 12)
+      const job = String(h.job || 'muster'); const ja = (JOB_JA.find(([re]) => re.test(job)) || [])[1] || TYPE_JA[typeOf[job]] || '作業' // never an English job id over a bot's head (owner 09-20: new job ids showed up untranslated)
       const task = String(h.task || ''); const tj = (TASK_JA.find(([re]) => re.test(task)) || [])[1]
       const label = ja // the NAME PREFIX must stay short (it widens every chat line and the tab list): the job only; the task stays in `armyctl.js field`
       if (!full && labelSent[h.bot] === label) continue
