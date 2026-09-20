@@ -149,6 +149,7 @@ let lastWrite = {} // bot -> ms
 const over = {} // bot -> job id it OVERFLOWED into (see OVERFLOW below): a standing assignment, not a per-tick lottery
 const declSeen = {} // "job|bot|until" -> ms we first saw that decline note (a note is unique per bot+job+expiry) = the REST rule's 10-min window
 const restedAt = {} // job id -> {t, why, ms} of the last rest the dispatcher ordered (the same reason again doubles the rest)
+const frontCut = {} // job id -> ms: last time we said out loud that maxFronts left this job unstaffed
 const since = {} // bot -> ms when it got its current job (shifts). Survives a dispatcher restart through assign/<bot>.json
 if (!DRY) for (const f of fs.readdirSync(P.assign)) { const a = f.endsWith('.json') && readJSON(path.join(P.assign, f), null); if (a && a.bot && a.job && a.job.id && Date.now() - a.t < 120000) { last[a.bot] = a.job.id; since[a.bot] = a.since || a.t } }
 
@@ -217,7 +218,10 @@ function demandOf (job, S, st) {
     const d = target == null ? (have > 0 ? 0.5 : 1) : target <= 0 ? 0 : Math.min(1, Math.max(0, 1 - have / target))
     if (!w || d > w.deficit) w = { deficit: Math.round(d * 100) / 100, of: key, have, target }
   }
-  const raw = steps(min, max, w.deficit)
+  // NO TARGET IS NOT A REASON FOR HALF A SQUAD (docs/REVIEW-early-assumptions.md row 8, measured 09-20: cane_farm held 2 bots for hours on 3020
+  // idle cane because "no target" meant deficit 0.5). We own some of it and nobody said how much is enough -> its FLOOR, or one bot, and BOARD.md
+  // keeps saying "no target" until the operator sets one. Owning NONE of it still pulls a full squad (deficit 1).
+  const raw = w.target == null && w.have > 0 ? Math.max(min, Math.min(1, min + 1)) : steps(min, max, w.deficit)
   const sig = [min, max, job.rev || 0, job.produces.map(k => k + ':' + T[k]).join(',')].join('|')
   const prev = demand[job.id]; const hold = (S.demandHoldMin != null ? S.demandHoldMin : 3) * 60000
   let want = raw; let held = null
@@ -258,7 +262,9 @@ function tick () {
   const free = new Set(Object.keys(hbs))
   const out = {}
   const fronts = new Set()
-  const maxFronts = S.maxFronts || 3
+  // WORK FRONTS SCALE WITH THE ARMY (docs/REVIEW-early-assumptions.md row 11): the default 3 (board 10) dates from a 3-site world; with 50 bots and
+  // 87 jobs an 11th front simply got 0 bots and nobody was told. One front per 4 bots, never under 10, and the cut is logged (once per job per 10 min).
+  const maxFronts = Math.max(S.maxFronts || 3, 10, Math.ceil(Object.keys(hbs).length / 4))
   const staffed = {}
   // SHIFTS: a job with `shiftMin: N` keeps the bot that holds it for at least N minutes (a miner's commute down 140 steps is longer than the
   // minute-long stints the priority loop used to hand out) - as long as the job is active, the bot is still eligible, has not declined and the
@@ -352,7 +358,7 @@ function tick () {
     // BACKOFF: a fixed 10-min rest turned the sponge into a metronome (11:37-11:47: `muster -> tidy_spawn x17` the moment the rest ran out,
     // although the audit work list it waits for is only rebuilt every ~30 min). Each rest for the SAME reason doubles, capped at an hour.
     const r = restedAt[job.id]; const same = r && r.why === worst[0] && tNow - r.t < r.ms + 900000
-    const ms = Math.min(3600000, same ? r.ms * 2 : 600000)
+    const ms = Math.min(1800000, same ? r.ms * 2 : 600000)
     restedAt[job.id] = { t: tNow, why: worst[0], ms }; job.restUntil = tNow + ms
     log('REST', job.id, worst[1].size + ' bots declined "' + worst[0] + '" in 10 min -> rests ' + Math.round(ms / 60000) + ' min')
     if (!DRY) boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (j) j.restUntil = Date.now() + ms })
@@ -375,7 +381,7 @@ function tick () {
   // staff(job, head, floor): bring the job up to `head` bots from the free pool — the ONE way squads are filled (floor pass + priority loop)
   const staff = (job, head, floor) => {
     const front = job.front || null
-    if (front && !fronts.has(front) && fronts.size >= maxFronts) return
+    if (front && !fronts.has(front) && fronts.size >= maxFronts) { if (Date.now() - (frontCut[job.id] || 0) > 600000) { frontCut[job.id] = Date.now(); log('FRONT CUT', job.id, 'front', front, 'gets 0 bots:', fronts.size, 'of', maxFronts, 'fronts are staffed (' + [...fronts].join(',') + ') - raise settings.maxFronts or pause a front') } return }
     if (head <= 0) return
     const yc = yieldCap[job.id]; if (yc && yc.until > Date.now()) head = Math.min(head, yc.cap) // YIELD THROTTLE: a squad without output is cut by itself
     const want = head - (staffed[job.id] || []).length
@@ -415,14 +421,20 @@ function tick () {
   // deficit is 0, and only while the job has cells left for the extra hand: 20 open cells (`build_pass.left`) per bot already on it.
   const SQUAD = /^(build|deck|lumber|light|tidy|ores)$/
   const roomFor = job => {
-    const held = Math.max(1, (staffed[job.id] || []).length); const w = workLeft[job.id]
-    if (w && Date.now() - w.t < 600000) return w.left > 20 * held
-    return producing(job.id) && held < 2 * Math.max(1, headOf(job)) // handlers that report no cell count (lumber, light, tidy): never more than double
+    const held = Math.max(1, (staffed[job.id] || []).length); const head = Math.max(1, headOf(job)); const w = workLeft[job.id]; const y = yieldCap[job.id]
+    if (y && y.until > Date.now() && held >= y.cap) return false // a squad the YIELD THROTTLE cut is the last place for another bot
+    // the gate is measured against the job's HEAD-COUNT, not against the bots already on it: a per-bot threshold moves every time somebody joins,
+    // which left 16 bots standing at muster in the dry run while a ravine with 150 open cells was called "full". How many bots the site can really
+    // employ is then MEASURED by the yield throttle above (output per bot), not guessed here.
+    if (w && Date.now() - w.t < 600000) return w.left > 20 * head
+    return producing(job.id) && held < 2 * head // handlers that report no cell count (lumber, light, tidy): never more than double
   }
+  // CAPACITY GATES ONLY BAR NEWCOMERS, never the bots already inside (12:00: saturation and the yield cap were tested against the standing holders
+  // too, so the moment 3 of 25 bots held a decline note the whole overflow squad was evicted to muster and walked back next tick - 50 tidy -> muster
+  // and 25 fill_ravine_s <-> muster in 10 min). Same rule the priority loop has always used for sticky bots.
   const overFit = (job, n) => !!job && job.status === 'active' && SQUAD.test(job.type) && !(job.names && job.names.length) && !((job.restUntil || 0) > Date.now()) &&
-    !saturated(job) && ((job.bots || 0) >= 3 || (job.maxBots || 0) >= 3) && !(D[job.id] && D[job.id].deficit <= 0) && !(job.front && !fronts.has(job.front) && fronts.size >= maxFronts) &&
-    !(job.exclude && job.exclude.includes(n)) && eligible(job, hbs[n], phase, last[n] === job.id) && !declined(job, n) &&
-    !(yieldCap[job.id] && yieldCap[job.id].until > Date.now() && (staffed[job.id] || []).length >= yieldCap[job.id].cap) // a squad the YIELD THROTTLE cut is the last place for another bot
+    !(saturated(job) && last[n] !== job.id) && ((job.bots || 0) >= 3 || (job.maxBots || 0) >= 3) && headOf(job) > 0 && !(D[job.id] && D[job.id].deficit <= 0) &&
+    !(job.front && !fronts.has(job.front) && fronts.size >= maxFronts) && !(job.exclude && job.exclude.includes(n)) && eligible(job, hbs[n], phase, last[n] === job.id) && !declined(job, n)
   // roomFor gates only a NEW overflow, never a standing one: it counts the bots placed THIS tick, so testing it again next tick made
   // fill_ravine_s and fill_ravine_m swap bots 11x in 10 min (11:47). A hold ends when the job ends, rests, saturates or declines the bot.
   const pickOverflow = n => {

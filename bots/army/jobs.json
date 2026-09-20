@@ -1751,7 +1751,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789905605527
+   "restUntil": 1789905807597
   },
   {
    "id": "fill_ring_field2",
@@ -3291,7 +3291,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 10,
    "site": [
     -311,
     69,
@@ -3377,7 +3377,7 @@
     },
     "order": "near"
    },
-   "rev": 21,
+   "rev": 22,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check. | 09-20 09:4x: WALK-IN STAIR first (ramp z=-415, x -330..-323 joins the floor y55 to the natural slope y64->68 at the north end): the hole had NO walkable exit, 12 bots no_route",
    "stuckBy": {
     "key": "rev21",
@@ -4597,13 +4597,13 @@
     },
     "buildJob": "base_portal",
     "go": true,
-    "cobble": 128,
+    "cobble": 64,
     "crossS": 90
    },
    "note": "auto-paused: the gate is lit",
-   "rev": 2,
+   "rev": 3,
    "names": [
-    "Chino"
+    "Hotaru"
    ]
   },
   {

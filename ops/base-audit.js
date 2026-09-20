@@ -172,7 +172,7 @@ async function main () {
   }
   const pit = new Uint8Array(bw * bdp) // stairwells / quarries: their spoil and steps are theirs up to one above the level
   for (const b of P.builds) if (OPEN_PIT.test(b.blueprint)) for (let z = b.bbox[1]; z <= b.bbox[3]; z++) for (let x = b.bbox[0]; x <= b.bbox[2]; x++) if (inBox(box, x, z)) { cls[(z - box[1]) * bw + x - box[0]] = 2; pit[(z - box[1]) * bw + x - box[0]] = 1 }
-  const weeds = []; const stray = []; const structs = new Map(P.builds.filter(b => !b.terrain).map(b => [b.id, { job: b.id, status: b.status, blueprint: b.blueprint, of: 0, seen: 0, missing: 0, wrong: 0, examples: [], marks: [] }]))
+  let surfaceStat = null; const weeds = []; const stray = []; const structs = new Map(P.builds.filter(b => !b.terrain).map(b => [b.id, { job: b.id, status: b.status, blueprint: b.blueprint, of: 0, seen: 0, missing: 0, wrong: 0, examples: [], marks: [] }]))
   const furnMissing = []; let furnSeen = 0; const crops = {}; for (const f of P.farms) crops[f.id] = { w: f.box[2] - f.box[0] + 1, map: new Array((f.box[2] - f.box[0] + 1) * (f.box[3] - f.box[1] + 1)).fill('?') }
   const gates = []; let Block = null
   const regions = [pic].concat(P.farms.map(f => f.box), P.pens.map(p => grow(p.box, 96)))
@@ -281,6 +281,20 @@ async function main () {
     const wk = {}; const wz = {}; for (const w of weeds) { wk[w[3]] = (wk[w[3]] || 0) + 1; const z0 = whereOf(P, w[0], w[2]); wz[z0] = (wz[z0] || 0) + 1 }
     say({ ev: 'audit_weeds', key: '', alert: false, n: weeds.length, was: prev && prev.weedN != null ? prev.weedN : null, kinds: Object.fromEntries(Object.entries(wk).sort((a, b) => b[1] - a[1]).slice(0, 6)), where: Object.fromEntries(Object.entries(wz).sort((a, b) => b[1] - a[1]).slice(0, 6)),
       text: 'WEEDS: ' + weeds.length + ' flowers / grass tufts stand on the base ground' + (prev && prev.weedN != null ? ' (' + prev.weedN + ' at the last audit)' : '') + ': ' + Object.entries(wz).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, n]) => k + ' ' + n).join(', ') + ' -> the tidy sponge pulls them (kind `weed`); a number that does not fall = tidy is unstaffed or declines' }) }
+
+  // ---------- a2b. SURFACE MATERIAL (owner 09-20: "適当にブロック使うから見栄えが悪い - 土を置くべきなところに石を置いたり、丸石を置くべきところに深層岩を置いてる"): what a spectator
+  // SEES is the top block. (1) WRONG: a planned cell at the level whose block is a substitute of the blueprint's block (cobbled_deepslate in a cobblestone path - `mats`
+  // substitution is for the hidden body of a wall or fill, never for a visible face); (2) RUBBLE: unplanned ground inside the base whose top is bare stone-family
+  // filler (a filled ravine or a cut hill left as a grey slab) where grass/dirt belongs. Counted per zone with examples; tidy/cap jobs fix them. ----------
+  { const STONE = /^(cobblestone|cobbled_deepslate|stone|deepslate|andesite|diorite|granite|tuff|gravel|mossy_cobblestone)$/; const wrong = []; const rub = {}; let rubN = 0; const wz = {}
+    for (let z = box[1]; z <= box[3]; z++) for (let x = box[0]; x <= box[2]; x++) { const i = (z - box[1]) * bw + x - box[0]; if (!(cls[i] & 16) || gY[i] !== level) continue; const n = names[lvlN[i]]; if (!n || n === '?') continue
+      const pc = P.planned.get(x + ',' + level + ',' + z)
+      if (pc && pc.block && pc.block !== 'air' && pc.block !== 'water') { if (n !== pc.block && STONE.test(n) && STONE.test(pc.block)) { wrong.push([x, level, z, pc.block, n]); const w = whereOf(P, x, z); wz[w] = (wz[w] || 0) + 1 } continue }
+      if (STONE.test(n)) { rubN++; const w = whereOf(P, x, z); rub[w] = (rub[w] || 0) + 1 } }
+    const top = o => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, n]) => k + ' ' + n).join(', ')
+    say({ ev: 'audit_surface', key: '', alert: false, wrong: wrong.length, rubble: rubN, was: prev && prev.surface ? prev.surface : null, wrongWhere: wz, rubbleWhere: rub, examples: wrong.slice(0, 8).map(q => q.slice(0, 3).join(',') + ' ' + q[3] + '<-' + q[4]),
+      text: 'SURFACE MATERIAL: ' + wrong.length + ' visible planned cells hold a SUBSTITUTE block (' + top(wz) + '; e.g. ' + wrong.slice(0, 4).map(q => q.slice(0, 3).join(',') + ' wants ' + q[3] + ' has ' + q[4]).join(' | ') + ') · ' + rubN + ' ground columns are bare stone filler where grass/dirt belongs (' + top(rub) + ')' + (prev && prev.surface ? ' · last audit: ' + prev.surface.wrong + ' / ' + prev.surface.rubble : '') + ' -> visible faces take the blueprint block ONLY; fills and cuts end with a dirt cap' })
+    surfaceStat = { wrong: wrong.length, rubble: rubN } }
 
   // ---------- a3. FILLS (owner 09-20: "花のある位置にブロックが置けず、穴が空いている ... 何故これらの問題に気が付けない？" - the ravine is a KEEP-OUT, and keep-outs were never judged:
   // the one place where 30 bots worked for hours was the one place this audit did not look at). Per fill_void job: columns still open below grade and PINHOLES = an open
@@ -434,7 +448,7 @@ async function main () {
 
   // ---------- out ----------
   const alerts = findings.filter(f => f.alert); const took = Math.round((Date.now() - T0) / 1000); const partial = flown.hovers.filter(h => !h.ok).length
-  const state = { t: T0, took, level, box, png: OUT, legend, hovers: flown.hovers.length, partial, unseen: count.unseen, findings, rough: { columns: rough, onPads, unlevelled: wildCols }, clustersAll: defects.slice(0, 400).map(c => c.slice(0, 4)), work, weeds: weeds.slice(0, 6000).map(w => w.slice(0, 3)), weedN: weeds.length, floats, floatN: floats.length, strays: stray.slice(0, 400), strayN: stray.length, pens: pensOut, growth: growthState,
+  const state = { t: T0, took, level, box, png: OUT, legend, hovers: flown.hovers.length, partial, unseen: count.unseen, findings, rough: { columns: rough, onPads, unlevelled: wildCols }, clustersAll: defects.slice(0, 400).map(c => c.slice(0, 4)), work, surface: surfaceStat, weeds: weeds.slice(0, 6000).map(w => w.slice(0, 3)), weedN: weeds.length, floats, floatN: floats.length, strays: stray.slice(0, 400), strayN: stray.length, pens: pensOut, growth: growthState,
     prev: prev ? { t: prev.t, rough: prev.rough, strayN: prev.strayN, floatN: prev.floatN, pens: prev.pens, findings: (prev.findings || []).map(f => ({ ev: f.ev, key: f.key, alert: f.alert, text: f.text })) } : null }
   if (!DRY) {
     const tmp = STATE + '.tmp' + process.pid; fs.writeFileSync(tmp, JSON.stringify(state)); fs.renameSync(tmp, STATE)

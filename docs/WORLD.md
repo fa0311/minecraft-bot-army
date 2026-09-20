@@ -38,5 +38,6 @@ Fill it in AFTER looking (`ops/skyshot.js x z [half]` = aerial photo + flat-land
 | WEST TERRACE | x -492..-476 / z -502..-458, cut to y73 | dirt + stone source, job `west_terrace_cut`: a grass hill 80 blocks W of the wall (tops y76-86) becomes a flat terrace - never a pit. Between it and the wall the land lies 5-6 below the base level (a gully at x -460..-452): future fill, not a building site yet |
 
 Size every zone x50 (docs/GOALS.md scale rule): storage for ~200 containers, fields of 1000+ cells, a furnace bank, beds for 50, pens, lumber grid.
+MATERIALS (owner 09-20: "適当にブロック使うから見栄えが悪い"): a VISIBLE face takes the blueprint's block only (paths = cobblestone, never cobbled_deepslate/stone; ground = dirt/grass, never bare filler); substitutes (`mats`) are for hidden bodies and sub-bases. Judge: `audit_surface` in the base audit (first run: 705 wrong visible cells, 6007 bare-stone ground columns).
 Style: straight axis-aligned edges, one or two materials, no dirt in anything permanent, no floating blocks, no holes, scaffolds removed,
 fence + FENCE GATE (never a door) around farms/pens, tables/furnaces/chests are furniture — not litter. Roads and the torch grid are zones too.

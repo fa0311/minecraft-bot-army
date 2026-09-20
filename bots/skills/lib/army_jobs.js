@@ -658,7 +658,14 @@ async function haul (bot, job, api, ctx) {
 // CRAFTED GOODS HAVE A PRODUCER: the quartermaster (foreman 09-19 21:36Z: `targets` said torch 224 "NOBODY", depot torch 0 while charcoal 362 and
 // coal 20 lay in the same depot; 13 miners went down dark, builders `build_blocked: no torch`). Each round ONE batch of the crafted target that
 // is furthest below its target is made from depot stock through the normal obtain chain (logs -> planks -> sticks -> torches) and banked.
-const CRAFTED = { torch: 64, planks: 64, stick: 32, book: 3, bookshelf: 3, enchanting_table: 1, stone_shovel: 8, stone_axe: 8, stone_pickaxe: 8 } // target key -> batch per round; raw materials and smelted goods have their own jobs
+// (review row 3, 09-20 12:0xZ: this table was born in the stone age and is the army's ONLY automatic tool producer - 19 of 50 bots were on a wooden/stone pickaxe or
+// none and the depot held 0 pickaxes of any kind, while 353 diamonds and 66 ingots lay in the same depot. Batches follow the x50 rule: torch 64->256, planks 64->256,
+// stick 32->128.) A key only becomes a candidate when `settings.targets` names it, so adding a row here costs nothing until the board wants the thing.
+const CRAFTED = { torch: 256, planks: 256, stick: 128, arrow: 32, book: 3, bookshelf: 3, enchanting_table: 1, stone_shovel: 8, stone_axe: 8, stone_pickaxe: 8, iron_pickaxe: 4, diamond_pickaxe: 4, diamond_shovel: 4, diamond_axe: 4, diamond_sword: 4, bucket: 2, shears: 4, bow: 2, shield: 2 } // target key -> batch per round; raw materials and smelted goods have their own jobs
+// A TOOL IS NEVER WORTH THE RESERVE IT EATS: a precious material is spent from its SURPLUS only - a diamond batch needs more than 64 diamond in the depot, anything
+// made of iron more than 32 iron_ingot (the mine, the buckets and the enchanting chain live on the rest). Below that the key is simply not a candidate this round.
+const CRAFT_FROM = { iron_pickaxe: 'iron_ingot', bucket: 'iron_ingot', shears: 'iron_ingot', shield: 'iron_ingot', diamond_pickaxe: 'diamond', diamond_shovel: 'diamond', diamond_axe: 'diamond', diamond_sword: 'diamond' }
+const CRAFT_RESERVE = { diamond: 64, iron_ingot: 32 }
 // BOOKS (P4): paper <- 3 sugar cane, book <- 3 paper + leather, bookshelf <- 3 books + 6 planks, enchanting_table <- book + 2 diamonds + 4 obsidian: the recipe solver
 // walks the whole chain, so `targets bookshelf 15` + `enchanting_table 1` is all the quartermaster needs. Beds are NOT crafted here: the dorm's builders make each bed from the wool in stock when they place it (a second bed maker raced them for the wool, 02:17Z).
 // A candidate is only taken when the solver says the depot CAN make a batch now (full, half, or one) - the worst deficit with no material (books without cane)
@@ -675,7 +682,7 @@ async function craftToTargets (bot, job, api) {
   const POCKET = { torch: 16, stick: 8 } // what bank()/pockets leave with EVERY bot (their keep lists)
   const haveOf = k => { const dep = ST ? ST.count(k, D.chest) : (k === 'planks' ? stockRe(U.PLANK_RE) : A.stockOf(k)); const extra = Math.max(0, (ST ? ST.count(k, D.carried) : 0) - (POCKET[k] || 0) * nBots); return { have: dep + Math.min(extra, Math.ceil(T[k] / 4)), all: dep + extra } }
   const cands = []
-  for (const k of Object.keys(CRAFTED)) { if (!(T[k] > 0)) continue; const { have, all } = haveOf(k); if (all >= 2 * T[k] || Date.now() - (_craftFail[k] || 0) < 1800000) continue; const d = 1 - have / T[k]; if (T[k] <= 32 ? have < T[k] : d > 0.1) cands.push({ k, d, have }) }
+  for (const k of Object.keys(CRAFTED)) { if (!(T[k] > 0)) continue; const raw = CRAFT_FROM[k]; if (raw && A.stockOf(raw) <= (CRAFT_RESERVE[raw] || 0)) continue; const { have, all } = haveOf(k); if (all >= 2 * T[k] || Date.now() - (_craftFail[k] || 0) < 1800000) continue; const d = 1 - have / T[k]; if (T[k] <= 32 ? have < T[k] : d > 0.1) cands.push({ k, d, have }) }
   cands.sort((a, b) => b.d - a.d)
   const all = A.stockMap(); for (const [k, n] of Object.entries(A.inv(bot))) all[k] = (all[k] || 0) + n
   let pick = null
@@ -1763,6 +1770,13 @@ async function farm (bot, job, api, ctx) {
     if (P.forage !== false) { task(bot, 'farm:forage seeds'); got = (await VERBS.collect(bot, { block: ['short_grass', 'fern', 'tall_grass', 'large_fern'], n: 24, radius: 40 }, api)) === true && A.count(bot, seed) > 0 }
     if (!got) return muster(bot, job, api, ctx, 'farm: no seeds (stock 0, no grass nearby) - seeds come from harvests, foraging trips or chickens')
   } else if (st.harvested + st.planted === 0) {
+    // WAITING IS WASTE WHILE THE LARDER IS FULL (review row 6, 12:0xZ: `base-audit --idle` = 44 % of bot time without output, and `gemba` found 9 farmers standing at
+    // "waiting for growth" with food 9139 against a target of 448 - twenty times over). Nothing ripe and nothing to plant: at or above `targets.food` the bot is handed
+    // back the same tick (10 min) instead of standing 90 s at the field edge. The field is not abandoned - the dispatcher's demand formula re-staffs it the minute the
+    // food stock drops under its target. Below the target, standing at a growing field IS the best use of the bot and the old wait holds.
+    let full = false
+    try { const ST = require('../../army/stock.js'); const T = (A.settings().targets || {}).food; full = T > 0 && ST.have('food') >= T } catch (e_) { swallow('army_jobs:farmLarder', e_) }
+    if (full) { const why = 'farm: nothing ripe, nothing to plant and the larder is over target'; A.decline(bot, job, 600000, why); return muster(bot, job, api, ctx, why) }
     const end = Date.now() + 90000 // nothing to do yet: crops are growing — stand at the field edge, don't pace over the farmland
     task(bot, 'farm:waiting for growth')
     while (Date.now() < end && !api.stop()) await sleep(1000)
@@ -3557,8 +3571,16 @@ async function tidy (bot, job, api, ctx) {
     if (w && w.ran) return 'tidy'
   }
   const SF = require('path').join(A.DIR, 'tidy_state.json'); const state = A.readJSON(SF, {}) || {}
+  // THE SPONGE NEVER DECLINES WHILE THE CAMERA HOLDS WORK (review row 5, 12:0xZ: 40 bots x 73 declines of `tidy: the audit lists no open work in reach and every tile
+  // was tidied in the last 30 min` ONE MINUTE after a fresh base-audit had listed 274 off-level columns in 56 clusters - this memo IS the muster<->sponge ping-pong the
+  // owner named, 285 assignments an hour). The 30-minute per-tile memo and the "in reach" radius are day-one numbers for a 50-block clearing; the base box is 178x190
+  // today. With a FRESH audit the memo is ignored and the WHOLE box is searched - a tile that holds measured columns comes first, and a 3-minute claim is all that keeps
+  // two bots off the same tile. Only when the camera's list is stale does the 30-minute memo decide again.
+  const fresh = P.audit === false ? null : auditWork()
+  const hotTiles = new Set()
+  if (fresh) for (const u of fresh.work || []) for (const c of u.cols || []) hotTiles.add((x1 + 16 * Math.floor((c[0] - x1) / 16)) + ',' + (z1 + 16 * Math.floor((c[1] - z1) / 16)))
   const tiles = []
-  for (let tx = x1; tx <= x2; tx += 16) for (let tz = z1; tz <= z2; tz += 16) { const k = job.id + ':' + tx + ',' + tz; if (Date.now() - (state[k] || 0) > 30 * 60000) tiles.push({ k, tx, tz, d: Math.hypot(tx + 8 - bot.entity.position.x, tz + 8 - bot.entity.position.z) }) }
+  for (let tx = x1; tx <= x2; tx += 16) for (let tz = z1; tz <= z2; tz += 16) { const k = job.id + ':' + tx + ',' + tz; if (Date.now() - (state[k] || 0) <= (fresh ? 3 : 30) * 60000) continue; tiles.push({ k, tx, tz, d: Math.hypot(tx + 8 - bot.entity.position.x, tz + 8 - bot.entity.position.z) - (hotTiles.has(tx + ',' + tz) ? 400 : 0) }) }
   if (!tiles.length) { const r = await muster(bot, job, api, ctx, 'tidy: the audit lists no open work in reach and every tile was tidied in the last 30 min'); A.decline(bot, job, 600000, 'tidy: nothing open (audit + tiles)'); return r } // 10 min, not every slice (34 bots x a decline a minute)
   tiles.sort((a, b) => a.d - b.d)
   const tile = tiles[0]; state[tile.k] = Date.now(); A.writeJSON(SF, state) // claim it

@@ -155,21 +155,39 @@ module.exports = ctx => {
     const cells = []
     for (const [x, z] of ring) for (let y = y0; y <= y0 + 2; y++) { if (gap && x === gap[0] && z === gap[1] && y <= y0 + 1) continue; cells.push(new Vec3(x, y, z)) }
     for (let x = cx - 2; x <= cx + 2; x++) for (let z = cz - 2; z <= cz + 2; z++) { cells.push(new Vec3(x, y0 + 3, z)); cells.push(new Vec3(x, y0 - 1, z)) } // roof + floor (only where there is a hole)
-    let placed = 0; let lava = 0; const t0 = Date.now()
-    for (const c of cells) {
+    // THE BUILDER NEVER LEAVES A SAFE STAND (measured 11:59:14Z: Chino fell from y98 to y26 and died on her 46th shell block — the
+    // far gate had generated on a ledge over open Nether, and the placer's own `reposition`/`support` remedies walk). So: anchors =
+    // the standable cells right beside the gate, reached from the gate itself; from each anchor only cells within arm's reach are
+    // placed, the bot is walked back to its anchor the moment it has drifted, and a cell with no solid neighbour to place against
+    // is left alone (that is what sends the placer looking for a support column six blocks down).
+    const BLL = BL()
+    const anchors = []
+    for (const p of body) for (const d of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const c = p.offset(d[0], 0, d[1]); if (BLL.standable(bot, c) && !anchors.some(q => q.equals(c))) anchors.push(c) }
+    if (!anchors.length) return { placed: 0, why: 'no standable cell beside the far gate — not stepping out over the void', gap: null, box: [cx - 2, cz - 2, cx + 2, cz + 2], y: y0 }
+    const hasRef = c => [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].some(d => { const n = bot.blockAt(c.offset(d[0], d[1], d[2])); return !!n && n.boundingBox === 'block' })
+    const todo = cells.filter(c => !keep.has(c.x + ',' + c.y + ',' + c.z))
+    const done = new Set(); let placed = 0; let lava = 0; const t0 = Date.now()
+    for (const a of anchors) {
       if (api.stop() || placed >= budget || Date.now() - t0 > 240000) break
-      if (keep.has(c.x + ',' + c.y + ',' + c.z)) continue
-      const b = bot.blockAt(c); if (!b) continue
-      if (b.name === 'obsidian' || b.name === 'nether_portal') continue
-      if (b.boundingBox === 'block') continue
-      if (b.name === 'lava') lava++
-      const item = stoneItem(bot); if (!item) break
-      task(bot, 'portal: walling the far gate in (' + placed + ')')
-      const r = await A.placeHard(bot, c, item, { stop: api.stop, noRest: true }).catch(e => ({ ok: false, reason: String(e && e.message) }))
-      const nb = bot.blockAt(c)
-      if ((r && r.ok) || (nb && nb.boundingBox === 'block')) placed++
+      if (!await A.travel(bot, a, { range: 0, ms: 20000, stop: api.stop, quiet: true, anyDepth: true })) continue
+      for (const c of todo) {
+        if (api.stop() || placed >= budget || Date.now() - t0 > 240000) break
+        const k = c.x + ',' + c.y + ',' + c.z; if (done.has(k)) continue
+        const b = bot.blockAt(c); if (!b || b.name === 'obsidian' || b.name === 'nether_portal') { done.add(k); continue }
+        if (b.boundingBox === 'block') { done.add(k); continue }
+        if (bot.entity.position.offset(0, 1.62, 0).distanceTo(c.offset(0.5, 0.5, 0.5)) > 4.0 || !hasRef(c)) continue
+        const item = stoneItem(bot); if (!item) break
+        if (b.name === 'lava') lava++
+        task(bot, 'portal: walling the far gate in (' + placed + ')')
+        const r = await A.placeHard(bot, c, item, { stop: api.stop, noRest: true }).catch(e => ({ ok: false, reason: String(e && e.message) }))
+        const nb = bot.blockAt(c)
+        if ((r && r.ok) || (nb && nb.boundingBox === 'block')) { placed++; done.add(k) }
+        // back to the anchor at once if a remedy walked us off it — one step, never a search
+        const p = bot.entity.position.floored()
+        if (p.x !== a.x || p.z !== a.z || p.y !== a.y) { if (!await A.travel(bot, a, { range: 0, ms: 12000, stop: api.stop, quiet: true, anyDepth: true })) break }
+      }
     }
-    return { placed, lava, gap: gap ? [gap[0], y0, gap[1]] : null, box: [cx - 2, cz - 2, cx + 2, cz + 2], y: y0 }
+    return { placed, lava, anchors: anchors.length, gap: gap ? [gap[0], y0, gap[1]] : null, box: [cx - 2, cz - 2, cx + 2, cz + 2], y: y0 }
   }
 
   // ---------------------------------------------------------------- the far side (also the entry point when a new slice starts over there)
