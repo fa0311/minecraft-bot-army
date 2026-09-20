@@ -19,6 +19,9 @@
 //                    A lit gate spawns zombified piglins in the OVERWORLD outside the mob cap - that is TPS the owner pays for.
 //   maxDeaths:6      deaths IN THE LAST 30 MIN (settings.nether.deathLog) before the job pauses itself. Death is an accepted cost
 //                    of exploring the Nether; a squad wiped in a quarter of an hour is not.
+//   work:'barter'    1006 gold ingots in the depot -> ender pearls, fire resistance, obsidian. Wears a GOLD piece (piglins stay
+//                    neutral), drops ONE ingot at a time at an adult piglin within 8, picks up what comes back, NEVER attacks.
+//                    `ingots:64` per trip. A standing job: it ends when an operator pauses it.
 //   work:'stair'     THE WAY DOWN from a hub doorway to `toY` (blueprint nether_stair): a 2-wide, 3-high, roofed, lit corridor,
 //                    cut through rock and built of carried stone over void. Writes settings.nether.stair / floorHub.
 //   work:'fortress'  4 squads, one per bearing (+x/-x/+z/-z by roster index, or params.bearing), `range` blocks out in `step`
@@ -227,6 +230,9 @@ module.exports = ctx => {
   async function buildCells (bot, job, api, cells, box, until, what) {
     let placed = 0; let dug = 0; let steps = 0
     const done = new Set(); const tried = []; const why = {} // cells our own floor cannot reach: REPORTED with the reason, never chased round the box
+    // WAIT FOR THE WORLD BEFORE DECIDING THERE IS NOTHING TO DO (measured 14:49Z: pass after pass came home `unloaded:1330 of
+    // 1330` — the chunks of the stair had simply not arrived yet, ~14 s after the gate spat the bot out). Up to 20 s, then work.
+    for (let w = 0; w < 40 && !api.stop() && Date.now() < until && !cells.some(c => loadedAt(bot, c)); w++) { task(bot, 'nether ' + what + ': waiting for the world'); await sleep(500) }
     for (let round = 0; round < 120 && Date.now() < until && !api.stop(); round++) {
       const todo = cells.filter(c => !done.has(c.x + ',' + c.y + ',' + c.z) && loadedAt(bot, c) && !cellOK(bot, c))
       if (!todo.length) break
@@ -505,6 +511,40 @@ module.exports = ctx => {
     return { work: 'fortress', bearing: b[2], walked, bridged, legs, sighted: found ? found.at : null, kind: found ? found.kind : null }
   }
 
+  // ---------------------------------------------------------------- BARTER: 1006 gold ingots in the depot doing nothing
+  // (owner 14:0xZ "在庫の有効活用はしないのか？"). A piglin that is not angry takes a gold ingot you drop and throws something back:
+  // ender pearls (P6!), fire resistance potions (the Nether's real armour), obsidian (more gates), string, glowstone. The rules a
+  // player follows and a bot must too: wear at least ONE GOLD armour piece or every piglin in sight turns hostile; NEVER attack a
+  // piglin, not even one that is already angry; drop ONE ingot at a time at an ADULT within 6 blocks and pick up what comes back;
+  // babies barter nothing. The squad stands still on ground it can stand on - no chasing a piglin across a lava lake.
+  async function barter (bot, job, api, P, until) {
+    // the gold that keeps them neutral: any gold piece worn will do, a helmet is the cheapest (5 ingots)
+    const worn = [5, 6, 7, 8].map(q => bot.inventory.slots[q]).filter(Boolean).map(i => i.name)
+    if (!worn.some(n => /^golden_/.test(n))) {
+      if (!A.count(bot, 'golden_helmet')) await A.obtain(bot, 'golden_helmet', 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:goldHelm', e_))
+      const gh = bot.inventory.items().find(i => /^golden_(helmet|chestplate|leggings|boots)$/.test(i.name))
+      if (gh) { try { await U.withTimeout(bot.equip(gh, gh.name === 'golden_helmet' ? 'head' : gh.name === 'golden_chestplate' ? 'torso' : gh.name === 'golden_leggings' ? 'legs' : 'feet'), 5000, 'wearGold') } catch (e_) { swallow('jobs_nether:wearGold', e_) } }
+    }
+    const goldOn = [5, 6, 7, 8].map(q => bot.inventory.slots[q]).filter(Boolean).some(i => /^golden_/.test(i.name))
+    if (!goldOn) return { work: 'barter', why: 'no gold armour piece to wear - every piglin in sight would turn hostile' }
+    const adults = () => Object.values(bot.entities).filter(e => e && e.name === 'piglin' && e.position && e.position.distanceTo(bot.entity.position) <= 8 && !(e.metadata && e.metadata[17] === true))
+    let traded = 0; let got = 0; const t0 = Date.now()
+    while (Date.now() < until && !api.stop() && A.count(bot, 'gold_ingot') > 0) {
+      const t = adults()[0]
+      if (!t) { await sleep(2000); if (Date.now() - t0 > 60000 && !traded) break; continue }
+      const it = bot.inventory.items().find(i => i.name === 'gold_ingot'); if (!it) break
+      task(bot, 'nether barter: ' + traded + ' ingots offered, ' + got + ' back')
+      try { await bot.lookAt(t.position.offset(0, 1, 0), true); await U.withTimeout(bot.toss(it.type, null, 1), 5000, 'tossGold'); traded++ } catch (e_) { swallow('jobs_nether:toss', e_); break }
+      await sleep(7000) // a piglin examines the gold for about 6 s before it throws something back
+      const before = Object.values(A.inv(bot)).reduce((n, x) => n + x, 0)
+      await A.pickup(bot, 7, 4000)
+      const after = Object.values(A.inv(bot)).reduce((n, x) => n + x, 0)
+      got += Math.max(0, after - before)
+    }
+    const loot = {}; for (const [k, n] of Object.entries(A.inv(bot))) if (/pearl|potion|obsidian|glowstone|string|quartz|leather|soul_sand|crying/.test(k)) loot[k] = n
+    if (traded) A.result(bot, { ev: 'nether_barter', job: job.id, offered: traded, itemsBack: got, loot, at: xyz(bot.entity.position) })
+    return { work: 'barter', offered: traded, itemsBack: got, loot, min: Math.round((Date.now() - t0) / 6000) / 10 }
+  }
   // ---------------------------------------------------------------- STAGE 2: the work a squad does on the far side, then home
   // ONE round trip per slice while `skyAbove`/`digOut` are still overworld-blind (a bot left over there cuts a staircase into
   // the bedrock roof, measured 12:30:23Z): cross, work for `params.minutes`, come home. Nobody is ever idle on the far side.
@@ -566,6 +606,8 @@ module.exports = ctx => {
       box = unionBox(meta.box, N2.hub && N2.hub.room, xyz(bot.entity.position))
     } else if (work === 'fortress') {
       return await explore(bot, job, api, P, until)
+    } else if (work === 'barter') {
+      return await barter(bot, job, api, P, until)
     } else return { work, why: 'unknown params.work' }
 
     if (!cells || !cells.length) return { work, why: 'nothing to build' }
@@ -643,6 +685,13 @@ module.exports = ctx => {
       }
       far = bot.findBlock({ matching: b => !!b && b.name === 'nether_portal', maxDistance: 16 })
       if (!far) { A.result(bot, { ev: 'nether_lost', job: job.id, pos: xyz(bot.entity.position), to: reg, why: 'arrived at the registered gate and there is no nether_portal block there' }); return 'the registered far gate is gone' }
+    }
+    // NEVER STEP IN WHILE HOME IS OUT: an unlit overworld gate is what makes the game generate a new one on the way back.
+    if (netherOf().lit === false) {
+      A.result(bot, { ev: 'home_gate_out', job: job.id, pos: xyz(bot.entity.position), why: 'settings.nether.lit is false - waiting rather than making the game generate a new gate' })
+      A.askHelp(bot, 'home_gate_out', 'I am in the Nether and the home gate at ' + ((netherOf().gate) || []).join(',') + ' is not lit: re-light it')
+      for (let w = 0; w < 40 && !api.stop() && netherOf().lit === false; w++) await sleep(3000)
+      if (netherOf().lit === false) return 'waiting in the Nether: the home gate is out'
     }
     const cells = portalBody(bot, far.position, 10).map(p => [p.x, p.y, p.z])
     const to = await stepThrough(bot, api, cells.length ? cells : [xyz(far.position)], Math.min(P.crossS || 45, 120), 'standing in the far gate')
@@ -770,6 +819,42 @@ module.exports = ctx => {
     try { return A.liveBots(600000).some(h => h && h.bot !== self && /nether|end/.test(String(h.dim || ''))) } catch (e_) { swallow('jobs_nether:anyoneOverThere', e_); return true }
   }
 
+  // ---------------------------------------------------------------- TAKE AN EXTRA GATE DOWN (owner 15:0xZ "余計なネザーゲート壊して")
+  // Our own close/relight cycle made the game generate spare portals. Removing one is a player's job: take ALL the obsidian of the
+  // frame with a diamond pickaxe (which also puts it out), bank it - we need 10 for the planned second gate and the depot holds 2 -
+  // and never, ever touch the registered pair (`settings.nether.gate` / `settings.nether.portal`).
+  async function degate (bot, job, api, at) {
+    const N = netherOf()
+    const keep = new Set()
+    for (const q of [N.gate, N.portal]) if (Array.isArray(q)) for (let dx = -4; dx <= 4; dx++) for (let dy = -2; dy <= 6; dy++) for (let dz = -4; dz <= 4; dz++) keep.add((q[0] + dx) + ',' + (q[1] + dy) + ',' + (q[2] + dz))
+    const c0 = v(at)
+    if (A.dist2(bot, c0.x, c0.z) > 24 && !await A.travel(bot, { x: c0.x, y: c0.y, z: c0.z }, { range: 4, ms: 300000, stop: api.stop })) return { ok: false, why: 'cannot reach ' + at.join(',') }
+    await sleep(500)
+    const pk = A.bestOf(bot, 'pickaxe')
+    if (!pk || !/diamond|netherite/.test(pk.name)) { if (!await A.obtain(bot, 'diamond_pickaxe', 1, { stop: api.stop }).catch(() => false)) return { ok: false, why: 'no diamond pickaxe' } }
+    let got = 0; let left = 0
+    for (let round = 0; round < 6 && !api.stop(); round++) {
+      const ids = ['obsidian', 'crying_obsidian'].map(n => bot.registry.blocksByName[n]).filter(Boolean).map(b => b.id)
+      const found = bot.findBlocks({ matching: ids, maxDistance: 12, count: 60, point: c0 }).filter(q => !keep.has(q.x + ',' + q.y + ',' + q.z))
+      if (!found.length) break
+      let did = 0
+      for (const q of found) {
+        if (api.stop()) break
+        if (eyeOf(bot).distanceTo(q.offset(0.5, 0.5, 0.5)) > 4.2 && !await A.travel(bot, q, { range: 2, ms: 30000, stop: api.stop, quiet: true })) continue
+        await A.equipBest(bot, 'pickaxe').catch(e_ => swallow('jobs_nether:degatePick', e_))
+        const r = await BL().digBlock(bot, q, { collect: true, requireHarvest: true, allowProtected: true, own: true }).catch(() => ({ ok: false }))
+        if (r && r.ok) { got++; did++ }
+      }
+      await A.pickup(bot, 6, 3000)
+      if (!did) break
+    }
+    { const ids = ['obsidian'].map(n => bot.registry.blocksByName[n]).filter(Boolean).map(b => b.id)
+      left = ids.length ? bot.findBlocks({ matching: ids, maxDistance: 12, count: 60, point: c0 }).filter(q => !keep.has(q.x + ',' + q.y + ',' + q.z)).length : 0 }
+    const portalLeft = bot.findBlocks({ matching: b2 => !!b2 && b2.name === 'nether_portal', maxDistance: 12, count: 20, point: c0 }).length
+    A.result(bot, { ev: 'gate_removed', job: job.id, dim: dimOf(bot), at, obsidian: got, obsidianLeft: left, portalCellsLeft: portalLeft })
+    if (got) await A.bank(bot, { torch: 16 }, { job: job.id, stop: api.stop }).catch(e_ => swallow('jobs_nether:degateBank', e_))
+    return { ok: left === 0 && portalLeft === 0, obsidian: got, left, portalLeft }
+  }
   // WHEN IS A WORK JOB FINISHED? Read from the BOARD, never from one bot's memory — the next bot is in another process.
   // A short human reason when it is done, false while there is work left.
   function workDone (N, P) {
@@ -795,6 +880,12 @@ module.exports = ctx => {
       const rk = job.id + ':' + (job.rev || 0)
       const rs = bot.__armyPortalBack = (bot.__armyPortalBack && bot.__armyPortalBack.key === rk) ? bot.__armyPortalBack : { key: rk }
       return await comeHome(bot, job, api, ctx2, rs, P)
+    }
+    // TAKE A SPARE GATE DOWN (either dimension); it needs no gate geometry of its own
+    if (Array.isArray(P.degate) && P.degate.length === 3) {
+      const r = await degate(bot, job, api, P.degate)
+      if (r.ok) A.boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (j && j.status === 'active') { j.status = 'paused'; j.note = 'auto-paused: the spare gate at ' + P.degate.join(',') + ' is down, ' + (r.obsidian || 0) + ' obsidian banked' } })
+      return 'degate ' + P.degate.join(',') + ': ' + JSON.stringify(r)
     }
     if (!Array.isArray(P.origin) || P.origin.length !== 3 || !P.origin.every(Number.isFinite)) return muster(bot, job, api, ctx2, 'portal: params.origin [x,y,z] is missing (it is the origin of the nether_portal BUILD job)')
     let G; try { G = geomOf(P) } catch (e) { return muster(bot, job, api, ctx2, 'portal: blueprint error ' + String(e && e.message).slice(0, 80)) }
@@ -859,7 +950,10 @@ module.exports = ctx => {
     const N = netherOf()
     // PUT IT OUT BETWEEN TRIPS (owner: low TPS, 74 zombified piglins round the base from a gate that burned all day). The bot that
     // comes home last does it; while any heartbeat is still off the overworld the gate stays lit, because it is somebody's way back.
-    if ((st.closeDue || P.close === true) && P.closeGate !== false) {
+    // THE HOME GATE STAYS LIT (owner 15:0xZ "ゲートを空けたり閉めたりしてるから沢山ゲート生成されてるやん"): every time a bot came back
+    // while our overworld gate was out, the game found no lit portal to link to and GENERATED A NEW ONE — an extra gate at
+    // -284,84,-607. The piglin trickle is the lesser evil (MSPT 33-45 ms since the shard CPU cut). Closing is now opt-in only.
+    if ((P.close === true || (st.closeDue && P.closeGate === true))) {
       if (anyoneOverThere(bot.username)) { if (P.close === true) return 'portal: leaving the gate lit - a bot is still on the far side' } else {
         st.closeDue = false
         const c = await closeGate(bot, job, api, G)
@@ -909,6 +1003,7 @@ module.exports = ctx => {
       // the hub's furniture is CARRIED OVER (there is no depot on the far side and there must not be one in the overworld's books)
       if (P.work === 'hub') for (const it of ['chest', 'crafting_table', 'fence_gate']) if (!A.count(bot, it) && !bot.inventory.items().some(i => /_fence_gate$/.test(i.name) && it === 'fence_gate')) await A.obtain(bot, it, 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:furniture', e_))
       // a scout that finds the fortress must be able to say so from 100 blocks out and get home: bow + arrows when the depot has them
+      if (P.work === 'barter') { for (const it of ['golden_helmet', 'gold_ingot']) if (A.count(bot, it) < (it === 'gold_ingot' ? (P.ingots || 64) : 1)) await A.obtain(bot, it, it === 'gold_ingot' ? (P.ingots || 64) : 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:gold', e_)) }
       if (P.work === 'fortress') for (const it of ['bow', 'arrow']) if (A.stockOf(it) > 0 && A.count(bot, it) < (it === 'arrow' ? 16 : 1)) await A.obtain(bot, it, it === 'arrow' ? 32 : 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:bow', e_))
       // a shield is the difference between a ghast fireball and a death (top model 12:4xZ)
       if (!A.count(bot, 'shield') && !(bot.inventory.slots[45] || {}).name) await A.obtain(bot, 'shield', 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:shield', e_))

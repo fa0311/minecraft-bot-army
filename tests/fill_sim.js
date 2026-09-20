@@ -85,15 +85,17 @@ function simulate (sc, opts = {}) {
   const map = FP.workMap(world, sc.box, sc.grade, sc.opts || {})
   const claims = {}
   const start = FP.summary(map, world)
-  const bots = sc.crew.map(b => Object.assign({ busy: 0, placed: 0, digs: 0, trips: 0, falls: 0, moved: 0, waits: 0, noRoute: 0 }, b))
+  const bots = sc.crew.map(b => Object.assign({ busy: 0, placed: 0, digs: 0, trips: 0, falls: 0, moved: 0, waits: 0, noRoute: 0, leaves: 0 }, b))
   const gone = []
   const placedCells = new Set()
   const errs = []
   const err = (kind, msg) => { if (errs.length < 12) errs.push(kind + ': ' + msg) }
   let t = 0
+  let peak = 0
+  let workMin = 0
   let lastChange = 0
   let version = world.version
-  const trace = opts.trace ? [] : null
+  const trace = (opts.trace || opts.tail) ? [] : null
 
   const view = b => ({ id: b.id, pos: { x: b.pos.x, y: b.pos.y, z: b.pos.z }, carrying: b.carrying })
 
@@ -102,8 +104,11 @@ function simulate (sc, opts = {}) {
     const now = Math.round(t * 1000)
     if (sc.churn) sc.churn(t, bots, gone, rng)
 
-    const free = bots.filter(b => b.busy <= 0)
-    const busy = bots.filter(b => b.busy > 0)
+    // a builder that was told to `leave` goes back to the muster point and looks again in 30 s —
+    // exactly what the dispatcher does with it in the field. It is not lost, it is spent elsewhere.
+    const here = bots.filter(b => !(b.parkedUntil > t))
+    const free = here.filter(b => b.busy <= 0)
+    const busy = here.filter(b => b.busy > 0)
     for (const b of busy) { b.busy -= DT; const held = FP.heldBy(claims, b.id); if (held) claims[held].t = now } // a busy builder heartbeats its lane
     if (free.length) {
       const res = FP.plan(world, sc.box, sc.grade, free.map(view), {
@@ -117,16 +122,19 @@ function simulate (sc, opts = {}) {
           if (d <= 1) err('adjacent-targets', JSON.stringify(targets[i]) + ' / ' + JSON.stringify(targets[j]))
         }
       }
+      const working = res.actions.filter(a => a.action.type !== 'leave').length + busy.length
+      peak = Math.max(peak, working)
+      workMin += working * DT / 60
       for (const { id, action } of res.actions) {
         const b = bots.find(q => q.id === id)
         if (!b) continue
-        if (trace && trace.length < 200) trace.push(t.toFixed(2) + ' ' + id + ' ' + action.type + ' ' + JSON.stringify(action.cell || action.target || action.item || '') + ' — ' + action.why)
+        if (trace) trace.push(t.toFixed(2) + ' ' + id + ' ' + action.type + ' ' + JSON.stringify(action.cell || action.target || action.item || '') + ' — ' + action.why)
         run(b, action)
       }
     }
-    for (const b of bots) gravity(b)
+    for (const b of here) gravity(b)
     // invariant 1: nobody is entombed
-    for (const b of bots) {
+    for (const b of here) {
       if (world.get(b.pos.x, b.pos.y, b.pos.z) === 'ladder') continue
       if (b.pos.y > sc.grade) continue // on top of the world, outside the fill
       if (FP.walkArea(map, world, b.pos, null, map.o.minArea) < map.o.minArea) err('entombed', b.id + ' at ' + K3(b.pos.x, b.pos.y, b.pos.z))
@@ -134,7 +142,14 @@ function simulate (sc, opts = {}) {
     if (world.version !== version) { version = world.version; lastChange = t }
     const s = FP.summary(map, world, now)
     if (!s.open && !s.left) break
-    if (t - lastChange > 120) { err('stalled', 'nothing changed for 120 s, ' + s.left + ' cells left'); break }
+    if (t - lastChange > 120) {
+      err('stalled', 'nothing changed for 120 s, ' + s.left + ' cells left')
+      if (opts.dump) {
+        for (const b of bots) console.log('  bot', b.id, 'at', K3(b.pos.x, b.pos.y, b.pos.z), 'busy', b.busy.toFixed(1), 'parked', (b.parkedUntil || 0) - t, 'carry', JSON.stringify(b.carrying), 'lane', FP.heldBy(claims, b.id))
+        for (const tile of map.tiles.values()) { const q = FP.tileState(map, world, tile, now, true); if (q.done) continue; console.log('  lane', tile.id, 'x', tile.x1 + '..' + tile.x2, 'z', tile.z1 + '..' + tile.z2, 'layer', q.layerY, 'open', q.targets.length, 'blocked', q.blocked, 'left', q.remaining, 'claim', JSON.stringify(claims[tile.id] || null)) }
+      }
+      break
+    }
     if (!bots.length) { err('empty', 'every builder left with ' + s.left + ' cells still open'); break }
   }
 
@@ -142,19 +157,21 @@ function simulate (sc, opts = {}) {
   if (end.left) err('unfinished', end.left + ' cells still below grade')
   for (const b of bots) if (b.pos.y <= sc.grade) err('not-on-top', b.id + ' ends at y' + b.pos.y + ' (grade ' + sc.grade + ')')
   const placed = bots.concat(gone).reduce((n, b) => n + b.placed, 0)
+
   const noRoute = bots.concat(gone).reduce((n, b) => n + (b.noRoute || 0), 0)
   if (noRoute > Math.max(10, placed / 20)) err('no-route', noRoute + ' walks found no path (a mate closing the way is normal, a flood of them is not)')
   const botMin = bots.concat(gone).reduce((n, b) => n + (b.leftAt != null ? b.leftAt : t), 0) / 60
-  if (trace) console.log(trace.join('\n'))
+  if (trace) console.log(trace.slice(opts.tail ? -60 : 0, opts.tail ? undefined : 200).join('\n'))
   return {
     ok: !errs.length,
     errs,
     minutes: t / 60,
     cells: start.left,
     placed,
-    perBotMin: botMin ? placed / botMin : 0,
+    perBotMin: workMin ? placed / workMin : 0,
     crew: bots.length,
-    left: gone.length,
+    peak,
+    left: bots.reduce((n, b) => n + b.leaves, 0) + gone.length,
     drops: map.dropCols.size,
     sealed: end.sealed - start.sealed,
     falls: bots.concat(gone).reduce((n, b) => n + b.falls, 0),
@@ -175,10 +192,10 @@ function simulate (sc, opts = {}) {
       case 'restock': return doRestock(b, a)
       case 'wait': b.waits++; b.busy = 0.5; return
       case 'leave': {
-        b.leftAt = t
-        gone.push(b)
+        b.parkedUntil = t + 30
+        b.leaves++
+        b.pos = { x: sc.muster.x, y: sc.muster.y, z: sc.muster.z }
         const held = FP.heldBy(claims, b.id); if (held) FP.release(claims, held, b.id)
-        bots.splice(bots.indexOf(b), 1)
         return
       }
       default: err('unknown-action', a.type)
@@ -298,7 +315,7 @@ SCEN.a = () => {
   const box = { x1: 0, z1: 0, x2: 19, z2: 19, y1: 63 }
   const floor = (x, z) => (x >= 0 && x <= 19 && z >= 0 && z <= 19) ? 63 + Math.max(0, 6 - x) : 69
   const world = new World((x, z) => floor(x, z) - 1)
-  return { name: 'a open pit 20x20x6, ramp', world, box, grade, crew: crew(6, { x: -3, y: 69, z: 8 }), depot: { x: -30, y: 69, z: -30 } }
+  return { name: 'a open pit 20x20x6, ramp', world, box, grade, crew: crew(6, { x: -3, y: 69, z: 8 }), muster: { x: -3, y: 69, z: 8 }, depot: { x: -30, y: 69, z: -30 } }
 }
 
 // (b) TODAY'S REAL CASE: a sheer trench 7 x 21, floor y52-55, grade 68, 12 builders
@@ -308,7 +325,7 @@ SCEN.b = () => {
   const inBox = (x, z) => x >= -306 && x <= -300 && z >= -481 && z <= -461
   const floor = (x, z) => 52 + ((Math.abs(x) + Math.abs(z)) % 4)
   const world = new World((x, z) => inBox(x, z) ? floor(x, z) - 1 : grade)
-  return { name: 'b sheer trench 7x21x15 (the live one)', world, box, grade, crew: crew(12, { x: -298, y: 69, z: -470 }), depot: { x: -330, y: 69, z: -490 } }
+  return { name: 'b sheer trench 7x21x15 (the live one)', world, box, grade, crew: crew(12, { x: -298, y: 69, z: -470 }), muster: { x: -297, y: 69, z: -470 }, depot: { x: -330, y: 69, z: -490 } }
 }
 
 // (c) overhangs and three 1x1 shafts 12 deep with a flower at the bottom
@@ -322,7 +339,7 @@ SCEN.c = () => {
     for (let y = 50; y <= 61; y++) world.set(sx, y, sz, 'air')
     world.set(sx, 50, sz, 'plant') // the flower at the bottom of the shaft
   }
-  return { name: 'c overhangs + three 1x1 shafts 12 deep', world, box, grade, crew: crew(8, { x: -3, y: 69, z: 8 }, { gravel: 0 }), depot: { x: -30, y: 69, z: -30 } }
+  return { name: 'c overhangs + three 1x1 shafts 12 deep', world, box, grade, crew: crew(8, { x: -3, y: 69, z: 8 }, { gravel: 0 }), muster: { x: -3, y: 69, z: 8 }, depot: { x: -30, y: 69, z: -30 } }
 }
 
 // (d) a pit with a lava pool on its floor
@@ -332,7 +349,7 @@ SCEN.d = () => {
   const inBox = (x, z) => x >= 0 && x <= 15 && z >= 0 && z <= 15
   const world = new World((x, z) => inBox(x, z) ? 62 : grade)
   for (let x = 6; x <= 9; x++) for (let z = 6; z <= 9; z++) world.set(x, 63, z, 'lava')
-  return { name: 'd pit with a 4x4 lava pool', world, box, grade, crew: crew(8, { x: -3, y: 69, z: 8 }), depot: { x: -30, y: 69, z: -30 } }
+  return { name: 'd pit with a 4x4 lava pool', world, box, grade, crew: crew(8, { x: -3, y: 69, z: 8 }), muster: { x: -3, y: 69, z: 8 }, depot: { x: -30, y: 69, z: -30 } }
 }
 
 // (e) THE WHOLE RAVINE: 46 x 79, uneven floor 10-28 deep, 30 builders
@@ -342,7 +359,7 @@ SCEN.e = () => {
   const inBox = (x, z) => x >= -330 && x <= -285 && z >= -500 && z <= -422
   const depth = (x, z) => Math.round(19 + 9 * Math.sin(x / 7) * Math.cos(z / 9))
   const world = new World((x, z) => inBox(x, z) ? grade - depth(x, z) : grade)
-  return { name: 'e the whole ravine 46x79, 10-28 deep', world, box, grade, crew: crew(30, { x: -283, y: 69, z: -460 }), depot: { x: -350, y: 69, z: -520 }, maxMin: 180 }
+  return { name: 'e the whole ravine 46x79, 10-28 deep', world, box, grade, crew: crew(30, { x: -283, y: 69, z: -460 }), muster: { x: -283, y: 69, z: -460 }, depot: { x: -350, y: 69, z: -520 }, maxMin: 180 }
 }
 
 // (f) 25 builders on a 150-cell tail: the surplus must leave
@@ -351,7 +368,7 @@ SCEN.f = () => {
   const box = { x1: 0, z1: 0, x2: 14, z2: 9, y1: 68 }
   const inBox = (x, z) => x >= 0 && x <= 14 && z >= 0 && z <= 9
   const world = new World((x, z) => inBox(x, z) ? 67 : 68)
-  return { name: 'f 150-cell tail, 25 builders', world, box, grade, crew: crew(25, { x: -3, y: 69, z: 4 }), depot: { x: -30, y: 69, z: -30 } }
+  return { name: 'f 150-cell tail, 25 builders', world, box, grade, crew: crew(25, { x: -3, y: 69, z: 4 }), muster: { x: -3, y: 69, z: 4 }, depot: { x: -30, y: 69, z: -30 }, check: r => r.peak > 8 ? 'surplus did not leave: ' + r.peak + ' builders on a 150-cell tail' : null }
 }
 
 // (g) THE PULL MODEL UNDER CHURN: builders join and drop out mid-fill, one vanishes without releasing
@@ -365,7 +382,7 @@ SCEN.g = () => {
     if (Math.abs(t - 30) < 0.13 && bots.length) { const b = bots[Math.floor(r() * bots.length)]; b.leftAt = t; gone.push(b); bots.splice(bots.indexOf(b), 1) } // VANISHES: keeps its claim
     if (t > 10 && Math.abs((t % 25) - 0) < 0.13) {
       if (bots.length > 3 && r() < 0.5) { const b = bots[Math.floor(r() * bots.length)]; b.leftAt = t; gone.push(b); bots.splice(bots.indexOf(b), 1) } else {
-        bots.push({ id: 'n' + (nextId++), pos: { x: -298, y: 69, z: -470 }, carrying: { cobblestone: 0, gravel: 0, ladder: 16 }, busy: 0, placed: 0, digs: 0, trips: 0, falls: 0, moved: 0, waits: 0, noRoute: 0 })
+        bots.push({ id: 'n' + (nextId++), pos: { x: -298, y: 69, z: -470 }, carrying: { cobblestone: 0, gravel: 0, ladder: 16 }, busy: 0, placed: 0, digs: 0, trips: 0, falls: 0, moved: 0, waits: 0, noRoute: 0, leaves: 0 })
       }
     }
   }
@@ -376,7 +393,7 @@ SCEN.g = () => {
 
 function main () {
   const args = process.argv.slice(2)
-  const trace = args.includes('--trace')
+  const trace = args.includes('--trace'); const tail = args.includes('--tail')
   const want = args.filter(a => !a.startsWith('--'))
   const names = Object.keys(SCEN).filter(k => !want.length || want.includes(k))
   const rows = []
@@ -385,18 +402,19 @@ function main () {
     const sc = SCEN[k]()
     const t0 = Date.now()
     let r
-    try { r = simulate(sc, { trace }) } catch (e) { r = { ok: false, errs: ['threw: ' + e.message + '\n' + e.stack.split('\n')[1]], minutes: 0, cells: 0, placed: 0, perBotMin: 0, crew: 0, left: 0, drops: 0, falls: 0, trips: 0 } }
+    try { r = simulate(sc, { trace, tail, dump: args.includes('--dump') }) } catch (e) { r = { ok: false, errs: ['threw: ' + e.message + '\n' + e.stack.split('\n')[1]], minutes: 0, cells: 0, placed: 0, perBotMin: 0, crew: 0, left: 0, drops: 0, falls: 0, trips: 0 } }
     r.name = sc.name; r.cpu = (Date.now() - t0) / 1000
     rows.push(r)
+    if (r.ok && sc.check) { const why = sc.check(r); if (why) { r.ok = false; r.errs = [why] } }
     if (!r.ok) bad++
   }
   const pad = (s, n) => String(s).padEnd(n)
   const num = (v, n, d = 1) => String(typeof v === 'number' ? v.toFixed(d) : v).padStart(n)
   console.log('')
-  console.log(pad('scenario', 40) + num('cells', 7) + num('crew', 5) + num('quit', 5) + num('min', 7) + num('c/min/bot', 10) + num('trips', 6) + num('drops', 6) + num('falls', 6) + '  result')
+  console.log(pad('scenario', 40) + num('cells', 7) + num('crew', 5) + num('peak', 5) + num('quit', 6) + num('min', 7) + num('c/min/bot', 10) + num('trips', 6) + num('drops', 6) + num('falls', 6) + '  result')
   console.log('-'.repeat(103))
   for (const r of rows) {
-    console.log(pad(r.name, 40) + num(r.cells, 7, 0) + num(r.crew, 5, 0) + num(r.left, 5, 0) + num(r.minutes, 7) + num(r.perBotMin, 10) + num(r.trips, 6, 0) + num(r.drops, 6, 0) + num(r.falls, 6, 0) + '  ' + (r.ok ? 'PASS' : 'FAIL'))
+    console.log(pad(r.name, 40) + num(r.cells, 7, 0) + num(r.peak, 5, 0) + num(r.left, 6, 0) + num(r.minutes, 7) + num(r.perBotMin, 10) + num(r.trips, 6, 0) + num(r.drops, 6, 0) + num(r.falls, 6, 0) + '  ' + (r.ok ? 'PASS' : 'FAIL'))
     if (!r.ok) for (const e of r.errs) console.log('      ! ' + e)
   }
   console.log('')

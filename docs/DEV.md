@@ -178,3 +178,10 @@ Command blocks are enabled on the server (`enable-command-block=true`); the bots
 Moves (never deletes) the old world to `server/backups/world-<ts>/` and the army's world-bound state (chest index, ledger, scout/animal/census data, hb/assign, base.json,
 iron_mine.json …) to `bots/army/archive-<ts>/`, sets `level-seed`, starts the SERVER ONLY, creates team `army` + gamerules + the spectator datapack and prints the
 world spawn. It does NOT write the board: replace `bots/army/jobs.json` jobs/settings with a bootstrap board for that spawn (GOALS backlog 1), then `ops/up.sh`.
+
+## Paper is not vanilla (owner 09-20) — read before designing any farm, portal or mob mechanic
+The server is PAPER 26.2 at its DEFAULT settings (owner: leave them; design for them): `server/config/paper-world-defaults.yml`, `paper-global.yml`, `server/spigot.yml`.
+What bit us or will: `portal-search-radius 128` / `portal-create-radius 16` with vanilla dimension scaling (16 blocks on the Nether side: a partner gate that is out or farther = a NEW gate is generated) ·
+`entity-activation-range` villagers/monsters/animals 32, misc 16 (entities beyond that of a PLAYER barely tick: a farm needs a bot within ~32 blocks, not just inside the simulation distance) ·
+`iron-golems-can-spawn-in-air false` · `per-player-mob-spawns true`, `mob-spawn-range 8` · `piglins-guard-chests true` · `max-entity-collisions 8` · hopper `cooldown-when-full true` ·
+item `merge-radius 0.5` · duping/zero-tick exploits are patched. Bots speak protocol 26.1 through ViaBackwards: windows (trades, anvils) pass through that translation.

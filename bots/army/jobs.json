@@ -175,6 +175,31 @@
      -359,
      69,
      -500
+    ],
+    [
+     -360,
+     69,
+     -521
+    ],
+    [
+     -359,
+     69,
+     -518
+    ],
+    [
+     -362,
+     69,
+     -515
+    ],
+    [
+     -361,
+     69,
+     -515
+    ],
+    [
+     -359,
+     69,
+     -515
     ]
    ],
    "salvage": [
@@ -564,7 +589,7 @@
    "planks": 512,
    "cobblestone": 8000,
    "fuel": 224,
-   "iron": 224,
+   "iron": 800,
    "iron_ingot": 224,
    "torch": 512,
    "wheat_seeds": 224,
@@ -588,7 +613,9 @@
    "bucket": 8,
    "shears": 4,
    "bow": 8,
-   "arrow": 256
+   "arrow": 256,
+   "diamond_chestplate": 10,
+   "diamond_leggings": 10
   },
   "base": {
    "x": -320,
@@ -766,15 +793,15 @@
     -518
    ],
    "axis": "x",
-   "lit": 1789910808319,
-   "by": "Sayaka",
+   "lit": 1789915987819,
+   "by": "Rin",
    "portal": [
     -43,
     98,
     -80
    ],
-   "through": 1789915482574,
-   "scoutRev": 2,
+   "through": 1789915748101,
+   "scoutRev": 4,
    "hub": {
     "room": [
      -41,
@@ -885,8 +912,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789915482904,
-   "back": 1789912306490,
+   "landingAt": 1789915748417,
+   "back": 1789915781776,
    "lastDeath": 1789911678325,
    "lastDeathBy": "Hotaru",
    "roads": {
@@ -912,8 +939,8 @@
      "at": 1789909643817
     }
    },
-   "outAt": 1789909945544,
-   "outBy": "Honoka",
+   "outAt": 1789915921402,
+   "outBy": "Rin",
    "deathLog": [],
    "sightings": [],
    "fortress": null,
@@ -934,9 +961,10 @@
     ],
     "left": 0,
     "unloaded": 1330,
-    "at": 1789915489823,
+    "at": 1789915761878,
     "done": false
-   }
+   },
+   "gatePolicy": "LIT PERMANENTLY (owner 15:0xZ): closing it made the game generate spare gates"
   }
  },
  "enlisted": [
@@ -1593,7 +1621,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789915769301
+   "restUntil": 1789916062880
   },
   {
    "id": "fill_ring_field2",
@@ -2503,17 +2531,17 @@
     },
     "order": "near"
    },
-   "rev": 39,
+   "rev": 42,
    "desc": "until `fill_wayin ok:true` (ladder run in work by the engineer) only 3 bots: nobody can reach the trench floor, a bigger crew just stands at the rim - do NOT raise the head-count to hide idle bots",
    "note": "top model 14:1xZ: OPERATORS - DO NOT LOWER. open cells = left 3616 minus waiting 2920 = 696, so ceil(696/8) = 87 builders could work it at once; 20 is the cap. It reads done:0 because the last trench (x -306..-298 / z -461..-482, floor y52-55) has sheer walls and NO walkable entry, so the switchback ramp (x -300/-301, z -472..-478) can never be started: a ramp column is a solid cell built bottom-up and nobody can stand on the floor. It needs a way in built FROM THE TOP (ladder run, or a gravity-block ramp - gravel depot is 0, so fetch gravel first).",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Noa",
-    "t": 1789915146306,
+    "by": "Akari",
+    "t": 1789915715025,
     "at": [
-     -330,
+     -325,
      41,
-     -486
+     -473
     ]
    }
   },
@@ -2791,7 +2819,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 16,
+   "bots": 2,
    "site": [
     -257,
     67,
@@ -2829,13 +2857,11 @@
     "order": "near"
    },
    "note": "auto-paused: build complete - BUT 2 cells are left that 3 builders could not do (build_leftover): -277,67,-399 | -278,67,-399",
-   "rev": 6,
+   "rev": 7,
    "stuckBy": {
-    "key": "rev4",
+    "key": "rev6",
     "bots": [
-     "Tamaki",
-     "Noa",
-     "Nozomi"
+     "Aoi"
     ]
    },
    "cap": {
@@ -3304,36 +3330,6 @@
    "note": "auto-paused: the gate is lit and the round trip is done (bump rev to send another expedition)"
   },
   {
-   "id": "nether_gate_out",
-   "type": "portal",
-   "priority": 96,
-   "front": "base",
-   "status": "paused",
-   "when": "day",
-   "bots": 1,
-   "shiftMin": 10,
-   "site": [
-    -326,
-    69,
-    -518
-   ],
-   "plan": "zone portal (docs/WORLD.md): PUT THE GATE OUT between trips. A lit portal spawns zombified piglins in the OVERWORLD outside the mob cap - the owner measured 74 of them round the base and the TPS it costs. One frame obsidian out with a diamond pickaxe, the six inner cells read back as air, the obsidian straight back in. Nothing is fought; the gate is simply not left burning.",
-   "params": {
-    "blueprint": "nether_portal",
-    "origin": [
-     -326,
-     68,
-     -518
-    ],
-    "args": {
-     "axis": "x"
-    },
-    "buildJob": "base_portal",
-    "go": false,
-    "close": true
-   }
-  },
-  {
    "id": "base_portal",
    "type": "build",
    "priority": 88,
@@ -3372,9 +3368,9 @@
    "type": "build",
    "priority": 96,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 10,
+   "bots": 3,
    "site": [
     -330,
     69,
@@ -3383,7 +3379,7 @@
    "requires": {
     "minHp": 10
    },
-   "plan": "BASE PLAN zone mine x -338..-322 / z -508..-492 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. mine head: hut, haul chests and light AROUND the stair mouth (zone centre); the stairwell itself is dug and owned by the miners",
+   "plan": "BASE PLAN zone mine x -338..-322 / z -508..-492 on the base level y68: LEVEL the pad. RE-OPENED 09-20 14:5xZ by the foreman with a probe ON THE SPOT: `ground` reads -327,-499 y65 / -327,-500 y65 / -327,-501 y65 / -328,-499 y65 while every neighbour is grass y68 - an open 3-deep pit 2 blocks from the mine entrance (-330,69,-500). It is a BOT TRAP: Noa marooned there (island 11 of area 120), 30x chest-circling, 8 bank_unreachable, no_route to the depot with 1024 cobblestone on her back. Fill those columns to y68. The stairwell itself stays the miners.",
    "params": {
     "blueprint": "level",
     "origin": [
@@ -3396,7 +3392,7 @@
      "d": 17
     }
    },
-   "rev": 13,
+   "rev": 14,
    "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -329,67,-495"
   },
   {
@@ -3621,7 +3617,7 @@
     "maxDeaths": 6
    },
    "note": "auto-paused: the gate is lit and the round trip is done (bump rev to send another expedition)",
-   "rev": 3
+   "rev": 4
   },
   {
    "id": "west_terrace_cut_3",
@@ -3694,7 +3690,7 @@
      "Akari"
     ]
    },
-   "restUntil": 1789915715544
+   "restUntil": 1789917002994
   },
   {
    "id": "stray_furnace_344",
@@ -4046,7 +4042,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 3,
+   "bots": 1,
    "site": [
     -327,
     68,
@@ -4092,7 +4088,7 @@
      -495
     ]
    },
-   "rev": 1
+   "rev": 2
   },
   {
    "id": "base_depot_south",
@@ -4136,7 +4132,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 8,
    "site": [
     -291,
     68,
@@ -4161,13 +4157,13 @@
     },
     "order": "near"
    },
-   "rev": 1
+   "rev": 2
   },
   {
    "id": "ladders_for_ravine",
    "type": "steps",
    "priority": 96,
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "names": [
     "Mio",
@@ -4181,7 +4177,52 @@
       "do": "withdraw",
       "item": "oak_log",
       "n": 48,
-      "atLeast": 12
+      "atLeast": 4
+     },
+     {
+      "do": "withdraw",
+      "item": "oak_planks",
+      "n": 64,
+      "atLeast": 4
+     },
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       69,
+       -523
+      ],
+      "range": 2
+     },
+     {
+      "do": "craft",
+      "item": "oak_planks",
+      "n": 128
+     },
+     {
+      "do": "craft",
+      "item": "stick",
+      "n": 160
+     },
+     {
+      "do": "craft",
+      "item": "ladder",
+      "n": 64
+     },
+     {
+      "do": "bank"
+     },
+     {
+      "do": "withdraw",
+      "item": "oak_log",
+      "n": 48,
+      "atLeast": 4
+     },
+     {
+      "do": "withdraw",
+      "item": "oak_planks",
+      "n": 64,
+      "atLeast": 4
      },
      {
       "do": "goto",
@@ -4210,6 +4251,66 @@
      {
       "do": "bank"
      }
+    ]
+   },
+   "rev": 1
+  },
+  {
+   "id": "nether_barter",
+   "type": "portal",
+   "priority": 92,
+   "front": "base",
+   "status": "paused",
+   "when": "day",
+   "bots": 4,
+   "shiftMin": 20,
+   "site": [
+    -326,
+    69,
+    -518
+   ],
+   "plan": "zone portal (docs/WORLD.md): PIGLIN BARTERING with the 1024 idle gold ingots (owner: 在庫の有効活用はしないのか？) - ender pearls for P6, fire resistance potions, obsidian for the second gate. Each bot wears a GOLD piece so piglins stay neutral, drops ONE ingot at a time at an adult piglin within 8 blocks, picks up what comes back and banks it. NEVER attacks a piglin. PAUSED until settings.nether.floorHub exists and a squad has sighted piglins down there - there are none on the ledge.",
+   "params": {
+    "blueprint": "nether_portal",
+    "origin": [
+     -326,
+     68,
+     -518
+    ],
+    "args": {
+     "axis": "x"
+    },
+    "buildJob": "base_portal",
+    "go": true,
+    "landing": true,
+    "work": "barter",
+    "ingots": 64,
+    "minutes": 7,
+    "cobble": 128,
+    "crossS": 45,
+    "maxDeaths": 6
+   }
+  },
+  {
+   "id": "nether_gate_spare_n607",
+   "type": "portal",
+   "priority": 95,
+   "front": "base",
+   "status": "active",
+   "when": "day",
+   "bots": 1,
+   "shiftMin": 15,
+   "site": [
+    -284,
+    84,
+    -607
+   ],
+   "plan": "zone portal (docs/WORLD.md): REMOVE THE SPARE GATE at -284,84,-607 (14 obsidian, ~90 blocks N of the base). Our own close/relight cycle made the game generate it: a bot returning while the home gate was out has nothing to link to. A bot takes ALL its obsidian with a diamond pickaxe (which also puts it out) and banks it - we need 10 for the planned second gate and the depot holds 2. The registered pair (settings.nether.gate / .portal) is never touched.",
+   "params": {
+    "degate": [
+     -284,
+     84,
+     -607
     ]
    }
   }

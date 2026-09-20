@@ -90,6 +90,7 @@ function workMap (world, box, grade, opts = {}) {
     lava: new Set(), // every lava cell of the box; it only ever shrinks (quenched), never grows
     floor: new Map(), // "x,z" -> the lowest open cell (monotonic: the fill only ever rises)
     state: new Map(), // tile id -> cached state
+    avoid: new Map(), // botId -> a lane it just handed back, so it does not take it straight back
     count: { n: 0, at: -1e9 }
   }
   for (let tx = 0; tx * o.tile <= b.x2 - b.x1; tx++) {
@@ -173,8 +174,27 @@ function firstOpen (map, world, x, z) {
   return null
 }
 
+// the lowest cell of a lane that is still work — grade+1 when the lane stands finished
+function laneFloor (map, world, tile) {
+  let y = null
+  for (let x = tile.x1; x <= tile.x2; x++) {
+    for (let z = tile.z1; z <= tile.z2; z++) {
+      const q = firstOpen(map, world, x, z)
+      if (q != null && (y == null || q < y)) y = q
+    }
+  }
+  return y == null ? map.grade + 1 : y
+}
+
 // LAYER = the lowest open cell of the whole lane; its targets are the cells of the lane at that height
 // that already have a solid block underneath. The layer is closed before it rises: no pinholes, ever.
+//
+// THE WATER LEVEL (measured, scenario (a), 09-20): lanes that rise independently build wells. A lane
+// that had run 5 layers ahead of its neighbours left them in a shaft nobody could walk into, and the
+// planner then wanted an entry ladder into a hole IT had made. So a lane may never stand more than ONE
+// block above a neighbouring lane's floor: the filled surface stays a 1-step staircase, walkable in
+// every direction, and the fill spreads like water — deepest basin first, then the level rises. It is
+// also what makes the crew size honest: only the lanes at the waterline are open work.
 function tileState (map, world, tile, now, fresh) {
   const cached = map.state.get(tile.id)
   if (cached && !fresh && now - cached.t < 2000) return cached
@@ -187,8 +207,15 @@ function tileState (map, world, tile, now, fresh) {
       if (layerY == null || y < layerY) layerY = y
     }
   }
-  const targets = []
+  let blocked = false
   if (layerY != null) {
+    for (const nid of neighbourIds(tile)) {
+      const n = map.tiles.get(nid)
+      if (n && layerY > laneFloor(map, world, n) + 1) { blocked = true; break }
+    }
+  }
+  const targets = []
+  if (layerY != null && !blocked) {
     for (let x = tile.x1; x <= tile.x2; x++) {
       for (let z = tile.z1; z <= tile.z2; z++) {
         if (!placeable(map, world, x, layerY, z)) continue
@@ -197,7 +224,7 @@ function tileState (map, world, tile, now, fresh) {
     }
     targets.sort((a, b) => (b.lava ? 1 : 0) - (a.lava ? 1 : 0) || a.x - b.x || a.z - b.z)
   }
-  const st = { t: now, id: tile.id, layerY, targets, remaining, done: layerY == null }
+  const st = { t: now, id: tile.id, layerY, targets, remaining, blocked, done: layerY == null }
   map.state.set(tile.id, st)
   return st
 }
@@ -242,8 +269,9 @@ function openTiles (world, box, grade, opts = {}) {
   const now = opts.now || 0
   const from = opts.from ? flr(opts.from) : { x: map.box.x1, y: grade + 1, z: map.box.z1 }
   expire(claims, now, o.claimMs)
+  const av = opts.avoid && opts.avoid.until > now ? opts.avoid.id : null
   const cand = [...map.tiles.values()]
-    .filter(t => claimable(map, claims, t, opts.botId || null))
+    .filter(t => t.id !== av && claimable(map, claims, t, opts.botId || null))
     .sort((a, b) => Math.hypot(a.cx - from.x, a.cz - from.z) - Math.hypot(b.cx - from.x, b.cz - from.z) || (a.id < b.id ? -1 : 1))
   const out = []
   for (const t of cand.slice(0, opts.all ? cand.length : o.scan)) {
@@ -403,11 +431,15 @@ function entryAction (map, world, bot, tile, o) {
   for (let y = map.grade; y >= floor; y--) { if (kindAt(world, col.x, y, col.z) !== 'ladder') break; lowest = y }
   const rung = lowest == null ? map.grade : lowest - 1
   const tag = 'e' + K2(col.x, col.z)
-  if (rung < floor) return { type: 'descend', target: { x: col.x, y: floor, z: col.z }, entry: tag, why: 'down the entry ladder at ' + K2(col.x, col.z) }
+  if (rung < floor) {
+    const bottom = { x: col.x, y: floor, z: col.z }
+    if (same(feet, bottom)) return { type: 'wait', why: 'at the foot of the entry ladder, waiting for a lane I can reach' }
+    return { type: 'descend', target: bottom, entry: tag, why: 'down the entry ladder at ' + K2(col.x, col.z) }
+  }
   if (have(bot, 'ladder', o) < 1) return { type: 'restock', item: 'ladder', n: 16, entry: tag, why: 'ladders for the way into the pit at ' + K2(col.x, col.z) }
   const from = lowest == null ? rim : { x: col.x, y: lowest, z: col.z }
   if (!same(feet, from)) {
-    if (lowest == null) return { type: 'move', target: rim, entry: tag, why: 'to the rim to start the entry ladder' }
+    if (lowest == null) return same(feet, rim) ? { type: 'wait', why: 'at the rim, the first rung goes in next tick' } : { type: 'move', target: rim, entry: tag, why: 'to the rim to start the entry ladder' }
     return { type: 'descend', target: from, entry: tag, why: 'down to the last rung' }
   }
   return { type: 'place', cell: { x: col.x, y: rung, z: col.z }, item: 'ladder', entry: tag, why: 'entry ladder rung y' + rung }
@@ -440,7 +472,7 @@ function next (bot, tile, world, opts = {}) {
   // 2. what may be filled at all this tick without harming anybody
   const others = mates.filter(m => !same(m, feet))
   const safe = st.targets.filter(c => safeToPlace(map, world, c, others, o))
-  if (!safe.length) return { type: 'wait', why: 'every open cell of ' + t.id + ' stands beside a builder — it steps up first' }
+  if (!safe.length) return { type: 'wait', release: true, why: 'every open cell of ' + t.id + ' is held by a mate standing in it — I take another lane' }
 
   // 3. from where I stand (lava first, then the nearest cell)
   if (canStand(map, world, feet.x, feet.y, feet.z)) {
@@ -495,9 +527,17 @@ function pick (list, feet) {
 // where a builder may stand to work this lane: on the finished floor, in the lane or just beside it,
 // never in a mate's cell, never within 2 of lava, and only where it really reaches a cell of the lane.
 function standsFor (map, world, tile, st, targets, mates, o) {
+  const inLane = standsIn(map, world, tile, st, targets, mates, o, 0)
+  return inLane.length ? inLane : standsIn(map, world, tile, st, targets, mates, o, 3)
+}
+
+// r = 0: only the lane's own columns (the normal case — a builder never stands in a mate's lane).
+// r = 3: the ring around it, for the two cases the lane itself has no room: a cell under a 1-high
+// overhang, and a lava cell that may only be quenched from 3 blocks away.
+function standsIn (map, world, tile, st, targets, mates, o, r) {
   const out = []
-  for (let x = tile.x1 - 3; x <= tile.x2 + 3; x++) {
-    for (let z = tile.z1 - 3; z <= tile.z2 + 3; z++) {
+  for (let x = tile.x1 - r; x <= tile.x2 + r; x++) {
+    for (let z = tile.z1 - r; z <= tile.z2 + r; z++) {
       for (const y of [st.layerY, st.layerY + 1]) {
         if (!canStand(map, world, x, y, z, mates)) continue
         const s = { x, y, z }
@@ -543,13 +583,13 @@ function plan (world, box, grade, crew, opts = {}) {
   for (const bot of sorted) {
     const mates = everyone.filter(m => m.id !== bot.id).map(m => m.pos)
     let tileId = heldBy(claims, bot.id)
-    if (tileId && tileState(map, world, map.tiles.get(tileId), now, true).done) { release(claims, tileId, bot.id); tileId = null }
+    if (tileId) { const st = tileState(map, world, map.tiles.get(tileId), now, true); if (st.done || st.blocked) { release(claims, tileId, bot.id); tileId = null } }
     if (!tileId) {
       if (laneCount(claims) >= capacity) {
         actions.push({ id: bot.id, action: { type: 'leave', why: openCells + ' cells open: ' + laneCount(claims) + ' builders are the whole crew this needs' } })
         continue
       }
-      const t = openTiles(world, box, grade, { map, claims, now, from: bot.pos, botId: bot.id, limit: 1 })[0]
+      const t = openTiles(world, box, grade, { map, claims, now, from: bot.pos, botId: bot.id, limit: 1, avoid: map.avoid.get(bot.id) })[0]
       if (!t) {
         actions.push({ id: bot.id, action: { type: 'leave', why: 'no lane open near me that is not beside a working mate' } })
         continue
@@ -559,6 +599,7 @@ function plan (world, box, grade, crew, opts = {}) {
     }
     claims[tileId].t = now // a working builder renews its claim; a vanished one lets it lapse
     let action = next(bot, tileId, world, { map, mates, now })
+    if (action.release) { release(claims, tileId, bot.id); map.avoid.set(bot.id, { id: tileId, until: now + 10000 }) }
     // the entry ladder is shared by every lane of that box edge: one builder builds it, the rest wait
     if (action.entry && !claim(claims, action.entry, bot.id, now, map)) {
       action = { type: 'wait', why: 'another builder is building the entry ladder ' + action.entry }

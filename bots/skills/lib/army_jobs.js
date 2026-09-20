@@ -3266,33 +3266,24 @@ async function build (bot, job, api, ctx) {
     if (!await A.travel(bot, { x: site.x + site.dx, y: fillG + 1, z: site.z + site.dz }, { range: 1, ms: 120000, stop: api.stop })) { A.result(bot, { ev: 'fill_wayin', job: job.id, ok: false, why: 'cannot reach the rim stand ' + [site.x + site.dx, fillG + 1, site.z + site.dz].join(',') }); return false }
     const faces = [new Vec3(-site.dx, 0, -site.dz), new Vec3(0, -1, 0)] // the wall behind the ladder first, the ladder above it as the fallback reference
     const hang = async y => { const r = await BL.placeBlock(bot, new Vec3(site.x, y, site.z), 'ladder', { faces, expect: 'ladder', retries: 1, noMove: y < fillG, moveMs: 10000 }).catch(e_ => ({ ok: false, reason: String(e_ && e_.message).slice(0, 30) })); return r }
-    const slideTo = async y => { // release the sneak: the ladder carries the bot down at 0.15/tick; sneak stops it again, always inside a cell that HAS a ladder
-      bot.setControlState('sneak', false)
-      const t1 = Date.now() + 8000
-      while (Date.now() < t1 && !api.stop() && bot.entity.position.y > y + 0.55) await sleep(20) // 20 ms: one tick of free ladder travel is 0.15 blocks, so the sneak lands the feet well inside the cell that HAS a ladder
-      bot.setControlState('sneak', true); await sleep(150)
-      const p = bot.entity.position
-      return Math.floor(p.x) === site.x && Math.floor(p.z) === site.z && Math.floor(p.y) === y
-    }
+    // A LADDER IS A STAIR FOR OUR BOTS (PROBED 14:4xZ on Akari: mineflayer reads a ladder as `boundingBox:'block'`, shape [0,0,0,0.1875,1,1] - the pathfinder walks ONTO
+    // each rung (physical) and can never enter the cell, and the real physics hold a body that overlaps the 19 cm box). The first three runs all died on the same line,
+    // "could not step into the ladder column" at exactly one block ABOVE the top rung: the bot was standing ON it. So the run is built like a staircase - stand on the
+    // lowest rung, hang the next one 2 below the feet (eye 3.1 blocks away, well within reach), step down onto it - and that is how the whole crew walks it afterwards.
     let placed = 0; let why = ''
     try {
       const r0 = await hang(fillG)
       if (!r0.ok) why = 'the top ladder ' + [site.x, fillG, site.z].join(',') + ': ' + r0.reason
       else {
         placed++
-        // INTO the column: the pathfinder itself, on the rule this run is built for (army.js climbRule - a step down into a ladder cell is one block). Measured
-        // 14:28:39Z, Sumire: walking `forward` off the rim missed the column, because placeBlock takes its own stand for the top ladder and that is rarely the rim
-        // cell we walked to. The A* knows where it stands.
-        const inCol = () => { const p = bot.entity.position; return Math.floor(p.x) === site.x && Math.floor(p.z) === site.z && Math.floor(p.y) <= fillG }
-        try { if (!inCol()) await U.withTimeout(bot.pathfinder.goto(new G.GoalBlock(site.x, fillG, site.z)), 25000, 'wayEnter') } catch (e_) { swallow('army_jobs:wayEnter', e_) }
-        { const t2 = Date.now() + 4000; while (Date.now() < t2 && !inCol() && !api.stop()) await sleep(50) } // the goto ends the moment the bot steps off the rim: it is still FALLING the one block into the ladder (14:34:28Z Erika read -325,69,-476, one above her own ladder)
-        bot.setControlState('sneak', true); await sleep(200)
-        if (!inCol()) why = 'could not step into the ladder column from the rim (' + bot.entity.position.floored().toString() + ')'
-        else for (let y = fillG - 1; y >= site.fy; y--) {
+        for (let y = fillG - 1; y >= site.fy; y--) {
+          const feet = y + 2; const on = () => { const p = bot.entity.position.floored(); return p.x === site.x && p.z === site.z && p.y === feet }
+          if (!on()) { try { await U.withTimeout(bot.pathfinder.goto(new G.GoalBlock(site.x, feet, site.z)), 20000, 'wayStep') } catch (e_) { swallow('army_jobs:wayStep', e_) } }
+          { const t2 = Date.now() + 3000; while (Date.now() < t2 && !on() && !api.stop()) await sleep(50) }
+          if (!on()) { const p = bot.entity.position.floored(); why = 'could not step onto the rung at ' + [site.x, feet, site.z].join(',') + ' (stood at ' + [p.x, p.y, p.z].join(',') + ')'; break }
           const r = await hang(y)
           if (!r.ok) { why = 'ladder ' + [site.x, y, site.z].join(',') + ': ' + r.reason; break }
           placed++
-          if (!await slideTo(y)) { const p = bot.entity.position.floored(); why = 'the descent left the run at ' + [p.x, p.y, p.z].join(',') + ' (wanted ' + [site.x, y, site.z].join(',') + ')'; break }
         }
       }
     } catch (e_) { swallow('army_jobs:ladderWay', e_); why = String(e_ && e_.message).slice(0, 40) } finally {
