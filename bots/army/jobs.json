@@ -1276,12 +1276,12 @@
    "lit": 1789916622472,
    "by": "Nanami",
    "portal": [
-    -44,
+    -43,
     98,
     -80
    ],
-   "through": 1789945176062,
-   "scoutRev": 3,
+   "through": 1789946940008,
+   "scoutRev": 10,
    "hub": {
     "room": [
      -41,
@@ -1392,8 +1392,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789945176244,
-   "back": 1789945188941,
+   "landingAt": 1789946863119,
+   "back": 1789946875849,
    "lastDeath": 1789924669079,
    "lastDeathBy": "Fuuka",
    "roads": {
@@ -1615,12 +1615,11 @@
     "t": 1789924913245
    },
    "absorb": {
-    "iron_ingot": 48,
     "leather": 192,
-    "flint": 312,
-    "coal": 240
+    "coal": 240,
+    "flint": 312
    },
-   "absorbT": 1789945292597
+   "absorbT": 1789945634018
   },
   "enchantTable": [
    -344,
@@ -1811,7 +1810,7 @@
     "maxDist": 220,
     "first": "sheep"
    },
-   "rev": 27,
+   "rev": 29,
    "bots": 4,
    "note": "owner 09-20: sheep are culled actively (wool 10 328 / 150, TPS). ONLY sheep: the hunt handler has NO pen exclusion - with kinds sheep/pig/cow/chicken and leave 0 the hunters emptied pen 1 (69 sheep) within the hour; cows, chickens and pigs are left alone until the handler spares penned animals (BUGS)"
   },
@@ -2040,7 +2039,7 @@
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 8,
    "rev": 66,
-   "restUntil": 1789946468723
+   "restUntil": 1789948805762
   },
   {
    "id": "base_dorm",
@@ -2226,9 +2225,9 @@
     "radius": 150,
     "bankAt": 32
    },
-   "rev": 18,
-   "bots": 1,
-   "restUntil": 1789945912179
+   "rev": 19,
+   "bots": 0,
+   "restUntil": 1789947783114
   },
   {
    "id": "sleeper",
@@ -2315,7 +2314,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789945321089
+   "restUntil": 1789947233464
   },
   {
    "id": "fill_ring_field1",
@@ -2601,7 +2600,7 @@
    },
    "bots": 6,
    "rev": 11,
-   "restUntil": 1789904576289,
+   "restUntil": 1789946587792,
    "note": "auto-activated: `after` base_cane finished (auto-paused: build complete)"
   },
   {
@@ -2617,7 +2616,7 @@
     -500
    ],
    "shiftMin": 60,
-   "bots": 1,
+   "bots": 2,
    "requires": {
     "minHp": 14,
     "minFood": 14
@@ -2644,7 +2643,7 @@
      ]
     }
    },
-   "rev": 7,
+   "rev": 8,
    "note": "03:10Z engineer: 40 obsidian banked (want reached) - paused. Re-activate with a higher params.args.want when more is needed; open spot on record: -54/29:-1 (37 cast obsidian left)",
    "restUntil": 1789920160291,
    "names": []
@@ -3369,7 +3368,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789946032483
+   "restUntil": 1789947853286
   },
   {
    "id": "nether_landing_2",
@@ -4880,7 +4879,7 @@
     "radius": 150,
     "bankAt": 48
    },
-   "restUntil": 1789945923865,
+   "restUntil": 1789948354523,
    "rev": 12
   },
   {
@@ -5049,6 +5048,52 @@
     "bots": [
      "Akari",
      "Yui",
+     "Rin"
+    ]
+   }
+  },
+  {
+   "id": "base_pen_2_pad",
+   "type": "build",
+   "priority": 57,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 1,
+   "site": [
+    -389,
+    69,
+    -549
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone pen_2 x -403..-375 / z -556..-542 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. animal pen 27x13: fence ring, ONE gate onto the road beside it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -389,
+     68,
+     -549
+    ],
+    "args": {
+     "w": 29,
+     "d": 15
+    }
+   },
+   "rev": 9,
+   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -402,65,-548",
+   "restUntil": 1789935147159,
+   "cap": {
+    "id": "cap_base_pen_2_pad",
+    "cols": 435,
+    "t": 1789927911282
+   },
+   "stuckBy": {
+    "key": "rev9",
+    "bots": [
+     "Hazuki",
+     "Chika",
      "Rin"
     ]
    }
