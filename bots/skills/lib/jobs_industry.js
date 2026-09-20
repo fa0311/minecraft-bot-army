@@ -361,6 +361,7 @@ module.exports = ctx => {
   async function loadCargo (bot, job, api) {
     const P = job.params || {}
     const plan = cargoPlan(P)
+    if (!plan.length && A.count(bot, 'emerald') < 8) return { why: 'the depot holds nothing spare to sell' }
     if (!plan.length) return { why: 'the depot holds nothing spare to sell' }
     task(bot, 'trade: loading the glut at the depot')
     // WHAT THE VILLAGE DID NOT BUY GOES BACK ON THE SHELF (measured 15:30Z: 480 coal + 576 wool rode 1 250 blocks twice because
@@ -380,7 +381,10 @@ module.exports = ctx => {
     // village has little left to buy from us that day.
     const purse = Math.min(64, A.stockOf('emerald'))
     if (purse > 0) { const n = await A.withdraw(bot, 'emerald', purse, { stop: api.stop }); if (n > 0) got.emerald = n }
-    if (!A.count(bot, 'bread') && !bot.inventory.items().some(i => bot.registry.foodsByName[i.name])) await A.obtain(bot, 'bread', 16, { stop: api.stop }).catch(e_ => swallow('jobs_industry:bread', e_))
+    // FOOD FOR 1 250 BLOCKS. A trader SPRINTS both ways and eats all the way (measured 16:32Z: Tamaki reached the village on
+    // hp 6 / food 0 carrying 51 emeralds — one mob and the whole trip is on the ground). A full trip needs about a stack.
+    const food = bot.inventory.items().filter(i => bot.registry.foodsByName[i.name]).reduce((n, i) => n + i.count, 0)
+    if (food < (P.food || 24)) await A.obtain(bot, 'bread', (P.food || 24) - food + A.count(bot, 'bread'), { stop: api.stop }).catch(e_ => swallow('jobs_industry:bread', e_))
     return { got }
   }
 

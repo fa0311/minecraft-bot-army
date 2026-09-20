@@ -108,6 +108,126 @@
      -371,
      71,
      -509
+    ],
+    [
+     -353,
+     69,
+     -512
+    ],
+    [
+     -353,
+     70,
+     -512
+    ],
+    [
+     -351,
+     69,
+     -512
+    ],
+    [
+     -351,
+     70,
+     -512
+    ],
+    [
+     -349,
+     69,
+     -512
+    ],
+    [
+     -349,
+     70,
+     -512
+    ],
+    [
+     -347,
+     69,
+     -512
+    ],
+    [
+     -347,
+     70,
+     -512
+    ],
+    [
+     -345,
+     69,
+     -512
+    ],
+    [
+     -345,
+     70,
+     -512
+    ],
+    [
+     -343,
+     69,
+     -512
+    ],
+    [
+     -343,
+     70,
+     -512
+    ],
+    [
+     -353,
+     69,
+     -509
+    ],
+    [
+     -351,
+     69,
+     -509
+    ],
+    [
+     -351,
+     70,
+     -509
+    ],
+    [
+     -349,
+     69,
+     -509
+    ],
+    [
+     -349,
+     70,
+     -509
+    ],
+    [
+     -347,
+     69,
+     -509
+    ],
+    [
+     -347,
+     70,
+     -509
+    ],
+    [
+     -345,
+     69,
+     -509
+    ],
+    [
+     -345,
+     70,
+     -509
+    ],
+    [
+     -343,
+     69,
+     -509
+    ],
+    [
+     -343,
+     70,
+     -509
+    ],
+    [
+     -353,
+     70,
+     -509
     ]
    ],
    "build": [
@@ -427,6 +547,66 @@
      -361,
      69,
      -497
+    ],
+    [
+     -353,
+     69,
+     -497
+    ],
+    [
+     -353,
+     70,
+     -497
+    ],
+    [
+     -351,
+     69,
+     -497
+    ],
+    [
+     -351,
+     70,
+     -497
+    ],
+    [
+     -349,
+     69,
+     -497
+    ],
+    [
+     -349,
+     70,
+     -497
+    ],
+    [
+     -347,
+     69,
+     -497
+    ],
+    [
+     -347,
+     70,
+     -497
+    ],
+    [
+     -345,
+     69,
+     -497
+    ],
+    [
+     -345,
+     70,
+     -497
+    ],
+    [
+     -343,
+     69,
+     -497
+    ],
+    [
+     -343,
+     70,
+     -497
     ]
    ],
    "food": [
@@ -469,6 +649,66 @@
      -371,
      70,
      -512
+    ],
+    [
+     -353,
+     69,
+     -500
+    ],
+    [
+     -353,
+     70,
+     -500
+    ],
+    [
+     -351,
+     69,
+     -500
+    ],
+    [
+     -351,
+     70,
+     -500
+    ],
+    [
+     -349,
+     69,
+     -500
+    ],
+    [
+     -349,
+     70,
+     -500
+    ],
+    [
+     -347,
+     69,
+     -500
+    ],
+    [
+     -347,
+     70,
+     -500
+    ],
+    [
+     -345,
+     69,
+     -500
+    ],
+    [
+     -345,
+     70,
+     -500
+    ],
+    [
+     -343,
+     69,
+     -500
+    ],
+    [
+     -343,
+     70,
+     -500
     ]
    ],
    "ores": [
@@ -506,6 +746,126 @@
      -361,
      69,
      -506
+    ],
+    [
+     -353,
+     69,
+     -506
+    ],
+    [
+     -353,
+     70,
+     -506
+    ],
+    [
+     -351,
+     69,
+     -506
+    ],
+    [
+     -351,
+     70,
+     -506
+    ],
+    [
+     -349,
+     69,
+     -506
+    ],
+    [
+     -349,
+     70,
+     -506
+    ],
+    [
+     -347,
+     69,
+     -506
+    ],
+    [
+     -347,
+     70,
+     -506
+    ],
+    [
+     -345,
+     69,
+     -506
+    ],
+    [
+     -345,
+     70,
+     -506
+    ],
+    [
+     -343,
+     69,
+     -506
+    ],
+    [
+     -343,
+     70,
+     -506
+    ],
+    [
+     -353,
+     69,
+     -503
+    ],
+    [
+     -353,
+     70,
+     -503
+    ],
+    [
+     -351,
+     69,
+     -503
+    ],
+    [
+     -351,
+     70,
+     -503
+    ],
+    [
+     -349,
+     69,
+     -503
+    ],
+    [
+     -349,
+     70,
+     -503
+    ],
+    [
+     -347,
+     69,
+     -503
+    ],
+    [
+     -347,
+     70,
+     -503
+    ],
+    [
+     -345,
+     69,
+     -503
+    ],
+    [
+     -345,
+     70,
+     -503
+    ],
+    [
+     -343,
+     69,
+     -503
+    ],
+    [
+     -343,
+     70,
+     -503
     ]
    ]
   },
@@ -1681,12 +2041,12 @@
       "z": -500,
       "facing": "north"
      },
-     "level": -48
+     "level": 48
     }
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 12,
-   "rev": 51,
+   "rev": 52,
    "restUntil": 1789922076785
   },
   {
@@ -1962,7 +2322,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789921902621
+   "restUntil": 1789922121820
   },
   {
    "id": "fill_ring_field2",
@@ -2807,14 +3167,14 @@
    "note": "top model 15:1xZ: 655 OPEN cells (left 3216 minus waiting 2561) - do not lower; ladderWay (fill_wayin) needs builders standing on the RIM to hang the way in",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Ayame",
-    "t": 1789921778961,
+    "by": "Misaki",
+    "t": 1789921998139,
     "at": [
-     -294,
-     58,
-     -480
+     -301,
+     60,
+     -477
     ],
-    "drop": 11
+    "drop": 9
    }
   },
   {
@@ -3571,7 +3931,7 @@
    "front": "base",
    "status": "active",
    "when": "day",
-   "bots": 6,
+   "bots": 1,
    "site": [
     -326,
     68,
@@ -3598,8 +3958,8 @@
      "Chika"
     ]
    },
-   "note": "auto-paused: build complete",
-   "rev": 5
+   "note": "needs: cobblestone (150 cells wait; every cell whose material exists is done or in work)",
+   "rev": 6
   },
   {
    "id": "base_mine_pad",
@@ -5404,20 +5764,20 @@
    "id": "bake_bulk",
    "type": "steps",
    "priority": 96,
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 6,
+   "bots": 4,
    "requires": {
     "minHp": 6
    },
-   "plan": "no zone: FOOD EMERGENCY 15:36Z - 15 238 wheat in the depot and 0 bread, 33 bots eating rotten flesh (I removed the bake job as make-work on 09-20; the quartermaster bakes 21 a round, the army eats faster). 6 rounds x 192 bread per baker into the food chests",
+   "plan": "no zone: FOOD - 13 000 wheat in the depot, bread short (mine_not_ready missing food 16:3xZ). craft.js makes 21 bread per call (one wheat stack per window - filed), so each round = 9 craft calls of 21; 4 rounds x 189 per baker",
    "params": {
     "steps": [
      {
       "do": "withdraw",
       "item": "wheat",
-      "n": 576,
-      "atLeast": 192
+      "n": 567,
+      "atLeast": 63
      },
      {
       "do": "goto",
@@ -5431,7 +5791,47 @@
      {
       "do": "craft",
       "item": "bread",
-      "n": 192
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
      },
      {
       "do": "bank",
@@ -5443,8 +5843,8 @@
      {
       "do": "withdraw",
       "item": "wheat",
-      "n": 576,
-      "atLeast": 192
+      "n": 567,
+      "atLeast": 63
      },
      {
       "do": "goto",
@@ -5458,7 +5858,47 @@
      {
       "do": "craft",
       "item": "bread",
-      "n": 192
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
      },
      {
       "do": "bank",
@@ -5470,8 +5910,8 @@
      {
       "do": "withdraw",
       "item": "wheat",
-      "n": 576,
-      "atLeast": 192
+      "n": 567,
+      "atLeast": 63
      },
      {
       "do": "goto",
@@ -5485,7 +5925,47 @@
      {
       "do": "craft",
       "item": "bread",
-      "n": 192
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
      },
      {
       "do": "bank",
@@ -5497,8 +5977,8 @@
      {
       "do": "withdraw",
       "item": "wheat",
-      "n": 576,
-      "atLeast": 192
+      "n": 567,
+      "atLeast": 63
      },
      {
       "do": "goto",
@@ -5512,61 +5992,47 @@
      {
       "do": "craft",
       "item": "bread",
-      "n": 192
-     },
-     {
-      "do": "bank",
-      "keep": {
-       "bread": 8,
-       "torch": 16
-      }
-     },
-     {
-      "do": "withdraw",
-      "item": "wheat",
-      "n": 576,
-      "atLeast": 192
-     },
-     {
-      "do": "goto",
-      "to": [
-       -345,
-       69,
-       -523
-      ],
-      "range": 3
+      "n": 21
      },
      {
       "do": "craft",
       "item": "bread",
-      "n": 192
-     },
-     {
-      "do": "bank",
-      "keep": {
-       "bread": 8,
-       "torch": 16
-      }
-     },
-     {
-      "do": "withdraw",
-      "item": "wheat",
-      "n": 576,
-      "atLeast": 192
-     },
-     {
-      "do": "goto",
-      "to": [
-       -345,
-       69,
-       -523
-      ],
-      "range": 3
+      "n": 21
      },
      {
       "do": "craft",
       "item": "bread",
-      "n": 192
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
      },
      {
       "do": "bank",
@@ -5577,8 +6043,7 @@
      }
     ]
    },
-   "rev": 5,
-   "note": "auto-paused: plan failed"
+   "rev": 6
   },
   {
    "id": "void_fix_base_infill_minehead_mound",
@@ -5746,14 +6211,14 @@
   {
    "id": "cavity_base",
    "type": "cavity",
-   "priority": 71,
+   "priority": 73,
    "status": "active",
    "when": "any",
-   "bots": 5,
+   "bots": 8,
    "site": [
-    -310,
+    -311,
     68,
-    -475
+    -473
    ],
    "requires": {
     "minHp": 12,
@@ -5768,9 +6233,24 @@
     },
     "minutes": 12,
     "maxAgeMin": 90,
-    "maxCells": 400
+    "maxCells": 4000,
+    "maxDepth": 40,
+    "dig": true,
+    "box": [
+     -334,
+     -486,
+     -289,
+     -461
+    ],
+    "yMin": 40,
+    "yTop": 80,
+    "pond": [
+     -408,
+     62,
+     -455
+    ]
    },
-   "rev": 6
+   "rev": 7
   },
   {
    "id": "fill_buckets",
@@ -5922,7 +6402,7 @@
    "type": "build",
    "priority": 78,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 8,
    "site": [
@@ -5956,7 +6436,7 @@
     },
     "order": "near"
    },
-   "note": "needs: dirt (3 cells wait; every cell whose material exists is done or in work)"
+   "note": "auto-paused: build complete"
   },
   {
    "id": "nether_dead_frames",
@@ -6000,6 +6480,41 @@
     "crossS": 30,
     "maxDeaths": 6
    }
+  },
+  {
+   "id": "nether_gate_road",
+   "type": "build",
+   "priority": 95,
+   "front": "base",
+   "status": "active",
+   "when": "day",
+   "bots": 1,
+   "site": [
+    -336,
+    68,
+    -518
+   ],
+   "plan": "zone portal (docs/WORLD.md): JOIN THE GATE TO THE ROAD LATTICE (owner 16:3xZ: the gate pad stands in the grass with no road to it, and 50 bots use it). A 3-wide paved road at the base level y68 from the enlarged apron's west edge -334,68,-518 to the north-south lattice road at -338,68,-518 (probe: grass y68 all the way, the lattice is cobblestone y68 - one height, no trench, no bank). 5 blocks of road, torches on the edge.",
+   "params": {
+    "blueprint": "road",
+    "origin": [
+     -334,
+     68,
+     -518
+    ],
+    "pad": false,
+    "args": {
+     "toX": -338,
+     "toZ": -518,
+     "width": 3,
+     "block": "stone",
+     "clear": 3,
+     "torchEvery": 8,
+     "shoulder": 0
+    }
+   },
+   "note": "needs: cobblestone (17 cells wait; every cell whose material exists is done or in work)",
+   "rev": 1
   }
  ]
 }

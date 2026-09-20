@@ -741,7 +741,9 @@ async function main () {
     for (const [y, L] of Object.entries(lv)) {
       const bs = Object.values((L && L.branches) || {}); const open = bs.filter(x => !x.done)
       const out = IC ? IC.commute(L) : null // mean blocks from the hub to the open branch ends: "6 open branches, 220 blocks out" is a 4-minute walk each way
-      console.log('  level y ' + String(y).padEnd(4) + ' branches ' + bs.length + ' (open ' + open.length + ', claimed ' + open.filter(x => x.owner).length + '), length ' + ((L && L.branchLen) || '-') + ', ore blocks ' + bs.reduce((n, x) => n + (x.ore || 0), 0) + (out == null ? '' : ', ' + out + ' blocks out') + (IC && IC.exhausted(L) ? '  EXHAUSTED (' + IC.levelCap(L) + ' branches x ' + IC.MAX_BRANCH + ', none open)' : '') + (+y === cur ? '   <- working' : ''))
+      const Y = IC && IC.levelYield ? IC.levelYield(L) : null
+      const re = IC && IC.reopenable ? bs.filter(IC.reopenable).length : 0
+      console.log('  level y ' + String(y).padEnd(4) + ' branches ' + bs.length + ' (open ' + open.length + ', claimed ' + open.filter(x => x.owner).length + ', cave ' + re + '), length ' + ((L && L.branchLen) || '-') + ', dug ' + bs.reduce((n, x) => n + (x.len || 0), 0) + ', ore blocks ' + bs.reduce((n, x) => n + (x.ore || 0), 0) + (Y ? ', yield ' + Y.ore.toFixed(1) + '/100' + (Y.iron == null ? '' : ' (iron ' + Y.iron.toFixed(1) + '/100)') : '') + (out == null ? '' : ', ' + out + ' blocks out') + (IC && IC.exhausted(L) ? '  EXHAUSTED (' + IC.levelCap(L) + ' branches x ' + IC.MAX_BRANCH + ', none open)' : '') + (+y === cur ? '   <- working' : ''))
     }
   } else if (cmd === 'animals') {
     let rows = []; try { rows = fs.readFileSync(path.join(DIR, 'animals.jsonl'), 'utf8').trim().split('\n').map(l => JSON.parse(l)) } catch {}

@@ -540,7 +540,7 @@ module.exports = ctx => {
 
   // ---------------------------------------------------------------- claims: two bots are never on one cavity
   function claimRead () { return A.readJSON(CLAIM_F, {}) || {} }
-  async function claimTake (bot, id, ttl) {
+  async function claimTake (bot, id, ttl, at) {
     let got = false
     await U.withLock('cavity_claims', () => {
       const d = A.readJSON(CLAIM_F, {}) || {}; const now = Date.now()
@@ -548,7 +548,7 @@ module.exports = ctx => {
       const cur = d[id]
       if (cur && cur.done) return
       if (cur && cur.bot !== bot.username && now - cur.t < (cur.ttl || 900000)) return
-      d[id] = { bot: bot.username, t: now, ttl }
+      d[id] = { bot: bot.username, t: now, ttl, at: at || null }
       A.writeJSON(CLAIM_F, d); got = true
     }, 15000)
     return got
@@ -901,6 +901,13 @@ module.exports = ctx => {
       const base = comp.cells.filter(p => isSolidB(bot.blockAt(p.offset(0, -1, 0)))).map(p => p.y).sort((a, b) => a - b)[0]
       if (base != null) { const before = comp.cells.length; comp.cells = comp.cells.filter(p => p.y >= base); hang = before - comp.cells.length }
     }
+    // THE MINERS' CELLS ARE NEVER FILLED, even when the void they walk through is ours (a stairwell crossing a ravine cavern: the component is
+    // ours by share, those cells are theirs by geometry - same "within 2" rule the census classifies by).
+    const PSm = planSets(A, paramsBox(P)).mine
+    const nearMine = p => { for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) for (let dz = -2; dz <= 2; dz++) if (PSm.has((p.x + dx) + ',' + (p.y + dy) + ',' + (p.z + dz))) return true; return false }
+    let mineSkip = 0
+    if (PSm.size) { const keep = comp.cells.filter(p => !nearMine(p)); mineSkip = comp.cells.length - keep.length; comp.cells = keep }
+    if (!comp.cells.length) return { ok: false, why: 'every cell of ' + ent.at.join(',') + ' belongs to the mine', done: true }
     const want = new Map(); for (const p of comp.cells) want.set(keyOf(p), p)
     const restoreList = []; const capCells = []
     if (comp.sky) {
@@ -945,6 +952,8 @@ module.exports = ctx => {
       for (const c of got.tunnel || []) { const q = vv(c); want.set(keyOf(q), q) } // ...and so is the tunnel
       restoreList.push({ at: vv(got.at), name: got.name }) // ...and its top cell gets the surface material back
     }
+    const inFill = setInterval(() => { try { const q = bot.entity.position.floored(); bot.__armyInFill = { job: job.id, until: Date.now() + 300000, at: [q.x, q.y, q.z] } } catch (e_) { swallow('jobs_cavity:inFillTick', e_) } }, 5000)
+    try {
     // 6. a torch first: the light stops the spawns, the core combat module fights what is already in here
     try { if (A.count(bot, 'torch')) await B.placeTorch(bot, bot.entity.position.floored(), { stop: api.stop }).catch(e_ => swallow('jobs_cavity:torch', e_)) } catch (e_) { swallow('jobs_cavity:torch2', e_) }
     // 7. FILL, bottom-up, from the inside
@@ -992,7 +1001,7 @@ module.exports = ctx => {
     for (const q of restoreList) for (let y = q.at.y; y >= comp.bbox[4]; y--) { const b = bot.blockAt(new Vec3(q.at.x, y, q.at.z)); if (!b || isAirB(b) || LIQUID_RE.test(b.name)) shaftLeft++ }
     const badTop = restored.filter(n => n === 'air').length
     const ok = left === 0 && shaftLeft === 0 && badTop === 0
-    return {
+    return Object.assign({ mineSkip }, {
       ok,
       placed: r1.placed,
       cells: comp.cells.length + capCells.length,
@@ -1006,7 +1015,8 @@ module.exports = ctx => {
       top: restoreList.map(q => xyzOf(q.at).join(',')),
       tookS: Math.round((Date.now() - t0) / 1000),
       why: ok ? null : left + ' cells + ' + shaftLeft + ' shaft cells still open, ' + badTop + ' surface cells not restored' + (leftAt.length ? ' (' + leftAt.join(' ') + ')' : '')
-    }
+    })
+    } finally { clearInterval(inFill); try { bot.__armyInFill = null } catch (e_) { swallow('jobs_cavity:inFillOff', e_) } }
   }
 
   // ---------------------------------------------------------------- the handler
@@ -1042,13 +1052,16 @@ module.exports = ctx => {
       A.decline(bot, job, 600000, 'cavity: every target is claimed by a mate')
       return muster(bot, job, api, ctx2, 'cavity: nothing free to fill')
     }
-    // SMALL AND NEAR FIRST: a bot has ~12 min, and one 275-cell hole spends it all while nine 15-cell holes beside it keep spawning mobs.
-    // The big ones are still taken - they just wait until the cheap ones are gone (and each pass leaves them smaller).
+    // SMALL AND NEAR FIRST by default: a bot has ~12 min, and one 275-cell hole spends it all while nine 15-cell holes beside it keep spawning
+    // mobs. Inside a known EXCAVATION (`params.dig`) it is the other way round - the big caverns are the hole the owner is waiting for.
     const me = bot.entity.position
-    const cost = e => Math.hypot(e.at[0] - me.x, e.at[2] - me.z) + e.cells * 1.5 - e.spawnable * 0.5
+    const cost = e => Math.hypot(e.at[0] - me.x, e.at[2] - me.z) + (P.dig ? -e.cells * 3 : e.cells * 1.5) - e.spawnable * 0.5
     free.sort((a, b) => cost(a) - cost(b))
+    // ONE BOT PER COMPONENT, AND SHAFTS >= 4 APART: two bots cutting neighbouring shafts undercut each other's fill
+    const busy = Object.values(claims).filter(c => !c.done && c.bot !== bot.username && now - (c.t || 0) < (c.ttl || 900000) && Array.isArray(c.at))
+    const tooClose = e => busy.some(c => Math.hypot(c.at[0] - e.at[0], c.at[2] - e.at[2]) < 4)
     let ent = null
-    for (const e of free.slice(0, 6)) { if (await claimTake(bot, e.id, 16 * 60000)) { ent = e; break } }
+    for (const e of free.slice(0, 8)) { if (tooClose(e)) continue; if (await claimTake(bot, e.id, 16 * 60000, e.at)) { ent = e; break } }
     if (!ent) return muster(bot, job, api, ctx2, 'cavity: a mate took every target first')
     task(bot, 'cavity: ' + ent.type + ' ' + ent.at.join(',') + ' (' + ent.cells + ' cells, ' + ent.spawnable + ' spawnable)')
     let r = null
