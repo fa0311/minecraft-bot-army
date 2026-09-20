@@ -760,7 +760,19 @@
     -76
    ],
    "through": 1789905419271,
-   "scoutRev": 2
+   "scoutRev": 2,
+   "hub": [
+    -37,
+    98,
+    -76
+   ],
+   "shell": [
+    -39,
+    -78,
+    -35,
+    -74
+   ],
+   "shellY": 98
   }
  },
  "enlisted": [
@@ -1021,32 +1033,6 @@
    "rev": 14,
    "bots": 18,
    "note": "top model 07:40Z: 2900 logs in stock; the far forest (305 blocks) is retired - the tree farm inside the base (lumber_base) is the wood source"
-  },
-  {
-   "id": "guard_night",
-   "type": "guard",
-   "priority": 60,
-   "front": "muster",
-   "status": "paused",
-   "when": "night",
-   "bots": 12,
-   "requires": {
-    "minHp": 12,
-    "anyItem": [
-     "wooden_sword",
-     "stone_sword",
-     "iron_sword",
-     "wooden_axe",
-     "stone_axe",
-     "iron_axe"
-    ]
-   },
-   "plan": "no world change: the NIGHT SPONGE - 31 deaths/h (foreman 04:30Z: 6x creeper, 6x skeleton, 4x zombie in 30 min of ONE night, at the fields and at muster). 12 armed bots hold the base ring, kill what comes within 24 and keep string, bones, arrows",
-   "params": {
-    "radius": 24,
-    "minHp": 8
-   },
-   "rev": 4
   },
   {
    "id": "tidy_spawn",
@@ -1766,58 +1752,6 @@
    },
    "rev": 2,
    "restUntil": 1789905605527
-  },
-  {
-   "id": "guard_muster",
-   "type": "guard",
-   "priority": 92,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 6,
-   "site": [
-    -367,
-    69,
-    -488
-   ],
-   "requires": {
-    "minHp": 12,
-    "anyItem": [
-     "diamond_sword",
-     "iron_sword",
-     "stone_sword",
-     "wooden_sword",
-     "diamond_axe",
-     "iron_axe",
-     "stone_axe"
-    ]
-   },
-   "plan": "no world change: armed watch over the MUSTER yard and the depot - 8 bots died at muster in 1 h (skeleton, creeper, phantom) while weak bots with hp under 7 and no food stand there unable to fight back. Clear every hostile within 22 of the muster point, day and night",
-   "params": {
-    "post": [
-     -367,
-     69,
-     -488
-    ],
-    "radius": 40,
-    "when": "any",
-    "minHp": 12,
-    "kinds": [
-     "zombie",
-     "skeleton",
-     "spider",
-     "husk",
-     "stray",
-     "drowned",
-     "zombie_villager",
-     "bogged",
-     "slime",
-     "witch",
-     "pillager",
-     "creeper"
-    ]
-   },
-   "rev": 7
   },
   {
    "id": "fill_ring_field2",
@@ -2754,58 +2688,6 @@
    }
   },
   {
-   "id": "guard_treefarm",
-   "type": "guard",
-   "priority": 95,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 4,
-   "site": [
-    -242,
-    72,
-    -543
-   ],
-   "requires": {
-    "minHp": 12,
-    "anyItem": [
-     "diamond_sword",
-     "iron_sword",
-     "stone_sword",
-     "diamond_axe",
-     "iron_axe",
-     "stone_axe"
-    ]
-   },
-   "plan": "no world change: armed escort of the EAST works (roads 9/11, tree farm zone x -282..-235 / z -454..-407). A pillager patrol owns that ground: Chika shot/doomed to fall 3x in 3 min at -281,69,-450 (04:25-04:27Z) while road 6/11 work passes through. Clear every hostile within 32 of the post, day and night, so the roads and the tree farm can be built instead of the squad being parked.",
-   "params": {
-    "post": [
-     -242,
-     72,
-     -543
-    ],
-    "radius": 44,
-    "when": "any",
-    "minHp": 10,
-    "kinds": [
-     "pillager",
-     "vindicator",
-     "evoker",
-     "ravager",
-     "zombie",
-     "skeleton",
-     "spider",
-     "husk",
-     "stray",
-     "drowned",
-     "creeper",
-     "witch",
-     "bogged"
-    ]
-   },
-   "rev": 3
-  },
-  {
    "id": "base_cane",
    "type": "build",
    "priority": 45,
@@ -3609,57 +3491,6 @@
      "fill": "cobblestone"
     }
    }
-  },
-  {
-   "id": "guard_infill_east",
-   "type": "guard",
-   "priority": 93,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 3,
-   "site": [
-    -258,
-    69,
-    -386
-   ],
-   "requires": {
-    "minHp": 12,
-    "anyItem": [
-     "diamond_sword",
-     "iron_sword",
-     "stone_sword",
-     "diamond_axe",
-     "iron_axe",
-     "stone_axe"
-    ]
-   },
-   "plan": "no world change: armed escort of the SE infill works (zones base_infill_n278_n401 x -278..-248 and base_infill_n247_n401 x -247..-235 / z -401..-371). A pillager patrol owns that ground OUTSIDE guard_treefarm radius 32: Mio killed at -240,64,-385 and Chika at -247,65,-383 (07:55Z, 20 s apart, both on army:build level). Clear every hostile within 32 of the post so the levelling squad can work.",
-   "params": {
-    "post": [
-     -258,
-     69,
-     -386
-    ],
-    "radius": 32,
-    "when": "any",
-    "minHp": 10,
-    "kinds": [
-     "pillager",
-     "vindicator",
-     "evoker",
-     "ravager",
-     "zombie",
-     "skeleton",
-     "spider",
-     "husk",
-     "stray",
-     "drowned",
-     "creeper",
-     "witch"
-    ]
-   },
-   "rev": 1
   },
   {
    "id": "fill_ne_valley",
