@@ -3264,7 +3264,7 @@ async function build (bot, job, api, ctx) {
     const slideTo = async y => { // release the sneak: the ladder carries the bot down at 0.15/tick; sneak stops it again, always inside a cell that HAS a ladder
       bot.setControlState('sneak', false)
       const t1 = Date.now() + 8000
-      while (Date.now() < t1 && !api.stop() && bot.entity.position.y > y + 0.45) await sleep(50)
+      while (Date.now() < t1 && !api.stop() && bot.entity.position.y > y + 0.55) await sleep(20) // 20 ms: one tick of free ladder travel is 0.15 blocks, so the sneak lands the feet well inside the cell that HAS a ladder
       bot.setControlState('sneak', true); await sleep(150)
       const p = bot.entity.position
       return Math.floor(p.x) === site.x && Math.floor(p.z) === site.z && Math.floor(p.y) === y
@@ -3275,12 +3275,13 @@ async function build (bot, job, api, ctx) {
       if (!r0.ok) why = 'the top ladder ' + [site.x, fillG, site.z].join(',') + ': ' + r0.reason
       else {
         placed++
-        await bot.lookAt(new Vec3(site.x + 0.5, fillG + 0.5, site.z + 0.5), true).catch(e_ => { swallow('army_jobs:wayLook', e_) })
-        bot.setControlState('forward', true) // one step off the rim INTO the ladder cell one below: a 1-block drop the ladder catches
-        const t0 = Date.now() + 3000
-        while (Date.now() < t0 && !(Math.floor(bot.entity.position.x) === site.x && Math.floor(bot.entity.position.z) === site.z)) await sleep(50)
-        bot.setControlState('forward', false); bot.setControlState('sneak', true); await sleep(200)
-        if (Math.floor(bot.entity.position.y) > fillG) why = 'could not step into the ladder column from the rim'
+        // INTO the column: the pathfinder itself, on the rule this run is built for (army.js climbRule - a step down into a ladder cell is one block). Measured
+        // 14:28:39Z, Sumire: walking `forward` off the rim missed the column, because placeBlock takes its own stand for the top ladder and that is rarely the rim
+        // cell we walked to. The A* knows where it stands.
+        const inCol = () => { const p = bot.entity.position; return Math.floor(p.x) === site.x && Math.floor(p.z) === site.z && Math.floor(p.y) <= fillG }
+        try { if (!inCol()) await U.withTimeout(bot.pathfinder.goto(new G.GoalBlock(site.x, fillG, site.z)), 25000, 'wayEnter') } catch (e_) { swallow('army_jobs:wayEnter', e_) }
+        bot.setControlState('sneak', true); await sleep(200)
+        if (!inCol()) why = 'could not step into the ladder column from the rim (' + bot.entity.position.floored().toString() + ')'
         else for (let y = fillG - 1; y >= site.fy; y--) {
           const r = await hang(y)
           if (!r.ok) { why = 'ladder ' + [site.x, y, site.z].join(',') + ': ' + r.reason; break }
@@ -3288,7 +3289,12 @@ async function build (bot, job, api, ctx) {
           if (!await slideTo(y)) { const p = bot.entity.position.floored(); why = 'the descent left the run at ' + [p.x, p.y, p.z].join(',') + ' (wanted ' + [site.x, y, site.z].join(',') + ')'; break }
         }
       }
-    } catch (e_) { swallow('army_jobs:ladderWay', e_); why = String(e_ && e_.message).slice(0, 40) } finally { bot.setControlState('sneak', false); bot.setControlState('forward', false) }
+    } catch (e_) { swallow('army_jobs:ladderWay', e_); why = String(e_ && e_.message).slice(0, 40) } finally {
+      bot.setControlState('sneak', false); bot.setControlState('forward', false)
+      // a run that broke off leaves the bot hanging over the rest of the drop: it climbs back OUT on what it has built (climbing up a ladder is the pathfinder's own
+      // move) instead of sliding off the last rung. A finished run ends on the floor, which is where the work is.
+      if (why && Math.floor(bot.entity.position.y) <= fillG) { try { await U.withTimeout(bot.pathfinder.goto(new G.GoalBlock(site.x + site.dx, fillG + 1, site.z + site.dz)), 25000, 'wayOut') } catch (e_) { swallow('army_jobs:wayOut', e_) } }
+    }
     A.result(bot, Object.assign({ ev: 'fill_wayin', job: job.id, ok: placed >= n - 1, ladders: placed, of: n, top: [site.x, fillG, site.z], floor: site.fy, wall: [site.dx, site.dz] }, why ? { why } : {}))
     return placed > 0
   }

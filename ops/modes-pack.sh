@@ -27,6 +27,7 @@ scoreboard objectives add prank_age dummy
 scoreboard objectives add tp trigger
 scoreboard objectives remove nether
 scoreboard objectives add dim trigger
+scoreboard objectives add nk trigger
 scoreboard objectives add pid dummy
 execute unless score #next pid matches 100.. run scoreboard players set #next pid 100
 scoreboard players set #20 prank_cd 20
@@ -45,6 +46,7 @@ s+='gamemode spectator @a['+H+',tag=!free,gamemode=!spectator]\ngamemode surviva
 // EVERY player has an id (objective pid): bots = roster number 1..N (fixed at load, so the chat-line click of the bots - trigger tp set 1000+N - keeps working),
 // everybody else gets the next free number from 101 on first sight. trigger tp = clickable list of ALL online players, trigger tp set 1000+id = jump.
 s+='scoreboard players enable @a['+H+'] tp\n'
+s+='scoreboard players enable @a[name=fa0311] nk\nexecute as @a[name=fa0311,scores={nk=1..}] run function modes:nk_go\nscoreboard players set @a[scores={nk=1..}] nk 0\n'
 s+='scoreboard players enable @a['+H+'] dim\nexecute as @a[team=!guests,scores={pid=100..,dim=1..}] at @s run function modes:dim_go\nscoreboard players set @a[scores={dim=1..}] dim 0\n'
 s+='execute as @a[team=!guests,scores={pid=100..,tp=1..999}] run function modes:tp_menu\nexecute as @a[team=!guests,scores={pid=100..,tp=1000..}] run function modes:tp_go\nscoreboard players set @a[scores={tp=1..}] tp 0\n'
 let L=require('fs').readFileSync('$F/load.mcfunction','utf8');r.forEach((n,i)=>{L+='scoreboard players set '+n+' pid '+(i+1)+'\n'});require('fs').writeFileSync('$F/load.mcfunction',L)
@@ -151,6 +153,18 @@ P
 # THE ARMY'S STORES: guests cannot OPEN or BREAK containers / furnaces / tables inside the base box - BotGuard plugin (`stores` in its config), verified 09-20 13:16Z with a test
 # account (no window opens). The first answer, a datapack advancement that KILLED a guest on touch, is gone (owner: "空けられないようにするとか出来る？"): remove its files.
 rm -rf $D/data/modes/advancement $F/guest_kill.mcfunction
+# /trigger nk (owner 09-20, from the terminal: "nakasyou_bot を kill する trigger 作れる？"): the OWNER ONLY (name fa0311 - IP-pinned to the LAN by BotGuard, so the name cannot be
+# borrowed) gets a clickable list of the guest team's bots that are online and kills the one he clicks, or all of them - without holding op. Nobody else has the trigger enabled.
+{ echo 'execute if score @s nk matches 1..9 run tellraw @s {"text":"KILL a guest bot (owner only):","color":"red","bold":true}'
+  i=10; for n in $GUESTS; do
+    echo "execute if score @s nk matches 1..9 if entity @a[name=$n] run tellraw @s {\"text\":\"  [$n]\",\"color\":\"gold\",\"click_event\":{\"action\":\"run_command\",\"command\":\"/trigger nk set $i\"}}"
+    echo "execute if score @s nk matches $i run kill @a[name=$n]"
+    echo "execute if score @s nk matches $i run tellraw @a [{\"text\":\"OWNER \",\"color\":\"red\"},{\"text\":\"removed $n\",\"color\":\"gray\"}]"
+    i=$((i+1)); done
+  echo 'execute if score @s nk matches 1..9 run tellraw @s {"text":"  [ALL guests]","color":"red","click_event":{"action":"run_command","command":"/trigger nk set 99"}}'
+  echo 'execute if score @s nk matches 99 run kill @a[team=guests]'
+  echo 'execute if score @s nk matches 99 run tellraw @a [{"text":"OWNER ","color":"red"},{"text":"removed every guest bot","color":"gray"}]'
+} > $F/nk_go.mcfunction
 node $W/bots/rcon.js "reload" >/dev/null; sleep 2
 # ORDER MATTERS: the reloaded tick function recognises bots by their pid score; only THEN may the bots leave the old `army` team - with the old
 # function still loaded a bot outside team army would be forced into spectator.

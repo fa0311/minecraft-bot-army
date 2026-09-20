@@ -1174,7 +1174,7 @@
      ]
     ]
    },
-   "rev": 60,
+   "rev": 61,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789909537319
   },
@@ -1593,7 +1593,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789914776231
+   "restUntil": 1789914981126
   },
   {
    "id": "fill_ring_field2",
@@ -2503,13 +2503,13 @@
     },
     "order": "near"
    },
-   "rev": 35,
+   "rev": 36,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check.",
    "note": "top model 14:1xZ: OPERATORS - DO NOT LOWER. open cells = left 3616 minus waiting 2920 = 696, so ceil(696/8) = 87 builders could work it at once; 20 is the cap. It reads done:0 because the last trench (x -306..-298 / z -461..-482, floor y52-55) has sheer walls and NO walkable entry, so the switchback ramp (x -300/-301, z -472..-478) can never be started: a ramp column is a solid cell built bottom-up and nobody can stand on the floor. It needs a way in built FROM THE TOP (ladder run, or a gravity-block ramp - gravel depot is 0, so fetch gravel first).",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Sumire",
-    "t": 1789914485515,
+    "by": "Erika",
+    "t": 1789914797796,
     "at": [
      -330,
      41,
@@ -3627,7 +3627,7 @@
    "type": "build",
    "priority": 65,
    "front": "works",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 20,
    "site": [
@@ -3650,7 +3650,7 @@
     }
    },
    "rev": 11,
-   "note": "OWNER 09-20 14:3xZ: this cut is make-work (stone stock is 6x the measured need) - DO NOT re-activate it to keep bots busy. Dirt for the caps comes from stock + the fills cuts; if bots idle, fix why real work cannot take them"
+   "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -512,102,-485"
   },
   {
    "id": "cap_ravine_nm",
@@ -3685,7 +3685,13 @@
     "order": "near"
    },
    "note": "needs: dirt (5 cells wait; every cell whose material exists is done or in work)",
-   "rev": 2
+   "rev": 2,
+   "stuckBy": {
+    "key": "rev2",
+    "bots": [
+     "Akari"
+    ]
+   }
   },
   {
    "id": "stray_furnace_344",
@@ -4082,7 +4088,8 @@
      62,
      -495
     ]
-   }
+   },
+   "rev": 1
   }
  ]
 }
