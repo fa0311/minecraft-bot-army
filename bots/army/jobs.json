@@ -1,0 +1,3479 @@
+{
+ "settings": {
+  "roster": [
+   "Sakura",
+   "Hinata",
+   "Yui",
+   "Mio",
+   "Rin",
+   "Aoi",
+   "Kokoro",
+   "Hina",
+   "Nanami",
+   "Chika",
+   "Yuzu",
+   "Mashiro",
+   "Shiori",
+   "Kanade",
+   "Akari",
+   "Honoka",
+   "Kotori",
+   "Misaki",
+   "Chino",
+   "Koharu",
+   "Suzu",
+   "Tsumugi",
+   "Himari",
+   "Noa",
+   "Mei",
+   "Ayame",
+   "Kaede",
+   "Hotaru",
+   "Iroha",
+   "Yukina",
+   "Aika",
+   "Botan",
+   "Erika",
+   "Fuuka",
+   "Hazuki",
+   "Ichika",
+   "Juri",
+   "Karin",
+   "Kurumi",
+   "Madoka",
+   "Nagisa",
+   "Nozomi",
+   "Rena",
+   "Riko",
+   "Sayaka",
+   "Sumire",
+   "Tamaki",
+   "Ume",
+   "Wakana",
+   "Yotsuba"
+  ],
+  "maxFronts": 10,
+  "dusk": 11800,
+  "dawn": 23300,
+  "muster": {
+   "x": -367,
+   "y": 69,
+   "z": -488,
+   "cols": 9,
+   "step": 2
+  },
+  "chests": {
+   "tools": [
+    [
+     -371,
+     69,
+     -509
+    ],
+    [
+     -367,
+     69,
+     -509
+    ],
+    [
+     -363,
+     69,
+     -509
+    ],
+    [
+     -361,
+     69,
+     -509
+    ],
+    [
+     -359,
+     69,
+     -509
+    ],
+    [
+     -329,
+     69,
+     -496
+    ],
+    [
+     -365,
+     69,
+     -509
+    ],
+    [
+     -369,
+     69,
+     -509
+    ]
+   ],
+   "build": [
+    [
+     -369,
+     69,
+     -503
+    ],
+    [
+     -367,
+     69,
+     -503
+    ],
+    [
+     -367,
+     69,
+     -500
+    ],
+    [
+     -371,
+     69,
+     -503
+    ],
+    [
+     -361,
+     69,
+     -503
+    ],
+    [
+     -359,
+     69,
+     -503
+    ],
+    [
+     -365,
+     69,
+     -503
+    ],
+    [
+     -363,
+     69,
+     -503
+    ],
+    [
+     -371,
+     69,
+     -500
+    ],
+    [
+     -369,
+     69,
+     -500
+    ],
+    [
+     -365,
+     69,
+     -500
+    ],
+    [
+     -363,
+     69,
+     -500
+    ],
+    [
+     -361,
+     69,
+     -500
+    ],
+    [
+     -359,
+     69,
+     -500
+    ]
+   ],
+   "salvage": [
+    [
+     -363,
+     69,
+     -497
+    ],
+    [
+     -359,
+     69,
+     -497
+    ],
+    [
+     -371,
+     69,
+     -497
+    ],
+    [
+     -369,
+     69,
+     -497
+    ],
+    [
+     -367,
+     69,
+     -497
+    ],
+    [
+     -365,
+     69,
+     -497
+    ],
+    [
+     -361,
+     69,
+     -497
+    ]
+   ],
+   "food": [
+    [
+     -371,
+     69,
+     -512
+    ],
+    [
+     -332,
+     69,
+     -498
+    ],
+    [
+     -367,
+     69,
+     -512
+    ],
+    [
+     -365,
+     69,
+     -512
+    ],
+    [
+     -363,
+     69,
+     -512
+    ],
+    [
+     -361,
+     69,
+     -512
+    ],
+    [
+     -369,
+     69,
+     -512
+    ],
+    [
+     -359,
+     69,
+     -512
+    ],
+    [
+     -371,
+     70,
+     -512
+    ]
+   ],
+   "ores": [
+    [
+     -363,
+     69,
+     -506
+    ],
+    [
+     -359,
+     69,
+     -506
+    ],
+    [
+     -332,
+     69,
+     -496
+    ],
+    [
+     -331,
+     69,
+     -496
+    ],
+    [
+     -365,
+     69,
+     -506
+    ],
+    [
+     -371,
+     69,
+     -506
+    ],
+    [
+     -369,
+     69,
+     -506
+    ],
+    [
+     -367,
+     69,
+     -506
+    ],
+    [
+     -361,
+     69,
+     -506
+    ]
+   ]
+  },
+  "respawnBeds": [
+   [
+    -368,
+    69,
+    -542
+   ],
+   [
+    -368,
+    69,
+    -539
+   ],
+   [
+    -367,
+    69,
+    -542
+   ],
+   [
+    -367,
+    69,
+    -539
+   ],
+   [
+    -366,
+    69,
+    -542
+   ],
+   [
+    -366,
+    69,
+    -539
+   ],
+   [
+    -365,
+    69,
+    -539
+   ],
+   [
+    -364,
+    69,
+    -539
+   ],
+   [
+    -363,
+    69,
+    -539
+   ],
+   [
+    -362,
+    69,
+    -542
+   ],
+   [
+    -362,
+    69,
+    -539
+   ],
+   [
+    -361,
+    69,
+    -542
+   ],
+   [
+    -361,
+    69,
+    -539
+   ],
+   [
+    -360,
+    69,
+    -542
+   ],
+   [
+    -360,
+    69,
+    -539
+   ],
+   [
+    -359,
+    69,
+    -542
+   ],
+   [
+    -357,
+    69,
+    -539
+   ],
+   [
+    -356,
+    69,
+    -542
+   ],
+   [
+    -356,
+    69,
+    -539
+   ],
+   [
+    -355,
+    69,
+    -539
+   ],
+   [
+    -357,
+    69,
+    -542
+   ],
+   [
+    -358,
+    69,
+    -542
+   ],
+   [
+    -355,
+    69,
+    -542
+   ],
+   [
+    -358,
+    69,
+    -539
+   ],
+   [
+    -352,
+    69,
+    -542
+   ],
+   [
+    -351,
+    69,
+    -542
+   ],
+   [
+    -365,
+    69,
+    -542
+   ],
+   [
+    -354,
+    69,
+    -539
+   ],
+   [
+    -364,
+    69,
+    -542
+   ],
+   [
+    -353,
+    69,
+    -539
+   ],
+   [
+    -363,
+    69,
+    -542
+   ],
+   [
+    -352,
+    69,
+    -539
+   ],
+   [
+    -354,
+    69,
+    -542
+   ],
+   [
+    -353,
+    69,
+    -542
+   ],
+   [
+    -351,
+    69,
+    -539
+   ],
+   [
+    -350,
+    69,
+    -539
+   ],
+   [
+    -350,
+    69,
+    -542
+   ],
+   [
+    -349,
+    69,
+    -539
+   ],
+   [
+    -349,
+    69,
+    -542
+   ],
+   [
+    -348,
+    69,
+    -542
+   ],
+   [
+    -347,
+    69,
+    -542
+   ],
+   [
+    -348,
+    69,
+    -539
+   ],
+   [
+    -347,
+    69,
+    -539
+   ],
+   [
+    -346,
+    69,
+    -542
+   ],
+   [
+    -346,
+    69,
+    -539
+   ],
+   [
+    -345,
+    69,
+    -539
+   ],
+   [
+    -344,
+    69,
+    -539
+   ],
+   [
+    -345,
+    69,
+    -542
+   ],
+   [
+    -344,
+    69,
+    -542
+   ]
+  ],
+  "nightSkip": true,
+  "fallback": "tidy_spawn",
+  "targets": {
+   "food": 448,
+   "log": 1024,
+   "planks": 224,
+   "cobblestone": 1728,
+   "fuel": 224,
+   "iron": 224,
+   "iron_ingot": 224,
+   "torch": 224,
+   "wheat_seeds": 224,
+   "string": 40,
+   "stick": 128,
+   "leather": 64,
+   "feather": 64,
+   "wool": 150,
+   "stone_shovel": 40,
+   "stone_axe": 20
+  },
+  "base": {
+   "x": -320,
+   "y": 68,
+   "z": -448
+  },
+  "craftTable": [
+   -345,
+   69,
+   -523
+  ],
+  "keepOut": [
+   {
+    "id": "ravine",
+    "box": [
+     -334,
+     -486,
+     -289,
+     -408
+    ],
+    "why": "ravine + two day-one quarry pits: BEING FILLED SOLID by owner order 09-20 (jobs fill_ravine_s/m/n) - not a quarry any more; nothing else is built here until the fill is complete, then this keep-out is removed",
+    "exit": [
+     -325,
+     69,
+     -409
+    ]
+   }
+  ],
+  "furnaces": [
+   [
+    -366,
+    69,
+    -523
+   ],
+   [
+    -365,
+    69,
+    -523
+   ],
+   [
+    -364,
+    69,
+    -523
+   ],
+   [
+    -363,
+    69,
+    -523
+   ],
+   [
+    -362,
+    69,
+    -523
+   ],
+   [
+    -361,
+    69,
+    -523
+   ],
+   [
+    -360,
+    69,
+    -523
+   ],
+   [
+    -359,
+    69,
+    -523
+   ],
+   [
+    -358,
+    69,
+    -523
+   ],
+   [
+    -357,
+    69,
+    -523
+   ],
+   [
+    -356,
+    69,
+    -523
+   ],
+   [
+    -355,
+    69,
+    -523
+   ],
+   [
+    -354,
+    69,
+    -523
+   ],
+   [
+    -353,
+    69,
+    -523
+   ],
+   [
+    -352,
+    69,
+    -523
+   ],
+   [
+    -351,
+    69,
+    -523
+   ],
+   [
+    -350,
+    69,
+    -523
+   ],
+   [
+    -349,
+    69,
+    -523
+   ],
+   [
+    -348,
+    69,
+    -523
+   ],
+   [
+    -347,
+    69,
+    -523
+   ]
+  ],
+  "legacyChests": {
+   "found": []
+  },
+  "dump": {
+   "at": [
+    -333,
+    69,
+    -480
+   ],
+   "aim": [
+    -329,
+    64,
+    -480
+   ],
+   "why": "NW rim of the ravine keep-out (quarry_sw terraces below): junk is thrown in here, never dropped in the base"
+  }
+ },
+ "enlisted": [
+  "Sakura",
+  "Hinata",
+  "Yui",
+  "Mio",
+  "Rin",
+  "Aoi",
+  "Kokoro",
+  "Hina",
+  "Nanami",
+  "Chika",
+  "Yuzu",
+  "Mashiro",
+  "Shiori",
+  "Kanade",
+  "Akari",
+  "Honoka",
+  "Kotori",
+  "Misaki",
+  "Chino",
+  "Koharu",
+  "Suzu",
+  "Tsumugi",
+  "Himari",
+  "Noa",
+  "Mei",
+  "Ayame",
+  "Kaede",
+  "Hotaru",
+  "Iroha",
+  "Yukina",
+  "Aika",
+  "Botan",
+  "Erika",
+  "Fuuka",
+  "Hazuki",
+  "Ichika",
+  "Juri",
+  "Karin",
+  "Kurumi",
+  "Madoka",
+  "Nagisa",
+  "Nozomi",
+  "Rena",
+  "Riko",
+  "Sayaka",
+  "Sumire",
+  "Tamaki",
+  "Ume",
+  "Wakana",
+  "Yotsuba"
+ ],
+ "jobs": [
+  {
+   "id": "scout_far",
+   "type": "scout",
+   "priority": 97,
+   "front": "scouting",
+   "status": "paused",
+   "when": "day",
+   "names": [
+    "Sakura",
+    "Hinata",
+    "Yui",
+    "Mio"
+   ],
+   "shiftMin": 30,
+   "requires": {
+    "minHp": 14,
+    "minFood": 10
+   },
+   "plan": "DETAIL SURVEY around the base, read-only walk: 4 bots, 12 min out, every trip 25 degrees on - herds for the pens (`animals`), sugar cane, villages, water; the base itself is chosen",
+   "params": {
+    "bearings": [
+     45,
+     135,
+     225,
+     315
+    ],
+    "range": 800,
+    "step": 48,
+    "budgetMin": 12
+   },
+   "rev": 2
+  },
+  {
+   "id": "scout_ring",
+   "type": "scout",
+   "priority": 96,
+   "front": "scouting",
+   "status": "paused",
+   "when": "any",
+   "names": [
+    "Nanami",
+    "Chika",
+    "Yuzu",
+    "Mashiro",
+    "Shiori",
+    "Kanade"
+   ],
+   "shiftMin": 25,
+   "requires": {
+    "minHp": 14,
+    "minFood": 10
+   },
+   "plan": "SURVEY (PLAN §1), read-only walk: the land within 600 of spawn, DENSE (step 36) between the far bearings - a site needs several neighbouring flat samples, one line of samples is not an area",
+   "params": {
+    "bearings": [
+     20,
+     80,
+     140,
+     200,
+     260,
+     320
+    ],
+    "range": 600,
+    "step": 36,
+    "budgetMin": 8
+   },
+   "note": "auto-paused: the base is chosen (re-activate to explore further)",
+   "rev": 1
+  },
+  {
+   "id": "hunt_spawn",
+   "type": "hunt",
+   "priority": 93,
+   "front": "herd",
+   "status": "active",
+   "when": "day",
+   "produces": [
+    "food"
+   ],
+   "minBots": 4,
+   "maxBots": 10,
+   "site": [
+    -367,
+    69,
+    -488
+   ],
+   "requires": {
+    "minHp": 16,
+    "minFood": 8
+   },
+   "plan": "gathering, no world change: first food. Hunters go where bots SAW herds (animals.jsonl) within 300 of muster, leave 2 of every kind alive for the pens",
+   "params": {
+    "kinds": [
+     "sheep",
+     "pig",
+     "cow",
+     "chicken"
+    ],
+    "leave": 0,
+    "haul": 24,
+    "maxDist": 160
+   },
+   "rev": 12,
+   "bots": 3
+  },
+  {
+   "id": "forage_spawn",
+   "type": "steps",
+   "priority": 91,
+   "front": "forage",
+   "status": "paused",
+   "when": "day",
+   "produces": [
+    "wheat_seeds",
+    "food"
+   ],
+   "minBots": 1,
+   "maxBots": 4,
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "gathering, no world change: grass/ferns for the seeds of field block 1, small game on the way; banked once a depot exists",
+   "params": {
+    "repeat": true,
+    "onFail": "continue",
+    "steps": [
+     {
+      "do": "goto",
+      "to": [
+       -367,
+       null,
+       -488
+      ],
+      "range": 32,
+      "s": 600
+     },
+     {
+      "do": "collect",
+      "block": [
+       "short_grass",
+       "tall_grass",
+       "fern"
+      ],
+      "n": 24,
+      "radius": 32
+     },
+     {
+      "do": "kill",
+      "kinds": [
+       "chicken",
+       "rabbit"
+      ],
+      "n": 2,
+      "radius": 32
+     },
+     {
+      "do": "pickup",
+      "radius": 8
+     },
+     {
+      "do": "bank"
+     }
+    ]
+   },
+   "site": [
+    -367,
+    69,
+    -488
+   ],
+   "rev": 2
+  },
+  {
+   "id": "wood_spawn",
+   "type": "lumber",
+   "priority": 90,
+   "front": "lumber",
+   "status": "paused",
+   "when": "any",
+   "produces": [
+    "log"
+   ],
+   "minBots": 2,
+   "maxBots": 20,
+   "site": [
+    -140,
+    70,
+    -285
+   ],
+   "requires": {
+    "minHp": 8
+   },
+   "plan": "FIRST LOGS from the reachable flower forest NE of the base (x -190..-90 / z -330..-240, trees seen by Kurumi/scouts; the forest N of z -600 was unreachable: travel timeouts, `lumber: cannot reach the plantation`): fell trees whole, replant, carry logs to the base once a depot exists",
+   "params": {
+    "box": [
+     -190,
+     -330,
+     -90,
+     -240
+    ],
+    "pitch": 3,
+    "bankAt": 48
+   },
+   "rev": 14,
+   "bots": 18,
+   "note": "top model 07:40Z: 2900 logs in stock; the far forest (305 blocks) is retired - the tree farm inside the base (lumber_base) is the wood source"
+  },
+  {
+   "id": "guard_night",
+   "type": "guard",
+   "priority": 60,
+   "front": "muster",
+   "status": "active",
+   "when": "night",
+   "bots": 12,
+   "requires": {
+    "minHp": 12,
+    "anyItem": [
+     "wooden_sword",
+     "stone_sword",
+     "iron_sword",
+     "wooden_axe",
+     "stone_axe",
+     "iron_axe"
+    ]
+   },
+   "plan": "no world change: the NIGHT SPONGE - 31 deaths/h (foreman 04:30Z: 6x creeper, 6x skeleton, 4x zombie in 30 min of ONE night, at the fields and at muster). 12 armed bots hold the base ring, kill what comes within 24 and keep string, bones, arrows",
+   "params": {
+    "radius": 24,
+    "minHp": 8
+   },
+   "rev": 4
+  },
+  {
+   "id": "tidy_spawn",
+   "type": "tidy",
+   "priority": 60,
+   "front": "works",
+   "status": "active",
+   "when": "any",
+   "bots": 14,
+   "site": [
+    -367,
+    69,
+    -488
+   ],
+   "plan": "GROUNDSKEEPING of the base site (the FALLBACK sponge) x -408..-230 / z -559..-369: holes filled, stray blocks removed; build footprints are left alone",
+   "params": {
+    "box": [
+     -408,
+     -559,
+     -230,
+     -369
+    ],
+    "y": 68,
+    "exclude": [
+     [
+      -337,
+      -489,
+      -286,
+      -405
+     ]
+    ]
+   },
+   "rev": 36,
+   "note": "engineer 07:45Z: the sponge now works the base audit work list first (tidy_fix events), tiles second"
+  },
+  {
+   "id": "farm_1",
+   "type": "farm",
+   "priority": 94,
+   "front": "farm",
+   "status": "active",
+   "when": "any",
+   "site": [
+    -346,
+    69,
+    -432
+   ],
+   "after": "base_field_1",
+   "produces": [
+    "food",
+    "wheat_seeds"
+   ],
+   "minBots": 1,
+   "maxBots": 3,
+   "plan": "BASE PLAN zone field_1: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
+   "params": {
+    "box": [
+     -359,
+     -445,
+     -333,
+     -419
+    ],
+    "y": 68,
+    "seed": "wheat_seeds",
+    "forage": true,
+    "bankAt": 64
+   },
+   "rev": 4
+  },
+  {
+   "id": "lumber_base",
+   "type": "lumber",
+   "priority": 80,
+   "front": "lumber",
+   "status": "paused",
+   "when": "any",
+   "site": [
+    -259,
+    69,
+    -431
+   ],
+   "after": "base_tree",
+   "produces": [
+    "log"
+   ],
+   "minBots": 2,
+   "maxBots": 13,
+   "requires": {
+    "minHp": 8
+   },
+   "plan": "BASE PLAN zone tree: fell whole trees inside the tree farm, replant on the 3-grid with the saplings of what grew there (no species named), bank logs",
+   "params": {
+    "box": [
+     -282,
+     -454,
+     -235,
+     -407
+    ],
+    "pitch": 3,
+    "bankAt": 48
+   },
+   "rev": 2,
+   "note": "auto-activated: `after` base_tree finished (auto-paused: build complete)"
+  },
+  {
+   "id": "base_mine",
+   "type": "build",
+   "priority": 81,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 10,
+   "site": [
+    -330,
+    69,
+    -500
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone mine x -337..-323 / z -507..-493 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): mine head: hut, haul chests and light AROUND the stair mouth (zone centre); the stairwell itself is dug and owned by the miners",
+   "params": {
+    "blueprint": "mine_head",
+    "origin": [
+     -330,
+     68,
+     -500
+    ],
+    "args": {
+     "facing": "north"
+    }
+   },
+   "after": "base_mine_pad",
+   "rev": 2,
+   "note": "needs: torch (5 cells wait; every cell whose material exists is done or in work)"
+  },
+  {
+   "id": "mine_iron",
+   "type": "delegate",
+   "priority": 92,
+   "front": "mine",
+   "status": "active",
+   "when": "any",
+   "site": [
+    -330,
+    69,
+    -500
+   ],
+   "after": "base_mine",
+   "shiftMin": 60,
+   "produces": [
+    "iron",
+    "fuel",
+    "cobblestone"
+   ],
+   "minBots": 2,
+   "maxBots": 14,
+   "requires": {
+    "minHp": 14,
+    "minFood": 14
+   },
+   "plan": "BASE PLAN zone mine: ONE squad on the iron/coal level y16 under the mine head (PLAN §5); the diamond level comes with `mine level -54` when iron picks exist",
+   "params": {
+    "skill": "iron_miner",
+    "args": {
+     "entrance": {
+      "x": -330,
+      "y": 69,
+      "z": -500,
+      "facing": "north"
+     },
+     "level": 16
+    }
+   },
+   "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
+   "bots": 26,
+   "rev": 21
+  },
+  {
+   "id": "base_dorm",
+   "type": "build",
+   "priority": 72,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 12,
+   "site": [
+    -355,
+    69,
+    -541
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone dorm x -369..-341 / z -544..-537 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): dorm: 1 hall(s) with 50 bed slots for 50 bots, 1 bed now (the sleeper's) - raise `beds` + rev as wool arrives; beds register as respawnBeds",
+   "params": {
+    "blueprint": "dorm",
+    "origin": [
+     -369,
+     68,
+     -544
+    ],
+    "args": {
+     "w": 29,
+     "d": 8,
+     "slots": 50,
+     "beds": 50
+    }
+   },
+   "note": "auto-paused: 11 cells nobody could do: -359,69,-539 | -368,73,-538 | -362,73,-538 | -368,73,-543 | -362,73,-543 | -356,73,-538",
+   "rev": 10
+  },
+  {
+   "id": "farm_2",
+   "type": "farm",
+   "priority": 80,
+   "front": "farm",
+   "status": "paused",
+   "when": "any",
+   "site": [
+    -288,
+    69,
+    -507
+   ],
+   "after": "base_field_2",
+   "produces": [
+    "food",
+    "wheat_seeds"
+   ],
+   "minBots": 1,
+   "maxBots": 1,
+   "plan": "BASE PLAN zone field_2: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
+   "params": {
+    "box": [
+     -301,
+     -520,
+     -275,
+     -494
+    ],
+    "y": 68,
+    "seed": "wheat_seeds",
+    "forage": true,
+    "bankAt": 64
+   },
+   "rev": 4,
+   "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)"
+  },
+  {
+   "id": "base_field_3",
+   "type": "build",
+   "priority": 68,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 1,
+   "site": [
+    -390,
+    69,
+    -475
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone field_3 x -403..-377 / z -488..-462 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): field block 27x27 in a 29x29 slot (its torch ring): nine 9x9 plots, water cells BUILT by the blueprint",
+   "params": {
+    "blueprint": "field_block",
+    "origin": [
+     -403,
+     68,
+     -488
+    ],
+    "args": {},
+    "waterFrom": [
+     -441,
+     62,
+     -422
+    ]
+   },
+   "after": "base_field_3_pad",
+   "rev": 8,
+   "note": "needs: water (water unreachable) (4 cells wait; every cell whose material exists is done or in work)",
+   "water": {
+    "key": "rev8",
+    "cells": {}
+   },
+   "stuckBy": {
+    "key": "rev6",
+    "bots": [
+     "Nanami",
+     "Ume"
+    ]
+   }
+  },
+  {
+   "id": "farm_3",
+   "type": "farm",
+   "priority": 80,
+   "front": "farm",
+   "status": "paused",
+   "when": "any",
+   "site": [
+    -390,
+    69,
+    -475
+   ],
+   "after": "base_field_3",
+   "produces": [
+    "food",
+    "wheat_seeds"
+   ],
+   "minBots": 1,
+   "maxBots": 1,
+   "plan": "BASE PLAN zone field_3: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
+   "params": {
+    "box": [
+     -403,
+     -488,
+     -377,
+     -462
+    ],
+    "y": 68,
+    "seed": "wheat_seeds",
+    "forage": true,
+    "bankAt": 64
+   },
+   "rev": 4,
+   "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)"
+  },
+  {
+   "id": "farm_4",
+   "type": "farm",
+   "priority": 80,
+   "front": "farm",
+   "status": "paused",
+   "when": "any",
+   "site": [
+    -390,
+    69,
+    -507
+   ],
+   "after": "base_field_4",
+   "produces": [
+    "food",
+    "wheat_seeds"
+   ],
+   "minBots": 1,
+   "maxBots": 1,
+   "plan": "BASE PLAN zone field_4: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
+   "params": {
+    "box": [
+     -403,
+     -520,
+     -377,
+     -494
+    ],
+    "y": 68,
+    "seed": "wheat_seeds",
+    "forage": true,
+    "bankAt": 64
+   },
+   "rev": 4,
+   "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)"
+  },
+  {
+   "id": "farm_5",
+   "type": "farm",
+   "priority": 80,
+   "front": "farm",
+   "status": "paused",
+   "when": "any",
+   "site": [
+    -390,
+    69,
+    -440
+   ],
+   "after": "base_field_5",
+   "produces": [
+    "food",
+    "wheat_seeds"
+   ],
+   "minBots": 1,
+   "maxBots": 6,
+   "plan": "BASE PLAN zone field_5: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
+   "params": {
+    "box": [
+     -403,
+     -453,
+     -377,
+     -427
+    ],
+    "y": 68,
+    "seed": "wheat_seeds",
+    "forage": true,
+    "bankAt": 64
+   },
+   "rev": 5,
+   "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)"
+  },
+  {
+   "id": "farm_6",
+   "type": "farm",
+   "priority": 80,
+   "front": "farm",
+   "status": "active",
+   "when": "any",
+   "site": [
+    -390,
+    69,
+    -405
+   ],
+   "after": "base_field_6",
+   "produces": [
+    "food",
+    "wheat_seeds"
+   ],
+   "minBots": 1,
+   "maxBots": 6,
+   "plan": "BASE PLAN zone field_6: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
+   "params": {
+    "box": [
+     -403,
+     -418,
+     -377,
+     -392
+    ],
+    "y": 68,
+    "seed": "wheat_seeds",
+    "forage": true,
+    "bankAt": 64
+   },
+   "rev": 3,
+   "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)"
+  },
+  {
+   "id": "farm_7",
+   "type": "farm",
+   "priority": 80,
+   "front": "farm",
+   "status": "paused",
+   "when": "any",
+   "site": [
+    -355,
+    69,
+    -387
+   ],
+   "after": "base_field_7",
+   "produces": [
+    "food",
+    "wheat_seeds"
+   ],
+   "minBots": 1,
+   "maxBots": 6,
+   "plan": "BASE PLAN zone field_7: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
+   "params": {
+    "box": [
+     -368,
+     -400,
+     -342,
+     -374
+    ],
+    "y": 68,
+    "seed": "wheat_seeds",
+    "forage": true,
+    "bankAt": 64
+   },
+   "rev": 3,
+   "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)"
+  },
+  {
+   "id": "base_pen_4",
+   "type": "build",
+   "priority": 52,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 8,
+   "site": [
+    -324,
+    69,
+    -380
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone pen_4 x -337..-311 / z -386..-374 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): animal pen 27x13: fence ring, ONE gate onto the road beside it",
+   "params": {
+    "blueprint": "pen",
+    "origin": [
+     -337,
+     68,
+     -386
+    ],
+    "args": {
+     "w": 27,
+     "d": 13,
+     "gate": "w"
+    }
+   },
+   "after": "base_pen_4_pad",
+   "rev": 3,
+   "note": "auto-paused: 1 cells nobody could do: -322,69,-385",
+   "stuckBy": {
+    "key": "rev3",
+    "bots": [
+     "Noa",
+     "Honoka",
+     "Nanami"
+    ]
+   }
+  },
+  {
+   "id": "ores_ravine",
+   "type": "ores",
+   "priority": 91,
+   "front": "mine",
+   "status": "paused",
+   "when": "any",
+   "produces": [
+    "fuel",
+    "iron"
+   ],
+   "minBots": 6,
+   "maxBots": 16,
+   "site": [
+    -367,
+    69,
+    -488
+   ],
+   "requires": {
+    "minHp": 12,
+    "minFood": 6
+   },
+   "plan": {
+    "zone": "ravine keep-out (docs/WORLD.md hazards): exposed veins only, no tunnels",
+    "why": "fuel 0 and iron 0: torches, furnaces, the bucket for the field water and stone/iron tools all wait for the first coal and iron; the ravine and the caves under the plain show 438 coal and 361 iron ores"
+   },
+   "params": {
+    "kinds": [
+     "coal_ore",
+     "iron_ore"
+    ],
+    "minY": 40,
+    "radius": 150,
+    "bankAt": 32
+   },
+   "rev": 2
+  },
+  {
+   "id": "sleeper",
+   "type": "sleeper",
+   "priority": 99,
+   "status": "active",
+   "when": "night",
+   "bots": 1,
+   "site": [
+    -363,
+    69,
+    -539
+   ],
+   "plan": {
+    "zone": "none (sleeps in the camp bed)",
+    "why": "skip the night for all 50"
+   },
+   "params": {
+    "bed": [
+     -363,
+     69,
+     -539
+    ]
+   },
+   "rev": 1
+  },
+  {
+   "id": "farm_bank",
+   "type": "farm",
+   "priority": 80,
+   "front": "farm",
+   "status": "paused",
+   "when": "any",
+   "produces": [
+    "food",
+    "wheat_seeds"
+   ],
+   "minBots": 1,
+   "maxBots": 1,
+   "site": [
+    -441,
+    63,
+    -425
+   ],
+   "requires": {
+    "minHp": 8
+   },
+   "plan": {
+    "zone": "lake shore W of the base, x -560..-400 / z -445..-370 at soil y62: ONLY cells hydrated by the natural lake are tilled (dry and sand cells are skipped by the farm code); stop-gap until field blocks have water cells",
+    "why": "food 16/448 for 50 bots: hunting cannot feed them, buckets need iron; the shoreline is long"
+   },
+   "params": {
+    "box": [
+     -452,
+     -427,
+     -431,
+     -423
+    ],
+    "y": 62,
+    "seed": "wheat_seeds",
+    "forage": true,
+    "bankAt": 48
+   },
+   "rev": 6,
+   "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)"
+  },
+  {
+   "id": "guard_bed",
+   "type": "guard",
+   "priority": 98,
+   "front": "base",
+   "status": "active",
+   "when": "night",
+   "bots": 3,
+   "site": [
+    -341,
+    70,
+    -456
+   ],
+   "requires": {
+    "minHp": 10,
+    "anyItem": [
+     "wooden_sword",
+     "stone_sword",
+     "iron_sword",
+     "stone_axe",
+     "iron_axe"
+    ]
+   },
+   "plan": "no world change: armed escort of the sleeper - clear every mob within 14 of the camp bed so the sleeper can skip the night (monsters nearby block sleeping)",
+   "params": {
+    "post": [
+     -341,
+     70,
+     -456
+    ],
+    "radius": 14,
+    "when": "night",
+    "minHp": 8
+   },
+   "rev": 2
+  },
+  {
+   "id": "fish_lake",
+   "type": "fish",
+   "priority": 96,
+   "front": "fish",
+   "status": "paused",
+   "when": "any",
+   "produces": [
+    "food"
+   ],
+   "minBots": 1,
+   "maxBots": 8,
+   "site": [
+    -441,
+    63,
+    -424
+   ],
+   "requires": {
+    "minHp": 3,
+    "anyItem": [
+     "fishing_rod"
+    ]
+   },
+   "plan": {
+    "zone": "none (no block is changed): the lake shore W of the base at -441,-423",
+    "why": "food 27/448 and 11 wounded bots that no job takes: a wounded bot can fish 80 blocks from the camp"
+   },
+   "params": {
+    "r": 14,
+    "haul": 8,
+    "night": true
+   },
+   "bots": 8,
+   "rev": 1
+  },
+  {
+   "id": "quartermaster",
+   "type": "scan",
+   "priority": 97,
+   "front": "depot",
+   "status": "active",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -356,
+    69,
+    -518
+   ],
+   "requires": {
+    "minHp": 6
+   },
+   "plan": {
+    "zone": "core (hall furnace bank z -523, depot rows): no block is changed beyond loading furnaces and keeping chests",
+    "why": "20 furnaces stand since 20:47Z and nobody loads them: raw meat and fish must be COOKED (wounded bots cannot heal), 27 raw iron must become ingots (bucket for the field water, shields, armour), logs must become charcoal (torches: 23/224)"
+   },
+   "params": {
+    "bank": true
+   },
+   "rev": 2,
+   "restUntil": 1789894176335
+  },
+  {
+   "id": "guard_muster",
+   "type": "guard",
+   "priority": 92,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 6,
+   "site": [
+    -367,
+    69,
+    -488
+   ],
+   "requires": {
+    "minHp": 12,
+    "anyItem": [
+     "diamond_sword",
+     "iron_sword",
+     "stone_sword",
+     "wooden_sword",
+     "diamond_axe",
+     "iron_axe",
+     "stone_axe"
+    ]
+   },
+   "plan": "no world change: armed watch over the MUSTER yard and the depot - 8 bots died at muster in 1 h (skeleton, creeper, phantom) while weak bots with hp under 7 and no food stand there unable to fight back. Clear every hostile within 22 of the muster point, day and night",
+   "params": {
+    "post": [
+     -367,
+     69,
+     -488
+    ],
+    "radius": 40,
+    "when": "any",
+    "minHp": 12,
+    "kinds": [
+     "zombie",
+     "skeleton",
+     "spider",
+     "husk",
+     "stray",
+     "drowned",
+     "zombie_villager",
+     "bogged",
+     "slime",
+     "witch",
+     "pillager",
+     "creeper"
+    ]
+   },
+   "rev": 7
+  },
+  {
+   "id": "fill_ring_field2",
+   "type": "build",
+   "priority": 95,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 6,
+   "site": [
+    -304,
+    68,
+    -523
+   ],
+   "plan": {
+    "zone": "base: the 1-wide ring x -304/-272, z -523/-491 around the box of fill_field2_void (inside of the ring is kept): filled solid with dirt up to y68; paving laid as a deck over it is taken off first (unlid), the road job re-paves",
+    "why": "the pad rule of the build job cut a moat 1 wide / 2-3 deep around the box of every fill_void job (fixed 22:02Z, fill_void is NO_PAD now): zones became islands (no_route dorm to depot, builders marooned at y66); never deck a hole, fill it solid"
+   },
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -288,
+     68,
+     -507
+    ],
+    "unlid": true,
+    "args": {
+     "box": [
+      -304,
+      -523,
+      -272,
+      -491
+     ],
+     "keep": [
+      [
+       -303,
+       0,
+       -522,
+       -273,
+       255,
+       -492
+      ]
+     ],
+     "depth": 4,
+     "fill": "dirt",
+     "top": "dirt"
+    }
+   },
+   "stuckBy": {
+    "key": "rev0",
+    "bots": [
+     "Yuzu",
+     "Tsumugi",
+     "Yotsuba"
+    ]
+   },
+   "note": "auto-paused: 4 cells nobody could do: -304,66,-501 | -304,68,-502"
+  },
+  {
+   "id": "fill_ring_field1",
+   "type": "build",
+   "priority": 95,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -335,
+    68,
+    -438
+   ],
+   "plan": {
+    "zone": "base: the 1-wide ring x -335/-331, z -438/-415 around the box of fill_field1_void (inside of the ring is kept): filled solid with dirt up to y68; paving laid as a deck over it is taken off first (unlid), the road job re-paves",
+    "why": "the pad rule of the build job cut a moat 1 wide / 2-3 deep around the box of every fill_void job (fixed 22:02Z, fill_void is NO_PAD now): zones became islands (no_route dorm to depot, builders marooned at y66); never deck a hole, fill it solid"
+   },
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -333,
+     68,
+     -426
+    ],
+    "unlid": true,
+    "args": {
+     "box": [
+      -335,
+      -438,
+      -331,
+      -415
+     ],
+     "keep": [
+      [
+       -334,
+       0,
+       -437,
+       -332,
+       255,
+       -416
+      ]
+     ],
+     "depth": 3,
+     "fill": "dirt",
+     "top": "dirt"
+    }
+   },
+   "stuckBy": {
+    "key": "rev0",
+    "bots": [
+     "Sumire",
+     "Ayame",
+     "Madoka"
+    ]
+   },
+   "note": "auto-paused: 4 cells nobody could do: -331,67,-428 | -331,67,-419"
+  },
+  {
+   "id": "bake_bread",
+   "type": "steps",
+   "priority": 96,
+   "status": "paused",
+   "when": "any",
+   "bots": 6,
+   "requires": {
+    "minHp": 6
+   },
+   "plan": {
+    "zone": "no world change - the depot table -346,70,-460",
+    "why": "foreman 00:12: 2170 wheat in the depot, 0 bread baked in 30 min, only 82 bread banked for 50 bots. Bake it."
+   },
+   "params": {
+    "repeat": true,
+    "onFail": "continue",
+    "steps": [
+     {
+      "do": "withdraw",
+      "item": "wheat",
+      "n": 18
+     },
+     {
+      "do": "goto",
+      "to": [
+       -359,
+       69,
+       -501
+      ],
+      "range": 3
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 6
+     },
+     {
+      "do": "bank",
+      "keep": {
+       "bread": 3,
+       "torch": 16
+      }
+     },
+     {
+      "do": "wait",
+      "s": 30
+     }
+    ]
+   },
+   "rev": 3,
+   "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)"
+  },
+  {
+   "id": "seed_forage",
+   "type": "steps",
+   "priority": 95,
+   "status": "paused",
+   "when": "day",
+   "bots": 4,
+   "requires": {
+    "minHp": 8
+   },
+   "plan": {
+    "zone": "open plains E/SE of the depot around -322,-455 (wild grass only, no block of ours is touched)",
+    "why": "farm_1 declined x4 with farm: no seeds (stock 0, no grass nearby) and farm_pass skipped 116 cells - wheat_seeds depot 0, so the 27x27 field cannot be replanted and the bread chain stays dead"
+   },
+   "params": {
+    "repeat": true,
+    "onFail": "continue",
+    "steps": [
+     {
+      "do": "goto",
+      "to": [
+       -322,
+       null,
+       -455
+      ],
+      "range": 8
+     },
+     {
+      "do": "collect",
+      "block": [
+       "short_grass",
+       "tall_grass",
+       "fern"
+      ],
+      "n": 96,
+      "radius": 40
+     },
+     {
+      "do": "goto",
+      "to": [
+       -346,
+       70,
+       -460
+      ],
+      "range": 4
+     },
+     {
+      "do": "bank",
+      "keep": {
+       "torch": 16
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "smelt_depot",
+   "type": "steps",
+   "priority": 87,
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "requires": {
+    "minHp": 6
+   },
+   "plan": {
+    "zone": "no world change - the 4 depot furnaces at -345..-344,70,-461..-460 (placed 22:07Z by depot_craft)",
+    "why": "0 furnaces existed until now: raw cod/salmon and raw_iron 104 were never smelted, food 0 edible in the depot and iron 5/224 blocks buckets, tools and the field water cells"
+   },
+   "params": {
+    "repeat": true,
+    "onFail": "continue",
+    "steps": [
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       70,
+       -460
+      ],
+      "range": 4
+     },
+     {
+      "do": "withdraw",
+      "item": "charcoal",
+      "n": 16
+     },
+     {
+      "do": "withdraw",
+      "item": "cod",
+      "n": 16,
+      "atLeast": 4
+     },
+     {
+      "do": "smelt",
+      "item": "cod",
+      "n": 16
+     },
+     {
+      "do": "withdraw",
+      "item": "salmon",
+      "n": 16,
+      "atLeast": 4
+     },
+     {
+      "do": "smelt",
+      "item": "salmon",
+      "n": 16
+     },
+     {
+      "do": "withdraw",
+      "item": "raw_iron",
+      "n": 32,
+      "atLeast": 8
+     },
+     {
+      "do": "smelt",
+      "item": "raw_iron",
+      "n": 32
+     },
+     {
+      "do": "bank",
+      "keep": {
+       "torch": 16
+      }
+     },
+     {
+      "do": "wait",
+      "s": 30
+     }
+    ]
+   },
+   "rev": 2
+  },
+  {
+   "id": "herd_sheep",
+   "type": "herd",
+   "priority": 85,
+   "front": "pens",
+   "status": "active",
+   "when": "any",
+   "bots": 6,
+   "site": [
+    -376,
+    69,
+    -534
+   ],
+   "requires": {
+    "minHp": 14,
+    "minFood": 10
+   },
+   "plan": "BASE PLAN zone pen_1 (x -402..-376 / z -540..-528, built by base_pen_1): roadmap P3 - sheep are LURED in with wheat and bred to >=10 (wool for 50 beds); no world change, only the gate is opened and shut",
+   "params": {
+    "pen": [
+     -402,
+     -540,
+     -376,
+     -528
+    ],
+    "gate": [
+     -376,
+     69,
+     -534
+    ],
+    "kind": "sheep",
+    "want": 60,
+    "radius": 250
+   },
+   "shiftMin": 20,
+   "rev": 11,
+   "restUntil": 1789893030101,
+   "note": "09-20 05:40Z top model: 82 sheep stand OUTSIDE pen 1 (escaped 03:42-05:30Z over step blocks an escape routine left on the pen floor - removed, pen_litter rule live). want 30 + 4 herders until the flock is back; then want 10-24 / minBots 1 again",
+   "desc": "OPERATORS: do NOT pause - since 09-20 02:00Z the herd job itself SHEARS the woolly sheep and CULLS the adults beyond want inside the pen (event pen_harvest); a full pen is its work, not a dead end (BUGS 105 fixed)",
+   "produces": [
+    "wool"
+   ],
+   "minBots": 5,
+   "maxBots": 8
+  },
+  {
+   "id": "herd_cows",
+   "type": "herd",
+   "priority": 85,
+   "front": "pens",
+   "status": "active",
+   "when": "any",
+   "site": [
+    -337,
+    69,
+    -395
+   ],
+   "requires": {
+    "minHp": 14,
+    "minFood": 10
+   },
+   "plan": "BASE PLAN zone pen_3 (x -337..-311 / z -401..-389, built by base_pen_3): roadmap P3 - cows are LURED in with wheat and bred to >=10 (beef, leather). Pen 3 not 2: the only cow herds stand EAST (-176,-421 / -130,-373), 160 blocks from this gate, 240 from pen 2; no world change",
+   "params": {
+    "pen": [
+     -337,
+     -401,
+     -311,
+     -389
+    ],
+    "gate": [
+     -337,
+     69,
+     -395
+    ],
+    "kind": "cow",
+    "want": 10,
+    "radius": 250,
+    "max": 20
+   },
+   "shiftMin": 20,
+   "rev": 5,
+   "restUntil": 1789894060151,
+   "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
+   "produces": [
+    "leather"
+   ],
+   "minBots": 1,
+   "maxBots": 4,
+   "bots": 2
+  },
+  {
+   "id": "herd_chickens",
+   "type": "herd",
+   "priority": 85,
+   "front": "pens",
+   "status": "active",
+   "when": "any",
+   "site": [
+    -337,
+    69,
+    -380
+   ],
+   "requires": {
+    "minHp": 14,
+    "minFood": 10
+   },
+   "plan": "BASE PLAN zone pen_4 (x -337..-311 / z -386..-374, built by base_pen_4): roadmap P3 - chickens are LURED in with seeds and bred to >=10 (meat, feathers, eggs); no world change",
+   "params": {
+    "pen": [
+     -337,
+     -386,
+     -311,
+     -374
+    ],
+    "gate": [
+     -337,
+     69,
+     -380
+    ],
+    "kind": "chicken",
+    "want": 10,
+    "radius": 250,
+    "max": 20
+   },
+   "shiftMin": 20,
+   "rev": 4,
+   "restUntil": 1789894135702,
+   "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
+   "produces": [
+    "feather"
+   ],
+   "minBots": 1,
+   "maxBots": 2,
+   "bots": 2
+  },
+  {
+   "id": "herd_pigs",
+   "type": "herd",
+   "priority": 85,
+   "front": "pens",
+   "status": "paused",
+   "when": "day",
+   "bots": 3,
+   "site": [
+    -376,
+    69,
+    -549
+   ],
+   "requires": {
+    "minHp": 14,
+    "minFood": 10
+   },
+   "desc": "PAUSED on purpose: pigs follow only carrot / potato / beetroot and the army owns none (stock 09-19 23:40Z). Activate when `armyctl.js stock \"carrot|potato|beetroot\"` shows >= 70 in the depot (zombie drops, village fields). Pig herds stand 85-120 blocks south-east of this gate (-301,-590 / -315,-652)",
+   "plan": "BASE PLAN zone pen_2 (x -402..-376 / z -555..-543, built by base_pen_2): roadmap P3 - pigs LURED in and bred to >=10; no world change",
+   "params": {
+    "pen": [
+     -402,
+     -555,
+     -376,
+     -543
+    ],
+    "gate": [
+     -376,
+     69,
+     -549
+    ],
+    "kind": "pig",
+    "want": 10,
+    "radius": 250
+   },
+   "shiftMin": 20,
+   "rev": 1
+  },
+  {
+   "id": "clear_yard_trees",
+   "type": "steps",
+   "priority": 88,
+   "status": "paused",
+   "when": "any",
+   "bots": 3,
+   "requires": {
+    "minHp": 10
+   },
+   "plan": {
+    "zone": "BASE PLAN yard + field_3 + field_5: felling only, NO replant (these trees stand ON the muster yard and IN the crops)",
+    "why": "foreman 00:15 LOOKED: an 5x5 oak at -374,69,-487 stands in the middle of the muster yard where 21 bots mill about, and an 11-wide oak at -378,69,-464 stands INSIDE field_3s wheat. Trees on a field and in the yard are a mess a good player removes; the logs are worth having."
+   },
+   "params": {
+    "repeat": true,
+    "onFail": "continue",
+    "steps": [
+     {
+      "do": "fell",
+      "near": [
+       -384,
+       69,
+       -464
+      ],
+      "radius": 16,
+      "replant": false
+     },
+     {
+      "do": "fell",
+      "near": [
+       -374,
+       69,
+       -487
+      ],
+      "radius": 16,
+      "replant": false
+     },
+     {
+      "do": "fell",
+      "near": [
+       -377,
+       69,
+       -515
+      ],
+      "radius": 16,
+      "replant": false
+     },
+     {
+      "do": "collect",
+      "radius": 10
+     },
+     {
+      "do": "bank",
+      "keep": {
+       "torch": 16,
+       "bread": 8
+      }
+     },
+     {
+      "do": "wait",
+      "s": 30
+     }
+    ]
+   },
+   "rev": 3
+  },
+  {
+   "id": "wool_beds",
+   "type": "steps",
+   "priority": 90,
+   "status": "paused",
+   "when": "any",
+   "bots": 3,
+   "requires": {
+    "minHp": 10
+   },
+   "plan": {
+    "zone": "no world change: depot table -346,70,-460 + sheep pen_1 (x -402..-376 / z -540..-528)",
+    "why": "foreman 00:16: 19 sheep stand penned and NOBODY shears them; string is 2/40 with no producer, only 2 respawn beds exist for 50 bots and 3 white_bed lie unused in a chest 1 wool short of a 4th. 2 iron_ingot = shears = ~30 wool a pass = 10 beds, no night hunt needed."
+   },
+   "params": {
+    "repeat": true,
+    "onFail": "continue",
+    "steps": [
+     {
+      "do": "withdraw",
+      "item": "raw_iron",
+      "n": 6,
+      "atLeast": 2
+     },
+     {
+      "do": "withdraw",
+      "item": "charcoal",
+      "n": 8,
+      "atLeast": 2
+     },
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       70,
+       -460
+      ],
+      "range": 4
+     },
+     {
+      "do": "smelt",
+      "item": "raw_iron",
+      "n": 6
+     },
+     {
+      "do": "goto",
+      "to": [
+       -346,
+       70,
+       -460
+      ],
+      "range": 3
+     },
+     {
+      "do": "craft",
+      "item": "shears",
+      "n": 1
+     },
+     {
+      "do": "goto",
+      "to": [
+       -389,
+       69,
+       -534
+      ],
+      "range": 6
+     },
+     {
+      "do": "shear",
+      "n": 12,
+      "radius": 20
+     },
+     {
+      "do": "goto",
+      "to": [
+       -346,
+       70,
+       -460
+      ],
+      "range": 3
+     },
+     {
+      "do": "craft",
+      "item": "white_bed",
+      "n": 3
+     },
+     {
+      "do": "bank",
+      "keep": {
+       "shears": 1,
+       "torch": 16,
+       "bread": 8
+      }
+     },
+     {
+      "do": "wait",
+      "s": 90
+     }
+    ]
+   },
+   "rev": 2
+  },
+  {
+   "id": "toolsmith_picks_fix",
+   "type": "steps",
+   "priority": 95,
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "requires": {
+    "minHp": 8
+   },
+   "plan": {
+    "zone": "no world change - the REAL depot crafting table -337,69,-460 (LOOKED: settings.craftTable -346,70,-460 is a solid block beside the furnaces, no table stands there)",
+    "why": "foreman 01:20: mine_not_ready missing pick_spare + obtain_failed storm crafted 0/1 x28/30min, because every toolsmith plan walks to -346,70,-460 where there is no table. Craft spare stone picks/axes at the table that really exists."
+   },
+   "params": {
+    "repeat": true,
+    "onFail": "continue",
+    "steps": [
+     {
+      "do": "withdraw",
+      "item": "cobbled_deepslate",
+      "n": 48
+     },
+     {
+      "do": "withdraw",
+      "item": "stick",
+      "n": 32
+     },
+     {
+      "do": "goto",
+      "to": [
+       -337,
+       69,
+       -460
+      ],
+      "range": 2
+     },
+     {
+      "do": "craft",
+      "item": "stone_pickaxe",
+      "n": 8
+     },
+     {
+      "do": "craft",
+      "item": "stone_axe",
+      "n": 4
+     },
+     {
+      "do": "bank",
+      "keep": {
+       "stone_pickaxe": 1,
+       "torch": 16
+      }
+     },
+     {
+      "do": "wait",
+      "s": 30
+     }
+    ]
+   }
+  },
+  {
+   "id": "fill_hole_field2",
+   "type": "build",
+   "priority": 96,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 3,
+   "site": [
+    -312,
+    70,
+    -508
+   ],
+   "plan": {
+    "zone": "base, between field_2 and road 5: x -315..-309 / z -511..-504",
+    "why": "a 3-deep hole at -312,67,-508 (left by an escape staircase during the 22:1xZ road test) traps bots: Noa boxed in, no_route x3 (op 01:42Z); fill it solid from the bottom, top at the base level"
+   },
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -312,
+     70,
+     -508
+    ],
+    "args": {
+     "box": [
+      -315,
+      -511,
+      -309,
+      -504
+     ],
+     "depth": 8,
+     "fill": "dirt",
+     "top": "dirt"
+    }
+   },
+   "stuckBy": {
+    "key": "rev0",
+    "bots": [
+     "Kaede",
+     "Misaki",
+     "Ume"
+    ]
+   },
+   "note": "auto-paused: 112 cells nobody could do: -313,63,-510 | -309,66,-510 | -312,66,-509 | -313,66,-509 | -312,66,-507 | -312,66,-506"
+  },
+  {
+   "id": "cane_farm",
+   "type": "cane",
+   "priority": 84,
+   "front": "cane",
+   "status": "paused",
+   "when": "any",
+   "site": [
+    -272,
+    69,
+    -479
+   ],
+   "after": "base_cane",
+   "produces": [
+    "sugar_cane"
+   ],
+   "minBots": 1,
+   "maxBots": 2,
+   "requires": {
+    "minHp": 12,
+    "minFood": 8
+   },
+   "plan": "BASE PLAN zone cane: sugar cane on the cane block inside the base (the blueprint built soil and water; the job only plants from the depot stock, cuts the tops and banks) - paper, books, bookshelves",
+   "params": {
+    "box": [
+     -281,
+     -488,
+     -263,
+     -470
+    ],
+    "y": 68,
+    "bankAt": 48
+   },
+   "bots": 2,
+   "rev": 7,
+   "restUntil": 1789883283496
+  },
+  {
+   "id": "cane_wild",
+   "type": "cane",
+   "priority": 88,
+   "front": "farm",
+   "status": "paused",
+   "when": "day",
+   "bots": 3,
+   "site": [
+    -270,
+    63,
+    -343
+   ],
+   "requires": {
+    "minHp": 14,
+    "minFood": 10
+   },
+   "plan": {
+    "zone": "gathering, no world change beyond cutting wild cane above its base (river bank 110 blocks NE of the base and two stands the scouts saw further E)",
+    "why": "first planting stock for cane_farm: one-off trips, pauses itself at 32 plants"
+   },
+   "params": {
+    "wild": true,
+    "sites": [
+     [
+      -122,
+      65,
+      -243
+     ],
+     [
+      -135,
+      63,
+      -159
+     ]
+    ],
+    "radius": 32,
+    "haul": 64,
+    "farm": "cane_farm",
+    "until": 32
+   },
+   "restUntil": 1789874299678,
+   "rev": 4,
+   "desc": "3 bots = one per known wild stand (each site held only 2-3 cuttable canes at 02:02Z; more bots walk 250 blocks for nothing). The job rests itself 20 min when every stand is cut to its bases (regrowth ~18 min/block) and pauses itself when cane_farm holds 32 plants. More cane faster = more SITES in params.sites (scouts: grep cane bots/army/scout.jsonl), not more bots.",
+   "shiftMin": 20,
+   "note": "auto-paused: cane_farm holds 59 plants (re-activate for more wild cane)"
+  },
+  {
+   "id": "mine_obsidian",
+   "type": "delegate",
+   "priority": 87,
+   "front": "mine",
+   "status": "paused",
+   "when": "any",
+   "site": [
+    -330,
+    69,
+    -500
+   ],
+   "shiftMin": 60,
+   "bots": 1,
+   "requires": {
+    "minHp": 14,
+    "minFood": 14
+   },
+   "plan": {
+    "zone": "mine (BASE PLAN zone mine, underground only: branch faces of the worked-out level -54 at the lava lakes of the deep caves, y-55)",
+    "why": "P4 enchanting table needs 4 obsidian, P5 nether portal 10-14: ONE miner with a diamond pickaxe + 2 water buckets casts obsidian at a lava lake (water over still lava), mines it as a trench and banks it; graph-only movement, toSurface home"
+   },
+   "params": {
+    "skill": "iron_miner",
+    "args": {
+     "entrance": {
+      "x": -330,
+      "y": 69,
+      "z": -500,
+      "facing": "north"
+     },
+     "job": "obsidian",
+     "want": 40,
+     "waterFrom": [
+      -441,
+      62,
+      -422
+     ]
+    }
+   },
+   "rev": 3,
+   "note": "03:10Z engineer: 40 obsidian banked (want reached) - paused. Re-activate with a higher params.args.want when more is needed; open spot on record: -54/29:-1 (37 cast obsidian left)"
+  },
+  {
+   "id": "craft_beds",
+   "type": "steps",
+   "priority": 94,
+   "status": "paused",
+   "when": "any",
+   "bots": 4,
+   "requires": {
+    "minHp": 8
+   },
+   "plan": {
+    "zone": "no world change - the depot crafting table -346,70,-460",
+    "why": "foreman 03:30: 3 of the last 7 deaths are Phantoms (incl. the sleeper Misaki) because 49 of 50 bots have never slept - 1 bed stands for 50 bots while 1127 wool and 1057 planks rot in the depot. wool_beds was crafting white_bed but our sheep are grey/black (white_wool 3), so it failed: craft GREY beds from the wool we actually own and bank them for the dorm."
+   },
+   "params": {
+    "repeat": true,
+    "onFail": "continue",
+    "steps": [
+     {
+      "do": "withdraw",
+      "item": "gray_wool",
+      "n": 24,
+      "atLeast": 3
+     },
+     {
+      "do": "withdraw",
+      "item": "oak_planks",
+      "n": 24,
+      "atLeast": 3
+     },
+     {
+      "do": "goto",
+      "to": [
+       -346,
+       70,
+       -460
+      ],
+      "range": 2
+     },
+     {
+      "do": "craft",
+      "item": "gray_bed",
+      "n": 8
+     },
+     {
+      "do": "bank",
+      "keep": {
+       "bread": 8
+      }
+     },
+     {
+      "do": "wait",
+      "s": 45
+     }
+    ]
+   }
+  },
+  {
+   "id": "guard_treefarm",
+   "type": "guard",
+   "priority": 95,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 4,
+   "site": [
+    -242,
+    72,
+    -543
+   ],
+   "requires": {
+    "minHp": 12,
+    "anyItem": [
+     "diamond_sword",
+     "iron_sword",
+     "stone_sword",
+     "diamond_axe",
+     "iron_axe",
+     "stone_axe"
+    ]
+   },
+   "plan": "no world change: armed escort of the EAST works (roads 9/11, tree farm zone x -282..-235 / z -454..-407). A pillager patrol owns that ground: Chika shot/doomed to fall 3x in 3 min at -281,69,-450 (04:25-04:27Z) while road 6/11 work passes through. Clear every hostile within 32 of the post, day and night, so the roads and the tree farm can be built instead of the squad being parked.",
+   "params": {
+    "post": [
+     -242,
+     72,
+     -543
+    ],
+    "radius": 44,
+    "when": "any",
+    "minHp": 10,
+    "kinds": [
+     "pillager",
+     "vindicator",
+     "evoker",
+     "ravager",
+     "zombie",
+     "skeleton",
+     "spider",
+     "husk",
+     "stray",
+     "drowned",
+     "creeper",
+     "witch",
+     "bogged"
+    ]
+   },
+   "rev": 3
+  },
+  {
+   "id": "base_cane",
+   "type": "build",
+   "priority": 45,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 4,
+   "site": [
+    -272,
+    69,
+    -479
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone cane x -282..-262 / z -489..-469 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): sugar cane block 21x21 INSIDE the base (crops grow only in ticked chunks): plus-tiling of isolated water cells BUILT by the blueprint (one bucket each from settings/params waterFrom), ~270 cane cells, paved ring, lit",
+   "params": {
+    "blueprint": "cane_block",
+    "origin": [
+     -282,
+     68,
+     -489
+    ],
+    "args": {
+     "w": 21,
+     "d": 21
+    },
+    "waterFrom": [
+     -441,
+     62,
+     -422
+    ]
+   },
+   "after": "base_cane_pad",
+   "rev": 3,
+   "note": "needs: water (no bucket carried, in stock or craftable (3 iron_ingot)) (45 cells wait; every cell whose material exists is done or in work)",
+   "water": {
+    "key": "rev3",
+    "cells": {}
+   }
+  },
+  {
+   "id": "base_infill_n404_n556",
+   "type": "build",
+   "priority": 62,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 5,
+   "site": [
+    -404,
+    69,
+    -542
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone infill x -404..-404 / z -556..-528 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): INFILL between the zones: the whole base is ONE level - cut what stands above y68, fill dents from the natural ground up, 4 headroom; nothing is built on it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -404,
+     68,
+     -542
+    ],
+    "args": {
+     "w": 1,
+     "d": 29
+    }
+   },
+   "after": "base_infill_n282_n458",
+   "rev": 1,
+   "note": "auto-activated: `after` base_infill_n282_n458 finished (auto-paused: build complete)"
+  },
+  {
+   "id": "base_infill_n407_n556",
+   "type": "build",
+   "priority": 62,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 5,
+   "site": [
+    -406,
+    69,
+    -541
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone infill x -407..-405 / z -556..-526 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): INFILL between the zones: the whole base is ONE level - cut what stands above y68, fill dents from the natural ground up, 4 headroom; nothing is built on it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -406,
+     68,
+     -541
+    ],
+    "args": {
+     "w": 3,
+     "d": 31
+    }
+   },
+   "after": "base_infill_n370_n416",
+   "rev": 1,
+   "note": "auto-activated: `after` base_infill_n370_n416 finished (auto-paused: build complete)"
+  },
+  {
+   "id": "base_infill_n407_n455",
+   "type": "build",
+   "priority": 88,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 3,
+   "site": [
+    -407,
+    69,
+    -440
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone infill x -407..-407 / z -455..-425 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): INFILL between the zones: the whole base is ONE level - cut what stands above y68, fill dents from the natural ground up, 4 headroom; nothing is built on it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -407,
+     68,
+     -440
+    ],
+    "args": {
+     "w": 1,
+     "d": 31
+    }
+   },
+   "rev": 2
+  },
+  {
+   "id": "base_infill_n407_n558",
+   "type": "build",
+   "priority": 62,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 5,
+   "site": [
+    -392,
+    69,
+    -558
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone infill x -407..-377 / z -558..-558 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): INFILL between the zones: the whole base is ONE level - cut what stands above y68, fill dents from the natural ground up, 4 headroom; nothing is built on it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -392,
+     68,
+     -558
+    ],
+    "args": {
+     "w": 31,
+     "d": 1
+    }
+   },
+   "after": "base_infill_n261_n467",
+   "rev": 1,
+   "note": "auto-activated: `after` base_infill_n261_n467 finished (auto-paused: build complete)"
+  },
+  {
+   "id": "base_infill_n231_n527",
+   "type": "build",
+   "priority": 62,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 3,
+   "site": [
+    -231,
+    69,
+    -512
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone infill x -231..-231 / z -527..-497 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): INFILL between the zones: the whole base is ONE level - cut what stands above y68, fill dents from the natural ground up, 4 headroom; nothing is built on it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -231,
+     68,
+     -512
+    ],
+    "args": {
+     "w": 1,
+     "d": 31,
+     "clear": 5
+    }
+   },
+   "after": "base_infill_n233_n492",
+   "rev": 4,
+   "note": "auto-activated: `after` base_infill_n233_n492 finished (auto-paused: build complete - BUT 1 cells are left that 3 bu)"
+  },
+  {
+   "id": "base_infill_n252_n558",
+   "type": "build",
+   "priority": 88,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -242,
+    69,
+    -543
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone infill x -252..-232 / z -558..-528 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): INFILL between the zones: the whole base is ONE level - cut what stands above y68, fill dents from the natural ground up, 4 headroom; nothing is built on it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -242,
+     68,
+     -543
+    ],
+    "args": {
+     "w": 21,
+     "d": 31,
+     "clear": 14
+    }
+   },
+   "rev": 3
+  },
+  {
+   "id": "base_infill_n278_n401",
+   "type": "build",
+   "priority": 88,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -263,
+    69,
+    -386
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone infill x -278..-248 / z -401..-371 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): INFILL between the zones: the whole base is ONE level - cut what stands above y68, fill dents from the natural ground up, 4 headroom; nothing is built on it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -263,
+     68,
+     -386
+    ],
+    "args": {
+     "w": 31,
+     "d": 31,
+     "clear": 6
+    }
+   },
+   "rev": 4
+  },
+  {
+   "id": "base_infill_n247_n401",
+   "type": "build",
+   "priority": 62,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 3,
+   "site": [
+    -241,
+    69,
+    -386
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone infill x -247..-235 / z -401..-371 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): INFILL between the zones: the whole base is ONE level - cut what stands above y68, fill dents from the natural ground up, 4 headroom; nothing is built on it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -241,
+     68,
+     -386
+    ],
+    "args": {
+     "w": 13,
+     "d": 31
+    }
+   },
+   "after": "base_infill_n370_n371",
+   "rev": 8,
+   "note": "auto-activated: `after` base_infill_n370_n371 finished (auto-paused: build complete)"
+  },
+  {
+   "id": "base_infill_n231_n403",
+   "type": "build",
+   "priority": 88,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -231,
+    69,
+    -388
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone infill x -231..-231 / z -403..-373 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): INFILL between the zones: the whole base is ONE level - cut what stands above y68, fill dents from the natural ground up, 4 headroom; nothing is built on it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -231,
+     68,
+     -388
+    ],
+    "args": {
+     "w": 1,
+     "d": 31
+    }
+   },
+   "rev": 2
+  },
+  {
+   "id": "base_infill_n232_n400",
+   "type": "build",
+   "priority": 88,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -232,
+    69,
+    -385
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone infill x -232..-232 / z -400..-370 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): INFILL between the zones: the whole base is ONE level - cut what stands above y68, fill dents from the natural ground up, 4 headroom; nothing is built on it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -232,
+     68,
+     -385
+    ],
+    "args": {
+     "w": 1,
+     "d": 31
+    }
+   },
+   "rev": 2
+  },
+  {
+   "id": "cane_lake",
+   "type": "cane",
+   "priority": 83,
+   "front": "cane",
+   "status": "paused",
+   "when": "day",
+   "bots": 2,
+   "site": [
+    -438,
+    63,
+    -425
+   ],
+   "requires": {
+    "minHp": 14,
+    "minFood": 10
+   },
+   "after": "base_cane",
+   "plan": {
+    "zone": "gathering, no world change beyond cutting cane above its base: the OLD cane farm on the lake shore x -500..-420 / z -445..-375 (y62), 100-180 blocks from the base = unticked chunks, it hardly grew",
+    "why": "TRANSPLANT (owner 09-20): the tops of what stands at the lake are cut and planted on the cane block inside the base (cane_farm, zone cane); the bases stay and regrow as a wild stand"
+   },
+   "params": {
+    "wild": true,
+    "sites": [
+     [
+      -438,
+      63,
+      -425
+     ],
+     [
+      -470,
+      63,
+      -410
+     ]
+    ],
+    "radius": 48,
+    "haul": 64,
+    "farm": "cane_farm",
+    "until": 260
+   },
+   "desc": "starts by itself when base_cane (blueprint cane_block) is built. Pauses itself when cane_farm holds 260 plants. The depot also holds cane (626 at 05:30Z): cane_farm plants from stock first."
+  },
+  {
+   "id": "fill_ravine_s",
+   "type": "build",
+   "priority": 70,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 4,
+   "site": [
+    -311,
+    69,
+    -473
+   ],
+   "requires": {
+    "minHp": 12
+   },
+   "plan": {
+    "zone": "the ravine keep-out x -334..-289 / z -486..-408 (and the two day-one quarry pits inside it), tile -334,-486,-289,-461",
+    "why": "owner 09-20: \"渓谷は埋めないのか？\" - the ravine swallows bots (5 no_route an hour, falls, deaths), needs a fence, a stair, an exit rule and a keep-out in every plan; the army throws away 10 000+ surplus stone: fill it SOLID bottom-up to the base level y68 and the base becomes one piece"
+   },
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -311,
+     68,
+     -473
+    ],
+    "args": {
+     "box": [
+      -334,
+      -486,
+      -289,
+      -461
+     ],
+     "depth": 28,
+     "fill": "cobblestone",
+     "top": "dirt",
+     "mats": [
+      "cobbled_deepslate",
+      "cobblestone",
+      "stone",
+      "deepslate",
+      "tuff",
+      "andesite",
+      "diorite",
+      "granite",
+      "dirt",
+      "gravel"
+     ]
+    }
+   },
+   "rev": 4,
+   "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check."
+  },
+  {
+   "id": "fill_ravine_m",
+   "type": "build",
+   "priority": 70,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 4,
+   "site": [
+    -311,
+    69,
+    -447
+   ],
+   "requires": {
+    "minHp": 12
+   },
+   "plan": {
+    "zone": "the ravine keep-out x -334..-289 / z -486..-408 (and the two day-one quarry pits inside it), tile -334,-460,-289,-435",
+    "why": "owner 09-20: \"渓谷は埋めないのか？\" - the ravine swallows bots (5 no_route an hour, falls, deaths), needs a fence, a stair, an exit rule and a keep-out in every plan; the army throws away 10 000+ surplus stone: fill it SOLID bottom-up to the base level y68 and the base becomes one piece"
+   },
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -311,
+     68,
+     -447
+    ],
+    "args": {
+     "box": [
+      -334,
+      -460,
+      -289,
+      -435
+     ],
+     "depth": 28,
+     "fill": "cobblestone",
+     "top": "dirt",
+     "mats": [
+      "cobbled_deepslate",
+      "cobblestone",
+      "stone",
+      "deepslate",
+      "tuff",
+      "andesite",
+      "diorite",
+      "granite",
+      "dirt",
+      "gravel"
+     ]
+    }
+   },
+   "rev": 4,
+   "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check."
+  },
+  {
+   "id": "fill_ravine_n",
+   "type": "build",
+   "priority": 70,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 4,
+   "site": [
+    -311,
+    69,
+    -421
+   ],
+   "requires": {
+    "minHp": 12
+   },
+   "plan": {
+    "zone": "the ravine keep-out x -334..-289 / z -486..-408 (and the two day-one quarry pits inside it), tile -334,-434,-289,-408",
+    "why": "owner 09-20: \"渓谷は埋めないのか？\" - the ravine swallows bots (5 no_route an hour, falls, deaths), needs a fence, a stair, an exit rule and a keep-out in every plan; the army throws away 10 000+ surplus stone: fill it SOLID bottom-up to the base level y68 and the base becomes one piece"
+   },
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -311,
+     68,
+     -421
+    ],
+    "args": {
+     "box": [
+      -334,
+      -434,
+      -289,
+      -408
+     ],
+     "depth": 28,
+     "fill": "cobblestone",
+     "top": "dirt",
+     "mats": [
+      "cobbled_deepslate",
+      "cobblestone",
+      "stone",
+      "deepslate",
+      "tuff",
+      "andesite",
+      "diorite",
+      "granite",
+      "dirt",
+      "gravel"
+     ]
+    }
+   },
+   "rev": 3,
+   "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check."
+  },
+  {
+   "id": "base_field_7",
+   "type": "build",
+   "priority": 60,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 5,
+   "site": [
+    -355,
+    69,
+    -387
+   ],
+   "requires": {
+    "minHp": 6
+   },
+   "plan": "BASE PLAN zone field_7 x -368..-342 / z -400..-374 on the base level y68: field block 27x27 in a 29x29 slot (its torch ring): nine 9x9 plots, water cells BUILT by the blueprint. foreman 05:48Z REPAIR: base audit measures 9 cells MISSING of 747 with no job on it (holes in a field block let the sheet dry out).",
+   "params": {
+    "blueprint": "field_block",
+    "origin": [
+     -368,
+     68,
+     -400
+    ],
+    "args": {},
+    "waterFrom": [
+     -441,
+     62,
+     -422
+    ]
+   },
+   "note": "auto-paused: build complete"
+  },
+  {
+   "id": "fill_void_n343_n461",
+   "type": "build",
+   "priority": 60,
+   "front": "works",
+   "status": "paused",
+   "when": "day",
+   "bots": 3,
+   "site": [
+    -343,
+    66,
+    -460
+   ],
+   "plan": "base: fill 2 air cells under finished pad base_infill_n370_n475",
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -343,
+     66,
+     -460
+    ],
+    "args": {
+     "w": 3,
+     "d": 3,
+     "depth": 4
+    }
+   },
+   "stuckBy": {
+    "key": "rev0",
+    "bots": [
+     "Tamaki",
+     "Wakana",
+     "Kanade"
+    ]
+   },
+   "note": "auto-paused: 6 cells nobody could do: -343,63,-461 | -343,64,-460"
+  },
+  {
+   "id": "fill_void_n371_n401",
+   "type": "build",
+   "priority": 70,
+   "front": "works",
+   "status": "active",
+   "when": "day",
+   "bots": 2,
+   "site": [
+    -371,
+    66,
+    -398
+   ],
+   "plan": "base pad n371_n401: 2 air cells under finished pad, fill solid (fill_void)",
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -371,
+     66,
+     -398
+    ],
+    "args": {
+     "box": [
+      -373,
+      -400,
+      -369,
+      -396
+     ],
+     "depth": 3,
+     "fill": "cobblestone"
+    }
+   }
+  },
+  {
+   "id": "guard_infill_east",
+   "type": "guard",
+   "priority": 93,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -258,
+    69,
+    -386
+   ],
+   "requires": {
+    "minHp": 12,
+    "anyItem": [
+     "diamond_sword",
+     "iron_sword",
+     "stone_sword",
+     "diamond_axe",
+     "iron_axe",
+     "stone_axe"
+    ]
+   },
+   "plan": "no world change: armed escort of the SE infill works (zones base_infill_n278_n401 x -278..-248 and base_infill_n247_n401 x -247..-235 / z -401..-371). A pillager patrol owns that ground OUTSIDE guard_treefarm radius 32: Mio killed at -240,64,-385 and Chika at -247,65,-383 (07:55Z, 20 s apart, both on army:build level). Clear every hostile within 32 of the post so the levelling squad can work.",
+   "params": {
+    "post": [
+     -258,
+     69,
+     -386
+    ],
+    "radius": 32,
+    "when": "any",
+    "minHp": 10,
+    "kinds": [
+     "pillager",
+     "vindicator",
+     "evoker",
+     "ravager",
+     "zombie",
+     "skeleton",
+     "spider",
+     "husk",
+     "stray",
+     "drowned",
+     "creeper",
+     "witch"
+    ]
+   }
+  }
+ ]
+}

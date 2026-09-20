@@ -1,0 +1,23 @@
+{
+  "_note": "Live config for bots/chatter.js (bots answer PLAYERS in character; players are spectators; chat never gives orders). Re-read every cycle - edit and save, no restart needed. enabled:false mutes the bots; banter:false = no bot-to-bot small talk (zero tokens while nobody speaks).",
+  "enabled": true,
+  "model": "haiku",
+  "api": "http://127.0.0.1:3000",
+  "poll_ms": 3000,
+  "cycle_ms": 38000,
+  "cycle_jitter_ms": 8000,
+  "idle_cycle_ms": 90000,
+  "human_idle_ms": 420000,
+  "reply_gap_ms": 6000,
+  "min_line_gap_ms": 8000,
+  "max_lines_per_min": 6,
+  "max_lines_per_cycle": 2,
+  "max_queue": 6,
+  "line_ttl_ms": 100000,
+  "max_msg_len": 100,
+  "max_personas": 11,
+  "llm_timeout_ms": 75000,
+  "quiet_when_no_humans": true,
+  "dry_run": false,
+  "banter": false
+}

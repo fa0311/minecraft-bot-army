@@ -1,0 +1,73 @@
+--- patches/orig/mineflayer.lib.plugins.physics.js	2026-09-18 18:00:12.098417400 +0000
++++ node_modules/mineflayer/lib/plugins/physics.js	2026-09-18 18:03:28.510082975 +0000
+@@ -100,6 +100,28 @@
+     doPhysicsTimer = null
+   }
+ 
++  // PATCHED (bots/patches/02-*): the server kicks with
++  // "multiplayer.disconnect.invalid_player_movement" ("Invalid move player packet
++  // received") as soon as ONE move packet carries a non-finite value. Upstream only
++  // guards x/y/z on position/position_look; yaw/pitch are unguarded and the `look`
++  // packet is unguarded entirely. One NaN reaching bot.entity.yaw (e.g. lookAt() on
++  // a point with a NaN component) therefore poisons lastSentYaw forever and the bot
++  // is kicked on every reconnect. Guard every sender and self-heal the state.
++  function finite (v) { return typeof v === 'number' && Number.isFinite(v) }
++  function healRot () {
++    // self-heal so one NaN does not break the bot permanently
++    if (!finite(bot.entity.yaw)) bot.entity.yaw = 0
++    if (!finite(bot.entity.pitch)) bot.entity.pitch = 0
++    if (!finite(lastSentYaw)) lastSentYaw = bot.entity.yaw
++    if (!finite(lastSentPitch)) lastSentPitch = bot.entity.pitch
++  }
++  function badRot (yaw, pitch) {
++    if (finite(yaw) && finite(pitch)) return false
++    healRot()
++    bot.emit('nonFiniteRotation', { yaw, pitch })
++    return true
++  }
++
+   function sendPacketPosition (position, onGround) {
+     // sends data, no logic
+     if (!Number.isFinite(position.x) || !Number.isFinite(position.y) || !Number.isFinite(position.z)) return
+@@ -115,6 +137,7 @@
+ 
+   function sendPacketLook (yaw, pitch, onGround) {
+     // sends data, no logic
++    if (badRot(yaw, pitch)) return // PATCHED: never send NaN/Infinity rotation
+     const oldPos = new Vec3(lastSent.x, lastSent.y, lastSent.z)
+     lastSent.yaw = yaw
+     lastSent.pitch = pitch
+@@ -127,6 +150,7 @@
+   function sendPacketPositionAndLook (position, yaw, pitch, onGround) {
+     // sends data, no logic
+     if (!Number.isFinite(position.x) || !Number.isFinite(position.y) || !Number.isFinite(position.z)) return
++    if (badRot(yaw, pitch)) return // PATCHED: never send NaN/Infinity rotation
+     const oldPos = new Vec3(lastSent.x, lastSent.y, lastSent.z)
+     lastSent.x = position.x
+     lastSent.y = position.y
+@@ -161,6 +185,12 @@
+     // Don't send position with invalid coordinates (NaN after death)
+     if (!Number.isFinite(bot.entity.position.x)) return
+ 
++    // PATCHED (bots/patches/02-*): self-heal if anything else poisoned the rotation.
++    if (!finite(bot.entity.yaw) || !finite(bot.entity.pitch) || !finite(lastSentYaw) || !finite(lastSentPitch)) {
++      healRot()
++      bot.emit('nonFiniteRotation', { yaw: bot.entity.yaw, pitch: bot.entity.pitch })
++    }
++
+     // Increment the yaw in baby steps so that notchian clients (not the server) can keep up.
+     const dYaw = deltaYaw(bot.entity.yaw, lastSentYaw)
+     const dPitch = bot.entity.pitch - (lastSentPitch || 0)
+@@ -329,6 +359,12 @@
+   })
+ 
+   bot.look = async (yaw, pitch, force) => {
++    // PATCHED (bots/patches/02-*): a single NaN here permanently poisons
++    // bot.entity.yaw / lastSentYaw and gets the bot kicked forever. Callers hand
++    // us Math.atan2(...) of vectors that can contain NaN (dead entity positions,
++    // unloaded blocks, 0-length deltas). Refuse instead of propagating.
++    if (!finite(yaw) || !finite(pitch)) { badRot(yaw, pitch); return }
++    healRot() // entity.yaw itself may already be poisoned
+     if (!lookingTask.done) {
+       lookingTask.finish() // finish the previous one
+     }

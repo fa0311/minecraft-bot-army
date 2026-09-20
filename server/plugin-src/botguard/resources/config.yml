@@ -1,0 +1,8 @@
+# JSON object whose KEYS are the protected names (the bot manager's roster); re-read at most every 60 s
+roster: /root/workspace/bots/assignments.json
+# further names reserved for loopback logins only (case-insensitive)
+extra: []
+# IP PINNING: these names may only log in from the listed networks (IPv4 CIDR or exact address). Everybody else is untouched.
+# 09-19: somebody logged in as the owner from 203.0.113.79 (the owner's own address is 192.168.69.1, LAN).
+pinned:
+  fa0311: ["192.168.0.0/16", "127.0.0.0/8"]

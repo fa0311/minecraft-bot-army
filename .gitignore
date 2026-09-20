@@ -1,0 +1,75 @@
+# --- dependencies / binaries
+node_modules/
+*.jar
+server/libraries/
+server/cache/
+server/versions/
+# --- worlds, backups, throw-away servers (large; backups live in server/backups and /root/backups)
+server/world*/
+server/backups/
+server-gacha/
+# --- secrets and addresses: never commit (rcon password, pinned IPs)
+server/.rcon_pw
+server/server.properties
+server/plugins/
+!server/plugin-src/
+# --- logs and generated runtime state (rebuilt by the running system)
+*.log
+*.log.*
+server/logs/
+server/console.log
+server/usercache.json
+server/banned-*.json
+server/version_history.json
+REPORT.md
+bots/army/BOARD.md
+bots/army/status.json
+bots/army/chests.json
+bots/army/base_audit.json
+bots/army/results.jsonl
+bots/army/*.jsonl
+bots/army/escalate.*
+bots/army/hb/
+bots/army/assign/
+bots/army/decline/
+bots/army/swallowed/
+bots/army/help/
+bots/army/archive-*/
+bots/army/*.bak
+bots/.blocklocks/
+bots/.scaffold/
+bots/iron_hb/
+bots/metrics/*.jsonl
+bots/metrics/*.json
+bots/chatter.alive
+*.tmp
+*.png
+# --- tool/runtime leftovers
+.claude/
+*.pid
+*.out
+*.stale
+*.lock
+# --- build output
+server/plugin-src/*/build/
+# --- local-only records and config: old-world history names community members; the guest team's names are local config
+attic/
+server/guests.json
+!bots/army/jobs-archive.jsonl
+# --- churning runtime state of the army (tickets, answers, sensors' scratch files)
+bots/army/answers/
+bots/army/tickets/
+bots/army/attention*.json
+bots/army/say.json
+bots/army/asset_audit.json
+bots/army/hunt_bad.json
+bots/army/ores_bad.json
+bots/army/irrigation_bad.json
+bots/army/tidy_state.json
+bots/army/night.json
+bots/army/alert.json
+bots/iron_ore_log.json
+bots/army/chatter.alive
+bots/army/chest_missing.json
+bots/army/helpdesk_escalated.json
+bots/army/census.json

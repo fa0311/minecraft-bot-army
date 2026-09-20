@@ -1,0 +1,8 @@
+# Everybody may READ the server's health, nobody gets op (owner 09-20: "人間がtps確認できるようにしたい").
+# /tps = ticks per second (1 m / 5 m / 15 m, 20.0 = healthy) · /mspt = milliseconds per tick. Read-only commands of Paper itself: no plugin, no gameplay change.
+server.health:
+  description: read-only server health commands for every player
+  default: true
+  children:
+    bukkit.command.tps: true
+    bukkit.command.mspt: true

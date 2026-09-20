@@ -1,0 +1,9 @@
+name: InvPeek
+version: 1.0
+main: invpeek.InvPeek
+api-version: '1.21'
+description: Right-click a player (or /inv <name>) to LOOK into its inventory. Read-only, no op needed.
+commands:
+  inv:
+    description: Look into a player's inventory (read-only)
+    usage: /inv <player>

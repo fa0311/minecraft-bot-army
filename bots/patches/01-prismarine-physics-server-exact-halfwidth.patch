@@ -1,0 +1,19 @@
+--- patches/orig/prismarine-physics.index.js	2026-09-18 18:00:12.097417381 +0000
++++ node_modules/prismarine-physics/index.js	2026-09-18 18:00:17.896525514 +0000
+@@ -73,7 +73,15 @@
+     honeyblockJumpSpeed: 0.4,
+     ladderMaxSpeed: 0.15,
+     ladderClimbSpeed: 0.2,
+-    playerHalfWidth: 0.3,
++    // PATCHED (bots/patches/01-*): the server builds the player AABB from a
++    // FLOAT width (0.6f), i.e. half width Math.fround(0.3) = 0.30000001192092896,
++    // which is LARGER than 0.3. When we clip the player flush against a block
++    // face using 0.3, the server sees the player 1.19e-8 *inside* that block,
++    // ServerGamePacketListenerImpl.isPlayerCollidingWithAnythingNew() fires and
++    // it silently teleports us back to lastGood{X,Y,Z} with zero velocity --
++    // every tick, forever. The bot then never falls, onGround stays false and
++    // it is frozen. Match the server's half width and keep a 1e-7 margin.
++    playerHalfWidth: Math.fround(0.3) + 1e-7,
+     playerHeight: 1.8,
+     waterInertia: 0.8,
+     lavaInertia: 0.5,

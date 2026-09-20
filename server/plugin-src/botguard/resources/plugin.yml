@@ -1,0 +1,5 @@
+name: BotGuard
+version: 1.0
+main: botguard.BotGuard
+api-version: '1.21'
+description: Reserves the bot army's names for logins from loopback (offline-mode server).

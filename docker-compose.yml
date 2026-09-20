@@ -1,0 +1,26 @@
+services:
+  mc:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    ports:
+      - "25566:25565"
+    env_file:
+      - ../.env
+    container_name: 0000-mc
+    command: ["/bin/sh", "-c", "sleep infinity"]
+    volumes:
+      - .:/root/workspace
+      - vscode-data:/root/.vscode-server
+      - ${HOME}/.zshrc:/root/.zshrc:ro
+      - ${HOME}/.gitconfig:/root/.gitconfig
+      - ${HOME}/.ssh:/root/.ssh:ro
+      - ${HOME}/.config/gh:/root/.config/gh:ro
+      - ${HOME}/.gnupg/private-keys-v1.d:/root/.gnupg/private-keys-v1.d:ro
+      - ${HOME}/.gnupg/pubring.kbx:/root/.gnupg/pubring.kbx:ro
+      - ${HOME}/.gnupg/trustdb.gpg:/root/.gnupg/trustdb.gpg:ro
+    stdin_open: true
+    tty: true
+
+volumes:
+  vscode-data:
