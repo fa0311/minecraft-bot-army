@@ -772,14 +772,14 @@
    ],
    "axis": "x",
    "lit": 1789905050111,
-   "by": "Kanade",
+   "by": "Erika",
    "portal": [
     -38,
     98,
     -76
    ],
-   "through": 1789908918547,
-   "scoutRev": 1,
+   "through": 1789909617745,
+   "scoutRev": 3,
    "hub": {
     "room": [
      -41,
@@ -813,7 +813,8 @@
     "built": true,
     "chestStands": true,
     "tableStands": true,
-    "at": 1789908944723
+    "at": 1789909551855,
+    "note": "restored 13:0xZ after the landing step clobbered it; verified built by nether_hub left:0 at 12:55:44Z"
    },
    "shell": [
     -39,
@@ -824,8 +825,8 @@
    "shellY": 98,
    "returnJob": "nether_return",
    "deaths": 1,
-   "deathsResetAt": 1789907290056,
-   "deathsResetWhy": "stage 1b: ONE trip with the travel-free landing (top model 12:3xZ)",
+   "deathsResetAt": 1789909260634,
+   "deathsResetWhy": "stage 2: placeHard replaced by a never-moving placer 12:5xZ (the hub death came from its reposition/support remedies, not from a step of ours)",
    "landing": [
     -39,
     -78,
@@ -834,10 +835,33 @@
    ],
    "landingY": 98,
    "landingSafe": true,
-   "landingAt": 1789908918869,
-   "back": 1789908593612,
-   "lastDeath": 1789908969244,
-   "lastDeathBy": "Kanade"
+   "landingAt": 1789909618021,
+   "back": 1789909468415,
+   "lastDeath": 1789909676766,
+   "lastDeathBy": "Erika",
+   "roads": {
+    "x+": {
+     "from": [
+      -32,
+      98,
+      -76
+     ],
+     "end": [
+      31,
+      98,
+      -76
+     ],
+     "length": 64,
+     "box": [
+      -34,
+      -78,
+      33,
+      -74
+     ],
+     "left": 0,
+     "at": 1789909643817
+    }
+   }
   }
  },
  "enlisted": [
@@ -972,8 +996,8 @@
    "produces": [
     "food"
    ],
-   "minBots": 0,
-   "maxBots": 4,
+   "minBots": 3,
+   "maxBots": 6,
    "site": [
     -367,
     69,
@@ -995,8 +1019,9 @@
     "haul": 24,
     "maxDist": 160
    },
-   "rev": 16,
-   "bots": 2
+   "rev": 17,
+   "bots": 2,
+   "note": "top model 13:1xZ: TPS - 628 farm animals load the server tick (sheep 249 of which ~60 are in the pen); hunters cull STRAYS again (owner decision 09-20 morning), not for food"
   },
   {
    "id": "forage_spawn",
@@ -1776,7 +1801,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789909246974
+   "restUntil": 1789909834819
   },
   {
    "id": "fill_ring_field2",
@@ -2205,7 +2230,7 @@
    },
    "shiftMin": 20,
    "rev": 9,
-   "restUntil": 1789909286238,
+   "restUntil": 1789909731939,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "feather"
@@ -2970,7 +2995,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 14,
+   "bots": 3,
    "site": [
     -311,
     69,
@@ -3167,7 +3192,7 @@
     },
     "order": "near"
    },
-   "rev": 16,
+   "rev": 17,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check.",
    "note": "top model 12:4xZ (gemba: 32 bots, not one cell in 10 min, no_los 229 / unreachable 129): the rest is a trench 14-16 deep with sheer walls and the new rule never drops into a pit - it had NO way in. WALK-IN STAIR first: ramp x -301/-300, z -461..-475 from the finished middle segment (y68) down to the floor y53. 12 bots: the trench is 7 wide",
    "restUntil": 1789906650052
@@ -3866,7 +3891,8 @@
      "d": 3,
      "clear": 14
     }
-   }
+   },
+   "restUntil": 1789910066206
   },
   {
    "id": "nether_hub",
@@ -3952,7 +3978,7 @@
    "type": "portal",
    "priority": 94,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 3,
    "shiftMin": 20,
@@ -3982,7 +4008,9 @@
     "cobble": 256,
     "crossS": 45,
     "maxDeaths": 2
-   }
+   },
+   "rev": 3,
+   "note": "auto-paused: the gate is lit and the round trip is done (bump rev to send another expedition)"
   }
  ]
 }

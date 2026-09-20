@@ -89,7 +89,7 @@ function tailResults () {
     for (const line of buf.toString('utf8').split('\n')) {
       if (!line.trim()) continue
       try { const r = JSON.parse(line); if (r.job && r.t && isOutput(r)) (outAt[r.job] = outAt[r.job] || []).push(r.t)
-        if (r.ev === 'build_pass' && r.job && typeof r.left === 'number') workLeft[r.job] = { left: r.left, t: r.t || Date.now() } // how many cells are still open = how many hands the job can really use (OVERFLOW)
+        if (r.ev === 'build_pass' && r.job && typeof r.left === 'number') workLeft[r.job] = { left: r.left, waiting: r.waiting, sealed: r.sealed, t: r.t || Date.now() } // how many cells a squad can really work on NOW (OVERFLOW)
         if (r.ev === 'death' || r.ev === 'banked' || r.ev === 'trip') events.push(r); else if ((r.ev === 'build_done' || r.ev === 'light_done') && r.job) doneEv[r.job] = { t: r.t, standing: !!r.standing } } catch {}
     }
     const cut = Date.now() - 6 * 3600000
@@ -214,6 +214,19 @@ function afterPass (board) {
 //   sent away by a shrinking demand — the squad shrinks at shift ends (see SHIFTS: cap = maxBots). A board edit (rev/min/max/produces/target)
 //   applies at once. The memory survives a restart through status.json (`demand`) — no state file of its own.
 const BAND = 0.05
+// A PEN WITH ANIMALS OUTSIDE NEEDS A HERDER, whatever the larder says (foreman 12:55Z: herd_sheep got 0 bots on wool 8602/150 while the base audit
+// measured 30 sheep OUTSIDE the pen). The camera's own finding (`audit_pen` in base_audit.json: job, outside) is the second claim on a herd job:
+// demand = max(item deficit, outside > 3 ? 1 bot : 0). Cached on the file's mtime — the audit runs every ~30 min, the dispatcher every 5 s.
+let penAt = 0; let penOut = {}
+function pensOutside () {
+  try {
+    const f = path.join(DIR, 'base_audit.json'); const m = fs.statSync(f).mtimeMs
+    if (m === penAt) return penOut
+    penAt = m; penOut = {}
+    for (const x of (readJSON(f, {}) || {}).findings || []) if (x && x.ev === 'audit_pen' && x.job) penOut[x.job] = x.outside || 0
+  } catch { penOut = {} }
+  return penOut
+}
 const demand = DRY ? {} : (readJSON(P.status, {}).demand || {}) // job id -> {want, raw, deficit, of, have, target, min, max, at, sig, held}
 const produces = job => Array.isArray(job.produces) && job.produces.length && !(job.names && job.names.length)
 const steps = (min, max, d) => min + Math.ceil((max - min) * d - 1e-9)
@@ -230,7 +243,9 @@ function demandOf (job, S, st) {
   // NO TARGET IS NOT A REASON FOR HALF A SQUAD (docs/REVIEW-early-assumptions.md row 8, measured 09-20: cane_farm held 2 bots for hours on 3020
   // idle cane because "no target" meant deficit 0.5). We own some of it and nobody said how much is enough -> its FLOOR, or one bot, and BOARD.md
   // keeps saying "no target" until the operator sets one. Owning NONE of it still pulls a full squad (deficit 1).
-  const raw = w.target == null && w.have > 0 ? Math.max(min, Math.min(1, min + 1)) : steps(min, max, w.deficit)
+  let raw = w.target == null && w.have > 0 ? Math.max(min, Math.min(1, min + 1)) : steps(min, max, w.deficit)
+  const outside = job.type === 'herd' ? (pensOutside()[job.id] || 0) : 0
+  if (outside > 3) { raw = Math.max(raw, Math.min(max || 1, 1)); w.outside = outside }
   const sig = [min, max, job.rev || 0, job.produces.map(k => k + ':' + T[k]).join(',')].join('|')
   const prev = demand[job.id]; const hold = (S.demandHoldMin != null ? S.demandHoldMin : 3) * 60000
   let want = raw; let held = null
@@ -239,7 +254,7 @@ function demandOf (job, S, st) {
   }
   return (demand[job.id] = Object.assign(w, { want, raw, min, max, sig, held, at: prev && prev.sig === sig && prev.want === want ? prev.at : NOW() }))
 }
-const wantText = d => 'want ' + d.want + ' of ' + d.min + '-' + d.max + ' (deficit ' + d.deficit.toFixed(2) + ' of ' + d.of + ' ' + d.have + '/' + (d.target == null ? 'no target' : d.target) + (d.held ? '; raw ' + d.raw + ' held ' + d.held : '') + ')'
+const wantText = d => 'want ' + d.want + ' of ' + d.min + '-' + d.max + ' (deficit ' + d.deficit.toFixed(2) + ' of ' + d.of + ' ' + d.have + '/' + (d.target == null ? 'no target' : d.target) + (d.outside ? '; ' + d.outside + ' outside the pen' : '') + (d.held ? '; raw ' + d.raw + ' held ' + d.held : '') + ')'
 
 function tick () {
   const board = readJSON(P.board, null)
@@ -437,10 +452,13 @@ function tick () {
   const roomFor = job => {
     const held = Math.max(1, (staffed[job.id] || []).length); const head = Math.max(1, headOf(job)); const w = workLeft[job.id]; const y = yieldCap[job.id]
     if (y && y.until > Date.now() && held >= y.cap) return false // a squad the YIELD THROTTLE cut is the last place for another bot
-    // 20 open cells per bot ALREADY on the site, because that is what the build handler itself enforces: over-filled, it hands the surplus back
-    // with "build: tail, N cells for M builders" and they bounce to the sponge and straight back (12:34: fill_ravine_s -> tidy_spawn x20 against
-    // tidy_spawn -> fill_ravine_s x23 in ten minutes). Standing holds never re-test this, so the count cannot flap.
-    if (w && Date.now() - w.t < 600000) return w.left > 20 * held
+    // OPEN cells, not cells LEFT (gemba 12:58Z: fill_ravine_s carried 35 bots on `bots: 12` at 0.84 cells/min/bot, 16 of them standing - it reports
+    // 3900 cells left but a strict bottom-up fill in a 7-wide trench only exposes ~140 of them at a time, the rest are `waiting` or `sealed`).
+    // Room = ceil(open / 8) bots, never more than twice the head-count the board asked for. Standing holds never re-test this, so it cannot flap.
+    if (w && Date.now() - w.t < 600000) {
+      const open = w.waiting == null && w.sealed == null ? w.left : Math.max(0, w.left - (w.waiting || 0) - (w.sealed || 0))
+      return held < Math.min(Math.max(head, Math.ceil(open / 8)), 2 * Math.max(1, job.bots == null ? head : job.bots))
+    }
     return producing(job.id) && held < 2 * head // handlers that report no cell count (lumber, light, tidy): never more than double
   }
   // CAPACITY GATES ONLY BAR NEWCOMERS, never the bots already inside (12:00: saturation and the yield cap were tested against the standing holders

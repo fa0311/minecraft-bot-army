@@ -167,8 +167,12 @@ module.exports = ctx => {
   // ---------------------------------------------------------------- building in the Nether: what a cell wants, and the ONE walk allowed
   // A cell is `{x,y,z,block}`; `stone` means any stone sort the squad carries (the depot's mix changes by the hour), `air` means
   // the cell must be clear. Satisfaction is always READ FROM THE WORLD, never from what we think we placed.
+  // AN UNLOADED CELL IS NOT A FINISHED CELL (measured 13:06:55Z: the first road squad came home with `left:0` on a 64-block road
+  // it had not laid a single block of — the far end was outside the bots' loaded chunks, `blockAt` gave null, and null read as
+  // "already right"). Unloaded cells are counted on their own so a pass can never claim a road it cannot even see.
+  const loadedAt = (bot, c) => !!bot.blockAt(v([c.x, c.y, c.z]))
   const cellOK = (bot, c) => {
-    const b = bot.blockAt(v([c.x, c.y, c.z])); if (!b) return true // not loaded = not our business this pass
+    const b = bot.blockAt(v([c.x, c.y, c.z])); if (!b) return true // not loaded: skipped this pass, counted as `unloaded`, never as done
     if (c.block === 'stone') return b.boundingBox === 'block' && !/^(lava|water)$/.test(b.name)
     if (c.block === 'air') return b.boundingBox !== 'block'
     if (c.block === 'torch') return /torch/.test(b.name)
@@ -178,6 +182,18 @@ module.exports = ctx => {
   // -35,97,-74, read `place: unreachable` from an adjacent stand with `noMove` — they are SEALED VOIDS one layer under the surface
   // the bot walks on, with solid netherrack at y98 over them. A pocket you cannot see, cannot reach and cannot fall into is not a
   // hole; calling it one kept a landing "unsafe" for ever and would have sent the gate to be relocated for nothing).
+  // PLACING IN THE NETHER NEVER MOVES THE BOT. `A.placeHard` is the right primitive in the overworld — but its remedy loop is
+  // OUTSIDE the `place:{noMove:true}` it forwards to blocks.js: on `noref` it walks a support column in, on `unreachable` it
+  // repositions, on a high cell it pillars up and takes the scaffold away again. Measured 12:55:43Z: Kanade was building the hub
+  // with steps:0 (she never took a safeStep of ours) and still "fell from a high place" — y98 to y33. So over there we call
+  // blocks.js directly: one placement from where we stand, or nothing. -> ok when the block STANDS (read back).
+  async function placeStill (bot, api, q, item) {
+    try {
+      const r = await BL().placeBlock(bot, q, item, { retries: 1, noMove: true }).catch(e => ({ ok: false, reason: String(e && e.message) }))
+      const b = bot.blockAt(q)
+      return { ok: !!((r && r.ok) || (b && b.boundingBox === 'block')), reason: (r && r.reason) || '?' }
+    } catch (e_) { swallow('jobs_nether:placeStill', e_); return { ok: false, reason: 'threw' } }
+  }
   const floorSafe = (bot, c) => { const b = bot.blockAt(v([c.x, c.y, c.z])); if (b && b.boundingBox === 'block' && !/^(lava|water)$/.test(b.name)) return true; const up = bot.blockAt(v([c.x, c.y + 1, c.z])); return !!up && up.boundingBox === 'block' && !/^(lava|water)$/.test(up.name) }
   const hasRef = (bot, c) => [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].some(d => { const n = bot.blockAt(c.offset(d[0], d[1], d[2])); return !!n && n.boundingBox === 'block' })
   const eyeOf = bot => bot.entity.position.offset(0, 1.62, 0)
@@ -200,7 +216,7 @@ module.exports = ctx => {
     let placed = 0; let dug = 0; let steps = 0
     const done = new Set(); const tried = []; const why = {} // cells our own floor cannot reach: REPORTED with the reason, never chased round the box
     for (let round = 0; round < 120 && Date.now() < until && !api.stop(); round++) {
-      const todo = cells.filter(c => !done.has(c.x + ',' + c.y + ',' + c.z) && !cellOK(bot, c))
+      const todo = cells.filter(c => !done.has(c.x + ',' + c.y + ',' + c.z) && loadedAt(bot, c) && !cellOK(bot, c))
       if (!todo.length) break
       const me = bot.entity.position
       todo.sort((a, b) => v([a.x, a.y, a.z]).distanceTo(me) - v([b.x, b.y, b.z]).distanceTo(me))
@@ -214,8 +230,8 @@ module.exports = ctx => {
         if (!hasRef(bot, q)) { why[k] = 'no solid face to place against'; continue }
         const item = c.block === 'stone' ? stoneItem(bot) : c.block
         if (!item || !A.count(bot, item)) { why[k] = 'none of ' + (item || c.block) + ' carried'; continue }
-        const pr = await A.placeHard(bot, q, item, { stop: api.stop, noRest: true, place: { noMove: true } }).catch(e => ({ ok: false, reason: String(e && e.message) }))
-        if (cellOK(bot, c)) { placed++; prog++; delete why[k] } else why[k] = 'place: ' + String((pr || {}).reason || '?').slice(0, 44)
+        const pr = await placeStill(bot, api, q, item)
+        if (cellOK(bot, c)) { placed++; prog++; delete why[k] } else why[k] = 'place: ' + String(pr.reason).slice(0, 44)
       }
       if (prog) continue
       // nothing in reach: ONE step towards the nearest unfinished cell, inside our own box
@@ -230,8 +246,9 @@ module.exports = ctx => {
       for (const s2 of cands.slice(0, 20)) { if (api.stop()) break; if (await safeStep(bot, api, s2, box)) { moved = true; steps++; break } }
       if (!moved) { tried.push([t.x, t.y, t.z]); if (!why[t.x + ',' + t.y + ',' + t.z]) why[t.x + ',' + t.y + ',' + t.z] = 'no safe stand of ours within reach of it'; done.add(t.x + ',' + t.y + ',' + t.z); continue } // this one cannot be reached from our own floor: leave it, take the next
     }
-    const left = cells.filter(c => !cellOK(bot, c))
-    return { placed, dug, steps, left: left.length, leftAt: left.slice(0, 4).map(c => c.x + ',' + c.y + ',' + c.z + '=' + c.block + ' (' + (why[c.x + ',' + c.y + ',' + c.z] || '?') + ')'), unreachable: tried.length }
+    const left = cells.filter(c => loadedAt(bot, c) && !cellOK(bot, c))
+    const unloaded = cells.filter(c => !loadedAt(bot, c)).length
+    return { placed, dug, steps, left: left.length, unloaded, done: cells.length - left.length - unloaded, of: cells.length, leftAt: left.slice(0, 4).map(c => c.x + ',' + c.y + ',' + c.z + '=' + c.block + ' (' + (why[c.x + ',' + c.y + ',' + c.z] || '?') + ')'), unreachable: tried.length }
   }
 
   // ---------------------------------------------------------------- THE LANDING: a 5x5 floor, walls 2 high, a door gap, torches
@@ -267,9 +284,7 @@ module.exports = ctx => {
       const item = stoneItem(bot); if (!item) return false
       if (b.name === 'lava') lava++
       task(bot, 'portal: ' + what + ' at the far gate (' + (floor + walls) + ')')
-      const r = await A.placeHard(bot, c, item, { stop: api.stop, noRest: true, place: { noMove: true } }).catch(e => ({ ok: false, reason: String(e && e.message) }))
-      const nb = bot.blockAt(c)
-      return !!((r && r.ok) || (nb && nb.boundingBox === 'block'))
+      return (await placeStill(bot, api, c, item)).ok
     }
     // FLOOR FIRST — nearest column out, so the cell under our own feet closes before anything else
     for (const c of floorCells.slice().sort((a, b) => a.distanceTo(me) - b.distanceTo(me))) if (await lay(c, 'flooring')) floor++
@@ -282,8 +297,8 @@ module.exports = ctx => {
         const b = bot.blockAt(c); const u = bot.blockAt(c.offset(0, -1, 0))
         if (!b || b.boundingBox === 'block' || inBody(c) || !u || u.boundingBox !== 'block') continue
         if (eye().distanceTo(c.offset(0.5, 0.5, 0.5)) > 4.0) { out++; continue }
-        const r = await A.placeHard(bot, c, 'torch', { stop: api.stop, noRest: true, place: { noMove: true } }).catch(() => ({ ok: false }))
-        const nb = bot.blockAt(c); if ((r && r.ok) || (nb && /torch/.test(nb.name))) torches++
+        await placeStill(bot, api, c, 'torch')
+        const nb = bot.blockAt(c); if (nb && /torch/.test(nb.name)) torches++
       }
     }
     // THE VERDICT IS READ, NOT COUNTED: holes left in the floor, and lava/fire still within 5 of any landing cell
@@ -318,9 +333,7 @@ module.exports = ctx => {
       if (eye().distanceTo(c.offset(0.5, 0.5, 0.5)) > 4.0) continue
       const item = stoneItem(bot); if (!item) break
       task(bot, 'portal: closing the lava at the far gate (' + sealed + ')')
-      const r = await A.placeHard(bot, c, item, { stop: api.stop, noRest: true, place: { noMove: true } }).catch(e => ({ ok: false, reason: String(e && e.message) }))
-      const nb = bot.blockAt(c)
-      if ((r && r.ok) || (nb && nb.boundingBox === 'block')) sealed++
+      if ((await placeStill(bot, api, c, item)).ok) sealed++
     }
     return sealed
   }
@@ -491,7 +504,9 @@ module.exports = ctx => {
       const r = await landing(bot, job, api, body, Math.min(stoneCarried(bot), 220))
       st.landedR = r
       A.result(bot, Object.assign({ ev: 'nether_landing', job: job.id }, r, { cells: undefined }))
-      netherEdit({ hub: [r.box ? r.box[0] + 2 : null, r.y, r.box ? r.box[1] + 2 : null], landing: r.box || null, landingY: r.y, landingSafe: !!r.safe, landingAt: Date.now() })
+      // the LANDING is this step's business; `settings.nether.hub` belongs to the hub job alone (13:0xZ: writing a bare [x,y,z]
+      // here clobbered the hub's whole record and the road squad arrived to "settings.nether.hub.outside is not set")
+      netherEdit({ landing: r.box || null, landingY: r.y, landingSafe: !!r.safe, landingAt: Date.now() })
       // ONE ATTEMPT. A landing that still reads lethal is not walked around and not dug out: the scout goes home and says so, and
       // the answer is a SECOND overworld gate 128+ blocks away in x or z (its Nether exit lands 16+ blocks off) — docs/NETHER.md.
       if (!r.safe) A.result(bot, { ev: 'nether_unsafe', job: job.id, at: r.box, holes: r.holes, hotNear: r.hotNear, outOfReach: r.outOfReach, why: 'the landing still reads lethal after one attempt — relocate the gate rather than dig here' })
@@ -596,9 +611,12 @@ module.exports = ctx => {
       A.boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (j && j.status === 'active') { j.status = 'paused'; j.note = 'auto-paused: ' + N.deaths + ' scouts died at the far gate ' + JSON.stringify(N.portal || null) + ' (lava at the arrival). Make it safe, clear settings.nether.deaths, then re-activate' } })
       return muster(bot, job, api, ctx2, 'portal: the gate is lit; ' + N.deaths + ' scouts died on the far side, so nobody else crosses')
     }
-    if ((job.names || []).length !== 1) {
-      if (!st.saidScout) { st.saidScout = true; A.result(bot, { ev: 'portal_scout_missing', job: job.id, why: 'params.go needs exactly ONE pinned bot: set job.names:["<bot>"] (a squad would queue in the frame and the dispatcher could pull a bot while it is in the Nether)' }) }
-      return 'portal: lit; the crossing waits for job.names with exactly one bot'
+    // ONE PINNED BOT is the rule for an EXPLORATORY crossing (`go` without `work`): nobody knows what is on the other side yet.
+    // A `work` job may go as a SQUAD (top model 12:4xZ, 3-4 per road): the dispatcher exempts type `portal` from its dimension
+    // filter, so it never pulls a bot out mid-trip, and this handler brings every bot home inside its own slice.
+    if (!P.work && (job.names || []).length !== 1) {
+      if (!st.saidScout) { st.saidScout = true; A.result(bot, { ev: 'portal_scout_missing', job: job.id, why: 'an exploratory crossing (go without work) needs exactly ONE pinned bot: set job.names:["<bot>"]. A `work` job may take a squad' }) }
+      return 'portal: lit; the exploratory crossing waits for job.names with exactly one bot'
     }
 
     // KIT: bank first (keep_inventory is OFF), then 128 cobblestone + torches + food + the best sword we may take
