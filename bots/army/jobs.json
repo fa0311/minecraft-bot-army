@@ -1133,7 +1133,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 8,
    "site": [
     -367,
     69,
@@ -1169,7 +1169,7 @@
      ]
     ]
    },
-   "rev": 52,
+   "rev": 53,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789909537319
   },
@@ -1310,12 +1310,12 @@
       "z": -500,
       "facing": "north"
      },
-     "level": -32
+     "level": 48
     }
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 10,
-   "rev": 29
+   "rev": 30
   },
   {
    "id": "base_dorm",
@@ -3872,7 +3872,7 @@
    "type": "build",
    "priority": 62,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 2,
    "site": [
@@ -3949,7 +3949,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 14,
+   "bots": 16,
    "minBots": 6,
    "maxBots": 24,
    "site": [
@@ -3975,7 +3975,7 @@
      "h": 22
     }
    },
-   "rev": 1
+   "rev": 2
   },
   {
    "id": "nether_road_xp",
