@@ -330,6 +330,61 @@
      -359,
      69,
      -521
+    ],
+    [
+     -371,
+     69,
+     -521
+    ],
+    [
+     -369,
+     69,
+     -521
+    ],
+    [
+     -367,
+     69,
+     -521
+    ],
+    [
+     -365,
+     69,
+     -521
+    ],
+    [
+     -363,
+     70,
+     -521
+    ],
+    [
+     -359,
+     70,
+     -521
+    ],
+    [
+     -361,
+     70,
+     -521
+    ],
+    [
+     -369,
+     70,
+     -521
+    ],
+    [
+     -367,
+     70,
+     -521
+    ],
+    [
+     -365,
+     70,
+     -521
+    ],
+    [
+     -371,
+     70,
+     -521
     ]
    ],
    "salvage": [
@@ -923,8 +978,8 @@
     -518
    ],
    "axis": "x",
-   "lit": 1789915987819,
-   "by": "Rin",
+   "lit": 1789916622472,
+   "by": "Sumire",
    "portal": [
     -43,
     98,
@@ -1095,6 +1150,33 @@
     "done": false
    },
    "gatePolicy": "LIT PERMANENTLY (owner 15:0xZ): closing it made the game generate spare gates"
+  },
+  "industry": {
+   "village": [
+    -714,
+    73,
+    27
+   ],
+   "surveyed": 1789916834732,
+   "villagers": 9,
+   "professions": {
+    "none": 1,
+    "farmer": 1,
+    "unknown": 3,
+    "leatherworker": 4
+   },
+   "beds": 10,
+   "stations": {
+    "composter": 2,
+    "blast_furnace": 1
+   },
+   "golems": 1,
+   "bounds": [
+    -766,
+    10,
+    -703,
+    57
+   ]
   }
  },
  "enlisted": [
@@ -1250,8 +1332,8 @@
     "maxDist": 220,
     "first": "sheep"
    },
-   "rev": 19,
-   "bots": 2,
+   "rev": 20,
+   "bots": 5,
    "note": "owner 09-20: sheep are culled actively (wool 10 328 / 150, TPS). ONLY sheep: the hunt handler has NO pen exclusion - with kinds sheep/pig/cow/chicken and leave 0 the hunters emptied pen 1 (69 sheep) within the hour; cows, chickens and pigs are left alone until the handler spares penned animals (BUGS)"
   },
   {
@@ -1751,7 +1833,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789916578270
+   "restUntil": 1789916981723
   },
   {
    "id": "fill_ring_field2",
@@ -2430,7 +2512,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 1,
+   "bots": 10,
    "site": [
     -311,
     69,
@@ -2661,9 +2743,9 @@
     },
     "order": "near"
    },
-   "rev": 44,
+   "rev": 45,
    "desc": "until `fill_wayin ok:true` (ladder run in work by the engineer) only 3 bots: nobody can reach the trench floor, a bigger crew just stands at the rim - do NOT raise the head-count to hide idle bots",
-   "note": "top model 14:1xZ: OPERATORS - DO NOT LOWER. open cells = left 3616 minus waiting 2920 = 696, so ceil(696/8) = 87 builders could work it at once; 20 is the cap. It reads done:0 because the last trench (x -306..-298 / z -461..-482, floor y52-55) has sheer walls and NO walkable entry, so the switchback ramp (x -300/-301, z -472..-478) can never be started: a ramp column is a solid cell built bottom-up and nobody can stand on the floor. It needs a way in built FROM THE TOP (ladder run, or a gravity-block ramp - gravel depot is 0, so fetch gravel first).",
+   "note": "top model 15:1xZ: 655 OPEN cells (left 3216 minus waiting 2561) - do not lower; ladderWay (fill_wayin) needs builders standing on the RIM to hang the way in",
    "restUntil": 1789906650052,
    "way": {
     "by": "Kurumi",
@@ -2947,7 +3029,7 @@
    "type": "build",
    "priority": 76,
    "front": "works",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 2,
    "site": [
@@ -2992,7 +3074,8 @@
     "key": "rev8",
     "bots": [
      "Iroha",
-     "Juri"
+     "Juri",
+     "Aoi"
     ]
    },
    "cap": {
@@ -3128,44 +3211,6 @@
     "t": 1789912978111
    },
    "note": "auto-paused: build complete - BUT 4 columns are a deck over air (void_under_pad): -368,65,-490 | -368,65,-489 | -359,66,-490 | -340,67,-483"
-  },
-  {
-   "id": "base_portal_go",
-   "type": "portal",
-   "priority": 96,
-   "front": "base",
-   "status": "active",
-   "when": "day",
-   "bots": 1,
-   "shiftMin": 30,
-   "site": [
-    -326,
-    69,
-    -518
-   ],
-   "plan": "zone portal (docs/WORLD.md): P5 stage 1 — light THE Nether gate at -326,68,-518 (frame -328..-325,68..72,-518, built by base_portal) and keep it lit. The only world change is the ignition cell; the frame itself stays the build job's.",
-   "params": {
-    "blueprint": "nether_portal",
-    "origin": [
-     -326,
-     68,
-     -518
-    ],
-    "args": {
-     "axis": "x"
-    },
-    "buildJob": "base_portal",
-    "go": false,
-    "cobble": 208,
-    "crossS": 45,
-    "shell": false,
-    "landing": true,
-    "maxDeaths": 1,
-    "closeGate": false
-   },
-   "note": "auto-paused: the gate is lit and the round trip is done (bump rev to send another expedition)",
-   "rev": 7,
-   "names": []
   },
   {
    "id": "base_road_9",
@@ -3726,7 +3771,7 @@
    "type": "portal",
    "priority": 96,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "day",
    "bots": 1,
    "shiftMin": 20,
@@ -4176,7 +4221,8 @@
     "order": "near"
    },
    "rev": 3,
-   "note": "needs: dirt (835 cells wait; every cell whose material exists is done or in work)"
+   "note": "needs: dirt (835 cells wait; every cell whose material exists is done or in work)",
+   "restUntil": 1789917130130
   },
   {
    "id": "fill_minehead_pits",
@@ -4221,17 +4267,17 @@
     },
     "order": "near"
    },
-   "restUntil": 1789915783603,
+   "restUntil": 1789917325804,
    "way": {
-    "by": "Juri",
-    "t": 1789914477889,
+    "by": "Madoka",
+    "t": 1789916716021,
     "at": [
-     -328,
+     -327,
      62,
-     -495
+     -504
     ]
    },
-   "rev": 2
+   "rev": 3
   },
   {
    "id": "base_depot_south",
@@ -4240,7 +4286,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 6,
+   "bots": 3,
    "site": [
     -364,
     69,
@@ -4266,7 +4312,14 @@
     },
     "order": "near"
    },
-   "rev": 1
+   "rev": 2,
+   "stuckBy": {
+    "key": "rev2",
+    "bots": [
+     "Karin",
+     "Chika"
+    ]
+   }
   },
   {
    "id": "cap_north_tiles",
@@ -4300,7 +4353,7 @@
     },
     "order": "near"
    },
-   "rev": 2,
+   "rev": 3,
    "note": "needs: dirt (17 cells wait; every cell whose material exists is done or in work)"
   },
   {
@@ -4541,61 +4594,107 @@
    }
   },
   {
-   "id": "village_scout",
-   "type": "steps",
+   "id": "base_portal_light",
+   "type": "portal",
    "priority": 97,
+   "front": "base",
+   "status": "paused",
+   "when": "day",
+   "bots": 1,
+   "shiftMin": 10,
+   "site": [
+    -326,
+    69,
+    -518
+   ],
+   "plan": "zone portal (docs/WORLD.md): LIGHT AND KEEP THE HOME GATE LIT. The close/relight trick killed it on 14:52:01 (frameBack:false, one obsidian never went back) and with Paper's 16-block Nether search every crossing then linked to the spare gate it had already generated. The frame is 14/14 again; this job strikes it and verifies six nether_portal cells. The gate is never put out again.",
+   "params": {
+    "blueprint": "nether_portal",
+    "origin": [
+     -326,
+     68,
+     -518
+    ],
+    "args": {
+     "axis": "x"
+    },
+    "buildJob": "base_portal",
+    "go": false
+   },
+   "note": "auto-paused: the gate is lit and the round trip is done (bump rev to send another expedition)"
+  },
+  {
+   "id": "village_survey",
+   "type": "trade",
+   "priority": 99,
    "status": "active",
    "when": "any",
    "names": [
-    "Yotsuba",
-    "Tamaki",
     "Hina"
    ],
    "front": "industry",
    "site": [
-    -720,
-    70,
-    32
+    -714,
+    73,
+    27
    ],
-   "plan": "industry stage 1: look at the plains village at -720,32 (no world edits)",
+   "shiftMin": 30,
+   "plan": "industry stage 1: survey the plains village (read-only, no world edits)",
    "params": {
-    "onFail": "continue",
-    "steps": [
+    "work": "survey",
+    "at": [
+     -714,
+     73,
+     27
+    ],
+    "radius": 56
+   }
+  },
+  {
+   "id": "village_trade",
+   "type": "trade",
+   "priority": 93,
+   "status": "active",
+   "when": "any",
+   "names": [
+    "Tamaki"
+   ],
+   "front": "industry",
+   "site": [
+    -714,
+    73,
+    27
+   ],
+   "shiftMin": 60,
+   "plan": "industry stage 1: sell the depot glut at the plains village, buy the iron gear the army lacks",
+   "params": {
+    "work": "trade",
+    "at": [
+     -714,
+     73,
+     27
+    ],
+    "radius": 56,
+    "sell": [
      {
-      "do": "withdraw",
-      "item": "bread",
-      "n": 16,
-      "atLeast": 6
+      "item": "wheat",
+      "reserve": 4000,
+      "n": 320
      },
      {
-      "do": "goto",
-      "to": [
-       -720,
-       null,
-       32
-      ],
-      "range": 8,
-      "s": 900
+      "item": "coal",
+      "reserve": 768,
+      "n": 240
      },
      {
-      "do": "say",
-      "text": "村に到着、周りを見ます"
+      "item": "leather",
+      "reserve": 64,
+      "n": 96
      },
      {
-      "do": "wait",
-      "s": 600
-     },
-     {
-      "do": "wait",
-      "s": 600
-     },
-     {
-      "do": "wait",
-      "s": 600
-     },
-     {
-      "do": "wait",
-      "s": 600
+      "item": "gray_wool",
+      "reserve": 64,
+      "n": 288
      }
     ]
    }

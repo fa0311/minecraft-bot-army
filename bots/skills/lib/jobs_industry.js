@@ -77,6 +77,15 @@ module.exports = ctx => {
     .filter(e => e && e.position && e.name === 'villager' && e.position.distanceTo(bot.entity.position) <= r)
     .sort((a, b) => a.position.distanceTo(bot.entity.position) - b.position.distanceTo(bot.entity.position))
   const golemsNear = (bot, r) => Object.values(bot.entities).filter(e => e && e.position && e.name === 'iron_golem' && e.position.distanceTo(bot.entity.position) <= r)
+  // A SLEEPING VILLAGER HAS NO TRADE WINDOW: it is skipped, never poked (a poke is a hit, and 12 s of window timeout per villager
+  // would burn a whole slice). The bed it lies in is in the `sleeping_pos` metadata the server sends.
+  function isAsleep (bot, e) {
+    try {
+      const keys = ((bot.registry.entitiesByName || {}).villager || {}).metadataKeys || []
+      const i = keys.indexOf('sleeping_pos')
+      return i >= 0 && e.metadata && e.metadata[i] != null
+    } catch (e_) { swallow('jobs_industry:isAsleep', e_); return false }
+  }
 
   // The profession lives in the `villager_data` entity metadata; its wire shape differs between versions and ViaBackwards
   // translates it on the way down, so this NEVER guesses: it reads whatever is there and falls back to the trade window's
@@ -106,7 +115,27 @@ module.exports = ctx => {
       if (!await A.travel(bot, v(at), { range: 8, ms: 15 * 60000, stop: api.stop })) return 'village: no route to ' + at.join(',') + ' yet'
     }
     if (api.stop()) return 'village: arrived, surveying next slice'
-    task(bot, 'village: looking around')
+    // THE SURVEYOR STAYS. Paper's `entity-activation-range: villagers 32` means villagers barely tick unless a player stands
+    // near them, so the surveyor IS the village's presence for the rest of its slice; it re-measures every REDO ms and reports
+    // only when the picture changed (the first version fired 15 identical reports in a minute, once per worker loop).
+    let last = ''
+    let lastT = 0
+    while (!api.stop()) {
+      const line = await surveyOnce(bot, job, at, r, Date.now() - lastT > 10 * 60000 || !last)
+      if (line !== last || Date.now() - lastT > 10 * 60000) { last = line; lastT = Date.now() }
+      task(bot, 'village: ' + line)
+      // A PATROL, NOT A STATUE. Paper activates a villager only within 32 blocks of a player, and this village is 63x47, so one
+      // standing spot leaves most of it frozen; walking the clusters keeps them ticking (and the army's hang watchdog rightly
+      // counts a motionless bot with an unchanging inventory as hung).
+      const stops = (industryOf().nearest || []).concat(villagersNear(bot, r).slice(0, 6).map(e => xyz(e.position)))
+      const to = stops[Math.floor(Math.random() * stops.length)]
+      if (to) await A.travel(bot, v(to), { range: 6, ms: 90000, stop: api.stop, quiet: true })
+      else for (let i = 0; i < 20 && !api.stop(); i++) await sleep(3000)
+    }
+    return 'village: ' + last
+  }
+
+  async function surveyOnce (bot, job, at, r, report) {
     await sleep(4000) // let the chunks and their entities arrive before counting anything
 
     const vs = villagersNear(bot, r)
@@ -122,21 +151,25 @@ module.exports = ctx => {
     const bounds = pts.length ? [Math.min(...pts.map(p => p.x)), Math.min(...pts.map(p => p.z)), Math.max(...pts.map(p => p.x)), Math.max(...pts.map(p => p.z))] : null
 
     const me = xyz(bot.entity.position)
-    A.result(bot, {
-      ev: 'village_seen',
-      job: job.id,
-      at: me,
-      villagers: vs.length,
-      professions: prof,
-      beds: beds.length,
-      stations: stationKinds,
-      golems: golems.length,
-      golemAt: golems.slice(0, 4).map(g => xyz(g.position)),
-      bounds,
-      nearest: vs.slice(0, 6).map(e => xyz(e.position))
-    })
-    industryEdit({ village: at, surveyed: Date.now(), villagers: vs.length, professions: prof, beds: beds.length, stations: stationKinds, golems: golems.length, bounds })
-    return 'village: ' + vs.length + ' villagers, ' + beds.length + ' beds, ' + Object.keys(stationKinds).length + ' kinds of workstation, ' + golems.length + ' golems'
+    const line = vs.length + ' villagers ' + JSON.stringify(prof) + ', ' + beds.length + ' beds, ' + JSON.stringify(stationKinds) + ', ' + golems.length + ' golems'
+    if (report || line !== bot.__industrySurvey) {
+      bot.__industrySurvey = line
+      A.result(bot, {
+        ev: 'village_seen',
+        job: job.id,
+        at: me,
+        villagers: vs.length,
+        professions: prof,
+        beds: beds.length,
+        stations: stationKinds,
+        golems: golems.length,
+        golemAt: golems.slice(0, 4).map(g => xyz(g.position)),
+        bounds,
+        nearest: vs.slice(0, 6).map(e => xyz(e.position))
+      })
+      industryEdit({ village: at, surveyed: Date.now(), villagers: vs.length, professions: prof, beds: beds.length, stations: stationKinds, golems: golems.length, bounds, nearest: vs.slice(0, 8).map(e => xyz(e.position)) })
+    }
+    return line
   }
 
   // ---------------------------------------------------------------- one trade window
@@ -290,10 +323,12 @@ module.exports = ctx => {
       const want = (Array.isArray(P.buy) && P.buy.length ? P.buy.map(b => ({ re: new RegExp(b.re), want: b.want || 1 })) : BUY.map(b => ({ re: b.re, want: b.want })))
       const sold = {}; const bought = {}
       let n = 0
+      let asleep = 0
       for (const e of villagersNear(bot, P.radius || 48)) {
         if (api.stop()) break
         if (A.hostiles(bot, 12).length) { task(bot, 'trade: mobs near — not trading'); await sleep(3000); continue } // the combat module fights them; a trader does not
         if (!e.isValid) continue
+        if (isAsleep(bot, e)) { asleep++; continue }
         const r = await dealWith(bot, e, job, api, want)
         if (r.sold) for (const [k, q] of Object.entries(r.sold)) sold[k] = (sold[k] || 0) + q
         if (r.bought) for (const [k, q] of Object.entries(r.bought)) bought[k] = (bought[k] || 0) + q
@@ -303,7 +338,9 @@ module.exports = ctx => {
       }
       st.sold = sold; st.bought = bought
       if (n) A.result(bot, { ev: 'trade_done', job: job.id, villagers: n, sold, bought, emeralds: A.count(bot, 'emerald') })
-      else A.result(bot, { ev: 'trade_none', job: job.id, at: xyz(bot.entity.position), villagers: villagersNear(bot, P.radius || 48).length, carrying: Object.keys(cargoNames(bot)).join(',') || 'nothing' })
+      else A.result(bot, { ev: 'trade_none', job: job.id, at: xyz(bot.entity.position), villagers: villagersNear(bot, P.radius || 48).length, asleep, carrying: Object.keys(cargoNames(bot)).join(',') || 'nothing' })
+      // everybody was in bed: hold the goods and try again rather than walking 624 blocks home with a full load
+      if (!n && asleep) { await sleep(20000); return 'trade: ' + asleep + ' villagers asleep — waiting for morning' }
       st.phase = 'home'
     }
     if (api.stop()) return 'trade: traded, walking home next slice'

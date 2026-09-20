@@ -91,6 +91,7 @@ function workMap (world, box, grade, opts = {}) {
     voidBelow: new Set(), // "x,z": the bottom of the box hangs over air — reported, never decked
     dropCols: new Set(), // "x,z": columns that can only be closed by a gravity drop
     lava: new Set(), // every lava cell of the box; it only ever shrinks (quenched), never grows
+    hard: new Set(), // "x,z" columns nobody can ever stand in at some height: lava, and under a roof
     floor: new Map(), // "x,z" -> the lowest open cell (monotonic: the fill only ever rises)
     state: new Map(), // tile id -> cached state
     tries: new Map(), // cell -> how often a builder stood in front of it and could do nothing
@@ -119,6 +120,9 @@ function workMap (world, box, grade, opts = {}) {
     for (let z = b.z1 - 2; z <= b.z2 + 2; z++) {
       for (let y = b.y1 - 2; y <= b.y2 + 2; y++) if (isLava(world, x, y, z)) map.lava.add(K3(x, y, z))
       if (x < b.x1 || x > b.x2 || z < b.z1 || z > b.z2) continue
+      for (let y = b.y1; y <= b.y2; y++) {
+        if (isLava(world, x, y, z) || (!isSolid(world, x, y, z) && (isSolid(world, x, y + 1, z) || isSolid(world, x, y + 2, z)))) { map.hard.add(K2(x, z)); break }
+      }
       if (!isSolid(world, x, b.y1, z) && !isSolid(world, x, b.y1 - 1, z)) map.voidBelow.add(K2(x, z))
     }
   }
@@ -195,6 +199,18 @@ function colFloor (map, world, x, z) {
 }
 function levelWith (map, world, x, y, z) {
   for (const [dx, dz] of SIDES) if (y > colFloor(map, world, x + dx, z + dz)) return false
+  // …AND NOTHING RISES AROUND A CELL NOBODY CAN STAND IN (measured, scenario (d): the ring around a
+  // lava pool went up one step per column — legally, each only 1 over its neighbour — until the pool
+  // sat at the bottom of a funnel 3 deep, out of reach from the nearest place a builder may stand, and
+  // the whole box waited for it for ever). A lava cell and a cell under a roof are filled from a
+  // distance, so the ground within an arm's length of them must stay at their level until they are done.
+  if (!map.hard.size) return true
+  for (const k of map.hard) {
+    const c = k.split(',')
+    const hx = +c[0]; const hz = +c[1]
+    if (Math.abs(hx - x) > 3 || Math.abs(hz - z) > 3) continue
+    if (colFloor(map, world, hx, hz) < y) return false
+  }
   return true
 }
 
@@ -221,7 +237,7 @@ function tileState (map, world, tile, now, fresh) {
     for (let z = tile.z1; z <= tile.z2; z++) {
       const y = firstOpen(map, world, x, z)
       if (y == null) continue
-      remaining += map.grade - y + 1
+      for (let q = y; q <= map.grade; q++) if (!isSolid(world, x, q, z) && !map.sealed.has(K3(x, q, z))) remaining++
       if (layerY == null || y < layerY) layerY = y
     }
   }
@@ -309,8 +325,15 @@ function openTiles (world, box, grade, opts = {}) {
   return out
 }
 
-function laneInReach (tile, cols) {
-  for (let x = tile.x1; x <= tile.x2; x++) for (let z = tile.z1; z <= tile.z2; z++) if (cols.has(K2(x, z))) return true
+// "can I get at this lane" is not "can I walk into it": the last two layers under an overhang are
+// filled at arm's length from the rim of the roof, where the builder can still stand. So a lane counts
+// as within reach when any of its columns lies within an arm of a column the builder can walk to.
+function laneInReach (tile, cols, r = 3) {
+  for (let x = tile.x1; x <= tile.x2; x++) {
+    for (let z = tile.z1; z <= tile.z2; z++) {
+      for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) if (cols.has(K2(x + dx, z + dz))) return true
+    }
+  }
   return false
 }
 
@@ -361,6 +384,7 @@ function los (world, from, to) {
 
 function canPlaceFrom (world, stand, cell, reach) {
   if (Math.hypot(stand.x - cell.x, (stand.y + 1.6) - (cell.y + 0.5), stand.z - cell.z) > reach) return false
+  if (Math.abs(stand.x - cell.x) <= 1 && Math.abs(stand.z - cell.z) <= 1 && Math.abs(stand.y - cell.y) <= 1) return true // right beside my feet
   return los(world, stand, cell)
 }
 
@@ -563,8 +587,12 @@ function next (bot, tile, world, opts = {}) {
     e.n++; map.tries.set(k, e)
     if (e.n < 5 || now - e.t0 < 20000) continue
     map.sealed.add(k)
-    map.abandoned.add(K2(c.x, c.z))
     map.floor.delete(K2(c.x, c.z))
+    // a cell under a roof is simply left hollow — what goes above it rests on the roof, not on air.
+    // With open sky over it the rest of the column would hang, so the whole column stops being work.
+    let roofed = false
+    for (let y = c.y + 1; y <= map.grade; y++) if (isSolid(world, c.x, y, c.z)) { roofed = true; break }
+    if (!roofed) map.abandoned.add(K2(c.x, c.z))
     done.push(k)
   }
   map.state.delete(t.id)

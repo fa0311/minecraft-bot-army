@@ -133,11 +133,15 @@ function simulate (sc, opts = {}) {
       }
     }
     for (const b of here) gravity(b)
-    // invariant 1: nobody is entombed
+    // invariant 1: nobody is entombed. A builder may be boxed in for a moment (a mate's block lands
+    // while it is mid-action) — it must be out again within 20 s, by riding its own fill up or by
+    // handing itself back. Longer than that is a builder buried alive, which is the bug we are here for.
     for (const b of here) {
-      if (world.get(b.pos.x, b.pos.y, b.pos.z) === 'ladder') continue
-      if (b.pos.y > sc.grade) continue // on top of the world, outside the fill
-      if (FP.walkArea(map, world, b.pos, null, map.o.minArea) < map.o.minArea) err('entombed', b.id + ' at ' + K3(b.pos.x, b.pos.y, b.pos.z))
+      const free = world.get(b.pos.x, b.pos.y, b.pos.z) === 'ladder' || b.pos.y > sc.grade ||
+        FP.walkArea(map, world, b.pos, null, map.o.minArea) >= map.o.minArea
+      if (free) { b.boxedSince = null; continue }
+      if (b.boxedSince == null) b.boxedSince = t
+      else if (t - b.boxedSince > 20) err('entombed', b.id + ' boxed in at ' + K3(b.pos.x, b.pos.y, b.pos.z) + ' for ' + (t - b.boxedSince).toFixed(0) + ' s')
     }
     if (world.version !== version) { version = world.version; lastChange = t }
     const s = FP.summary(map, world, now)
