@@ -10,6 +10,10 @@
 // THE JOB (type `trade`, params):
 //   work:'survey'  walk to `at`, LOOK, and write what stands there to settings.industry.village (villagers + professions + beds +
 //                  workstations + golems + bounds). Read-only; the one thing that must run before anything is built or traded.
+//   work:'post'    MAKE THE BUYERS: craft the workstations this village lacks at the depot, carry them out and place them beside
+//                  the villagers (`params.cells:[{block,at:[x,y,z]}]`, coordinates probed with `armyctl.js ground`). An
+//                  unemployed villager claims the nearest unclaimed station, so a loom makes a shepherd who buys our wool and a
+//                  blast furnace makes an armorer who sells us iron armour. Nothing that already stands is touched.
 //   work:'trade'   (default) the standing round trip: load the glut at the depot -> walk to the village -> sell to every villager
 //                  that buys what we carry -> buy what the army lacks with the emeralds -> walk home -> bank. `shiftMin` keeps the
 //                  bot on the job across 15-min slices; the phase lives on the bot (bot.__industry), so a slice boundary costs nothing.
@@ -291,6 +295,11 @@ module.exports = ctx => {
     const plan = cargoPlan(P)
     if (!plan.length) return { why: 'the depot holds nothing spare to sell' }
     task(bot, 'trade: loading the glut at the depot')
+    // WHAT THE VILLAGE DID NOT BUY GOES BACK ON THE SHELF (measured 15:30Z: 480 coal + 576 wool rode 1 250 blocks twice because
+    // this village has no smith and no shepherd). Only the cargo of THIS trip and the purse stay in the pockets.
+    const keep = { bread: 16, emerald: 64 }
+    for (const c of plan) keep[c.item] = c.n
+    await A.bank(bot, keep, { job: job.id, stop: api.stop, noKit: true }).catch(e_ => swallow('jobs_industry:bankBack', e_))
     await A.kitUp(bot, { risk: true, why: job.id, stop: api.stop }).catch(e_ => swallow('jobs_industry:kitUp', e_))
     const got = {}
     for (const c of plan) {
@@ -375,6 +384,96 @@ module.exports = ctx => {
   const cargoNames = bot => { const m = {}; for (const s of SELL) { const n = A.count(bot, s.item); if (n) m[s.item] = n } return m }
   const cargoInPockets = bot => Object.keys(cargoNames(bot)).length > 0
 
+  // ---------------------------------------------------------------- work:'post' — MAKE THE BUYERS WE NEED
+  // Measured at this village 15:25Z: its professions are 2 farmers and 4 leatherworkers, so it buys wheat, carrots, beetroot,
+  // pumpkin, leather and flint — and sells LEATHER armour. Our glut is wool (10 328), sugar cane (2 995) and coal (1 876), and
+  // what we lack is IRON. No amount of walking fixes that: the village has no shepherd, no librarian and no smith.
+  // A villager without a profession takes the nearest unclaimed WORKSTATION it can reach, so the buyers we lack are a crafting
+  // recipe away. This mode makes the stations at the depot (the only place with a table, a furnace bank and the stock), carries
+  // them out and places them beside the villagers. Redstone-free; it changes nothing that already stands in the village.
+  const STATION_WHY = {
+    blast_furnace: 'armorer: buys 15 coal -> 1 emerald AND SELLS IRON ARMOUR (4-9 emeralds a piece)',
+    smithing_table: 'toolsmith: buys coal, sells iron tools from journeyman',
+    loom: 'shepherd: buys 18 wool -> 1 emerald',
+    grindstone: 'weaponsmith: buys 15 coal, sells iron sword/axe from journeyman',
+    lectern: 'librarian: buys 24 paper -> 1 emerald',
+    barrel: 'fisherman: buys 20 string / 15 coal',
+    smoker: 'butcher: buys 10 wheat and raw meat'
+  }
+
+  async function makeStations (bot, job, api, cells) {
+    const short = []
+    // stone and smooth_stone are SMELTED, not crafted, so the recipe solver can never reach a blast furnace (3 smooth_stone) or a
+    // grindstone (a stone slab) on its own. Two furnace passes up front; everything else is an ordinary A.obtain chain.
+    const needStone = cells.some(c => /^(blast_furnace|grindstone)$/.test(c.block) && !A.count(bot, c.block))
+    if (needStone && A.count(bot, 'smooth_stone') < 3) {
+      task(bot, 'post: smelting stone for the smith stations')
+      await A.obtain(bot, 'coal', 16, { stop: api.stop }).catch(e_ => swallow('jobs_industry:fuel', e_))
+      if (A.count(bot, 'stone') < 8) { await A.obtain(bot, 'cobblestone', 16, { stop: api.stop }).catch(e_ => swallow('jobs_industry:cobble', e_)); await A.smelt(bot, 'cobblestone', 16).catch(e_ => swallow('jobs_industry:smeltStone', e_)) }
+      if (A.count(bot, 'stone') >= 4) await A.smelt(bot, 'stone', Math.max(3, A.count(bot, 'stone') - 3)).catch(e_ => swallow('jobs_industry:smeltSmooth', e_))
+      A.result(bot, { ev: 'post_stone', job: job.id, stone: A.count(bot, 'stone'), smooth: A.count(bot, 'smooth_stone') })
+    }
+    for (const c of cells) {
+      if (api.stop()) break
+      if (A.count(bot, c.block) >= 1) continue
+      task(bot, 'post: making a ' + c.block)
+      const ok = await A.obtain(bot, c.block, 1, { stop: api.stop }).catch(e_ => { swallow('jobs_industry:station', e_); return false })
+      if (!ok) short.push(c.block)
+    }
+    return short
+  }
+
+  async function post (bot, job, api, ctx2) {
+    const P = job.params || {}
+    const cells = (P.cells || []).filter(c => c && c.block && Array.isArray(c.at))
+    if (!cells.length) return muster(bot, job, api, ctx2, 'post: params.cells [{block,at:[x,y,z]}] is empty — probe the ground first (armyctl.js ground)')
+    const st = bot.__industryPost = (bot.__industryPost && bot.__industryPost.key === job.id + ':' + (job.rev || 0)) ? bot.__industryPost : { key: job.id + ':' + (job.rev || 0), phase: 'make', done: {} }
+    const home = A.chestsOf('build')[0] || A.musterPos()
+
+    if (st.phase === 'make') {
+      if (home && A.dist2(bot, home.x, home.z) > 40) {
+        task(bot, 'post: back to the depot to make the workstations')
+        if (!await A.travel(bot, v([home.x, home.y, home.z]), { range: 6, ms: 12 * 60000, stop: api.stop })) return 'post: no route to the depot'
+      }
+      const short = await makeStations(bot, job, api, cells)
+      const have = cells.filter(c => A.count(bot, c.block) > 0).map(c => c.block)
+      A.result(bot, { ev: 'post_made', job: job.id, carrying: have, short })
+      if (!have.length) { A.decline(bot, job, 20 * 60000, 'no workstation could be made: ' + short.join(',')); return muster(bot, job, api, ctx2, 'post: could not make any workstation (' + short.join(',') + ')') }
+      st.phase = 'out'
+    }
+    if (api.stop()) return 'post: workstations made, walking out next slice'
+
+    if (st.phase === 'out') {
+      task(bot, 'post: carrying the workstations to the village')
+      const first = cells[0].at
+      if (!await A.travel(bot, v(first), { range: 12, ms: 14 * 60000, stop: api.stop })) return 'post: still on the road to the village'
+      st.phase = 'place'
+    }
+    if (api.stop()) return 'post: at the village, placing next slice'
+
+    for (const c of cells) {
+      if (api.stop()) break
+      const p = v(c.at)
+      const b0 = bot.blockAt(p)
+      if (b0 && b0.name === c.block) { st.done[c.block] = c.at; continue } // already standing: never place twice
+      if (!A.count(bot, c.block)) continue
+      task(bot, 'post: placing the ' + c.block)
+      const r = await A.placeHard(bot, p, c.block, { stop: api.stop, want: 1 })
+      const b1 = bot.blockAt(p) // TRUST THE SERVER, not placeHard's opinion
+      const ok = !!b1 && b1.name === c.block
+      if (ok) st.done[c.block] = c.at
+      A.result(bot, { ev: ok ? 'station_placed' : 'station_failed', job: job.id, block: c.block, at: c.at, why: ok ? STATION_WHY[c.block] || '' : String((r && r.reason) || 'unknown').slice(0, 80), tried: ok ? undefined : (r && r.remedies) })
+    }
+    industryEdit({ post: { at: cells[0].at, stations: st.done, t: Date.now() } })
+    const left = cells.filter(c => !st.done[c.block])
+    if (!left.length) {
+      A.boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (j && j.status === 'active' && (j.rev || 0) === (job.rev || 0)) { j.status = 'paused'; j.note = 'auto-paused: every workstation stands; the survey job now watches which professions the villagers take' } })
+      return 'post: every workstation stands (' + Object.keys(st.done).join(', ') + ')'
+    }
+    st.phase = 'make' // fetch what could not be made or placed and come back
+    return 'post: ' + Object.keys(st.done).length + '/' + cells.length + ' stations stand; still to do: ' + left.map(c => c.block).join(',')
+  }
+
   // ---------------------------------------------------------------- the iron farm's chest, and the MEASUREMENT of its yield
   async function collectFarm (bot, st, api) {
     const at = st.at
@@ -395,6 +494,7 @@ module.exports = ctx => {
   async function trade (bot, job, api, ctx2) {
     const P = job.params || {}
     if (P.work === 'survey') return await survey(bot, job, api, ctx2)
+    if (P.work === 'post') return await post(bot, job, api, ctx2)
     return await tradeRound(bot, job, api, ctx2)
   }
 

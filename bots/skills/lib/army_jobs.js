@@ -845,7 +845,11 @@ let _stairCols = { t: 0, m: new Map() }
 function stairCols () {
   if (Date.now() - _stairCols.t < 30000) return _stairCols.m
   const m = new Map()
-  try { for (const st of (A.readJSON(require('path').join(A.DIR, '..', 'iron_mine.json'), {}) || {}).steps || []) for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) { const k = (st[0] + dx) + ',' + (st[2] + dz); if (!m.has(k) || m.get(k) > st[1] - 1) m.set(k, st[1] - 1) } } catch (e_) { swallow('army_jobs:stairCols', e_) }
+  // THE STAIR IS ONE COLUMN WIDE, NOT THREE (foreman 15:2xZ, the worst kind of lie: `fill_minehead_pits done 0, left 0, sealed 39` while its box held a 3-deep OPEN
+  // pit - [-328,65,-499], [-327,65,-503..-499], [-326,64,-503..-502] ... - and its own way-in sent Madoka into it; six bots sat there 38 min, 366 no_route, rescued
+  // with their kits lost. Every one of those columns is within 1 of a mine step, and the 3x3 halo below declared them "never filled, never counted as left". The
+  // corridor itself is what must stay open; a column BESIDE it is ordinary ground, and leaving it open is what traps the crew.
+  try { for (const st of (A.readJSON(require('path').join(A.DIR, '..', 'iron_mine.json'), {}) || {}).steps || []) { const k = st[0] + ',' + st[2]; if (!m.has(k) || m.get(k) > st[1] - 1) m.set(k, st[1] - 1) } } catch (e_) { swallow('army_jobs:stairCols', e_) }
   _stairCols = { t: Date.now(), m }
   return m
 }
@@ -3377,11 +3381,15 @@ async function build (bot, job, api, ctx) {
     const p1 = bot.entity.position.floored()
     const ok = p1.y <= fillG - 3
     A.result(bot, { ev: 'fill_dropped_in', job: job.id, ok, at: [p1.x, p1.y, p1.z], want: [best.x, best.fy, best.z], drop: best.drop, hp: bot.health, lost: Math.max(0, Math.round(hp0 - bot.health)) })
+    if (ok) bot.__armyInFill = { job: job.id, until: Date.now() + 900000, at: [p1.x, p1.y, p1.z] } // THE MARKER the escape reflex must respect (owner/foreman 15:2xZ: `pillared_out {from:[-305,55,-462],blocks:3}` 16 s after a good drop - the reflex undid the entry): a builder that a fill deliberately put on the floor of its own pit is working, not trapped; it rides up with the floor (rideUp)
     if (ok && bot.health < 14) await lib('feed').eat(bot, { hurt: true }).catch(e_ => { swallow('army_jobs:dropEat', e_) }) // it heals on a full belly while it works
     task(bot, 'build ' + P.blueprint)
     return ok
   }
   const needNote = (miss, nWait) => { st.miss = st.miss || {}; st.miss[miss] = Date.now(); const all = Object.keys(st.miss).filter(k => Date.now() - st.miss[k] < 600000).sort().join(', '); A.boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (j && j.status === 'active' && !(j.note || '').startsWith('needs: ' + all + ' ')) j.note = 'needs: ' + all + ' (' + nWait + ' cells wait; every cell whose material exists is done or in work)' }) }
+  task(bot, 'build ' + P.blueprint)
+  if (f0 && depthNow() > 2) bot.__armyInFill = { job: job.id, until: Date.now() + 900000, at: [Math.floor(bot.entity.position.x), Math.floor(bot.entity.position.y), Math.floor(bot.entity.position.z)] }
+  else if (bot.__armyInFill && bot.__armyInFill.job === job.id && depthNow() <= 0) delete bot.__armyInFill
   task(bot, 'build ' + P.blueprint)
   if (f0) { if (!await ladderWay()) await dropIn() } // a pit with no way in: the opt-in ladder run, else the player's own answer - step off the rim where it is shallowest (dropIn)
   // ONE WALK OF THE BLUEPRINT SERVES A BATCH (same measurement: the loop ran `todo()` again after EVERY single block, so a 30 000-cell fill was walked once per placed

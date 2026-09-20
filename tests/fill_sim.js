@@ -106,7 +106,13 @@ function simulate (sc, opts = {}) {
 
     // a builder that was told to `leave` goes back to the muster point and looks again in 30 s —
     // exactly what the dispatcher does with it in the field. It is not lost, it is spent elsewhere.
-    const here = bots.filter(b => !(b.parkedUntil > t))
+    let here = bots.filter(b => !(b.parkedUntil > t))
+    // the board always keeps SOMEBODY on open work (settings.fallback in the field): if every builder
+    // has been spent elsewhere while cells are still open, the nearest one is sent back
+    if (!here.length && bots.length) {
+      const b = bots.reduce((m, q) => (q.parkedUntil < m.parkedUntil ? q : m))
+      b.parkedUntil = 0; here = [b]
+    }
     const free = here.filter(b => b.busy <= 0)
     const busy = here.filter(b => b.busy > 0)
     for (const b of busy) { b.busy -= DT; const held = FP.heldBy(claims, b.id); if (held) claims[held].t = now } // a busy builder heartbeats its lane

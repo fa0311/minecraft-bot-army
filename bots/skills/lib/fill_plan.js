@@ -347,9 +347,14 @@ function openTiles (world, box, grade, opts = {}) {
     .filter(t => t.id !== av && claimable(map, claims, t, opts.botId || null) && (!rc || laneInReach(t, rc)))
     .sort((a, b) => Math.hypot(a.cx - from.x, a.cz - from.z) - Math.hypot(b.cx - from.x, b.cz - from.z) || (a.id < b.id ? -1 : 1))
   const out = []
-  for (const t of cand.slice(0, opts.all ? cand.length : o.scan)) {
+  let looked = 0
+  for (const t of cand) {
+    // the scan budget counts lanes that HAVE work: cutting the candidate list by distance left the last
+    // open cell of a 20x20 pit unclaimable for ever, because 40 finished lanes came first
+    if (!opts.all && looked >= o.scan) break
     const st = tileState(map, world, t, now, false)
     if (st.done || !st.targets.length) continue
+    looked++
     out.push({
       id: t.id,
       x1: t.x1,
@@ -594,7 +599,9 @@ function next (bot, tile, world, opts = {}) {
   // 4. a stand in my own lane (+-3 columns, for cells under a 1-high overhang and around lava)
   const stands = standsFor(map, world, t, st, safe, others, o)
   if (stands.length) {
-    const reach = reachSet(map, world, feet)
+    // the walk BFS must cover the whole box: with a small budget the far corner of a 20x20 pit looked
+    // unreachable and its last cell stayed open for ever
+    const reach = reachSet(map, world, feet, null, 4000)
     const walkable = stands.filter(s => reach.has(K3(s.x, s.y, s.z)) && !same(s, feet))
     if (walkable.length) return { type: 'move', target: pick(walkable, feet), why: 'onto the finished floor beside layer y' + st.layerY }
   }
@@ -616,11 +623,11 @@ function next (bot, tile, world, opts = {}) {
     map.dropCols.add(K2(c.x, c.z))
     if (have(bot, o.gravityItem, o) < 1) return { type: 'restock', item: o.gravityItem, n: 64, why: 'a gravity block for the shaft at ' + K2(c.x, c.z) }
     if (same(feet, d.from)) return { type: 'place', cell: d.place, item: o.gravityItem, drop: true, lands: d.lands, why: 'gravity block down the shaft at ' + K2(c.x, c.z) }
-    if (reachSet(map, world, feet).has(K3(d.from.x, d.from.y, d.from.z))) return { type: 'move', target: d.from, why: 'beside the mouth of the shaft at ' + K2(c.x, c.z) }
+    if (reachSet(map, world, feet, null, 4000).has(K3(d.from.x, d.from.y, d.from.z))) return { type: 'move', target: d.from, why: 'beside the mouth of the shaft at ' + K2(c.x, c.z) }
   }
 
   // 7. …else nobody could fill it FROM HERE. A cell is written off only with EVIDENCE (a builder stood
-  // in front of it and could do nothing, five times over 30 s) — a busy second is not a verdict. A
+  // in front of it and could do nothing, eight times over a minute) — a busy second is not a verdict. A
   // written-off cell takes the rest of its column with it unless a roof stands over it: a column over a
   // hole we cannot close would hang in the air, and "never deck a hole" beats "the box is finished".
   // The adapter reports these as void_under_pad. This is counted BEFORE the entry branch: a lane nobody
@@ -631,11 +638,12 @@ function next (bot, tile, world, opts = {}) {
     // evidence means a builder STOOD IN FRONT of the cell: a report from 40 blocks away proves nothing
     // (it wrote off 30 good columns of the trench in one run before this line existed)
     if (Math.hypot(c.x - feet.x, c.y - feet.y, c.z - feet.z) > 8) continue
+    if (c.lava || lavaWithin(map, world, c.x, c.y, c.z, 1)) continue // lava is quenched, never sealed over
     near = true
     const k = K3(c.x, c.y, c.z)
     const e = map.tries.get(k) || { n: 0, t0: now }
     e.n++; map.tries.set(k, e)
-    if (e.n < 5 || now - e.t0 < 15000) continue
+    if (e.n < 8 || now - e.t0 < 60000) continue
     sealUp(map, world, c.x, c.y, c.z)
     done.push(k)
   }

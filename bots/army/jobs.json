@@ -968,7 +968,8 @@
   },
   "core": {
    "enabled": [
-    "combat"
+    "combat",
+    "recover"
    ]
   },
   "nether": {
@@ -979,14 +980,14 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Nozomi",
+   "by": "Yui",
    "portal": [
-    -43,
+    -44,
     98,
     -80
    ],
-   "through": 1789917269304,
-   "scoutRev": 6,
+   "through": 1789918122168,
+   "scoutRev": 0,
    "hub": {
     "room": [
      -41,
@@ -1090,14 +1091,14 @@
    "deathsResetAt": 1789910779294,
    "deathsResetWhy": "owner 13:2xZ: death is an accepted cost of exploring the Nether; the brake is 6 in 30 min",
    "landing": [
-    -45,
-    -82,
-    -41,
-    -78
+    -46,
+    -84,
+    -40,
+    -76
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789917269447,
+   "landingAt": 1789918122175,
    "back": 1789917297964,
    "lastDeath": 1789911678325,
    "lastDeathBy": "Hotaru",
@@ -1145,8 +1146,8 @@
      -79
     ],
     "left": 0,
-    "unloaded": 1330,
-    "at": 1789917282702,
+    "unloaded": 0,
+    "at": 1789918092472,
     "done": false
    },
    "gatePolicy": "LIT PERMANENTLY (owner 15:0xZ): closing it made the game generate spare gates"
@@ -1157,14 +1158,14 @@
     73,
     27
    ],
-   "surveyed": 1789917885230,
+   "surveyed": 1789918247097,
    "villagers": 8,
    "professions": {
     "leatherworker": 4,
-    "unknown": 3,
-    "farmer": 1
+    "farmer": 2,
+    "unknown": 2
    },
-   "beds": 12,
+   "beds": 10,
    "stations": {
     "composter": 2,
     "blast_furnace": 1
@@ -1172,30 +1173,35 @@
    "golems": 1,
    "bounds": [
     -766,
-    10,
-    -703,
+    11,
+    -710,
     57
    ],
    "nearest": [
     [
-     -715,
-     73,
-     37
+     -744,
+     72,
+     41
     ],
     [
-     -727,
-     70,
-     24
+     -740,
+     71,
+     39
     ],
     [
-     -733,
-     67,
-     22
+     -739,
+     71,
+     38
+    ],
+    [
+     -739,
+     72,
+     39
     ],
     [
      -731,
-     68,
-     19
+     75,
+     37
     ],
     [
      -736,
@@ -1203,19 +1209,14 @@
      58
     ],
     [
-     -745,
-     80,
-     55
+     -728,
+     69,
+     10
     ],
     [
-     -696,
-     76,
-     12
-    ],
-    [
-     -755,
-     74,
-     13
+     -703,
+     72,
+     18
     ]
    ]
   }
@@ -1419,7 +1420,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 8,
+   "bots": 6,
    "site": [
     -367,
     69,
@@ -1455,7 +1456,7 @@
      ]
     ]
    },
-   "rev": 61,
+   "rev": 62,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789917857836
   },
@@ -1874,7 +1875,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789917942992
+   "restUntil": 1789918337385
   },
   {
    "id": "fill_ring_field2",
@@ -2789,14 +2790,14 @@
    "note": "top model 15:1xZ: 655 OPEN cells (left 3216 minus waiting 2561) - do not lower; ladderWay (fill_wayin) needs builders standing on the RIM to hang the way in",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Ichika",
-    "t": 1789917804489,
+    "by": "Sayaka",
+    "t": 1789918212872,
     "at": [
-     -305,
-     55,
-     -461
+     -318,
+     60,
+     -479
     ],
-    "drop": 14
+    "drop": 9
    }
   },
   {
@@ -3310,7 +3311,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789917867859
+   "restUntil": 1789919094524
   },
   {
    "id": "nether_landing_2",
@@ -3584,11 +3585,11 @@
   {
    "id": "base_mine_pad",
    "type": "build",
-   "priority": 96,
+   "priority": 95,
    "front": "base",
    "status": "paused",
    "when": "any",
-   "bots": 3,
+   "bots": 6,
    "site": [
     -330,
     69,
@@ -3610,7 +3611,7 @@
      "d": 17
     }
    },
-   "rev": 14,
+   "rev": 15,
    "after": "void_fix_base_mine_pad",
    "voidFix": {
     "n": 1,
@@ -3813,7 +3814,7 @@
    "type": "portal",
    "priority": 96,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 1,
    "shiftMin": 20,
@@ -3851,11 +3852,11 @@
   {
    "id": "west_terrace_cut_3",
    "type": "build",
-   "priority": 65,
+   "priority": 86,
    "front": "works",
    "status": "paused",
    "when": "any",
-   "bots": 20,
+   "bots": 14,
    "site": [
     -520,
     74,
@@ -3875,9 +3876,10 @@
      "h": 32
     }
    },
-   "rev": 14,
+   "rev": 15,
    "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -512,102,-485",
-   "desc": "OWNER-LOCKED 09-20: make-work, do NOT re-activate (owner called it pointless; stone stock is 6x the need)"
+   "desc": "OWNER-LOCKED 09-20: make-work, do NOT re-activate (owner called it pointless; stone stock is 6x the need)",
+   "shiftMin": 25
   },
   {
    "id": "cap_ravine_nm",
@@ -4273,7 +4275,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 1,
+   "bots": 4,
    "site": [
     -327,
     68,
@@ -4319,7 +4321,8 @@
      -504
     ]
    },
-   "rev": 3
+   "rev": 7,
+   "pri": 97
   },
   {
    "id": "base_depot_south",
@@ -4405,7 +4408,7 @@
    "id": "ladders_for_ravine",
    "type": "steps",
    "priority": 96,
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "names": [
     "Mio",
@@ -4495,7 +4498,8 @@
      }
     ]
    },
-   "rev": 1
+   "rev": 2,
+   "bots": 2
   },
   {
    "id": "nether_barter",
@@ -4561,11 +4565,11 @@
   {
    "id": "void_fix_base_mine_pad",
    "type": "build",
-   "priority": 70,
+   "priority": 98,
    "front": "works",
    "status": "paused",
    "when": "any",
-   "bots": 5,
+   "bots": 6,
    "site": [
     -331,
     68,
@@ -4603,7 +4607,19 @@
      ]
     }
    },
-   "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) - base_mine_pad (level, paused) has the SAME cell in its blueprint at -336,68,-501"
+   "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) - base_mine_pad (level, paused) has the SAME cell in its blueprint at -333,68,-506",
+   "pri": 98,
+   "rev": 2,
+   "way": {
+    "by": "Aoi",
+    "t": 1789917945646,
+    "at": [
+     -326,
+     65,
+     -503
+    ],
+    "drop": 4
+   }
   },
   {
    "id": "cap_base_mine_pad",
@@ -4726,35 +4742,25 @@
      {
       "item": "wheat",
       "reserve": 4000,
-      "n": 320
-     },
-     {
-      "item": "coal",
-      "reserve": 768,
-      "n": 240
+      "n": 400
      },
      {
       "item": "leather",
-      "reserve": 64,
-      "n": 96
-     },
-     {
-      "item": "gray_wool",
-      "reserve": 64,
-      "n": 288
+      "reserve": 48,
+      "n": 120
      }
     ]
    },
-   "rev": 1
+   "rev": 2
   },
   {
    "id": "nether_landing_3",
    "type": "portal",
    "priority": 96,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "day",
-   "bots": 3,
+   "bots": 1,
    "shiftMin": 20,
    "site": [
     -326,
@@ -4780,6 +4786,495 @@
     "cobble": 208,
     "crossS": 30,
     "maxDeaths": 6
+   },
+   "rev": 1
+  },
+  {
+   "id": "minehead_pit_stair_fill",
+   "type": "steps",
+   "priority": 98,
+   "status": "paused",
+   "when": "any",
+   "bots": 1,
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone mine_head: the 3-deep pit east of the stairwell (x -328..-326 / z -505..-498) traps bots (366 no_route in 30 min, rescues = lost kits). FIRST a 2-step exit stair at the south end so the trapped walk out, THEN fill solid far end (north) first, the stair last",
+   "params": {
+    "steps": [
+     {
+      "do": "withdraw",
+      "item": "cobblestone",
+      "n": 64
+     },
+     {
+      "do": "goto",
+      "to": [
+       -327,
+       69,
+       -496
+      ],
+      "range": 2
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -327,
+       66,
+       -499
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -327,
+       67,
+       -498
+      ]
+     },
+     {
+      "do": "goto",
+      "to": [
+       -325,
+       69,
+       -505
+      ],
+      "range": 2
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -328,
+       68,
+       -505
+      ]
+     },
+     {
+      "do": "goto",
+      "to": [
+       -325,
+       69,
+       -504
+      ],
+      "range": 2
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -326,
+       66,
+       -504
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -327,
+       67,
+       -504
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -326,
+       67,
+       -504
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -327,
+       68,
+       -504
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -326,
+       68,
+       -504
+      ]
+     },
+     {
+      "do": "goto",
+      "to": [
+       -325,
+       69,
+       -503
+      ],
+      "range": 2
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -326,
+       65,
+       -503
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -327,
+       66,
+       -503
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -326,
+       66,
+       -503
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -327,
+       67,
+       -503
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -326,
+       67,
+       -503
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -327,
+       68,
+       -503
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -326,
+       68,
+       -503
+      ]
+     },
+     {
+      "do": "goto",
+      "to": [
+       -325,
+       69,
+       -502
+      ],
+      "range": 2
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -326,
+       65,
+       -502
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -326,
+       66,
+       -502
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -327,
+       67,
+       -502
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -326,
+       67,
+       -502
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -327,
+       68,
+       -502
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -326,
+       68,
+       -502
+      ]
+     },
+     {
+      "do": "goto",
+      "to": [
+       -325,
+       69,
+       -501
+      ],
+      "range": 2
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -327,
+       66,
+       -501
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -327,
+       67,
+       -501
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -327,
+       68,
+       -501
+      ]
+     },
+     {
+      "do": "goto",
+      "to": [
+       -325,
+       69,
+       -500
+      ],
+      "range": 2
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -327,
+       66,
+       -500
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -327,
+       67,
+       -500
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -327,
+       68,
+       -500
+      ]
+     },
+     {
+      "do": "goto",
+      "to": [
+       -325,
+       69,
+       -499
+      ],
+      "range": 2
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -328,
+       66,
+       -499
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -328,
+       67,
+       -499
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -328,
+       68,
+       -499
+      ]
+     },
+     {
+      "do": "goto",
+      "to": [
+       -325,
+       69,
+       -498
+      ],
+      "range": 2
+     },
+     {
+      "do": "goto",
+      "to": [
+       -327,
+       69,
+       -496
+      ],
+      "range": 2
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -327,
+       67,
+       -499
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -327,
+       68,
+       -499
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -327,
+       68,
+       -498
+      ]
+     }
+    ]
+   },
+   "note": "auto-paused: plan finished"
+  },
+  {
+   "id": "village_post",
+   "type": "trade",
+   "priority": 95,
+   "status": "active",
+   "when": "any",
+   "names": [
+    "Yotsuba"
+   ],
+   "front": "industry",
+   "site": [
+    -742,
+    69,
+    28
+   ],
+   "shiftMin": 60,
+   "plan": "zone: village trade post (docs/WORLD.md) - 7 workstations placed on probed free grass beside the villagers; nothing existing is touched",
+   "params": {
+    "work": "post",
+    "cells": [
+     {
+      "block": "blast_furnace",
+      "at": [
+       -742,
+       69,
+       28
+      ]
+     },
+     {
+      "block": "smithing_table",
+      "at": [
+       -740,
+       69,
+       28
+      ]
+     },
+     {
+      "block": "loom",
+      "at": [
+       -742,
+       70,
+       33
+      ]
+     },
+     {
+      "block": "grindstone",
+      "at": [
+       -740,
+       70,
+       33
+      ]
+     },
+     {
+      "block": "lectern",
+      "at": [
+       -746,
+       70,
+       32
+      ]
+     },
+     {
+      "block": "barrel",
+      "at": [
+       -746,
+       71,
+       33
+      ]
+     },
+     {
+      "block": "smoker",
+      "at": [
+       -744,
+       69,
+       28
+      ]
+     }
+    ]
    }
   }
  ]

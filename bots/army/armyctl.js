@@ -991,17 +991,20 @@ async function main () {
     let job; try { job = cmd === 'putjson' ? JSON.parse(process.argv.slice(3).join(' ')) : rj(path.resolve(arg)) } catch (e) { return console.log('bad JSON: ' + e.message) } if (!job.id || !job.type) return console.log('job needs id and type')
     if (JSON.stringify(job).includes('<')) return console.log('REFUSED: the job still contains <placeholders>')
     const errs = validateJob(job); if (errs.length) return console.log('REFUSED:\n  - ' + errs.join('\n  - '))
+    { const old = (rj(BOARD).jobs || []).find(j => j.id === job.id); if (old && /^OWNER-LOCKED/.test(old.desc || '') && process.env.ARMY_OWNER !== '1') return console.log('REFUSED: ' + job.id + ' is ' + String(old.desc).slice(0, 120) + ' - not yours to change') }
     withBoardLock(b => { const i = b.jobs.findIndex(j => j.id === job.id); if (i >= 0) { job.rev = Math.max(job.rev || 0, (b.jobs[i].rev || 0) + 1); b.jobs[i] = job } else b.jobs.push(job) })
     console.log('put', job.id, 'rev', job.rev || 0)
   } else if (cmd === 'patch') {
     let patch; try { patch = JSON.parse(process.argv[4]) } catch { return console.log('usage: patch <id> \'{"bots":12}\'') }
     const r = withBoardLock(b => { // the merged job must pass the same validator as `put`; a null value drops the field
       const i = b.jobs.findIndex(x => x.id === arg); if (i < 0) return null; const j = JSON.parse(JSON.stringify(b.jobs[i])); const { params, ...rest } = patch
+      if (/^OWNER-LOCKED/.test(j.desc || '') && process.env.ARMY_OWNER !== '1') return { locked: String(j.desc).slice(0, 120) }
       Object.assign(j, rest); if (params) j.params = Object.assign(j.params || {}, params); for (const o of [j, j.params || {}]) for (const k of Object.keys(o)) if (o[k] === null) delete o[k]
       if (patch.rev == null) j.rev = (j.rev || 0) + 1
       const errs = validateJob(j, b.settings, b.jobs.map(x => x.id)); if (errs.length) return { errs }
       b.jobs[i] = j; return j
     })
+    if (r && r.locked) return console.log('REFUSED: ' + arg + ' is ' + r.locked + ' - not yours to change')
     if (r && r.errs) return console.log('REFUSED:\n  - ' + r.errs.join('\n  - '))
     console.log(r ? 'patched ' + arg + ' -> ' + JSON.stringify({ status: r.status, bots: r.bots, minBots: r.minBots, maxBots: r.maxBots, names: r.names, rev: r.rev, priority: r.priority }) : 'no such job')
   } else if (cmd === 'chest') { // chest add <cat> x,y,z | chest list
@@ -1162,6 +1165,7 @@ async function main () {
     const b = rj(BOARD); const j = (b.jobs || []).find(x => x.id === arg); const st = process.argv[4]
     if (!j || !['active', 'paused'].includes(st)) return console.log('usage: job <id> active|paused   ids:', (b.jobs || []).map(x => x.id + '=' + x.status).join(' '))
     if (st === 'paused' && b.settings.fallback === j.id) return console.log('REFUSED: ' + j.id + ' is the FALLBACK sponge (settings.fallback) - pausing it parks the whole army at muster. Lower its `bots` or fix its handler instead.')
+    if (st === 'active' && /^OWNER-LOCKED/.test(j.desc || '') && process.env.ARMY_OWNER !== '1') return console.log('REFUSED: ' + j.id + ' is OWNER-LOCKED (' + String(j.desc).slice(0, 120) + '). Nobody but the top model at the owner\'s word re-activates it. If bots idle, that is the finding: report it, do not feed them make-work.')
     j.status = st; wj(BOARD, b); console.log(j.id, '->', st)
   } else if (cmd === 'events') { // events [n] [regex|all]
     const n = +arg || 30; const flt = process.argv[4] || (arg && !+arg ? arg : ''); const fmt = (t, bot, ev, rest, extra) => console.log(new Date(t).toISOString().slice(11, 19), String(bot).padEnd(8), String(ev).padEnd(12), (extra || '') + JSON.stringify(rest).slice(0, 160))

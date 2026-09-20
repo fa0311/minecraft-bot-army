@@ -45,6 +45,8 @@ function sayBroken (e) {
   brokenT = Date.now()
   try { fs.appendFileSync(path.join(__dirname, '..', 'army', 'results.jsonl'), JSON.stringify({ t: Date.now(), bot: '-', ev: 'error', err: 'BROKEN EDIT, running last good skills/lib: ' + sayBroken.err }) + '\n') } catch (e_) { console.error('army_worker: cannot report BROKEN EDIT', e_ && e_.message) }
 }
+// WHAT THE DEATH COST, in the forge's own unit (core/recover.js owns the ONE price table; re-required per death so a hot fix reaches it).
+function lostOf (inv) { try { const f = require.resolve('./core/recover'); delete require.cache[f]; return require(f).lost(inv) } catch (e_) { return undefined } }
 function fresh (rel) { // core/index.js lives outside lib/: reloaded when the manager purged it; keeps the last good copy on a broken edit
   const f = require.resolve(rel)
   const old = require.cache[f]
@@ -76,7 +78,7 @@ module.exports = async (bot, args = {}, ctx) => {
       try {
         const p = bot.entity && bot.entity.position
         bot.__armyDeathInfo = { pos: p ? [Math.round(p.x), Math.round(p.y), Math.round(p.z)] : null, dim: bot.game && bot.game.dimension, t: Date.now(), inv: bot.__armyLastInv || {}, job: bot.__armyJob || null, task: bot.state && bot.state.task }
-        libs().A.result(bot, { ev: 'death', job: bot.__armyJob || null, pos: p ? [Math.round(p.x), Math.round(p.y), Math.round(p.z)] : null, task: bot.state && bot.state.task })
+        libs().A.result(bot, { ev: 'death', job: bot.__armyJob || null, pos: p ? [Math.round(p.x), Math.round(p.y), Math.round(p.z)] : null, task: bot.state && bot.state.task, lost: lostOf(bot.__armyLastInv || {}) })
       } catch (e_) { console.error('army_worker: death report failed', e_ && e_.message) }
     })
   }

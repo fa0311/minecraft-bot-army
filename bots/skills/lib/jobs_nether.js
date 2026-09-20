@@ -19,6 +19,9 @@
 //   work:'barter'    1006 gold ingots in the depot -> ender pearls, fire resistance, obsidian. Wears a GOLD piece (piglins stay
 //                    neutral), drops ONE ingot at a time at an adult piglin within 8, picks up what comes back, NEVER attacks.
 //                    `ingots:64` per trip. A standing job: it ends when an operator pauses it.
+//   work:'pair'      build the gate's EXACT partner at floor(x/8), floor(z/8) (`params.at`): probe the column, walk there
+//                    read-only, platform first, then the frame centred on the partner point, then light it. A partner more than
+//                    a few blocks off means every return is a coin toss inside Paper's 128-block search - that is what breeds gates.
 //   work:'stair'     THE WAY DOWN from a hub doorway to `toY` (blueprint nether_stair): a 2-wide, 3-high, roofed, lit corridor,
 //                    cut through rock and built of carried stone over void. Writes settings.nether.stair / floorHub.
 //   work:'fortress'  4 squads, one per bearing (+x/-x/+z/-z by roster index, or params.bearing), `range` blocks out in `step`
@@ -391,8 +394,11 @@ module.exports = ctx => {
     const hotIds = ['lava', 'fire'].map(n => bot.registry.blocksByName[n] && bot.registry.blocksByName[n].id).filter(q => q != null)
     const hot = hotIds.length ? bot.findBlocks({ matching: hotIds, maxDistance: 12, count: 400, point: new Vec3(cx, y0, cz) }) : []
     const near = hot.filter(q => floorCells.some(c => Math.max(Math.abs(q.x - c.x), Math.abs(q.y - c.y), Math.abs(q.z - c.z)) <= 5))
-    const safe = holes.length === 0 && blocked.length === 0 && near.length === 0
-    return { floor, rail, torches, cleared, placed: floor + rail, outOfReach: out, lavaPlugged: lava, holes: holes.length, blocked: blocked.length, hotNear: near.length, safe, box: alongX ? [cx - RA, cz - RT, cx + RA, cz + RT] : [cx - RT, cz - RA, cx + RT, cz + RA], y: y0, cells: floorCells.map(c => ({ x: c.x, y: c.y, z: c.z, block: 'stone' })) }
+    // ... and only when we are actually standing at this gate (15:26Z: a bot 200 blocks away "measured" 63 holes in a platform
+    // it had never seen, because `far` had been found in chunk data that was still the other dimension's)
+    const atGate = bot.entity.position.distanceTo(new Vec3(cx + 0.5, y0, cz + 0.5)) < 24
+    const safe = atGate && holes.length === 0 && blocked.length === 0 && near.length === 0
+    return { floor, rail, torches, cleared, placed: floor + rail, outOfReach: out, lavaPlugged: lava, holes: holes.length, blocked: blocked.length, hotNear: near.length, atGate, safe, box: alongX ? [cx - RA, cz - RT, cx + RA, cz + RT] : [cx - RT, cz - RA, cx + RT, cz + RA], y: y0, cells: floorCells.map(c => ({ x: c.x, y: c.y, z: c.z, block: 'stone' })) }
   }
 
   // ---------------------------------------------------------------- ON ARRIVAL NOBODY WALKS
@@ -623,6 +629,60 @@ module.exports = ctx => {
     if (traded) A.result(bot, { ev: 'nether_barter', job: job.id, offered: traded, itemsBack: got, loot, piglinsNear: nearby(32), at: xyz(bot.entity.position) })
     return { work: 'barter', offered: traded, itemsBack: got, loot, min: Math.round((Date.now() - t0) / 6000) / 10 }
   }
+  // ---------------------------------------------------------------- PAIR THE GATES EXACTLY (top model 15:4xZ)
+  // A gate's partner is not "somewhere near": it is floor(x/8), floor(z/8). Home is -327,68,-518, so its Nether partner is
+  // -41,-65. The gate we have sits at -44,-80 — 15 Nether blocks off, i.e. 124 overworld blocks from home, just inside Paper's
+  // 128-block search: every return was a coin toss between our gate and a freshly generated one, and that is why gates kept
+  // multiplying. So we build the partner where it belongs: probe the column, walk there, platform first (the 7x9 rule), then the
+  // frame centred on -41,-65, then light it. Every step reports what it READ.
+  async function pairGate (bot, job, api, P, until) {
+    const at = P.at || [-41, null, -65]
+    const tx = Math.floor(at[0]); const tz = Math.floor(at[2])
+    const here = bot.entity.position.floored()
+    // 1. WHAT IS THERE? the highest solid, non-lava block of the column, and the first free cell over it
+    let groundY = null; let roofY = null
+    for (let y = Math.min(122, here.y + 24); y >= 20; y--) {
+      const b = bot.blockAt(new Vec3(tx, y, tz)); if (!b) continue
+      if (b.boundingBox === 'block' && !/lava/.test(b.name)) { if (roofY == null && y > here.y + 2) { roofY = y; continue } groundY = y; break }
+    }
+    if (groundY == null) { A.result(bot, { ev: 'pair_probe', job: job.id, at: [tx, null, tz], from: xyz(here), why: 'the column at ' + tx + ',' + tz + ' is not loaded or has no solid block between y20 and y' + Math.min(122, here.y + 24) }); return { work: 'pair', at: [tx, null, tz], groundY: null, why: 'column unreadable from here' } }
+    const y0 = groundY + 1
+    A.result(bot, { ev: 'pair_probe', job: job.id, at: [tx, y0, tz], groundY, roofY, from: xyz(here), dy: y0 - here.y, d: Math.round(Math.hypot(tx - here.x, tz - here.z)) })
+    // 2. CAN WE WALK THERE? read-only, lava-aware, short hops - no new earthworks unless the operator asks for them
+    let reached = false
+    for (let h = 0; h < 8 && !api.stop() && Date.now() < until; h++) {
+      const me = bot.entity.position; const dv = new Vec3(tx + 0.5 - me.x, 0, tz + 0.5 - me.z); const len = Math.hypot(dv.x, dv.z)
+      if (len < 4) { reached = true; break }
+      const k = Math.min(8, len) / len
+      const sub = new Vec3(Math.round(me.x + dv.x * k), y0, Math.round(me.z + dv.z * k))
+      if (!await nTravel(bot, sub, { range: 2, ms: 25000, stop: api.stop })) break
+    }
+    if (!reached) reached = bot.entity.position.distanceTo(new Vec3(tx + 0.5, y0, tz + 0.5)) < 6
+    if (!reached) {
+      A.result(bot, { ev: 'pair_unreachable', job: job.id, at: [tx, y0, tz], stoppedAt: xyz(bot.entity.position), groundY, why: 'no read-only walk from the present landing to the partner column - it needs a 3-wide bridge with a rail, say so before digging' })
+      return { work: 'pair', at: [tx, y0, tz], groundY, reached: false }
+    }
+    // 3. PLATFORM FIRST, then the frame: both from the cell list, both placed without ever standing in a portal
+    const body = []; for (let dx = -1; dx <= 0; dx++) for (let dy = 1; dy <= 3; dy++) body.push(new Vec3(tx + dx, y0 + dy, tz)) // where the portal WILL be
+    const plat = []
+    for (let a2 = -3; a2 <= 3; a2++) for (let t = -4; t <= 4; t++) {
+      plat.push({ x: tx + a2, y: y0 - 1, z: tz + t, block: 'stone' })
+      for (let k = 0; k < 4; k++) if (!(t === 0 && a2 >= -1 && a2 <= 0)) plat.push({ x: tx + a2, y: y0 + k, z: tz + t, block: 'air' })
+    }
+    const box = [tx - 4, tz - 5, tx + 4, tz + 5]
+    const rp = await buildCells(bot, job, api, plat, box, Math.min(until, Date.now() + 150000), 'pair-platform')
+    // 4. THE FRAME, from the same blueprint the home gate uses, with an inner column exactly on the partner point
+    const fr = bpCells('nether_portal', [tx, y0, tz], { axis: 'x', clear: 3, margin: 3, torch: false })
+    const frame = fr.cells.filter(c => c.block === 'obsidian' || (c.block !== 'air' && c.y >= y0 && c.y <= y0 + 4 && Math.abs(c.z - tz) === 0))
+    const rf = await buildCells(bot, job, api, frame.map(c => ({ x: c.x, y: c.y, z: c.z, block: c.block === 'obsidian' ? 'obsidian' : 'stone' })), box, Math.min(until, Date.now() + 150000), 'pair-frame')
+    const G2 = require(require.resolve(path.join(A.DIR, '..', 'blueprints', 'nether_portal.js'))).geom({ x: tx, y: y0, z: tz }, { axis: 'x' })
+    const gaps = frameGaps(bot, G2).length
+    let lit2 = litCells(bot, G2.inner).length
+    if (!gaps && lit2 < G2.inner.length) { if (A.count(bot, 'flint_and_steel') || await A.obtain(bot, 'flint_and_steel', 1, { stop: api.stop }).catch(() => false)) { await strike(bot, job, api, G2); lit2 = litCells(bot, G2.inner).length } }
+    if (!gaps && lit2 >= G2.inner.length) netherEdit({ portal: [tx, y0 + 1, tz], paired: true, pairAt: Date.now(), pairY: y0, oldPortal: netherOf().portal || null })
+    A.result(bot, { ev: 'pair_built', job: job.id, at: [tx, y0, tz], platform: rp.placed, platformLeft: rp.left, frameGaps: gaps, lit: lit2 + '/' + G2.inner.length, obsidian: A.count(bot, 'obsidian') })
+    return { work: 'pair', at: [tx, y0, tz], groundY, reached: true, platform: rp.placed, platformLeft: rp.left, frameGaps: gaps, lit: lit2 }
+  }
   // ---------------------------------------------------------------- STAGE 2: the work a squad does on the far side, then home
   // ONE round trip per slice while `skyAbove`/`digOut` are still overworld-blind (a bot left over there cuts a staircase into
   // the bedrock roof, measured 12:30:23Z): cross, work for `params.minutes`, come home. Nobody is ever idle on the far side.
@@ -682,6 +742,8 @@ module.exports = ctx => {
       // THE BOX MUST HOLD THE DOOR WE COME IN BY (measured 14:44Z: `left:840, placed:0, steps:0` — the gate is at z -76, the stair
       // box started at z -79, so every safeStep candidate was outside our own box and the squad could not walk into its own work)
       box = unionBox(meta.box, N2.hub && N2.hub.room, xyz(bot.entity.position))
+    } else if (work === 'pair') {
+      return await pairGate(bot, job, api, P, until)
     } else if (work === 'fortress') {
       return await explore(bot, job, api, P, until)
     } else if (work === 'barter') {
@@ -710,8 +772,12 @@ module.exports = ctx => {
       const hotIds = ['lava', 'fire'].map(n => bot.registry.blocksByName[n] && bot.registry.blocksByName[n].id).filter(q => q != null)
       const hot = hotIds.length ? bot.findBlocks({ matching: hotIds, maxDistance: 12, count: 400, point: new Vec3(cx, y0, cz) }) : []
       const near = hot.filter(q => Math.abs(q.x - cx) <= 7 && Math.abs(q.z - cz) <= 7 && Math.abs(q.y - y0) <= 6)
-      out.holes = holes.length; out.hotNear = near.length; out.safe = holes.length === 0 && near.length === 0
-      netherEdit({ landingSafe: out.safe, landingAt: Date.now(), landing: box, landingY: y0 })
+      // AN EMPTY CELL LIST IS NOT A SAFE LANDING (15:26:42Z: the new `reach` filter left `of:0` and the verdict read `safe:true`
+      // on nothing at all). A verdict needs cells it actually looked at, and none out of range.
+      out.holes = holes.length; out.hotNear = near.length
+      out.safe = cells.length > 0 && !outOfRange && holes.length === 0 && near.length === 0
+      if (out.safe) netherEdit({ landingSafe: true, landingAt: Date.now(), landing: box, landingY: y0 })
+      else netherEdit({ landingSafe: false, landingAt: Date.now() })
     }
     if (work === 'hub' && meta) {
       // the furniture is registered under settings.nether ONLY (the overworld depot must not learn about a chest in another world)

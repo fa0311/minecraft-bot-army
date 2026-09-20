@@ -30,7 +30,7 @@
 const fs = require('fs')
 const path = require('path')
 
-const ORDER = ['survival', 'combat', 'hazards', 'inventory', 'kit', 'death', 'blocks', 'crafting']
+const ORDER = ['survival', 'combat', 'hazards', 'inventory', 'kit', 'death', 'recover', 'blocks', 'crafting']
 const _cache = {}
 function fresh (f) { // reload a module only when its file changed
   const mt = fs.statSync(f).mtimeMs
