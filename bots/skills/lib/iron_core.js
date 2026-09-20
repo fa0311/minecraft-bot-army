@@ -1274,11 +1274,28 @@ function noteOre (bot, p) {
     if (q.size > 512) return
     for (const d of FACES) {
       const b = bot.blockAt(p.offset(d[0], d[1], d[2]))
+      if (b && b.name === 'tuff' && b.position.y <= -8) tuffHit(bot, b.position) // every commute is a survey (see tuffHit)
       if (!b || !oreFamily(b.name)) continue
       const k = U.kpos(b.position)
       if (!q.has(k)) q.set(k, b.position)
     }
   } catch (e_) { swallow('iron_core:noteOre', e_) }
+}
+// THE SURVEY WITHOUT A CAMERA AND WITHOUT X-RAY (owner 09-20: "今のマイクラでは鉄がたくさんあるとことかあるらしく数千単位で鉄が出てくる"). A 1.18 giant iron
+// vein is a TUFF body tens of blocks wide with iron ore and raw_iron_block inside it, y -60..-8 - and our 30 km of tunnels already expose its faces.
+// So every face the mine reads anyway (noteOre) counts the tuff per 8-block cell: >= 6 tuff faces in one cell is a candidate, it goes on the board
+// (`settings.mine.veins`, event `mine_vein kind:'tuff_cluster'`) and an operator sends the squad - x50, one miner per face of the body.
+const TUFF_CLUSTER = 6
+function tuffHit (bot, p) {
+  try {
+    const m = bot.__ironTuff = bot.__ironTuff || new Map()
+    if (m.size > 4096) return
+    const key = [p.x, p.y, p.z].map(q => Math.floor(q / 8)).join(',')
+    const e = m.get(key) || { n: 0, said: false }
+    e.n++
+    m.set(key, e)
+    if (e.n >= TUFF_CLUSTER && !e.said) { e.said = true; recordVein(bot, p, 'tuff_cluster', e.n, 0).catch(e_ => swallow('iron_core:tuffHit', e_)) }
+  } catch (e_) { swallow('iron_core:tuffHit', e_) }
 }
 const LOG_FAM = /^(diamond|gold|redstone|emerald|lapis)$/ // what a stone pick cannot take (or is worth a second trip): it goes on the ore log
 // Mine what the queue holds and this bot can reach NOW - as a VEIN, so the whole body comes out. What it cannot harvest, and what the miner has
@@ -1356,7 +1373,7 @@ async function mineVein (bot, first, level, anchor, gen, opts = {}) {
   const big = vein.big
   const member = b => !!b && (oreFamily(b.name) === fam || (big && b.name === 'tuff'))
   // the BOARD hears only what is worth moving head-count for: an iron body with a raw block in it, or 16+ connected ore of iron/diamond (a coal blob of 8 is not news)
-  if (big && (vein.raw > 0 || (vein.length >= 16 && /^(iron|diamond)$/.test(fam)))) await recordVein(bot, first, fam, vein)
+  if (big && (vein.raw > 0 || (vein.length >= 16 && /^(iron|diamond)$/.test(fam)))) await recordVein(bot, first.position, fam, vein.length, vein.raw || 0)
   let got = 0
   let moves = 0
   // a big body is worth walking INSIDE: the old 8 moves / 60 turns stopped at the first 24 blocks in reach (owner 09-20: veins are the iron)
@@ -1409,6 +1426,9 @@ async function mineVein (bot, first, level, anchor, gen, opts = {}) {
   // Ore dug from a distance leaves its drop inside the wall cavity (that lost ~80% of the first veins):
   // carve a 1x2 side tunnel at corridor level to every valuable drop and walk onto it.
   await collectDrops(bot, level, trail, gen, fam)
+  // ... and the drops that fell INTO the body, below the corridor or behind us: the vein is not mined until they are in the pocket
+  const pick = await collectVein(bot, vein, gen)
+  say(bot, { ev: 'vein_done', kind: fam, at: [first.position.x, first.position.y, first.position.z], ore: got, big, picked: pick.got, leftOnFloor: pick.left, tookS: pick.tookS })
   // walk the trail back to the anchor
   while (trail.length) {
     const p = trail.pop()
@@ -1426,6 +1446,64 @@ const VALUABLE_RE = /^(raw_iron|raw_iron_block|raw_gold|raw_copper|coal|diamond|
 function dropName (e) {
   try { const it = e.getDroppedItem && e.getDroppedItem(); if (it) return it.name } catch (e_) { swallow('iron_core:q13', e_) }
   return null
+}
+// A VEIN IS NOT MINED UNTIL ITS DROPS ARE IN THE POCKET (owner 09-20, watching Mashiro: "mashiroが掘った鉱石を拾っていません" - 20 coal lay on the floor
+// of the cavity she had opened, 10-15 blocks behind her, while she drove the branch on). `sweep` only looks 3 blocks around the feet at ONE y and
+// `collectDrops` only 5.5 blocks at CORRIDOR level, so everything that fell into the body, or one block under it, stayed there - this file's own
+// comment has said so since world 1. So after the last ore the miner walks INTO the body (it is air now) and takes everything in its box + 2:
+// one cell at a time with `openCell` (which floors a gap and plugs a liquid, so nobody jumps into a hole), never a drop of more than 3, 20 s cap.
+async function collectVein (bot, cells, gen, opts = {}) {
+  const out = { got: {}, left: 0, tookS: 0 }
+  const t0 = Date.now()
+  const end = t0 + (opts.ms || 20000)
+  if (!cells || !cells.length) return out
+  const lo = { x: Infinity, y: Infinity, z: Infinity }; const hi = { x: -Infinity, y: -Infinity, z: -Infinity }
+  for (const p of cells) for (const k of ['x', 'y', 'z']) { lo[k] = Math.min(lo[k], p[k]); hi[k] = Math.max(hi[k], p[k]) }
+  const inBox = e => e.position.x >= lo.x - 2 && e.position.x <= hi.x + 3 && e.position.z >= lo.z - 2 && e.position.z <= hi.z + 3 && e.position.y >= lo.y - 2 && e.position.y <= hi.y + 3
+  const mine = () => Object.values(bot.entities).filter(e => e && e.name === 'item' && e.position && inBox(e) && VALUABLE_RE.test(dropName(e) || ''))
+  const before = U.invMap(bot)
+  let moves = 0
+  while (Date.now() < end) {
+    if (stale(bot, gen)) break
+    if (U.freeSlots(bot) <= 2) await tossJunk(bot, false) // junk stone goes first, never the ore
+    const items = mine()
+    out.left = items.length
+    if (!items.length) break
+    const me = bot.entity.position
+    items.sort((a, b) => a.position.distanceTo(me) - b.position.distanceTo(me))
+    const it = items[0]
+    if (it.position.distanceTo(me) < 1.1) { await sleep(200); continue }
+    if (moves >= (opts.maxMoves || 26)) break
+    const c = it.position.floored()
+    const f = feet(bot)
+    // one 4-neighbour step towards the drop, at the y we can legally stand on next
+    let sx = 0; let sz = 0
+    const ddx = c.x - f.x; const ddz = c.z - f.z
+    if (Math.abs(ddx) >= Math.abs(ddz)) sx = Math.sign(ddx); else sz = Math.sign(ddz)
+    if (!sx && !sz) { // same column, different height: straight down inside our own cavity, or up onto it
+      if (c.y < f.y && f.y - c.y <= 3 && [1, 2, 3].every(d => f.y - d < c.y || isOpen(blk(bot, f.x, f.y - d, f.z)))) { await sleep(250); continue }
+      break
+    }
+    const nx = f.x + sx; const nz = f.z + sz
+    let ny = f.y
+    if (c.y > f.y) ny = f.y + 1
+    else if (c.y < f.y) { // how deep is the floor of the next column? never step into a drop of more than 3
+      let d = 0
+      while (d < 5 && isOpen(blk(bot, nx, f.y - 1 - d, nz))) d++
+      if (d > 3) break
+      ny = f.y - Math.min(d, f.y - c.y)
+    }
+    if (await openCell(bot, nx, ny, nz) !== 'ok') break
+    if (!await stepTo(bot, nx, nz, { ms: 2500, gen, up: ny > f.y })) break
+    moves++
+    await sweep(bot, 400, 2)
+  }
+  await sweep(bot, 600, 2.5)
+  out.left = mine().length
+  const after = U.invMap(bot)
+  for (const k of Object.keys(after)) { const n = after[k] - (before[k] || 0); if (n > 0 && VALUABLE_RE.test(k)) out.got[k] = n }
+  out.tookS = Math.round((Date.now() - t0) / 1000)
+  return out
 }
 async function collectDrops (bot, level, trail, gen, fam) {
   const given = new Set()
@@ -1484,8 +1562,8 @@ function recordOre (bot, b) {
 // A GIANT VEIN GOES ON THE BOARD, because it is worth more than fifty branches and the squad has to be able to go there: `settings.mine.veins`
 // = the last 24 bodies found {at:[x,y,z], kind, seen, raw, by, t, level}, deduped per 8-block cell, plus the event `mine_vein` for the operator's
 // digest. Nobody is re-assigned by code: the operator reads the line and moves head-count (CLAUDE.md rule 1a).
-async function recordVein (bot, first, fam, vein) {
-  const at = [first.position.x, first.position.y, first.position.z]
+async function recordVein (bot, pos, fam, seen, raw = 0) {
+  const at = [pos.x, pos.y, pos.z]
   const key = at.map(q => Math.floor(q / 8)).join(',') + '/' + fam
   try {
     if ((bot.__ironVeins = bot.__ironVeins || {})[key]) return
@@ -1495,11 +1573,11 @@ async function recordVein (bot, first, fam, vein) {
       const m = b.settings.mine = b.settings.mine || {}
       const l = m.veins = Array.isArray(m.veins) ? m.veins : []
       if (l.some(v => v && v.key === key)) return
-      l.push({ key, at, kind: fam, seen: vein.length, raw: vein.raw || 0, by: bot.username, t: Date.now() })
+      l.push({ key, at, kind: fam, seen, raw, by: bot.username, t: Date.now() })
       m.veins = l.slice(-24)
     })
   } catch (e_) { swallow('iron_core:recordVein', e_) }
-  say(bot, { ev: 'mine_vein', kind: fam, at, seen: vein.length, raw: vein.raw || 0, note: 'giant ' + fam + ' vein: ' + vein.length + ' blocks connected (' + (vein.raw || 0) + ' raw blocks) - followed whole; it stands in settings.mine.veins' })
+  say(bot, { ev: 'mine_vein', kind: fam, at, seen, raw, note: fam === 'tuff_cluster' ? seen + ' tuff faces in one 8-block cell at ' + at.join(',') + ': the body of a 1.18 GIANT IRON VEIN is tuff - send the squad, the miners open the tuff as a corridor' : 'giant ' + fam + ' vein: ' + seen + ' blocks connected (' + raw + ' raw blocks) - followed whole; it stands in settings.mine.veins' })
 }
 // back to the anchor cell of our own line after a vein excursion: a LEVEL 1x2 line (walkLine keeps the level, floors gaps, climbs out of a hole).
 // World 1 used the pathfinder here as a fallback - underground it digs and places, which is how private diagonals appeared beside the branches.
@@ -2615,7 +2693,7 @@ module.exports = {
   pickaxes, durLeft, bestPick, stonePickCount, cobbleCount, woodUnits, canCraftPick, withTable, ensurePick, ensureTorches,
   digCell, openCell, sealSides, torchNear, stepTo, settle, walkLine, pillarOne, blocked, sweep, returnTo,
   auditStairs, repairStairs, walkRoute, nearestWp, treadState, layTreads, stairItem, STAIR_RE, isSupport, supportChain, placeSupported,
-  exposedOre, veinOf, mineVein, noteOre, drainSeen, fortuneOf, threat, defend, wallOff, eat, tossJunk,
+  exposedOre, veinOf, mineVein, collectVein, noteOre, drainSeen, fortuneOf, threat, defend, wallOff, eat, tossJunk,
   claimStairs, digStairs, claimBranch, branchOutlook, exhausted, levelCap, levelYield, reopenable, commute, nextLanding, claimGrowth, sayMine, pickRank, stoneWanted, saveBranch, gotoBranchFace, mineBranch, walkTrunk,
   rawIron, lootScore, needHaul, foodUnits, pickUses, readiness, exitReason, reconnect, toSurface, toEntrance,
   // lava on record + the obsidian trip

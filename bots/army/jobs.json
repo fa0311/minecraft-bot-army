@@ -440,76 +440,6 @@
      -359,
      70,
      -518
-    ],
-    [
-     -363,
-     69,
-     -521
-    ],
-    [
-     -361,
-     69,
-     -521
-    ],
-    [
-     -359,
-     69,
-     -521
-    ],
-    [
-     -371,
-     69,
-     -521
-    ],
-    [
-     -369,
-     69,
-     -521
-    ],
-    [
-     -367,
-     69,
-     -521
-    ],
-    [
-     -365,
-     69,
-     -521
-    ],
-    [
-     -363,
-     70,
-     -521
-    ],
-    [
-     -359,
-     70,
-     -521
-    ],
-    [
-     -361,
-     70,
-     -521
-    ],
-    [
-     -369,
-     70,
-     -521
-    ],
-    [
-     -367,
-     70,
-     -521
-    ],
-    [
-     -365,
-     70,
-     -521
-    ],
-    [
-     -371,
-     70,
-     -521
     ]
    ],
    "salvage": [
@@ -1330,14 +1260,14 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Aoi",
+   "by": "Sakura",
    "portal": [
-    -43,
+    -44,
     98,
     -80
    ],
-   "through": 1789922843931,
-   "scoutRev": 6,
+   "through": 1789923108781,
+   "scoutRev": 1,
    "hub": {
     "room": [
      -41,
@@ -1449,7 +1379,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789918122175,
-   "back": 1789923020391,
+   "back": 1789923122590,
    "lastDeath": 1789922833587,
    "lastDeathBy": "Sakura",
    "roads": {
@@ -1549,63 +1479,38 @@
     73,
     27
    ],
-   "surveyed": 1789923023950,
+   "surveyed": 1789923193856,
    "villagers": 9,
    "professions": {
+    "farmer": 2,
+    "unknown": 1,
     "leatherworker": 4,
     "weaponsmith": 1,
-    "farmer": 2,
-    "toolsmith": 1,
-    "unknown": 1
+    "toolsmith": 1
    },
-   "beds": 12,
+   "beds": 10,
    "stations": {
+    "composter": 2,
+    "blast_furnace": 2,
     "grindstone": 1,
     "loom": 1,
-    "smithing_table": 1,
     "barrel": 1,
     "lectern": 1,
-    "blast_furnace": 2,
-    "smoker": 1,
-    "composter": 2
+    "smithing_table": 1,
+    "smoker": 1
    },
    "golems": 2,
    "bounds": [
     -766,
-    10,
-    -703,
+    11,
+    -710,
     57
    ],
    "nearest": [
     [
-     -740,
-     72,
+     -734,
+     86,
      39
-    ],
-    [
-     -740,
-     73,
-     42
-    ],
-    [
-     -741,
-     71,
-     39
-    ],
-    [
-     -738,
-     70,
-     33
-    ],
-    [
-     -735,
-     87,
-     48
-    ],
-    [
-     -746,
-     79,
-     58
     ],
     [
      -736,
@@ -1613,9 +1518,34 @@
      58
     ],
     [
-     -763,
+     -738,
      71,
-     48
+     39
+    ],
+    [
+     -741,
+     72,
+     39
+    ],
+    [
+     -740,
+     71,
+     39
+    ],
+    [
+     -742,
+     72,
+     39
+    ],
+    [
+     -741,
+     69,
+     31
+    ],
+    [
+     -740,
+     70,
+     29
     ]
    ],
    "post": {
@@ -2339,7 +2269,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789922880200
+   "restUntil": 1789923173566
   },
   {
    "id": "fill_ring_field2",
@@ -4735,19 +4665,18 @@
     69,
     -517
    ],
-   "plan": "ONE storage complex, not a second yard (owner 09-20 14:4xZ 「かまどや倉庫を一箇所にしないのか？倉庫を拡張しないのか？」): extend the depot SOUTHWARD into the free flat ground between its food row (z -512) and the furnace row (z -523) - three more `build` rows of DOUBLE chests 3 high at z -521 / -518 / -515, x -371..-358, same aisles, same x lines as the existing rows. 126 chests = 63 doubles = 3402 slots on top of the 14 build chests that are 74 % full. The build job registers every chest in settings.chests.build as it goes.",
+   "plan": "ONE storage complex: two `build` rows of DOUBLE chests 3 high at z -518 / -515, x -371..-358 (owner 09-20 17:0xZ 「かまどとチェストの位置近くね？」: the third row at z -521 stood ONE block from the furnace row z -523 - a 1-wide alley for 50 bots; it is removed, the alley is 4 wide now; capacity went to the east wing)",
    "params": {
     "blueprint": "depot_rows",
     "origin": [
      -372,
      68,
-     -521
+     -518
     ],
     "args": {
      "len": 14,
      "high": 3,
      "rows": [
-      "build",
       "build",
       "build"
      ],
@@ -4755,7 +4684,7 @@
     },
     "order": "near"
    },
-   "rev": 2,
+   "rev": 3,
    "stuckBy": {
     "key": "rev2",
     "bots": [
@@ -6627,6 +6556,42 @@
     ],
     "rerolls": 10,
     "legS": 300
+   }
+  },
+  {
+   "id": "mine_sweep",
+   "type": "ores",
+   "priority": 90,
+   "front": "mine",
+   "status": "active",
+   "when": "any",
+   "bots": 4,
+   "site": [
+    -327,
+    48,
+    -488
+   ],
+   "requires": {
+    "minHp": 14,
+    "minFood": 8
+   },
+   "shiftMin": 30,
+   "plan": {
+    "zone": "mine (BASE PLAN): our own finished branches - exposed faces only, no new tunnels",
+    "why": "MEASURED 09-20: 1.6 leftover ore faces per 100 m of our own corridors at y-54 and 0.3 at y-32, 658 exposed ore blocks inside the mine footprint (96 iron, 50 diamond) - y48 (19.8 ore/100) and y32 (14.2) are the densest. Take what already touches our tunnels and the drops lying in them"
+   },
+   "params": {
+    "kinds": [
+     "coal_ore",
+     "iron_ore",
+     "gold_ore",
+     "redstone_ore",
+     "lapis_ore",
+     "diamond_ore"
+    ],
+    "minY": 24,
+    "radius": 150,
+    "bankAt": 48
    }
   }
  ]
