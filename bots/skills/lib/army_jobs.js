@@ -2714,6 +2714,20 @@ async function build (bot, job, api, ctx) {
   // the claim is taken inside ONE locked board edit, so two builders never pour the same cell; two failures army-wide retire the cell for this rev.
   const SIDES = [[1, 0], [-1, 0], [0, 1], [0, -1]]
   const isSrc = b => !!b && b.name === 'water' && b.metadata === 0
+  // A VISIBLE FACE TAKES THE BLUEPRINT'S OWN BLOCK (owner 12:1xZ: 「適当にブロック使うから見栄えが悪いんだよね。土を置くべきなところに石を置いたり、丸石を置くべきところに
+  // 深層岩を置いてる」; `audit_surface` 12:04Z MEASURED it: 705 visible planned cells hold a substitute - road_12 199, road_9 189, road_11 80, road_1 70, field_7 41,
+  // e.g. -340,68,-556 wants cobblestone and has stone). `mats` is thrift for what nobody sees: the body of a solid fill, a road's sub-base, the inside of a wall. At the
+  // SURFACE it is a patchwork. A cell counts as visible when it is the TOP block of its column in the blueprint and is neither fill body nor sub-base; for those the
+  // exact block is the only one accepted and the only one placed - a substitute standing there is work again (dug, then the right block), and with none in the depot the
+  // cell WAITS and the job says `needs: <block>`. Two families keep their variety on purpose: species-agnostic WOOD (a birch floor is not a patchwork) and bed colours;
+  // SOIL cells keep theirs too (grass/farmland/podzol are all "the ground is there" - the dirt cap, not this rule, is what makes ground ground).
+  const HARD_SOIL = /^(dirt|grass_block|farmland|podzol|coarse_dirt|rooted_dirt|dirt_path|mycelium|mud)$/
+  const EXACT = new Set()
+  { const top = new Map()
+    for (const c of cells) { if (c.solid || c.fillOnly || c.block === 'air' || /torch|button|_sign$|_door$|ladder|lever|rail$/.test(c.block)) continue; const k = c.x + ',' + c.z; const e = top.get(k); if (e == null || c.y > e.y) top.set(k, c) }
+    for (const c of top.values()) if (c.mats && c.mats.length > 1 && !c.wood && !/_bed$/.test(c.block) && !HARD_SOIL.test(c.block)) EXACT.add(K(c)) }
+  const exact = c => EXACT.has(K(c))
+  const pickList = c => exact(c) ? [c.block] : matsOf(c) // what this cell may be made of, here and now
   const waterKeys = new Set(cells.filter(c => c.block === 'water').map(K))
   const groundFill = (cells.find(c => c.fillOnly && !c.solid && c.block !== 'air') || {}).block || null // what this blueprint's ground cells are made of (level: dirt)
   const groundKeys = new Set(cells.filter(c => c.fillOnly && !c.solid && c.block !== 'air').map(K)) // the blueprint's ground cells (pad, road sub-base, level)
@@ -2725,7 +2739,7 @@ async function build (bot, job, api, ctx) {
   const waterEdit = fn => { const ok = A.boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (!j) return; if (!j.water || j.water.key !== revKey) j.water = { key: revKey, cells: {} }; fn(j.water.cells) }); st.wbT = 0; return ok }
   const todo = (all) => {
     const me = bot.entity.position; const dig = []; const put = []; let wait = 0; const deep = []
-    const matSeen = {}; const haveMat = c => { const k = c.block + '|' + (c.wood || ''); if (matSeen[k] == null) matSeen[k] = matsOf(c).some(n => A.count(bot, n) > 0 || A.stockOf(n) > 0) || !!craftPick(c); return matSeen[k] }
+    const matSeen = {}; const haveMat = c => { const k = c.block + '|' + (c.wood || '') + '|' + (exact(c) ? 'x' : ''); if (matSeen[k] == null) matSeen[k] = pickList(c).some(n => A.count(bot, n) > 0 || A.stockOf(n) > 0) || (!exact(c) && !!craftPick(c)); return matSeen[k] }
     const open = cells.some(c => c.solid) ? skyOpen() : null; const roofs = new Set(); const mates = open ? mateBlocked() : null; const lavaOn = !!open && lavaSet().size > 0
     // NEVER A LID (owner: never deck a hole; main 09-19 19:5xZ: base_field_1_pad / base_yard_pad "complete - BUT 7/10 columns are a deck over air", core pad
     // -346,68,-492 = dirt y68 over AIR y67 over grass y66): a `fillOnly` ground cell is filled FROM THE NATURAL GROUND UP. groundUnder = the lowest open cell of
@@ -2793,7 +2807,7 @@ async function build (bot, job, api, ctx) {
       if (c.block === 'air' && c.natural && (!NATURAL_RE.test(b.name) || built().has(c.x + ',' + c.z) || (solid(b) && !/^(air|cave_air)$/.test((at(c.x, c.y + 1, c.z) || { name: 'air' }).name) && !NATURAL_RE.test((at(c.x, c.y + 1, c.z) || {}).name)))) continue
       if (c.block === 'air') { if (!foreign && b.name !== 'air' && b.name !== 'cave_air' && !(/_leaves$/.test(b.name) && c.y > o.y + 3) && !/^(water|lava|wheat|carrots|potatoes|beetroots|sweet_berry_bush|sugar_cane)$/.test(b.name) && !U.protectedBlock(b) && (bot.blockAt(new Vec3(c.x, c.y - 1, c.z)) || {}).name !== 'water') dig.push(c) } else if (b.name !== c.block) {
         if (c.fillOnly && solid(b)) continue
-        if (c.mats && c.mats.includes(b.name)) continue // an accepted substitute stands there
+        if (c.mats && c.mats.includes(b.name) && !exact(c)) continue // an accepted substitute stands there (never on a VISIBLE face: see EXACT)
         if (b.name === 'water' && waterKeys.size) { put.push(c); continue } // a blueprint that OWNS its water: water anywhere else in it is a leak (a side a creeper opened) - the block goes back in
         // THE OTHER HALF OF THE REPAVE/REPLANT LOOP (foreman 10:20Z): a crop standing where OUR OWN blueprint wants a hard block (the field's path line, the post under a water
         // cap) made the rule below skip the cell for ever, so re-activating the build job could never clear `cobblestone@…=wheat`. A real structure cell wins: the crop is
@@ -3162,7 +3176,7 @@ async function build (bot, job, api, ctx) {
     } else if (c.redo) {
       r = await redoChest(c)
     } else {
-      let item = matsOf(c).find(n => A.count(bot, n))
+      let item = pickList(c).find(n => A.count(bot, n))
       // a SOLID fill cell never goes through obtain(): the biggest pile in the depot is withdrawn in one big load (see bestMat/fillBatch above), nothing is crafted
       if (!item && c.solid) {
         const pick = bestOfMats(matsOf(c))
@@ -3172,9 +3186,9 @@ async function build (bot, job, api, ctx) {
         if (!await A.travel(bot, { x: o.x, y: null, z: o.z }, { range: 14, ms: 120000, stop: api.stop })) return 'build: cannot get back'
         item = pick; c = Object.assign({}, c, { block: pick })
       }
-      if (!item) c = Object.assign({}, c, { block: matsOf(c).find(n => A.stockOf(n) > 0) || craftPick(c) || c.block }) // a solid fill takes whatever filler the depot has; wood = the species we own
+      if (!item) c = Object.assign({}, c, { block: pickList(c).find(n => A.stockOf(n) > 0) || (!exact(c) && craftPick(c)) || c.block }) // a solid fill takes whatever filler the depot has; wood = the species we own
       if (!item) { const open = put.filter(q => q.block === c.block).length; const bulk = /^(cobblestone|cobbled_deepslate|stone|dirt|gravel|sand|.*_planks|.*_log|.*_slab|.*_stairs|.*_fence|.*bricks?|glass)$/.test(c.block); const batch = c.solid ? 192 : bulk ? 64 : /torch/.test(c.block) ? 16 : Math.max(1, Math.min(open, 8)); // furniture by the piece (09-19: 3 builders crafted ~60 furnaces EACH for a 12-furnace bank)
-        task(bot, 'build: getting ' + c.block); await A.obtain(bot, c.block, (bulk || c.solid) ? batch : feasibleN(bot, c.block, batch), { stop: api.stop }); for (const alt of matsOf(c)) { if (A.count(bot, c.block) || api.stop()) break; if (alt !== c.block && A.stockOf(alt) > 0) { task(bot, 'build: getting ' + alt); await A.obtain(bot, alt, (bulk || c.solid) ? batch : feasibleN(bot, alt, batch), { stop: api.stop }); if (A.count(bot, alt)) c = Object.assign({}, c, { block: alt }) } } task(bot, 'build ' + P.blueprint); if (!A.count(bot, c.block) && api.stop()) return 'build: interrupted while fetching ' + c.block; if (!A.count(bot, c.block)) { const miss = c.block; A.result(bot, { ev: 'build_blocked', job: job.id, why: 'no ' + miss + ' carried or in stock' }); // A MISSING MATERIAL NEVER STOPS THE CELLS WHOSE MATERIAL EXISTS (w1 bug + main 09-19: base_depot `no torch` / base_hall `no cobblestone` handed every builder back): its cells rest
+        task(bot, 'build: getting ' + c.block); await A.obtain(bot, c.block, (bulk || c.solid) ? batch : feasibleN(bot, c.block, batch), { stop: api.stop }); for (const alt of pickList(c)) { if (A.count(bot, c.block) || api.stop()) break; if (alt !== c.block && A.stockOf(alt) > 0) { task(bot, 'build: getting ' + alt); await A.obtain(bot, alt, (bulk || c.solid) ? batch : feasibleN(bot, alt, batch), { stop: api.stop }); if (A.count(bot, alt)) c = Object.assign({}, c, { block: alt }) } } task(bot, 'build ' + P.blueprint); if (!A.count(bot, c.block) && api.stop()) return 'build: interrupted while fetching ' + c.block; if (!A.count(bot, c.block)) { const miss = c.block; A.result(bot, { ev: 'build_blocked', job: job.id, why: 'no ' + miss + ' carried or in stock' }); // A MISSING MATERIAL NEVER STOPS THE CELLS WHOSE MATERIAL EXISTS (w1 bug + main 09-19: base_depot `no torch` / base_hall `no cobblestone` handed every builder back): its cells rest
           // 5 min and the pass goes on; only when NOTHING else is left does the builder step aside - the job stays active and says what it needs in its note (`needs: …`)
           const c0 = put[0]; const same = q => q.block === c0.block
           st.miss = st.miss || {}; st.miss[miss] = Date.now()
@@ -3328,7 +3342,10 @@ async function build (bot, job, api, ctx) {
       A.boardEdit(b => {
         const j = (b.jobs || []).find(q => q.id === job.id); if (!j || j.cap) return
         if (!(b.jobs || []).some(q => q.id === capId)) {
-          b.jobs.push({ id: capId, type: 'build', priority: 30, front: job.front || 'base', status: 'active', when: 'any', bots: Math.max(2, Math.min(8, Math.round(cols / 300))), site: [cx, o.y + 1, cz],
+          // ORDER OF CAPS = WHAT THE OWNER SEES FIRST (owner 12:1xZ): the filled ravine in the middle of the base before the yard before the outer tiles - the
+          // distance of the cap's centre from settings.base decides its priority (45 within 40 blocks, 38 within 90, else 30).
+          const bs = A.settings().base || {}; const dBase = Number.isFinite(bs.x) ? Math.hypot(cx - bs.x, cz - bs.z) : 999
+          b.jobs.push({ id: capId, type: 'build', priority: dBase <= 40 ? 45 : dBase <= 90 ? 38 : 30, front: job.front || 'base', status: 'active', when: 'any', bots: Math.max(2, Math.min(8, Math.round(cols / 300))), site: [cx, o.y + 1, cz],
             plan: 'the finished ' + P.blueprint + ' of ' + job.id + ' is bare stone: cap the grade layer y' + o.y + ' of x ' + x1 + '..' + (x1 + w - 1) + ' / z ' + z1 + '..' + (z1 + d - 1) + ' with DIRT (grass spreads by itself). Only where bare stone, gravel or air stands - never paving, a field, a crop or another blueprint of ours - and only out of the dirt SURPLUS over targets.dirt ' + tgt,
             params: { blueprint: 'level', origin: [cx, o.y, cz], args: { w, d, cap: true, fill: 'dirt' }, needStock: { dirt: tgt }, order: 'near' } })
         }
@@ -3580,8 +3597,10 @@ async function tidy (bot, job, api, ctx) {
   const hotTiles = new Set()
   if (fresh) for (const u of fresh.work || []) for (const c of u.cols || []) hotTiles.add((x1 + 16 * Math.floor((c[0] - x1) / 16)) + ',' + (z1 + 16 * Math.floor((c[1] - z1) / 16)))
   const tiles = []
-  for (let tx = x1; tx <= x2; tx += 16) for (let tz = z1; tz <= z2; tz += 16) { const k = job.id + ':' + tx + ',' + tz; if (Date.now() - (state[k] || 0) <= (fresh ? 3 : 30) * 60000) continue; tiles.push({ k, tx, tz, d: Math.hypot(tx + 8 - bot.entity.position.x, tz + 8 - bot.entity.position.z) - (hotTiles.has(tx + ',' + tz) ? 400 : 0) }) }
-  if (!tiles.length) { const r = await muster(bot, job, api, ctx, 'tidy: the audit lists no open work in reach and every tile was tidied in the last 30 min'); A.decline(bot, job, 600000, 'tidy: nothing open (audit + tiles)'); return r } // 10 min, not every slice (34 bots x a decline a minute)
+  for (let tx = x1; tx <= x2; tx += 16) for (let tz = z1; tz <= z2; tz += 16) { const k = job.id + ':' + tx + ',' + tz; if (Date.now() - (state[k] || 0) <= (fresh ? 5 : 30) * 60000) continue; tiles.push({ k, tx, tz, d: Math.hypot(tx + 8 - bot.entity.position.x, tz + 8 - bot.entity.position.z) - (hotTiles.has(tx + ',' + tz) ? 400 : 0) }) }
+  // ...and a bot that finds every tile freshly claimed while the CAMERA still holds work steps aside for 2 minutes, not for 10 (12:10Z, the first live round: 10 bots
+  // swept all 144 tiles of the box in two minutes, then 42 bots declined for 10 min and stood at muster - the exact ping-pong this change is meant to end).
+  if (!tiles.length) { const why = fresh ? 'tidy: every tile of the box is claimed by a mate right now (the audit list is fresh: back in 2 min)' : 'tidy: the audit list is stale and every tile was tidied in the last 30 min'; const r = await muster(bot, job, api, ctx, why); A.decline(bot, job, fresh ? 120000 : 600000, why); return r }
   tiles.sort((a, b) => a.d - b.d)
   const tile = tiles[0]; state[tile.k] = Date.now(); A.writeJSON(SF, state) // claim it
   task(bot, 'tidy ' + tile.tx + ',' + tile.tz)

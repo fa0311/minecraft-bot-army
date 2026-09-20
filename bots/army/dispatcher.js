@@ -448,9 +448,12 @@ function tick () {
   // THE SPONGE IS NOT A WAYPOINT (09-20 measurement after the first cut: churn fell 1203 -> ~850/h only, and the top flows were
   // `tidy_spawn -> fill_ravine_s x13` against `fill_ravine_m -> tidy_spawn x10` per 10 min: a bot handed back by a finished build tile walked to
   // the sponge at base and was recruited into a real squad on the NEXT tick = two walks and two handovers for one move). So a bot nobody wants
-  // is offered the OVERFLOW squad first and the sponge only when no squad has cells for it - the sponge still gets its own head-count from the
-  // priority loop above, and it stays the last stop before muster, because standby is forbidden (owner 09-19).
+  // is offered the OVERFLOW squad first and the sponge only when no squad has cells for it - and then only UP TO THE SPONGE'S OWN HEAD-COUNT
+  // (12:09: 26 bots were poured into tidy_spawn `bots: 10` and 11 walked straight back in three minutes; the REST rule cannot stop that, because
+  // the sponge's own 3 tile workers keep producing). A sponge sized for 10 tiles cannot employ 35 bots: the rest stand at muster, where the idle
+  // audit SEES them and the operator gets work on the board - that is honest, a round trip every 10 minutes is not.
   const fb = S.fallback && (board.jobs || []).find(j => j.id === S.fallback)
+  const fbHead = fb ? Math.max(1, headOf(fb)) : 0
   for (const n of enlisted) {
     // ...but never a DYING bot (foreman 09-19: hp1/food0 bots were sent down the 140-step shaft while 179 bread sat in the depot): under
     // hp 10 / food 7 (or under the fallback's own `requires`) the bot musters on the surface, where the canteen reflex feeds and heals it.
@@ -460,7 +463,7 @@ function tick () {
     if (!out[n] && fitWork) {
       const hold = over[n] === last[n] ? jobs.find(j => j.id === over[n]) : null
       const j = hold && overFit(hold, n) ? hold : pickOverflow(n)
-      if (j) { over[n] = j.id; join(n, j) } else if (fb && fitFb && !((fb.restUntil || 0) > Date.now()) && !declined(fb, n)) { out[n] = fb; (staffed[fb.id] = staffed[fb.id] || []).push(n) }
+      if (j) { over[n] = j.id; join(n, j) } else if (fb && fitFb && (staffed[fb.id] || []).length < fbHead && !((fb.restUntil || 0) > Date.now()) && !declined(fb, n)) { out[n] = fb; (staffed[fb.id] = staffed[fb.id] || []).push(n) }
     }
     const job = out[n] || muster
     if (over[n] && over[n] !== job.id) delete over[n]

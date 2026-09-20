@@ -579,7 +579,16 @@
    "stone_pickaxe": 16,
    "book": 48,
    "bookshelf": 15,
-   "sugar_cane": 512
+   "sugar_cane": 512,
+   "diamond_pickaxe": 12,
+   "diamond_sword": 12,
+   "diamond_shovel": 8,
+   "diamond_axe": 8,
+   "shield": 16,
+   "bucket": 8,
+   "shears": 4,
+   "bow": 8,
+   "arrow": 256
   },
   "base": {
    "x": -320,
@@ -753,14 +762,14 @@
    ],
    "axis": "x",
    "lit": 1789905050111,
-   "by": "Hotaru",
+   "by": "Koharu",
    "portal": [
-    -38,
-    98,
+    -37,
+    100,
     -76
    ],
-   "through": 1789905730362,
-   "scoutRev": 3,
+   "through": 1789906285310,
+   "scoutRev": 5,
    "hub": [
     -37,
     98,
@@ -1071,7 +1080,7 @@
      ]
     ]
    },
-   "rev": 48,
+   "rev": 49,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789904824738
   },
@@ -1751,7 +1760,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789905807597
+   "restUntil": 1789906656017
   },
   {
    "id": "fill_ring_field2",
@@ -1871,7 +1880,7 @@
    "id": "bake_bread",
    "type": "steps",
    "priority": 96,
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 2,
    "requires": {
@@ -2911,11 +2920,11 @@
   {
    "id": "base_infill_n252_n558",
    "type": "build",
-   "priority": 88,
+   "priority": 66,
    "front": "base",
    "status": "paused",
    "when": "any",
-   "bots": 4,
+   "bots": 6,
    "site": [
     -242,
     69,
@@ -2938,14 +2947,7 @@
      "clear": 14
     }
    },
-   "rev": 7,
-   "after": "void_fix_base_infill_n252_n558",
-   "voidFix": {
-    "n": 1,
-    "id": "void_fix_base_infill_n252_n558",
-    "cols": 16,
-    "t": 1789901723168
-   },
+   "rev": 8,
    "note": "auto-paused: build complete"
   },
   {
@@ -3079,14 +3081,8 @@
      "d": 31
     }
    },
-   "rev": 5,
-   "after": "void_fix_base_infill_n232_n400",
-   "voidFix": {
-    "n": 1,
-    "id": "void_fix_base_infill_n232_n400",
-    "cols": 6,
-    "t": 1789905222611
-   }
+   "rev": 6,
+   "note": "auto-paused: build complete"
   },
   {
    "id": "cane_lake",
@@ -3132,7 +3128,7 @@
    "desc": "starts by itself when base_cane (blueprint cane_block) is built. Pauses itself when cane_farm holds 260 plants. The depot also holds cane (626 at 05:30Z): cane_farm plants from stock first.",
    "rev": 2,
    "note": "09-20 12:0xZ review: paused - sugar_cane 2750 in the depot, the wild stands at -438/-470,-425/-410 are 100-180 blocks out in unticked chunks (cane_wild_empty x3, travel_fail). Re-activate only when the book/bookshelf targets have eaten the depot cane.",
-   "restUntil": 1789905926741
+   "restUntil": 1789907133739
   },
   {
    "id": "fill_ravine_s",
@@ -3141,7 +3137,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 12,
+   "bots": 17,
    "site": [
     -311,
     69,
@@ -3185,9 +3181,10 @@
     },
     "order": "near"
    },
-   "rev": 11,
+   "rev": 12,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check.",
-   "note": "top model 11:4xZ: 0.2 -> 25 cells/min/bot after the new pit ordering (own layer first, never a wall beside a bot) - 17 bots stood at muster, so the crew goes 10 -> 20. Watch build_tail/fill_flush"
+   "note": "top model 11:4xZ: 0.2 -> 25 cells/min/bot after the new pit ordering (own layer first, never a wall beside a bot) - 17 bots stood at muster, so the crew goes 10 -> 20. Watch build_tail/fill_flush",
+   "restUntil": 1789906650052
   },
   {
    "id": "fill_ravine_m",
@@ -3386,7 +3383,7 @@
     ]
    },
    "note": "top model 11:4xZ: re-activated after the above-grade sweep went in (fill_flush): the two leftover cells -328,68,-426 / -318,68,-420 were unreachable because one of the y69 filler lines stood ON them",
-   "restUntil": 1789906359429
+   "restUntil": 1789907575916
   },
   {
    "id": "base_field_7",
@@ -4573,9 +4570,9 @@
   {
    "id": "base_portal_go",
    "type": "portal",
-   "priority": 90,
+   "priority": 97,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 1,
    "shiftMin": 30,
@@ -4598,12 +4595,13 @@
     "buildJob": "base_portal",
     "go": true,
     "cobble": 64,
-    "crossS": 90
+    "crossS": 30,
+    "shell": false
    },
    "note": "auto-paused: the gate is lit",
-   "rev": 3,
+   "rev": 5,
    "names": [
-    "Hotaru"
+    "Koharu"
    ]
   },
   {
@@ -4747,14 +4745,15 @@
       "gravel"
      ]
     }
-   }
+   },
+   "restUntil": 1789906645060
   },
   {
    "id": "void_fix_base_infill_n232_n400",
    "type": "build",
    "priority": 70,
    "front": "works",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 2,
    "site": [
@@ -4793,7 +4792,8 @@
       "gravel"
      ]
     }
-   }
+   },
+   "note": "auto-paused: build complete"
   },
   {
    "id": "void_fix_base_infill_n247_n401",
@@ -4840,7 +4840,74 @@
      ]
     }
    },
-   "rev": 2
+   "rev": 2,
+   "restUntil": 1789906660079
+  },
+  {
+   "id": "base_road_12",
+   "type": "build",
+   "priority": 58,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 5,
+   "site": [
+    -305,
+    69,
+    -403
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone road 12 x -375..-235 / z -404..-402 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): 3-wide road east-west, paved at ground level",
+   "params": {
+    "blueprint": "road",
+    "origin": [
+     -375,
+     68,
+     -403
+    ],
+    "args": {
+     "toX": -235,
+     "toZ": -403,
+     "width": 3
+    }
+   },
+   "rev": 5,
+   "note": "needs: cobblestone, dirt (141 cells wait; every cell whose material exists is done or in work)"
+  },
+  {
+   "id": "base_road_9",
+   "type": "build",
+   "priority": 58,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 5,
+   "site": [
+    -284,
+    69,
+    -447
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone road 9 x -285..-283 / z -492..-402 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): 3-wide road north-south, paved at ground level",
+   "params": {
+    "blueprint": "road",
+    "origin": [
+     -284,
+     68,
+     -492
+    ],
+    "args": {
+     "toX": -284,
+     "toZ": -402,
+     "width": 3
+    }
+   },
+   "rev": 4,
+   "note": "needs: cobblestone (97 cells wait; every cell whose material exists is done or in work)"
   }
  ]
 }

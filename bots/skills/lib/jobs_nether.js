@@ -8,8 +8,10 @@
 //                    lighting can never drift from what stands in the world)   args:{axis}   blueprint:'nether_portal'
 //   buildJob:'<id>'  the build job that owns the frame — re-activated (= the repair) when a frame cell is missing
 //   go:true          ONE pinned bot (job.names length 1) crosses: 128 blocks of ANY stone + food + sword, walks in, waits for the
-//                    dimension change, looks, shells the far portal if the far side is unsafe, walks back. Bump `rev` to send
-//                    another expedition (settings.nether.scoutRev remembers which rev already went).
+//                    dimension change, looks, walks back. Bump `rev` to send another expedition (settings.nether.scoutRev
+//                    remembers which rev already went).
+//   shell:true       ALSO wall the far gate in (5x5x3 with a door gap) when `nether_look` calls the far side unsafe. OFF by default:
+//                    the first two scouts died building it on a ledge at y98 — send it only once `nether_look` shows solid footing.
 //   cobble:128 (blocks of stone to carry, any sort) · crossS:90 (seconds to stand in the portal, both ways)
 // EVENTS (all verified): portal_frame_incomplete · flint_knapped · portal_lit · portal_light_failed · portal_through ·
 //   nether_look · nether_shell · portal_back · portal_scout_died · portal_scout_missing
@@ -117,9 +119,24 @@ module.exports = ctx => {
   // The player delay is 80 ticks; the bot must STAY on the cell, so the goal is dropped and the position re-centred every 2 s.
   async function stepThrough (bot, api, cells, seconds, why) {
     const dim0 = dimOf(bot)
+    const inGate = p => { const b = bot.blockAt(p); return !!b && b.name === 'nether_portal' }
+    // A GATE ONLY TAKES SOMEBODY WHO WALKED INTO IT (measured 12:05-12:08Z: Koharu stood in the far gate at -38,98,-76 for 90 s and
+    // stayed in the Nether). Minecraft RESETS the portal cooldown on every tick an entity is STILL inside the portal, so the bot
+    // that the gate just spat out has to leave it and come back. One cell, to a cell verified standable — never a walkabout.
+    const stepOut = async () => {
+      if (!inGate(bot.entity.position.floored())) return true
+      const BLL = BL(); const me = bot.entity.position.floored()
+      const outs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]].map(d => me.offset(d[0], 0, d[1])).filter(q => !inGate(q) && BLL.standable(bot, q))
+      for (const q of outs) {
+        task(bot, 'portal: stepping out of the gate so it takes me again')
+        if (await A.travel(bot, q, { range: 0, ms: 15000, stop: api.stop, quiet: true, anyDepth: true })) { await sleep(2500); return true }
+      }
+      return false
+    }
     const target = cells.map(q => v(q)).sort((a, b) => a.distanceTo(bot.entity.position) - b.distanceTo(bot.entity.position))
     for (const c of target) {
       if (api.stop() || dimOf(bot) !== dim0) break
+      await stepOut()
       task(bot, 'portal: ' + why)
       if (!await A.travel(bot, c, { range: 0, ms: 45000, stop: api.stop, quiet: true, anyDepth: true })) continue
       try { bot.pathfinder.setGoal(null); bot.clearControlStates() } catch (e_) { swallow('jobs_nether:hold', e_) }
@@ -160,34 +177,27 @@ module.exports = ctx => {
     // the standable cells right beside the gate, reached from the gate itself; from each anchor only cells within arm's reach are
     // placed, the bot is walked back to its anchor the moment it has drifted, and a cell with no solid neighbour to place against
     // is left alone (that is what sends the placer looking for a support column six blocks down).
-    const BLL = BL()
-    const anchors = []
-    for (const p of body) for (const d of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const c = p.offset(d[0], 0, d[1]); if (BLL.standable(bot, c) && !anchors.some(q => q.equals(c))) anchors.push(c) }
-    if (!anchors.length) return { placed: 0, why: 'no standable cell beside the far gate — not stepping out over the void', gap: null, box: [cx - 2, cz - 2, cx + 2, cz + 2], y: y0 }
+    // NOBODY WALKS IN THE NETHER ON THE FIRST TRIP (measured twice, 11:59:14Z Chino y98 -> y26 after 46 blocks and 12:02:24Z Hotaru
+    // y98 -> y33 after 3: the far gate generated on a narrow ledge near the Nether roof, and BOTH deaths happened in a step that
+    // MOVED the builder — the placer's own `reposition`/`support` remedies, and the walk to the next stand). So the shell is built
+    // from exactly where the bot arrives, arm's length, no travel, no scaffold: a cell out of reach or without a solid neighbour to
+    // place against is left for a later expedition that knows the terrain. `placed` is read back from the world.
     const hasRef = c => [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].some(d => { const n = bot.blockAt(c.offset(d[0], d[1], d[2])); return !!n && n.boundingBox === 'block' })
     const todo = cells.filter(c => !keep.has(c.x + ',' + c.y + ',' + c.z))
-    const done = new Set(); let placed = 0; let lava = 0; const t0 = Date.now()
-    for (const a of anchors) {
-      if (api.stop() || placed >= budget || Date.now() - t0 > 240000) break
-      if (!await A.travel(bot, a, { range: 0, ms: 20000, stop: api.stop, quiet: true, anyDepth: true })) continue
-      for (const c of todo) {
-        if (api.stop() || placed >= budget || Date.now() - t0 > 240000) break
-        const k = c.x + ',' + c.y + ',' + c.z; if (done.has(k)) continue
-        const b = bot.blockAt(c); if (!b || b.name === 'obsidian' || b.name === 'nether_portal') { done.add(k); continue }
-        if (b.boundingBox === 'block') { done.add(k); continue }
-        if (bot.entity.position.offset(0, 1.62, 0).distanceTo(c.offset(0.5, 0.5, 0.5)) > 4.0 || !hasRef(c)) continue
-        const item = stoneItem(bot); if (!item) break
-        if (b.name === 'lava') lava++
-        task(bot, 'portal: walling the far gate in (' + placed + ')')
-        const r = await A.placeHard(bot, c, item, { stop: api.stop, noRest: true }).catch(e => ({ ok: false, reason: String(e && e.message) }))
-        const nb = bot.blockAt(c)
-        if ((r && r.ok) || (nb && nb.boundingBox === 'block')) { placed++; done.add(k) }
-        // back to the anchor at once if a remedy walked us off it — one step, never a search
-        const p = bot.entity.position.floored()
-        if (p.x !== a.x || p.z !== a.z || p.y !== a.y) { if (!await A.travel(bot, a, { range: 0, ms: 12000, stop: api.stop, quiet: true, anyDepth: true })) break }
-      }
+    let placed = 0; let lava = 0; let far = 0; const t0 = Date.now()
+    for (const c of todo) {
+      if (api.stop() || placed >= budget || Date.now() - t0 > 120000) break
+      const b = bot.blockAt(c); if (!b || b.name === 'obsidian' || b.name === 'nether_portal' || b.boundingBox === 'block') continue
+      if (bot.entity.position.offset(0, 1.62, 0).distanceTo(c.offset(0.5, 0.5, 0.5)) > 4.0) { far++; continue }
+      if (!hasRef(c)) { far++; continue }
+      const item = stoneItem(bot); if (!item) break
+      if (b.name === 'lava') lava++
+      task(bot, 'portal: walling the far gate in (' + placed + ')')
+      const r = await A.placeHard(bot, c, item, { stop: api.stop, noRest: true, place: { noMove: true } }).catch(e => ({ ok: false, reason: String(e && e.message) }))
+      const nb = bot.blockAt(c)
+      if ((r && r.ok) || (nb && nb.boundingBox === 'block')) placed++
     }
-    return { placed, lava, anchors: anchors.length, gap: gap ? [gap[0], y0, gap[1]] : null, box: [cx - 2, cz - 2, cx + 2, cz + 2], y: y0 }
+    return { placed, lava, outOfReach: far, gap: gap ? [gap[0], y0, gap[1]] : null, box: [cx - 2, cz - 2, cx + 2, cz + 2], y: y0 }
   }
 
   // ---------------------------------------------------------------- the far side (also the entry point when a new slice starts over there)
@@ -219,8 +229,10 @@ module.exports = ctx => {
       st.unsafe = lava > 0 || mobs.length > 0 || drop > 2 || drop < 0
       A.result(bot, { ev: 'nether_look', job: job.id, at: xyz(far.position), lava, mobs: mobs.slice(0, 8), drop, hp: bot.health, unsafe: st.unsafe })
     }
-    // SHELL: only when it is needed, only with what we carried in
-    if (st.unsafe && !st.shelled && stoneCarried(bot) >= 16) {
+    // SHELL: only when it is needed, only with what we carried in, and only when the operator asked for it (`params.shell:true`).
+    // STAGE 1 IS THE ROUND TRIP, NOT THE HUB (09-20 12:0xZ): two scouts died shelling a gate that generated on a ledge at y98, so
+    // walling the far side in is a job for an expedition that already knows the terrain from `nether_look` — see docs/NETHER.md.
+    if (P.shell === true && st.unsafe && !st.shelled && stoneCarried(bot) >= 16) {
       st.shelled = true
       const r = await shell(bot, job, api, body, Math.min(stoneCarried(bot), 160))
       A.result(bot, Object.assign({ ev: 'nether_shell', job: job.id }, r))
