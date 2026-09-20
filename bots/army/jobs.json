@@ -625,6 +625,16 @@
      -390
     ],
     "why": "foreman 09:52 MEASURED (armyctl ground): -286,-397 is y56-60 = 8-12 BELOW base level y68, floating blocks hang over it - the SE lip of the ravine, 3 blocks outside the ravine keep-out. The yard lattice claimed it and the audit flagged it twice as the worst off-level cluster (x19, -17). No yard/road here until the ravine fill reaches it"
+   },
+   {
+    "id": "pond_sw",
+    "box": [
+     -398,
+     -374,
+     -392,
+     -366
+    ],
+    "why": "natural river inlet at the SW base edge: water y62 under a 1-block cliff from y69 (look Ichika 16; base-audit -395,-370 -9 x7) - a fall trap, not a hole to fill: lattice, roads and the sponge go around it"
    }
   ],
   "furnaces": [
@@ -783,7 +793,9 @@
    ],
    "shellY": 98,
    "returnJob": "nether_return",
-   "deaths": 2
+   "deaths": 0,
+   "deathsResetAt": 1789907290056,
+   "deathsResetWhy": "stage 1b: ONE trip with the travel-free landing (top model 12:3xZ)"
   }
  },
  "enlisted": [
@@ -1079,10 +1091,16 @@
       -407,
       -277,
       -387
+     ],
+     [
+      -401,
+      -377,
+      -389,
+      -363
      ]
     ]
    },
-   "rev": 49,
+   "rev": 50,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789904824738
   },
@@ -1762,7 +1780,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789906847839
+   "restUntil": 1789907391421
   },
   {
    "id": "fill_ring_field2",
@@ -2926,7 +2944,7 @@
    "front": "base",
    "status": "paused",
    "when": "any",
-   "bots": 6,
+   "bots": 8,
    "site": [
     -242,
     69,
@@ -2949,7 +2967,7 @@
      "clear": 14
     }
    },
-   "rev": 8,
+   "rev": 9,
    "note": "auto-paused: build complete"
   },
   {
@@ -3061,7 +3079,7 @@
    "front": "base",
    "status": "paused",
    "when": "any",
-   "bots": 2,
+   "bots": 3,
    "site": [
     -232,
     69,
@@ -3080,10 +3098,11 @@
     ],
     "args": {
      "w": 1,
-     "d": 31
+     "d": 31,
+     "depth": 8
     }
    },
-   "rev": 6,
+   "rev": 7,
    "note": "auto-paused: build complete"
   },
   {
@@ -3091,7 +3110,7 @@
    "type": "cane",
    "priority": 83,
    "front": "cane",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 2,
    "site": [
@@ -3129,7 +3148,7 @@
    },
    "desc": "starts by itself when base_cane (blueprint cane_block) is built. Pauses itself when cane_farm holds 260 plants. The depot also holds cane (626 at 05:30Z): cane_farm plants from stock first.",
    "rev": 2,
-   "note": "09-20 12:0xZ review: paused - sugar_cane 2750 in the depot, the wild stands at -438/-470,-425/-410 are 100-180 blocks out in unticked chunks (cane_wild_empty x3, travel_fail). Re-activate only when the book/bookshelf targets have eaten the depot cane.",
+   "note": "auto-paused: cane_farm holds 268 plants (re-activate for more wild cane)",
    "restUntil": 1789907133739
   },
   {
@@ -3139,7 +3158,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 17,
+   "bots": 9,
    "site": [
     -311,
     69,
@@ -3177,15 +3196,16 @@
       "andesite",
       "diorite",
       "granite",
+      "sandstone",
       "dirt",
       "gravel"
      ]
     },
     "order": "near"
    },
-   "rev": 12,
+   "rev": 13,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check.",
-   "note": "top model 11:4xZ: 0.2 -> 25 cells/min/bot after the new pit ordering (own layer first, never a wall beside a bot) - 17 bots stood at muster, so the crew goes 10 -> 20. Watch build_tail/fill_flush",
+   "note": "foreman 12:2xZ: 25 bots held, declined x60 build: no filler and build_pass waiting 4730 of 5675 - a strict bottom-up fill has a small frontier, so the crew goes 17->9; sandstone added to mats because the depot holds 3116 sandstone and 0 granite/dirt/gravel",
    "restUntil": 1789906650052
   },
   {
@@ -4198,7 +4218,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 2,
    "site": [
     -355,
     69,
@@ -4220,9 +4240,9 @@
      "d": 15
     }
    },
-   "note": "needs: dirt (14 cells wait; every cell whose material exists is done or in work)",
-   "rev": 8,
-   "restUntil": 1789905738870
+   "note": "foreman 12:2xZ: STALLED 37 min at left 14 (GEMBA), 264 build_passes with done 0 and build_blocked no dirt carried or in stock - the depot holds 0 dirt while 415 sits in bots pockets; crew 4->2 so it stops holding bots, the re-opened base_infill_n252_n558 cut is the dirt supply",
+   "rev": 9,
+   "restUntil": 1789907532824
   },
   {
    "id": "base_portal",
@@ -4574,7 +4594,7 @@
    "type": "portal",
    "priority": 97,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "day",
    "bots": 1,
    "shiftMin": 30,
@@ -4596,14 +4616,16 @@
     },
     "buildJob": "base_portal",
     "go": true,
-    "cobble": 64,
-    "crossS": 30,
-    "shell": false
+    "cobble": 208,
+    "crossS": 45,
+    "shell": false,
+    "landing": true,
+    "maxDeaths": 1
    },
-   "note": "auto-paused: the gate is lit",
-   "rev": 5,
+   "note": "STAGE 1b, ONE TRIP: settings.nether.deaths was deliberately reset 0 (was 2) for this crossing only, and maxDeaths is 1 - the first death re-pauses this job. The scout stands still on arrival, seals the lava faces in reach, floors and walls a 5x5 landing at -37,100,-76 with 208 blocks of any stone, lights it, and comes home. No walking before the landing reads safe.",
+   "rev": 6,
    "names": [
-    "Koharu"
+    "Kanade"
    ]
   },
   {
@@ -4705,7 +4727,7 @@
    "type": "build",
    "priority": 55,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 2,
    "site": [
@@ -4753,9 +4775,11 @@
     "key": "rev0",
     "bots": [
      "Himari",
-     "Chika"
+     "Chika",
+     "Ichika"
     ]
-   }
+   },
+   "note": "auto-paused: 8 cells nobody could do: -396,65,-370 | -396,65,-371"
   },
   {
    "id": "void_fix_base_infill_n232_n400",
@@ -4850,7 +4874,7 @@
     }
    },
    "rev": 2,
-   "restUntil": 1789906660079
+   "restUntil": 1789907497756
   },
   {
    "id": "base_road_12",
@@ -4924,7 +4948,7 @@
     }
    },
    "rev": 4,
-   "note": "needs: cobblestone (97 cells wait; every cell whose material exists is done or in work)"
+   "note": "needs: dirt (2 cells wait; every cell whose material exists is done or in work)"
   },
   {
    "id": "nether_return",
@@ -4941,7 +4965,8 @@
     "return": true,
     "crossS": 45
    },
-   "rev": 1
+   "rev": 1,
+   "restUntil": 1789907800362
   }
  ]
 }

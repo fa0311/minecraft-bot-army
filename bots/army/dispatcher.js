@@ -126,7 +126,14 @@ function churnStat () {
     churnFlows: Object.entries(flow).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, n]) => k + ' x' + n)
   }
 }
+// DIMENSIONS (BUGS 12:1xZ, the Nether opened 12:0xZ: Koharu stood in the Nether at -37,98,-76 and was handed the OVERWORLD `tidy` sponge - she ran
+// it on overworld coordinates under the Nether roof and boxed herself in). A job belongs to the overworld unless it carries `dim:"the_nether"` /
+// `"the_end"`; a bot may only be given a job of the dimension it is standing in. The one handler that legitimately crosses is `portal` - it is what
+// takes a bot through the gate - so it is exempt in both directions.
+const DIMOF = d => { const s = String(d || 'overworld').replace(/^minecraft:/, ''); return /overworld/.test(s) ? 'overworld' : s }
+const jobDim = j => DIMOF(j && j.dim)
 function eligible (job, hb, phase, sticky) {
+  if (job.type !== 'portal' && jobDim(job) !== DIMOF(hb.dim)) return false
   if (job.restUntil && job.restUntil > Date.now()) return false // the JOB rests (its handler found nothing to do for anybody: herd with no animal in reach / breeding cooldown) - nobody is sent until then // sticky = the bot already holds this job: HYSTERESIS on hp/food so a bot at the threshold does not flap between two jobs every 5 s (Mio, 09-19)
   if (job.when && job.when !== 'any' && job.when !== phase && !(job.when === 'day' && NIGHT_SKIP)) return false // nightSkip: day jobs run around the clock
   const r = job.requires || {}
@@ -150,6 +157,7 @@ const over = {} // bot -> job id it OVERFLOWED into (see OVERFLOW below): a stan
 const declSeen = {} // "job|bot|until" -> ms we first saw that decline note (a note is unique per bot+job+expiry) = the REST rule's 10-min window
 const restedAt = {} // job id -> {t, why, ms} of the last rest the dispatcher ordered (the same reason again doubles the rest)
 const frontCut = {} // job id -> ms: last time we said out loud that maxFronts left this job unstaffed
+const dimHold = {} // bot -> ms: last time we said we are holding a bot that stands in another dimension
 const since = {} // bot -> ms when it got its current job (shifts). Survives a dispatcher restart through assign/<bot>.json
 if (!DRY) for (const f of fs.readdirSync(P.assign)) { const a = f.endsWith('.json') && readJSON(path.join(P.assign, f), null); if (a && a.bot && a.job && a.job.id && Date.now() - a.t < 120000) { last[a.bot] = a.job.id; since[a.bot] = a.since || a.t } }
 
@@ -460,6 +468,16 @@ function tick () {
     const h = hbs[n]; const rq = (fb && fb.requires) || {}
     const fitWork = !!h && (h.hp == null || h.hp >= 10) && (h.food == null || h.food >= 7)
     const fitFb = !!h && (h.hp == null || h.hp >= Math.max(10, rq.minHp || 0)) && (h.food == null || h.food >= Math.max(7, rq.minFood || 0))
+    // ABROAD: muster, the sponge and the overflow are all overworld places - a bot that stands in the Nether or the End is sent home by
+    // settings.nether.returnJob (an active `portal` job with params.return) or simply KEPT on what it has. Never anything else (see DIMENSIONS).
+    if (!out[n] && h && DIMOF(h.dim) !== 'overworld') {
+      const rj = S.nether && S.nether.returnJob && jobs.find(j => j.id === S.nether.returnJob && j.status === 'active')
+      if (rj) out[n] = rj
+      else {
+        if (Date.now() - (dimHold[n] || 0) > 600000) { dimHold[n] = Date.now(); log('DIM HOLD', n, 'stands in', DIMOF(h.dim), 'at', (h.pos || []).join(','), '- no job of that dimension wants it and settings.nether.returnJob is not active: it keeps', last[n] || '-') }
+        continue
+      }
+    }
     if (!out[n] && fitWork) {
       const hold = over[n] === last[n] ? jobs.find(j => j.id === over[n]) : null
       const j = hold && overFit(hold, n) ? hold : pickOverflow(n)

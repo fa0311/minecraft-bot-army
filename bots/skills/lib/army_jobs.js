@@ -40,6 +40,12 @@ const SAPLING_RE = /_sapling$|^mangrove_propagule$/
 // BELOW THE SURFACE = 3 under the surface floor of A.travel's SURFACE RULE (sea level - 5; the same in every overworld - never a base height)
 // RATIONS a bot keeps when it banks: 8 of every COOKED food it carries (world 1 listed bread + cooked fish; a base that lives on its herds banked its steaks)
 function rationsOf (bot) { const k = {}; for (const i of bot.inventory.items()) if (bot.registry.foodsByName[i.name] && !RAW_FOOD.includes(i.name) && !/^(rotten_flesh|spider_eye|pufferfish|poisonous_potato|potato|carrot|beetroot|wheat|sweet_berries|glow_berries)$/.test(i.name)) k[i.name] = 8; return k }
+// DIMENSION (09-20 12:1xZ, docs/BUGS.md: a scout who was in the NETHER was handed the `tidy` sponge and dug herself in under the Nether
+// roof at y123 — with overworld coordinates). Everything base-bound in this file — the muster slot, the canteen, banking, the bed, the
+// mine stairs — is a set of OVERWORLD coordinates and means nothing anywhere else. A bot that is not in the overworld skips all of it
+// and stands still; the dispatcher's dimension rule (`settings.nether.returnJob`, job type `portal`) is what brings it home.
+const overworld = bot => !bot.game || /overworld/.test(String(bot.game.dimension))
+// `underground` is dimension-safe by construction: A.surfaceFloor() is null outside the overworld, so nothing there counts as below the surface.
 function underground (bot, y) { const f = A.surfaceFloor(bot); return f != null && (y == null ? bot.entity.position.y : y) < f - 3 }
 
 // ------------------------------------------------------------------ canteen: a hungry bot near base eats from the FOOD chest
@@ -117,6 +123,14 @@ function musterSlot (bot) {
   return new Vec3(m.x + (i % cols) * step, m.y, m.z + Math.floor(i / cols) * step)
 }
 async function muster (bot, job, api, ctx, why) {
+  // NOT IN THE OVERWORLD (see `overworld` above): the muster slot and the canteen are overworld coordinates. Stand still — walking
+  // towards a base that is in another world is how a bot ends up entombed under the Nether roof.
+  if (!overworld(bot)) {
+    if (why && job && job.id && job.id !== 'muster') A.decline(bot, job, 240000, why)
+    task(bot, 'waiting in ' + String((bot.game && bot.game.dimension) || '?') + ' for the way home')
+    for (let i = 0; i < 20 && !api.stop(); i++) await sleep(1000)
+    return 'not in the overworld: standing still until a job of this dimension (settings.nether.returnJob) takes me home'
+  }
   const slot = musterSlot(bot)
   // parked by a real job? hand the bot back to the dispatcher (night reasons: until roughly dawn is re-checked every 3 min anyway)
   if (why && job && job.id && job.id !== 'muster' && job.type !== 'scan') { A.decline(bot, job, /hurt|not fit/.test(why) ? 120000 : 240000, why); if (!bot.__armyDeclSaid || bot.__armyDeclSaid !== job.id + why) { bot.__armyDeclSaid = job.id + why; A.result(bot, { ev: 'declined', job: job.id, why: String(why).slice(0, 80) }) } }
@@ -3753,8 +3767,9 @@ function withHandover (name, fn) {
   if (['muster', 'scan'].includes(name)) return fn
   return async (bot, job, api, ctx) => {
     // BEDTIME (see bedDue): first thing of a slice when due; the running slice is ended through api.stop so a 15-min slice cannot sit through the ~60 s window before dusk
-    try { const stop0 = api.stop; if (await bedtime(bot, job, stop0)) task(bot, job.id + ': back from bed'); api.stop = () => stop0() || !!bedDue(bot, job) } catch (e_) { swallow('army_jobs:bedtime', e_) }
-    try { await canteen(bot, api) } catch (e_) { swallow('army_jobs:1189', e_) } // standby is gone, so the canteen visit happens at every slice start (self-limited: hungry/hurt, near base, 90 s)
+    const ow = overworld(bot) // off the overworld NOTHING base-bound below runs: bed, canteen, banking, respawn point, mine stairs are overworld coordinates
+    if (ow) try { const stop0 = api.stop; if (await bedtime(bot, job, stop0)) task(bot, job.id + ': back from bed'); api.stop = () => stop0() || !!bedDue(bot, job) } catch (e_) { swallow('army_jobs:bedtime', e_) }
+    if (ow) try { await canteen(bot, api) } catch (e_) { swallow('army_jobs:1189', e_) } // standby is gone, so the canteen visit happens at every slice start (self-limited: hungry/hurt, near base, 90 s)
     // POCKETS: things picked up along the way (drops, other bots' loot, dug blocks) go to the warehouse, not around the world in a pocket.
     // Any job, at every slice start: fewer than 9 free slots and the depot within 150 blocks (surface) -> bank, keeping the working kit.
     try {
@@ -3763,7 +3778,7 @@ function withHandover (name, fn) {
       // working kit is banked too — whatever happens to the bot then costs tools, not a shift of material.
       const kitOf = n => (n === 'cobblestone' ? stoneKeep(/build|deck|tidy|light/.test(job.type) ? 128 : 0) : n === 'dirt' ? (job.type === 'build' ? 320 : job.type === 'tidy' ? 64 : 0) : 0) // build: the cut feeds the fill (5 stacks of dirt stay)
       const bulk = bot.inventory.items().filter(i => /^(cobblestone|cobbled_deepslate|dirt|gravel|sand|clay_ball|stone|andesite|diorite|granite|tuff|.*_planks|.*_log)$/.test(i.name)).reduce((n, i) => n + Math.max(0, i.count - kitOf(i.name)), 0)
-      if (home && job.type !== 'delegate' && (U.freeSlots(bot) < 9 || bulk > 96 || (A.count(bot, 'torch') > 32 && !/^(build|light|ores|deck)$/.test(job.type))) && A.dist2(bot, home.x, home.z) < 150 && !underground(bot) && Date.now() - (bot.__armyPocketT || 0) > 120000) {
+      if (ow && home && job.type !== 'delegate' && (U.freeSlots(bot) < 9 || bulk > 96 || (A.count(bot, 'torch') > 32 && !/^(build|light|ores|deck)$/.test(job.type))) && A.dist2(bot, home.x, home.z) < 150 && !underground(bot) && Date.now() - (bot.__armyPocketT || 0) > 120000) {
         bot.__armyPocketT = Date.now()
         task(bot, 'tidying pockets')
         const keep = { torch: 16, ...rationsOf(bot), sweet_berries: job.type === 'berries' ? 4 : 0, wheat_seeds: job.type === 'farm' ? 64 : 0, cobblestone: stoneKeep(/build|deck|tidy|light/.test(job.type) ? 64 : 0), dirt: job.type === 'build' ? 320 : job.type === 'tidy' ? 64 : 0, bucket: 3, water_bucket: 3, fishing_rod: 1, shears: 1, coal: 8, stick: 8 }
@@ -3789,7 +3804,7 @@ function withHandover (name, fn) {
       if (job.type !== 'delegate') task(bot, job.id + ': starting') // never keep the previous job's task label (a stale 'iron:wait-stairs' looked like a hang)
       const home = A.chestsOf('food')[0]
       const carrying = bot.inventory.items().filter(i => OUTPUT_RE.test(i.name)).reduce((n, i) => n + i.count, 0)
-      if (prev && home && carrying >= 6 && A.dist2(bot, home.x, home.z) < 120 && !underground(bot) && job.type !== 'delegate') {
+      if (ow && prev && home && carrying >= 6 && A.dist2(bot, home.x, home.z) < 120 && !underground(bot) && job.type !== 'delegate') {
         task(bot, 'handover: banking ' + carrying + ' items first')
         const keep = { torch: 16, coal: 4, fishing_rod: 1, shears: 1, bucket: 3, water_bucket: 3, ...rationsOf(bot) }; if (job.type === 'farm') keep.wheat_seeds = 64; if (job.type === 'berries') keep.sweet_berries = 4; if (job.type === 'herd') for (const n of HERD_LURE[(job.params || {}).kind] || []) keep[n] = 32; if (job.type === 'sleeper') for (const i of bot.inventory.items()) if (/_bed$/.test(i.name)) keep[i.name] = 1
         await A.bank(bot, keep, { job: prev, stop: api.stop })
@@ -3802,7 +3817,7 @@ function withHandover (name, fn) {
     try {
       const S = A.settings()
       const beds = (Array.isArray(S.respawnBeds) ? S.respawnBeds : [S.respawnBed]).filter(q => Array.isArray(q) && q.length === 3 && q.every(Number.isFinite))
-      if (beds.length && job.type !== 'delegate' && !underground(bot)) {
+      if (ow && beds.length && job.type !== 'delegate' && !underground(bot)) {
         const me = bot.entity.position; const ref = Array.isArray(job.site) && Number.isFinite(job.site[0]) && Number.isFinite(job.site[2]) ? { x: job.site[0], z: job.site[2] } : { x: me.x, z: me.z }
         const dRef = q => Math.hypot(q[0] - ref.x, q[2] - ref.z)
         let rb = beds.slice().sort((p1, p2) => dRef(p1) - dRef(p2))[0]
@@ -3830,7 +3845,7 @@ function withHandover (name, fn) {
       }
     } catch (e_) { swallow('army_jobs:respawnPoint', e_) }
     // a SURFACE job for a bot that stands deep in the mine: up the stairs first, then the job's own travel starts from daylight
-    try { const sy = Array.isArray(job.site) ? job.site[1] : null; if (job.type !== 'delegate' && underground(bot, bot.entity.position.y + 5) && (sy == null || sy >= (A.surfaceFloor(bot) || 58))) await upTheStairs(bot, job.id) } catch (e_) { swallow('army_jobs:surfaceFirst', e_) }
+    try { const sy = Array.isArray(job.site) ? job.site[1] : null; if (ow && job.type !== 'delegate' && underground(bot, bot.entity.position.y + 5) && (sy == null || sy >= (A.surfaceFloor(bot) || 58))) await upTheStairs(bot, job.id) } catch (e_) { swallow('army_jobs:surfaceFirst', e_) }
     return fn(bot, job, api, ctx)
   }
 }

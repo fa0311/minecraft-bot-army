@@ -177,6 +177,22 @@ function boardEdit (fn) {
   try { const b = readJSON(F.board, null); if (!b) return false; fn(b); const tmp = F.board + '.tmp_w' + process.pid; fs.writeFileSync(tmp, JSON.stringify(b, null, 1)); fs.renameSync(tmp, F.board); return true } catch (e_) { swallow('army:boardEdit', e_); return false } finally { try { fs.rmdirSync(lock) } catch {} }
 }
 
+// ---- WHICH WORLD AM I IN (nether engineer 09-20 12:1xZ: Koharu was given the overworld `tidy` sponge while she stood in the far gate at -37,98,-76 and dug herself
+// in under the Nether roof with OVERWORLD coordinates). Everything below that names a coordinate, a chest or the base is OVERWORLD-ONLY; the refusals say so once
+// per bot per 10 min (`off_world {what}`) instead of pathing 300 blocks towards a depot that does not exist here.
+function dimOf (bot) {
+  const d = String((bot && bot.game && bot.game.dimension) || 'overworld').replace(/^minecraft:/, '')
+  return d === 'nether' ? 'the_nether' : d === 'end' ? 'the_end' : d
+}
+const overworldBot = bot => dimOf(bot) === 'overworld'
+function offWorld (bot, what) { // -> false, and ONE report per bot per kind per 10 min
+  try {
+    const s = bot.__armyOffWorld = bot.__armyOffWorld || {}
+    if (Date.now() - (s[what] || 0) > 600000) { s[what] = Date.now(); result(bot, { ev: 'off_world', what, dim: dimOf(bot), at: bot.entity ? [Math.round(bot.entity.position.x), Math.round(bot.entity.position.y), Math.round(bot.entity.position.z)] : null }) }
+  } catch (e_) { swallow('army:offWorld', e_) }
+  return false
+}
+
 // ------------------------------------------------------------------ inventory
 function inv (bot) { const m = {}; for (const i of bot.inventory.items()) m[i.name] = (m[i.name] || 0) + i.count; return m }
 function count (bot, name) { return inv(bot)[name] || 0 }
@@ -397,7 +413,8 @@ async function kitUp (bot, opts = {}) {
   if (bot.__armyKitBusy || !bot.entity) return []
   bot.__armyKitBusy = true; const took = []
   try {
-    await wear(bot)
+    await wear(bot) // WEARING what the bot carries works in every world; FETCHING does not (the tools chest is an overworld coordinate)
+    if (!overworldBot(bot)) { offWorld(bot, 'kit'); return took }
     if (opts.fetch === false || Date.now() - (bot.__armyKitT || 0) < (opts.force ? 0 : 300000)) return took
     bot.__armyKitT = Date.now()
     const wants = kitPlan(carried(bot), stockMap(), liveBots().filter(h => h.bot !== bot.username).map(h => h.inv || {}), !!opts.risk)
@@ -518,7 +535,7 @@ function assignment (bot) {
 const SEA_LEVEL = 63
 const SURFACE_DEPTH = 5
 const DROP = { surface: 2, normal: 3, homeward: 4 }
-function surfaceFloor (bot) { return !bot.game || /overworld/.test(String(bot.game.dimension)) ? SEA_LEVEL - SURFACE_DEPTH : null }
+function surfaceFloor (bot) { return overworldBot(bot) ? SEA_LEVEL - SURFACE_DEPTH : null } // no sea level in the Nether/End: the surface rule is overworld-only
 function musterPos () { const m = settings().muster; return !m ? null : Array.isArray(m) ? { x: m[0], y: m[1], z: m[2] } : m } // CONTRACT form [x,y,z]; the old {x,y,z,cols} still reads
 let _larder = { t: 0, ok: true }
 function larderFull () { if (Date.now() - _larder.t > 120000) { _larder.t = Date.now(); try { _larder.ok = require('../../army/stock.js').have('food') >= 256 } catch (e_) { _larder.ok = true } } return _larder.ok } // stock.js reads 50 heartbeat files: once per 2 min, not per trip
@@ -591,9 +608,12 @@ function ours () {
     if (TERRAIN_BP.test(String(j.params.blueprint))) continue
     try {
       let x1 = Infinity; let z1 = Infinity; let x2 = -Infinity; let z2 = -Infinity; let y1 = Infinity; let y2 = -Infinity
+      // A CELL IS A CELL OF A WORLD (nether engineer 09-20: an overworld blueprint cell matched the same x,y,z in the Nether). The board is overworld unless a job
+      // carries `dim`, and an OVERWORLD key stays exactly `x,y,z` — other files read this map with plain coordinates (army_jobs tidy/audit).
+      const jd = dimKey(j.dim)
       for (const c of blueprintCellsOf(j.params)) {
         if (c.block === 'air' || c.fillOnly || c.solid) continue
-        cells.set(c.x + ',' + c.y + ',' + c.z, { job: j.id, block: c.block, mats: c.mats || null })
+        cells.set(jd + c.x + ',' + c.y + ',' + c.z, { job: j.id, block: c.block, mats: c.mats || null })
         if (c.x < x1) x1 = c.x; if (c.x > x2) x2 = c.x; if (c.z < z1) z1 = c.z; if (c.z > z2) z2 = c.z; if (c.y < y1) y1 = c.y; if (c.y > y2) y2 = c.y
       }
       if (x1 !== Infinity) boxes.push({ job: j.id, blueprint: j.params.blueprint, x1, z1, x2, z2, y1, y2 })
@@ -604,16 +624,18 @@ function ours () {
   return _ours
 }
 // a column of a BUILT ZONE: inside a level pad of ours or inside the footprint (+1) of a structure -> its ground level (pad y / structure base), else null
-function zoneAt (x, z) { const o = ours(); for (const p of o.pads) if (x >= p.x1 && x <= p.x2 && z >= p.z1 && z <= p.z2) return p.y; for (const b of o.boxes) { const m = /^road/.test(b.blueprint) ? 0 : 1; if (x >= b.x1 - m && x <= b.x2 + m && z >= b.z1 - m && z <= b.z2 + m) return /^(road|road_path|field_block|tree_farm|core)$/.test(b.blueprint) ? b.y1 : b.y1 - 1 } return null }
-// the block standing at pos IS what a blueprint of ours put there (name or an accepted substitute)
-function ourBlock (pos, name) { const c = ours().cells.get(Math.floor(pos.x) + ',' + Math.floor(pos.y) + ',' + Math.floor(pos.z)); return c && (c.block === name || (c.mats && c.mats.includes(name))) ? c : null }
+function zoneAt (x, z, who) { if (dimKey(who)) return null; const o = ours(); for (const p of o.pads) if (x >= p.x1 && x <= p.x2 && z >= p.z1 && z <= p.z2) return p.y; for (const b of o.boxes) { const m = /^road/.test(b.blueprint) ? 0 : 1; if (x >= b.x1 - m && x <= b.x2 + m && z >= b.z1 - m && z <= b.z2 + m) return /^(road|road_path|field_block|tree_farm|core)$/.test(b.blueprint) ? b.y1 : b.y1 - 1 } return null }
+// the block standing at pos IS what a blueprint of ours put there (name or an accepted substitute). `who` = the bot that asks (or a dimension name);
+// without it the question is about the OVERWORLD, where every blueprint of ours stands today.
+function dimKey (d) { const s = !d ? 'overworld' : (typeof d === 'object' ? dimOf(d) : String(d)); return s === 'overworld' ? '' : s + ':' }
+function ourBlock (pos, name, who) { const c = ours().cells.get(dimKey(who) + Math.floor(pos.x) + ',' + Math.floor(pos.y) + ',' + Math.floor(pos.z)); return c && (c.block === name || (c.mats && c.mats.includes(name))) ? c : null }
 // strictly INSIDE a pen's fence ring, from the floor's top (the fence level) up: nothing is ever placed or left there
-function penAt (x, y, z) { for (const p of ours().pens) if (x > p.x1 && x < p.x2 && z > p.z1 && z < p.z2 && y >= p.y && y <= p.y + 4) return p; return null }
+function penAt (x, y, z, who) { if (dimKey(who)) return null; for (const p of ours().pens) if (x > p.x1 && x < p.x2 && z > p.z1 && z < p.z2 && y >= p.y && y <= p.y + 4) return p; return null } // pens are overworld
 // the bot stands inside something we built: in a pen, or the first solid block over its head is a cell of ours (dorm roof, hall) - never a cave
 function insideOurs (bot) {
   const p = bot.entity.position.floored()
-  const pen = penAt(p.x, p.y, p.z); if (pen) return pen.job
-  for (let dy = 2; dy <= 12; dy++) { const b = bot.blockAt(p.offset(0, dy, 0)); if (!b) return null; if (b.boundingBox === 'block' && !/leaves/.test(b.name)) { const c = ourBlock(b.position, b.name); return c ? c.job : null } }
+  const pen = penAt(p.x, p.y, p.z, bot); if (pen) return pen.job
+  for (let dy = 2; dy <= 12; dy++) { const b = bot.blockAt(p.offset(0, dy, 0)); if (!b) return null; if (b.boundingBox === 'block' && !/leaves/.test(b.name)) { const c = ourBlock(b.position, b.name, bot); return c ? c.job : null } }
   return null
 }
 // roofed in (old tunnels/pits)? walking can never help: dig a 1x2 STAIRCASE up (stairUp), log the hole for cleanup
@@ -824,7 +846,10 @@ async function pitExit (bot, own) {
 async function digOut (bot, pit) {
   const from = bot.entity.position.floored()
   // SHUT IN A BUILDING OF OURS IS NOT BOXED IN (dorm, hall, pen): the way out is the gate, which the pathfinder opens. No edit, one report per 10 min.
-  const own = insideOurs(bot); const zy = zoneAt(from.x, from.z)
+  const own = insideOurs(bot); const zy = zoneAt(from.x, from.z, bot)
+  // NO "UP TO THE SURFACE" WHERE THERE IS NONE: in the Nether the roof is bedrock, so skyAbove() is false everywhere and the roofed-in escape would
+  // dig a bot up to y127 (measured 09-20 12:1xZ, Koharu). Off the overworld only the pit/shaft escapes run.
+  const roofEscape = overworldBot(bot); if (!roofEscape) offWorld(bot, 'dig_out_roof')
   if ((own || (zy != null && from.y <= zy - 1)) && await pitExit(bot, own || 'zone')) { strictMovements(bot); return }
   if (own) { if (Date.now() - (bot.__armyShutInT || 0) > 600000) { bot.__armyShutInT = Date.now(); result(bot, { ev: 'shut_in', at: [from.x, from.y, from.z], inside: own, area: walkableArea(bot) }) } strictMovements(bot); return }
   const life = bot.__armyDeaths || 0; const gone = () => (bot.__armyDeaths || 0) !== life || !!bot.__armyDied || !bot.entity || bot.health <= 0
@@ -841,7 +866,7 @@ async function digOut (bot, pit) {
   }
   // ROOFED IN (cave, tunnel) with filler blocks in the pockets: the classic player escape — dig the two blocks overhead, jump, place under the
   // feet, repeat until the sky is open. The shaft is filled by the pillar itself, so nothing is left open behind (hand-dug stone: ~15 s per level).
-  if (!pit && !skyAbove(bot)) {
+  if (!pit && roofEscape && !skyAbove(bot)) {
     const BL = require('./blocks'); let up = 0
     const fillers = () => FILLERS.reduce((n, f) => n + count(bot, f), 0)
     const falling = () => { const p0 = bot.entity.position.floored(); for (let dy = 2; dy <= 4; dy++) { const b = bot.blockAt(p0.offset(0, dy, 0)); if (b && /^(gravel|sand|red_sand|.*concrete_powder|water|lava)$/.test(b.name)) return b.name } return null }
@@ -856,7 +881,7 @@ async function digOut (bot, pit) {
     // A DEEP PIT UNDER THE SKY (10:3xZ Chika: a closed pond 16 below the forest floor - ONE flight of +4 ended at y53, `dug_out` from == to, `no_route` again for ever):
     // flight after flight until the bot can walk again, at most 8 flights (32 levels); a flight that gains no height ends it.
     if (pit) for (let i = 0; i < 8 && !gone() && !U.cancelled(bot) && (i === 0 || walkableArea(bot) < 60); i++) { const y0 = Math.floor(bot.entity.position.y); await U.withTimeout(stairUp(bot, y0 + 4, 90000, () => skyAbove(bot) && walkableArea(bot) >= 60), 90000 + 115000, 'stairUp'); if (Math.floor(bot.entity.position.y) <= y0) break }
-    for (let i = 0; i < 12 && !skyAbove(bot) && !U.cancelled(bot) && !gone() && !insideOurs(bot); i++) await U.withTimeout(stairUp(bot, Math.floor(bot.entity.position.y) + 3, 60000, () => skyAbove(bot) && walkableArea(bot) >= 60), 60000 + 115000, 'stairUp')
+    for (let i = 0; i < 12 && roofEscape && !skyAbove(bot) && !U.cancelled(bot) && !gone() && !insideOurs(bot); i++) await U.withTimeout(stairUp(bot, Math.floor(bot.entity.position.y) + 3, 60000, () => skyAbove(bot) && walkableArea(bot) >= 60), 60000 + 115000, 'stairUp')
   } catch (e_) { swallow('army:373', e_) }
   if (gone()) { result(bot, { ev: 'escape_aborted', from: [from.x, from.y, from.z], why: 'the bot died during the escape' }); bot.__stairPlaced = []; strictMovements(bot); return }
   const to = bot.entity.position.floored()
@@ -880,6 +905,9 @@ async function digOut (bot, pit) {
 // travel to target {x,y,z} (y may be null). Hops <= 40 blocks (pathfinder is capped at 12 ms/tick).
 // opts: range, ms, stop() -> true aborts, via: [[x,y,z],...] waypoints walked first
 async function travel (bot, target, opts = {}) {
+  // WRONG WORLD = NO WALK (nether engineer): a job/plan that names the dimension it belongs to (`opts.dim`) never starts a path in another one —
+  // overworld coordinates are meaningless in the Nether (a bot "walked" towards the depot under the Nether roof, 12:1xZ).
+  if (opts.dim && dimOf(bot) !== opts.dim) { offWorld(bot, 'travel:' + opts.dim); return false }
   const range = opts.range == null ? 2 : opts.range
   const end = Date.now() + (opts.ms || 240000)
   const stop = () => U.cancelled(bot) || (opts.stop && opts.stop()) || Date.now() > end
@@ -888,6 +916,9 @@ async function travel (bot, target, opts = {}) {
     if (dist2(bot, w[0], w[2]) < 12) continue
     await travel(bot, { x: w[0], y: w[1], z: w[2] }, { range: 5, ms: Math.max(10000, end - Date.now()), stop: opts.stop })
   }
+  // THE SURPLUS RIDES ALONG (see offload): before the legs start, a trip that passes the depot takes the army's spare filler home. Guarded
+  // against itself (bank/withdraw walk through travel too) and silent for every job that consumes filler.
+  if (!opts._noOffload && target && isFinite(target.x) && isFinite(target.z)) { try { await offload(bot, target, { stop: opts.stop }) } catch (e_) { swallow('army:travelOffload', e_) } }
   let fails = 0
   let dug = false
   let relaxed = false
@@ -900,7 +931,7 @@ async function travel (bot, target, opts = {}) {
   // KEEP-OUT RULE (world 2, 09-19: every trip east of the base ended on the ravine floor at -305,53,-458 with `no_route`; a hunter fell to her
   // death): inside a `settings.keepOut` box nobody steps BELOW the base level - the rim and pads stay walkable, the hole does not exist for
   // the pathfinder. Not for a bot that is already down there (it must walk out) nor for a job whose target lies in the hole (ores, quarry).
-  const KO = (settings().keepOut || []).map(k => k && k.box).filter(b => Array.isArray(b) && b.length === 4).map(b => [Math.min(b[0], b[2]), Math.min(b[1], b[3]), Math.max(b[0], b[2]), Math.max(b[1], b[3])])
+  const KO = (overworldBot(bot) ? (settings().keepOut || []) : []).map(k => k && k.box) // keep-out boxes are OVERWORLD coordinates: in the Nether they would cost 100 for nothing.filter(b => Array.isArray(b) && b.length === 4).map(b => [Math.min(b[0], b[2]), Math.min(b[1], b[3]), Math.max(b[0], b[2]), Math.max(b[1], b[3])])
   const koY = ((settings().base || {}).y || SEA_LEVEL + 5) - 3
   const inKO = (x, y, z) => y < koY && KO.some(b => x >= b[0] && x <= b[2] && z >= b[1] && z <= b[3])
   const keepRule = b => (b && b.position && inKO(b.position.x, b.position.y, b.position.z) ? 100 : 0)
@@ -918,7 +949,7 @@ async function travel (bot, target, opts = {}) {
   try { require('./terrain_guard').install(bot); if (mv0) mv0.allowSprinting = larderFull() && bot.food > 6 } catch (e_) { swallow('army:travelSprint', e_) }
   if (surfaceTrip && mv0 && !mv0.exclusionAreasStep.includes(floorRule)) mv0.exclusionAreasStep.push(floorRule)
   if (keepOn && mv0) mv0.exclusionAreasStep.push(keepRule)
-  const ms0 = musterPos()
+  const ms0 = overworldBot(bot) ? musterPos() : null // the muster is an overworld place: no homeward drop bias in another world
   const homeward = !!ms0 && Math.hypot(target.x - ms0.x, target.z - ms0.z) + 8 < Math.hypot(bot.entity.position.x - ms0.x, bot.entity.position.z - ms0.z)
   if (surfaceTrip && mv0) { mv0.maxDropDown = DROP.surface; mv0.infiniteLiquidDropdownDistance = false }
   const dropRule = () => { try { const m = bot.pathfinder.movements; if (m) { m.exclusionAreasStep = m.exclusionAreasStep.filter(f => f !== floorRule && f !== keepRule); m.maxDropDown = DROP.normal } } catch (e_) { swallow('army:dropRule', e_) } }
@@ -1031,6 +1062,7 @@ async function walkTo (bot, pos, opts = {}) { // -> true when the bot stands wit
   return near() || !!(await travel(bot, pos, { range: 2, ms: opts.ms || 90000, stop: opts.stop })) || near()
 }
 async function openChest (bot, pos, opts = {}) {
+  if (!overworldBot(bot) && !opts.anyDim) { offWorld(bot, 'chest'); return null } // registered containers are overworld; a Nether camp chest passes opts.anyDim
   if (!await walkTo(bot, pos, opts)) return null
   const b = bot.blockAt(pos)
   if (b && !/^(chest|trapped_chest|barrel)$/.test(b.name)) { // a REGISTERED chest is gone (creeper!): forget its stock, tell everybody, the quartermaster rebuilds it
@@ -1112,6 +1144,7 @@ async function dumpJunk (bot, items, opts = {}) {
 // deposit everything except `keep` ({name:count}, plus best tool of each kind + 1 shield) into the category chests.
 // returns {name:count} actually moved. Logs a 'banked' result.
 async function bank (bot, keep = {}, opts = {}) {
+  if (!overworldBot(bot)) { offWorld(bot, 'bank'); return {} } // the depot index is OVERWORLD coordinates
   const plan = {}
   await wear(bot) // what is still in the pockets afterwards is spare: it goes to the depot for the next bot
   const bestNames = new Set(['pickaxe', 'axe', 'sword', 'shovel', 'hoe'].map(k => bestOf(bot, k)).filter(Boolean).map(i => i.name))
@@ -1219,6 +1252,55 @@ async function bank (bot, keep = {}, opts = {}) {
   if (Object.keys(moved).length) result(bot, { ev: 'banked', job: opts.job || null, items: moved })
   if (!opts.noKit) await kitUp(bot, { stop: opts.stop, risk: opts.risk, why: 'bank' }) // at the depot anyway: take what is an upgrade (fair share: see kitUp)
   return moved
+}
+
+// ---- SURPLUS MATERIAL GOES HOME (terrain engineer 09-20 12:2xZ: depot cobblestone 0 / carried 803, dirt 4 / carried 461; measured again 12:35Z with
+// `targets`: the cobblestone GROUP stood at 36 in the depot against 3743 in pockets and dirt at 0/392, while 25 builders declined `build: no filler`
+// x59 in ONE minute and `base_yard_pad` reported `build: no dirt` x6. The depot is the army's shelf: a bot may keep ALLOW of each building material
+// as its pillar/support/escape ration, everything above that belongs to the next builder the moment this bot's job stops consuming it.)
+// The keep-list mechanism is untouched: a job that DOES consume filler (build/deck/tidy/light, `steps` plans, the mine's delegate skills, haul, the
+// quartermaster's scan) is never touched here — its own bank(keep) decides what it carries.
+// NO BANK STORMS (the works are 80-130 blocks from the depot): the surplus RIDES ALONG on a trip that already passes a build chest (within NEAR of
+// the start, the target or the line between them); only a bot that has held a surplus since its last job change, or for OVERDUE_MS, accepts a
+// detour (FAR). At most one visit per EVERY_MS and never underground.
+const MATERIAL_RE = /^(cobblestone|cobbled_deepslate|stone|deepslate|andesite|diorite|granite|tuff|dirt|coarse_dirt|gravel|sand|red_sand|sandstone|[a-z_]+_planks|[a-z_]+_log)$/
+const KEEPS_MATERIAL = /^(build|deck|tidy|light|steps|delegate|haul|scan)$/
+const OFF = { allow: 16, near: 24, far: 96, min: 32, every: 180000, overdue: 600000, recheck: 20000 }
+const toolOf = name => { const m = /^(\w+)_(pickaxe|shovel|axe|hoe)$/.exec(name); return m && TIER[m[1]] ? { rank: TIER[m[1]], kind: m[2] } : null }
+function surplusOf (bot) { const m = inv(bot); const out = {}; for (const k of Object.keys(m)) if (MATERIAL_RE.test(k) && m[k] > OFF.allow) out[k] = m[k] - OFF.allow; return out }
+function segDist (c, a, b) { // XZ distance of the chest from the line the bot is about to walk
+  const vx = b.x - a.x; const vz = b.z - a.z; const L = vx * vx + vz * vz
+  const t = L ? Math.max(0, Math.min(1, ((c.x - a.x) * vx + (c.z - a.z) * vz) / L)) : 0
+  return Math.hypot(a.x + vx * t - c.x, a.z + vz * t - c.z)
+}
+async function offload (bot, target, opts = {}) {
+  if (bot.__armyOffBusy || !bot.entity || bot.currentWindow || U.cancelled(bot) || !overworldBot(bot)) return false
+  const now = Date.now()
+  if (now - (bot.__armyOffT || 0) < OFF.every || now - (bot.__armyOffCheckT || 0) < OFF.recheck) return false
+  bot.__armyOffCheckT = now
+  const sur = surplusOf(bot); const n = Object.values(sur).reduce((a, b) => a + b, 0)
+  if (n < OFF.min) { bot.__armyOffHold = 0; return false }
+  const job = (assignment(bot) || {}).job || {}
+  if (KEEPS_MATERIAL.test(String(job.type))) { bot.__armyOffHold = 0; bot.__armyOffJob = job.id; return false }
+  if (bot.__armyOffJob !== job.id) { bot.__armyOffJob = job.id; bot.__armyOffHold = now - OFF.overdue } // ON A JOB CHANGE the load is surplus at once: a detour is allowed
+  if (!bot.__armyOffHold) bot.__armyOffHold = now
+  const fy = surfaceFloor(bot); if (fy != null && bot.entity.position.y < fy) return false // underground: the mine hauls its own stone up
+  const me = bot.entity.position
+  const cp = chestsOf('build').sort((a, b) => a.distanceTo(me) - b.distanceTo(me))[0]; if (!cp) return false
+  if (segDist(cp, me, { x: target.x, z: target.z }) > (now - bot.__armyOffHold > OFF.overdue ? OFF.far : OFF.near)) return false
+  bot.__armyOffBusy = true; bot.__armyOffT = now
+  try {
+    // everything else stays in the pockets (this is not a bank visit): keep = what the bot carries, capped at ALLOW for the materials — and a
+    // tool a better one of its kind makes redundant goes back into the tools chest in the same visit (owner: never throw a tool away)
+    const best = {}
+    for (const i of bot.inventory.items()) { const t = toolOf(i.name) || weaponOf(i.name); if (t) best[t.kind] = Math.max(best[t.kind] || 0, t.rank) }
+    const keep = {}
+    for (const i of bot.inventory.items()) { const t = toolOf(i.name) || weaponOf(i.name); if (t && t.rank < best[t.kind]) continue; keep[i.name] = (keep[i.name] || 0) + i.count }
+    for (const k of Object.keys(sur)) keep[k] = OFF.allow
+    const moved = await bank(bot, keep, { job: (job.id || 'idle') + ' (surplus)', stop: opts.stop })
+    bot.__armyOffHold = 0
+    return Object.keys(moved || {}).length > 0
+  } finally { bot.__armyOffBusy = false }
 }
 
 // ---- placeHard: PLACE A BLOCK AND DON'T GIVE UP EASILY (owner: "do you just give up when a block cannot be placed?").
@@ -1527,6 +1609,7 @@ async function unstash (bot, pos, opts = {}) {
 async function withdraw (bot, name, n, opts = {}) {
   const item = bot.registry.itemsByName[name]
   if (!item) return 0
+  if (!overworldBot(bot)) { offWorld(bot, 'withdraw'); return 0 } // the chest index is OVERWORLD coordinates: no walk towards a depot that is not in this world
   const d = index()
   // FRESH entries first; when none holds the item, the STALE ones are visited (10:5xZ: `obtain_failed stick ... #planks` x74/30 min by 34 bots with 2821 logs in stock -
   // the only sticks stood in two tool chests nobody had opened for 6 h: stockMap() counted them, C.solve said "have 20, nothing to craft", this filter hid them, nothing
@@ -1561,6 +1644,7 @@ async function withdraw (bot, name, n, opts = {}) {
 }
 // scan every registered chest once (quartermaster job) so the index is complete
 async function scanChests (bot, opts = {}) {
+  if (!overworldBot(bot)) { offWorld(bot, 'scan_chests'); return 0 }
   let n = 0
   for (const cat of CATS) {
     for (const cp of chestsOf(cat)) {
@@ -1758,5 +1842,6 @@ module.exports = {
   DIR, F, sleep, readJSON, writeJSON, boardEdit, decline, result, settings, inv, count, bestOf, equipBest, heartbeat, assignment,
   strictMovements, larderFull, escapeMovements, skyAbove, digOut, fillShaft, inShaft, walkableArea, debt, travel, dist2, categoryOf, chestsOf, index, record, openChest, closeWin, bank, withdraw,
   scanChests, stockOf, stockMap, dumpJunk, askHelp, helpAnswer, placeHard, fillInside, gravityDrop, obtain, craftSpot, stash, unstash, siteInfo, siteSet, hostiles, startGuard, stopGuard, kill, pickup, HOSTILE, CATS,
-  kitUp, kitPlan, wear, riskJob, carried, liveBots, musterPos, surfaceFloor, SEA_LEVEL, DROP, stairUp, furnaces, registerFurnaces, openAt, pickFuel, smelt, blueprintCellsOf, buildJobs, ours, ourBlock, penAt, insideOurs, zoneAt, TERRAIN_BP
+  kitUp, kitPlan, wear, riskJob, carried, liveBots, musterPos, surfaceFloor, SEA_LEVEL, DROP, stairUp, furnaces, registerFurnaces, openAt, pickFuel, smelt, blueprintCellsOf, buildJobs, ours, ourBlock, penAt, insideOurs, zoneAt, TERRAIN_BP,
+  dimOf, offload, surplusOf
 }
