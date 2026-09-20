@@ -80,7 +80,10 @@ to a routine handler (code) — that is what the top model is for.
 - **Trust only the server**: `pour`/`fill`/craft results are read back after a delay (client prediction lies). Never append a `//` comment to a line
   that continues with a chained call (it ate the dispatcher's `.sort()` for 40 min) — put comments on their own line and verify staffing after dispatcher edits.
 - **Test first in the lab** (`lab/README.md`, port 25570, API :3100, cheats allowed there) when a change touches a primitive.
-- Optional always-on modules (survival/combat/inventory…) plug in through `skills/core/index.js` (contract in its header); none exist yet.
+- Always-on **core modules** plug in through `skills/core/index.js` (contract in its header; a module runs only when `jobs.json → settings.core.enabled`
+  lists it AND `ORDER` in index.js knows its name — index.js is re-required only on reconnect, so adding a name needs `ops/restart-bots.sh`). Live:
+  `core/combat.js` (every bot defends itself) and `core/recover.js` (walks back to the death spot for the dropped kit before it despawns; it also owns
+  the ONE iron/diamond price table behind `death {lost:{iron,diamond,items}}` and `recovered {back:…}` — loss minus recovery is one subtraction).
 
 ## 4. Movement doctrine (owner's order — read before touching any travel code)
 **How mineflayer-pathfinder really works:** it is A* over block cells where every move may carry a `toBreak[]` and `toPlace[]`

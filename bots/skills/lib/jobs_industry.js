@@ -483,9 +483,11 @@ module.exports = ctx => {
     if (!got) return 'no chest at ' + at.join(',')
     const iron = (got.iron_ingot || 0) + (got.iron_block || 0) * 9
     const F = industryOf().farm || {}
-    const hours = F.t ? (Date.now() - F.t) / 3600000 : 0
-    const total = (F.iron || 0) + iron
-    industryEdit({ farm: { at, t: Date.now(), iron: total, lastIron: iron, lastHours: Math.round(hours * 100) / 100 } })
+    const mine = Array.isArray(F.at) && F.at.join(',') === at.join(',')
+    const hours = mine && F.t ? (Date.now() - F.t) / 3600000 : 0
+    const total = (mine ? F.iron || 0 : 0) + iron
+    // the rate record belongs to the FARM chest: a `collect_farm` step aimed anywhere else reports and changes no bookkeeping
+    if (mine || iron > 0) industryEdit({ farm: { at, t: Date.now(), iron: total, lastIron: iron, lastHours: Math.round(hours * 100) / 100 } })
     A.result(bot, { ev: 'iron_farm_take', at, items: got, iron, hours: Math.round(hours * 100) / 100, perHour: hours > 0.05 ? Math.round(iron / hours * 10) / 10 : null, totalIron: total })
     return true
   }

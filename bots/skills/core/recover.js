@@ -183,7 +183,7 @@ module.exports = {
     const before = A.carried(bot)
     const took = () => Math.round((Date.now() - t0) / 1000)
     const fail = why => core.log(bot, 'recover_failed', { at: pos, why, lost: lost(rec.inv), top: top(rec.inv), lostValue: rec.value, tookS: took() })
-    const stop = () => core.cancelled(bot) || bot.health < 8 || Date.now() > deadline - 4000
+    const stop = () => core.cancelled(bot) || bot.health < 8 || !!bot.__armyDied || Date.now() > deadline - 4000 // died AGAIN on the way: this trip is over, the new death gets its own decision
     try { bot.state.task = 'recover: ' + pos.join(',') } catch { /* no state on a bot that is going away */ }
     if (bot.food < 8) { try { await require('../lib/feed').eat(bot, {}) } catch (e) { /* nothing edible carried: the hp gate below decides */ } }
     if (bot.health < 14) return fail('hp ' + Math.round(bot.health) + ' < 14 at the start')
@@ -195,13 +195,15 @@ module.exports = {
     if (core.cancelled(bot)) return fail('cancelled on the way')
     if (!ok && me() > 12) return fail('no route: stopped ' + Math.round(me()) + ' m short' + (Date.now() > deadline ? ' (too late anyway)' : ''))
 
+    // ON SITE: the entity packets of the drop arrive a moment after the legs stop, and a stack lands a few blocks from where the bot fell —
+    // so give the spot 5 empty passes (5 s) before calling it gone, and keep picking up while anything is in sight.
     const end = Math.min(deadline, Date.now() + ON_SITE)
     let dry = 0
     while (Date.now() < end && !core.cancelled(bot) && bot.health >= 8) {
-      const seen = itemsNear(bot, 10)
-      if (!seen) { if (++dry >= 3) break; await A.sleep(700); continue }
+      const seen = itemsNear(bot, 12)
+      if (!seen) { if (++dry >= 5) break; await A.sleep(1000); continue }
       dry = 0
-      await A.pickup(bot, 10, Math.min(7000, end - Date.now()))
+      await A.pickup(bot, 12, Math.min(7000, end - Date.now()))
     }
     await A.wear(bot).catch(() => { /* wear() swallows its own failures; the armour stays in the pockets and the next kitUp puts it on */ })
 

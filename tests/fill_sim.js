@@ -52,11 +52,12 @@ function bfs (map, world, from, limit = 4000) {
   while (q.length && dist.size < limit) {
     const p = q.shift()
     const d = dist.get(K3(p.x, p.y, p.z))
-    const onLadder = world.get(p.x, p.y, p.z) === 'ladder'
+    const onLadder = world.get(p.x, p.y, p.z) === 'ladder' || world.get(p.x, p.y, p.z) === 'water'
     if (onLadder) {
       for (const dy of [1, -1]) {
         const ny = p.y + dy
-        if (world.get(p.x, ny, p.z) !== 'ladder' && !FP.canStand(map, world, p.x, ny, p.z)) continue
+        const k2 = world.get(p.x, ny, p.z)
+        if (k2 !== 'ladder' && k2 !== 'water' && !FP.canStand(map, world, p.x, ny, p.z)) continue
         const k = K3(p.x, ny, p.z)
         if (!dist.has(k)) { dist.set(k, d + 1); q.push({ x: p.x, y: ny, z: p.z }) }
       }
@@ -66,7 +67,8 @@ function bfs (map, world, from, limit = 4000) {
       for (let dy = 1; dy >= -map.o.maxDrop; dy--) {
         const ny = p.y + dy
         if (dy === 1 && world.get(p.x, p.y + 2, p.z) === 'solid') break
-        if (world.get(nx, ny, nz) === 'ladder') { const k = K3(nx, ny, nz); if (!dist.has(k)) { dist.set(k, d + 1); q.push({ x: nx, y: ny, z: nz }) } break }
+        const kk = world.get(nx, ny, nz)
+        if (kk === 'ladder' || kk === 'water') { const k = K3(nx, ny, nz); if (!dist.has(k)) { dist.set(k, d + 1); q.push({ x: nx, y: ny, z: nz }) } break }
         if (!FP.canStand(map, world, nx, ny, nz)) continue
         const k = K3(nx, ny, nz); if (!dist.has(k)) { dist.set(k, d + 1); q.push({ x: nx, y: ny, z: nz }) }
         break
@@ -85,19 +87,21 @@ function simulate (sc, opts = {}) {
   const map = FP.workMap(world, sc.box, sc.grade, Object.assign({}, sc.opts, opts.planner || {}))
   const claims = {}
   const start = FP.summary(map, world)
-  const bots = sc.crew.map(b => Object.assign({ busy: 0, placed: 0, digs: 0, trips: 0, falls: 0, moved: 0, waits: 0, noRoute: 0, leaves: 0 }, b))
+  const bots = sc.crew.map(b => Object.assign({ busy: 0, placed: 0, digs: 0, trips: 0, falls: 0, moved: 0, waits: 0, noRoute: 0, leaves: 0, hp: 20, hpLost: 0, deaths: 0 }, b))
   const gone = []
   const placedCells = new Set()
   const errs = []
   const err = (kind, msg) => { if (errs.length < 12) errs.push(kind + ': ' + msg) }
   let t = 0
   let peak = 0
+  let entryFirst = null
+  let lastEntryCheck = 0
   let workMin = 0
   let lastChange = 0
   let version = world.version
   const trace = (opts.trace || opts.tail) ? [] : null
 
-  const view = b => ({ id: b.id, pos: { x: b.pos.x, y: b.pos.y, z: b.pos.z }, carrying: b.carrying })
+  const view = b => ({ id: b.id, pos: { x: b.pos.x, y: b.pos.y, z: b.pos.z }, carrying: b.carrying, hp: b.hp })
 
   while (t < (sc.maxMin || 90) * 60) {
     t += DT
@@ -139,6 +143,7 @@ function simulate (sc, opts = {}) {
       }
     }
     for (const b of here) gravity(b)
+    for (const b of bots) b.hp = Math.min(20, b.hp + DT / 4) // one heart per four seconds, like a fed player
     // invariant 1: nobody is entombed. A builder may be boxed in for a moment (a mate's block lands
     // while it is mid-action) — it must be out again within 20 s, by riding its own fill up or by
     // handing itself back. Longer than that is a builder buried alive, which is the bug we are here for.
@@ -148,6 +153,20 @@ function simulate (sc, opts = {}) {
       if (free) { b.boxedSince = null; continue }
       if (b.boxedSince == null) b.boxedSince = t
       else if (t - b.boxedSince > 20) err('entombed', b.id + ' boxed in at ' + K3(b.pos.x, b.pos.y, b.pos.z) + ' for ' + (t - b.boxedSince).toFixed(0) + ' s')
+    }
+    // invariant: the way IN stays connected to the open work until the last layer
+    if (map.entry && map.entry.kind !== 'walk' && t - lastEntryCheck > 4) {
+      lastEntryCheck = t
+      let deepest = null
+      for (const tile of map.tiles.values()) { const q = FP.tileState(map, world, tile, now, false); if (q.targets.length && (deepest == null || q.layerY < deepest)) deepest = q.layerY }
+      if (deepest != null && sc.grade - deepest > map.o.maxDrop) {
+        const c = map.entry.col
+        const rim = { x: c.x + c.ox, y: sc.grade + 1, z: c.z + c.oz }
+        const d = bfs(map, world, rim)
+        let ok = false
+        for (const k of d.keys()) { if (+k.split(',')[1] <= deepest + 1) { ok = true; break } }
+        if (!ok) err('entry-cut', 'the ' + map.entry.kind + ' entry no longer reaches the open layer y' + deepest)
+      }
     }
     // "something happened" = a block moved OR the planner wrote a cell off (both are progress)
     const mark = world.version + map.sealed.size + map.abandoned.size
@@ -188,6 +207,10 @@ function simulate (sc, opts = {}) {
     abandoned: map.abandoned.size,
     sealed: end.sealed - start.sealed,
     falls: bots.concat(gone).reduce((n, b) => n + b.falls, 0),
+    hpLost: Math.round(bots.concat(gone).reduce((n, b) => n + b.hpLost, 0)),
+    deaths: bots.concat(gone).reduce((n, b) => n + b.deaths, 0),
+    entryKind: map.entry ? map.entry.kind : 'walk',
+    entryFirst: entryFirst == null ? 0 : entryFirst,
     noRoute,
     trips: bots.concat(gone).reduce((n, b) => n + b.trips, 0),
     map,
@@ -225,6 +248,12 @@ function simulate (sc, opts = {}) {
     b.busy = 0.25
     if (has(b, a.item) < 1) return err('no-material', b.id + ' places ' + a.item + ' with none in the pockets')
     if (!FP.canPlaceFrom(world, b.pos, c, map.o.reach)) return err('out-of-reach', b.id + ' at ' + K3(b.pos.x, b.pos.y, b.pos.z) + ' -> ' + K3(c.x, c.y, c.z))
+    if (a.column) { // a bucket poured at the rim: the water runs down the wall
+      let y = a.cell.y
+      while (y > map.box.y1 - 1 && world.get(a.cell.x, y, a.cell.z) !== 'solid') { world.set(a.cell.x, y, a.cell.z, 'water'); y-- }
+      take(b, a.item)
+      return
+    }
     if (a.item === 'ladder') {
       const wall = SIDES.some(([dx, dz]) => world.get(c.x + dx, c.y, c.z + dz) === 'solid')
       if (!wall) return err('ladder-no-wall', K3(c.x, c.y, c.z))
@@ -249,6 +278,12 @@ function simulate (sc, opts = {}) {
     b.busy = 0.3
     if (placedCells.has(K3(c.x, c.y, c.z))) return err('dig-after-place', K3(c.x, c.y, c.z))
     const k = world.get(c.x, c.y, c.z)
+    if (a.entry && k === 'solid') { // cutting the entry stair into the wall: stone, with a pickaxe
+      b.busy = 0.6
+      if (!FP.canPlaceFrom(world, b.pos, c, map.o.reach)) return err('dig-out-of-reach', K3(c.x, c.y, c.z))
+      world.set(c.x, c.y, c.z, 'air'); b.digs++
+      return
+    }
     if (k !== 'plant' && k !== 'torch') return err('dig-terrain', K3(c.x, c.y, c.z) + ' is ' + k)
     if (!FP.canPlaceFrom(world, b.pos, c, map.o.reach)) return err('dig-out-of-reach', K3(c.x, c.y, c.z))
     world.set(c.x, c.y, c.z, 'air'); b.digs++
@@ -267,8 +302,18 @@ function simulate (sc, opts = {}) {
 
   function doDescend (b, a) {
     const dy = Math.abs(b.pos.y - a.target.y) + Math.abs(b.pos.x - a.target.x) + Math.abs(b.pos.z - a.target.z)
-    b.busy = Math.max(DT, dy / 2)
+    if (a.mode === 'drop') {
+      const fall = b.pos.y - a.target.y
+      const dmg = Math.max(0, fall - 3) // vanilla: one heart per block over three
+      b.hp -= dmg; b.hpLost += dmg; b.busy = 0.5; b.falls++
+      b.pos = { x: a.target.x, y: a.target.y, z: a.target.z }
+      if (b.hp <= 0) { b.deaths++; b.hp = 20; b.pos = { x: sc.muster.x, y: sc.muster.y, z: sc.muster.z }; err('death', b.id + ' died on a planned ' + fall + '-block drop') }
+      if (entryFirst == null) entryFirst = t
+      return
+    }
+    b.busy = Math.max(DT, dy / 2) // ladder or swimming: two blocks a second, no damage
     b.pos = { x: a.target.x, y: a.target.y, z: a.target.z }
+    if (a.target.y <= sc.grade && entryFirst == null && a.entry) entryFirst = t
   }
 
   function doRideUp (b, a) {
@@ -316,7 +361,7 @@ function crew (n, at, carrying) {
     out.push({
       id: 'b' + String(i).padStart(2, '0'),
       pos: { x: at.x + (i % 5), y: at.y, z: at.z + Math.floor(i / 5) },
-      carrying: Object.assign({ cobblestone: 0, gravel: 0, ladder: 16 }, carrying || {})
+      carrying: Object.assign({ cobblestone: 0, gravel: 0, ladder: 16, pickaxe: 1, water_bucket: 0 }, carrying || {})
     })
   }
   return out
@@ -404,6 +449,30 @@ SCEN.g = () => {
   return s
 }
 
+// (h) THE SAME TRENCH, EVERY WAY IN (owner 09-20: "埋めるアルゴリズムは色々考えられる")
+function entryTable () {
+  const rows = []
+  for (const kind of ['drop', 'water', 'dig_stair', 'stair', 'ladder']) {
+    const sc = SCEN.b()
+    if (kind === 'water') for (const b of sc.crew) b.carrying.water_bucket = 1
+    let r
+    try { r = simulate(sc, { planner: { entry: kind } }) } catch (e) { r = { ok: false, errs: ['threw: ' + e.message], minutes: 0, entryFirst: 0, hpLost: 0, deaths: 0, placed: 0, perBotMin: 0 } }
+    rows.push({ kind, r })
+  }
+  const pad = (s2, n) => String(s2).padEnd(n)
+  const num = (v, n, d = 1) => String(typeof v === 'number' ? v.toFixed(d) : v).padStart(n)
+  console.log('')
+  console.log('ENTRY into the live trench (7x21, floor y52-55, rim y68, 12 builders)')
+  console.log(pad('way in', 12) + num('first bot down (s)', 20) + num('total min', 11) + num('hp lost', 9) + num('deaths', 8) + num('c/min/bot', 11) + '  result')
+  console.log('-'.repeat(75))
+  let bad = 0
+  for (const { kind, r } of rows) {
+    console.log(pad(kind, 12) + num(r.entryFirst, 20) + num(r.minutes, 11) + num(r.hpLost, 9, 0) + num(r.deaths, 8, 0) + num(r.perBotMin, 11) + '  ' + (r.ok ? 'PASS' : 'FAIL: ' + r.errs.slice(0, 2).join(' | ')))
+    if (!r.ok) bad++
+  }
+  return bad
+}
+
 // ---------------------------------------------------------------- runner
 
 function main () {
@@ -433,9 +502,12 @@ function main () {
     if (!r.ok) for (const e of r.errs) console.log('      ! ' + e)
   }
   console.log('')
-  console.log(bad ? bad + ' of ' + rows.length + ' scenarios FAILED' : 'all ' + rows.length + ' scenarios pass')
-  process.exit(bad ? 1 : 0)
+  let badE = 0
+  if (!want.length || want.includes('h')) badE = entryTable()
+  console.log('')
+  console.log((bad + badE) ? (bad + badE) + ' of ' + (rows.length + (want.length && !want.includes('h') ? 0 : 5)) + ' runs FAILED' : 'all ' + (rows.length + (want.length && !want.includes('h') ? 0 : 5)) + ' runs pass')
+  process.exit((bad + badE) ? 1 : 0)
 }
 
 if (require.main === module) main()
-module.exports = { World, simulate, SCEN, bfs }
+module.exports = { World, simulate, SCEN, bfs, entryTable }

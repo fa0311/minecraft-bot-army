@@ -40,6 +40,24 @@ Keep this under 80 lines. Machine truth: `bots/army/jobs.json → settings.nethe
 | 2 | `lib/army.js` | (a) `dimOf(bot)`; (b) `travel({dim})` refuses `wrong_dim` without pathing; (c) KEEP-OUT rule + homeward bias overworld-only; (d) `bank`/`withdraw`/`chestsOf`/`scanChests` refuse off-overworld; (e) **`skyAbove`/`digOut`/`stepDown` must not run off the overworld** — under the Nether's bedrock roof every bot reads "roofed in" and cuts a staircase (measured 12:30:23Z); (f) `ours()`/`ourBlock()` key cells by `x,y,z` alone, so an overworld cell matches a Nether position. *(`portal` in `STILL_OK`: done.)* |
 | 3 | `lib/army_jobs.js` | **Done 12:2xZ (by me, in the three places I was given):** `overworld(bot)` helper; `muster` stands still off-overworld instead of walking to the muster slot; `withHandover` skips bedtime, canteen, pocket-banking, handover-banking, the respawn-bed click and `upTheStairs` off-overworld. Proven live: Kanade banked **nothing** between 12:30:15 and 12:30:51 in the Nether and banked 208 cobblestone at 12:30:58, seven seconds after coming home. |
 
+## GATE CENSUS BY CAMERA, 15:4xZ (perception, not gameplay: `SkyEye` tped with rcon into both dimensions, `findBlocks`)
+`settings.nether.gates`, written by the census:
+| dim | at | frame | lit |
+|---|---|---|---|
+| overworld | **-328,70,-518** | 10 | **yes** — and it is the ONLY gate in the overworld. The spare at -284,84,-607 is gone (job `nether_gate_spare_n607` finished it); there is **no gate at all** near -130,-240 or -203,-338 |
+| the_nether | **-36..-45, 100, -76..-80** | 28 + 19 + 9 obsidian in three overlapping clusters, at least one lit (6 cells at -43/-44,100,-80) | yes |
+
+**What that proves:** the bots that reported `portal_through to:"overworld"` at -134,-242 and -203,-338 **never transferred** — no
+gate exists there. `bot.game.dimension` is briefly falsy while a respawn packet is processed, `dimOf` returned `'unknown'`, and
+`'unknown' !== 'overworld'` read as "we moved". Fixed: `dimChanged()` counts only a **known** dimension that differs, so a
+half-read packet can never again be taken for a crossing (that is what produced `pair_probe groundY:86` — a Nether column measured
+on overworld ground — and the whole "revolving door" story).
+
+**Still to do, in order:** (1) nothing to sweep in the overworld; (2) one bot through the home gate with the fix in, `clearOfGate`
+off the arrival cell inside the 4 s cooldown; (3) read-only walk to the partner point **-41,-65** (`work:'pair'` is written: probe,
+platform 7x9 first, frame with an inner column exactly on -41,-65, light, then three verified round trips); (4) only then take the
+stray Nether frames at -36..-45,100,-76..-80 down, one obsidian first, and bank it (25 in the depot already).
+
 ## THIS IS PAPER, NOT VANILLA (owner 15:1xZ; `server/config/paper-world-defaults.yml` + `server/spigot.yml`, all at defaults, untouched)
 | setting | value | what it means for us |
 |---|---|---|

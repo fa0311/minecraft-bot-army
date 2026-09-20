@@ -45,6 +45,8 @@ const DEFAULTS = {
   maxDrop: 3, // how far a builder may step down (A.travel's rule) — never a planned fall
   scan: 40, // how many candidate lanes a claiming builder looks at
   minArea: 4, // a builder must always keep at least this many walkable cells
+  entry: 'auto', // how a builder gets DOWN into a pit deeper than one step; see ENTRY below
+  keepHp: 6, // a planned fall may never leave a builder under this many hit points
   strict: false // true: plan() throws when two actions touch the same or a face-adjacent cell (tests)
 }
 
@@ -159,12 +161,13 @@ function sealFlood (map, world) {
   }
 }
 
-// UNDER A ROOF, AT ARM'S LENGTH ONLY. A cell with a solid block one or two above it is a cell no
-// builder can stand in: it has to be filled from a column beside it where one can. Beyond about two
-// columns that shot does not exist (you cannot see into a 1-high gap from three blocks away), so those
-// cells are declared NOT WORK here, once, before anybody walks anywhere — instead of freezing the box
-// while builder after builder proves it again. They are reported as `roofed`: taking the lid off first
-// (the live blueprint's `unlid`) is a decision for the job, not for the man with the cobblestone.
+// NOTHING IS FILLED UNDER A ROOF. A cell with a solid block one or two above it is a cell no builder
+// can stand in; it could only be filled blind, at arm's length, from a column beside it — and a crew
+// that tries spends its day proving that the middle of the pocket is out of reach (measured: scenario
+// (c) stalled three different ways before this rule). So those cells are declared NOT WORK, once,
+// before anybody walks anywhere, and reported as `roofed`. Taking the lid off first (the live
+// blueprint's `unlid`, one dig pass from above) is a decision for the JOB, not for the man carrying the
+// cobblestone; with the lid off the same planner fills what is underneath with no special case at all.
 function capSeal (map, world) {
   const b = map.box
   const capped = (x, y, z) => isSolid(world, x, y + 1, z) || isSolid(world, x, y + 2, z)
@@ -173,14 +176,7 @@ function capSeal (map, world) {
     for (let z = b.z1; z <= b.z2; z++) {
       for (let y = b.y1; y <= b.y2; y++) {
         if (isSolid(world, x, y, z) || map.sealed.has(K3(x, y, z)) || !capped(x, y, z)) continue
-        let shot = false
-        for (let dx = -2; dx <= 2 && !shot; dx++) {
-          for (let dz = -2; dz <= 2 && !shot; dz++) {
-            if (!dx && !dz) continue
-            if (!isSolid(world, x + dx, y, z + dz) && !isSolid(world, x + dx, y + 1, z + dz)) shot = true
-          }
-        }
-        if (!shot) { map.sealed.add(K3(x, y, z)); map.roofed.add(K3(x, y, z)) }
+        map.sealed.add(K3(x, y, z)); map.roofed.add(K3(x, y, z))
       }
     }
   }
@@ -206,6 +202,8 @@ function findShafts (map, world) {
 
 function placeable (map, world, x, y, z) {
   if (isSolid(world, x, y, z)) return false
+  // the way in stands until the floor is within one step of the rim (the last layer)
+  if (map.entry && map.entry.cells.has(K3(x, y, z)) && map.grade - y > map.o.maxDrop) return false
   if (map.sealed.has(K3(x, y, z))) return false
   if (map.voidBelow.has(K2(x, z)) && y === map.box.y1) return false
   return isSolid(world, x, y - 1, z) // SOLID FILL: no block is ever placed with air beneath it
@@ -512,11 +510,36 @@ function safeToPlace (map, world, cell, mates, o) {
   return true
 }
 
-// ---------------------------------------------------------------- entry: a ladder down a wall face
+// ---------------------------------------------------------------- ENTRY: how you get down there
+//
+// The owner's canonical shape (09-20): STAND OVER THE HOLE, GO DOWN, FILL BOTTOM-UP STANDING ON YOUR
+// OWN FILL, RIDE THE FILL OUT. Then no way-out structure exists at all and the reachability invariant
+// is trivial — a builder is always on the top surface of the fill. Only the way IN is a choice, and it
+// is a choice of MATERIAL and DEPTH, so it is pluggable. All of them land the builder on the floor and
+// none of them is needed again once the floor has risen to within one step of the rim.
+//
+//   walk   the floor is within maxDrop of the rim, or the terrain slopes in: nothing to build
+//   water  a water source poured at the rim runs down the wall; you swim down and UP. No damage, one
+//          bucket, nothing left behind (the source is scooped, the column is displaced by the fill)
+//   drop   step off the rim and take the fall: instant, free, costs (fall - 3) hit points, refused
+//          when it would leave less than keepHp or the landing is not clear, one builder per landing
+//   dig_stair  a 1-wide 2-high staircase cut down through the WALL beside the pit, outside the fill
+//          volume: walkable both ways for ever, serves refill trips, never buried (owner's favourite;
+//          it costs digging time and needs a pickaxe, and it must lie inside the job's zone)
+//   stair  the same staircase BUILT inside the pit against a wall face. Cheap to walk, but it is fill
+//          material standing in the fill volume, and it only survives because of the ordering rule
+//          below (today two ramps were swallowed because their columns were filled to grade first)
+//   ladder a ladder run down a wall face. Cheapest in material, but the LIVE bots read a ladder column
+//          as a solid wall and failed on it twice, so it is offered and never chosen by `auto`
+//
+// THE ORDERING RULE that makes any of them survive: within a layer, take the cells FARTHEST FROM THE
+// ENTRY first. That is exactly reverse-BFS order from the entry, so the way in stays connected to the
+// open work until the very last layer — `pick()` below sorts by it and the simulator asserts it.
 
-// One ladder per `entryGrid` blocks of box edge, on the box column nearest the lane whose OUTSIDE
-// neighbour is solid wall all the way down. Built top-down from the rim: place a rung, hang on it,
-// place the next. Nothing is dug, no block hangs in the air, and it is the way OUT for a restock trip.
+const ENTRY_KINDS = ['walk', 'water', 'drop', 'dig_stair', 'stair', 'ladder']
+
+// the wall column the entry hangs on: on the box edge, with solid rock outside it all the way down,
+// and a place to stand on the rim above. Snapped to `entryGrid`, so neighbouring lanes share one.
 function entryColumn (map, world, tile) {
   const b = map.box; const o = map.o
   const sides = []
@@ -535,36 +558,115 @@ function entryColumn (map, world, tile) {
   return good[0]
 }
 
+// what the box gets, decided once, from depth, materials and the rules above
+function chooseEntry (map, world, bot, col, o) {
+  if (o.entry !== 'auto') return o.entry
+  const floor = firstOpen(map, world, col.x, col.z)
+  const depth = map.grade - (floor == null ? map.grade : floor)
+  if (depth <= o.maxDrop) return 'walk'
+  if (have(bot, 'water_bucket', o) > 0) return 'water' // free, damage-free, and it is the way back up
+  if (depth - o.maxDrop <= (bot.hp == null ? 20 : bot.hp) - o.keepHp) return 'drop' // nothing to build at all
+  if (have(bot, 'pickaxe', o) > 0) return 'dig_stair'
+  return 'stair'
+}
+
+// the cells an entry occupies, so that nothing fills them while it is still needed
+function entryCells (map, kind, col, floor) {
+  const out = []
+  if (kind === 'water' || kind === 'ladder' || kind === 'stair') {
+    for (let y = map.grade; y >= floor; y--) out.push(K3(col.x, y, col.z))
+  }
+  return out
+}
+
+// ONE action towards "a builder is standing on the floor of the pit"
 function entryAction (map, world, bot, tile, o) {
   const col = entryColumn(map, world, tile)
-  if (!col) return { type: 'wait', why: 'no wall face to hang an entry ladder on' }
-  // an entry is built from ABOVE. A builder already down in the pit never walks out for one — it waits
-  // for the floor, which is rising under it anyway (that is why the fill needs no exit).
-  if (Math.floor(bot.pos.y) <= map.grade && kindAt(world, Math.floor(bot.pos.x), Math.floor(bot.pos.y), Math.floor(bot.pos.z)) !== 'ladder') {
-    const up = reachSet(map, world, flr(bot.pos))
-    if (!up.has(K3(col.x + col.ox, map.grade + 1, col.z + col.oz))) {
-      return { type: 'wait', release: true, why: 'I am inside the pit and this lane is not reachable — another lane' }
+  if (!col) return { type: 'wait', why: 'no wall face to put an entry on' }
+  const floor = firstOpen(map, world, col.x, col.z)
+  if (floor == null) return { type: 'wait', release: true, why: 'the entry column is at grade already' }
+  const feet = flr(bot.pos)
+  const tag = 'e' + K2(col.x, col.z)
+  const rim = { x: col.x + col.ox, y: map.grade + 1, z: col.z + col.oz }
+  const landing = { x: col.x, y: floor, z: col.z }
+
+  // a builder already down in the pit never walks out for a way in: the floor is rising under it
+  if (feet.y <= map.grade && kindAt(world, feet.x, feet.y, feet.z) !== 'ladder' && kindAt(world, feet.x, feet.y, feet.z) !== 'water') {
+    const up = reachSet(map, world, feet, null, 4000)
+    if (!up.has(K3(rim.x, rim.y, rim.z))) return { type: 'wait', release: true, why: 'I am inside the pit and this lane is not reachable — another lane' }
+  }
+  if (!map.entry) map.entry = { kind: chooseEntry(map, world, bot, col, o), col, landing, cells: new Set() }
+  const E = map.entry
+  E.landing = landing
+  E.cells = new Set(entryCells(map, E.kind, col, floor))
+
+  if (E.kind === 'walk') return { type: 'wait', release: true, why: 'this pit is walked into, not entered' }
+  if (!same(feet, rim) && feet.y > map.grade) return { type: 'move', target: rim, entry: tag, why: 'to the rim over the ' + E.kind + ' entry' }
+
+  if (E.kind === 'drop') {
+    const fall = rim.y - 1 - floor
+    const hp = bot.hp == null ? 20 : bot.hp
+    if (fall - o.maxDrop > hp - o.keepHp) return { type: 'wait', entry: tag, why: 'a ' + fall + '-block drop would leave me under ' + o.keepHp + ' hp — waiting for the floor to rise' }
+    if (isLava(world, landing.x, landing.y, landing.z) || !isSolid(world, landing.x, landing.y - 1, landing.z)) return { type: 'wait', entry: tag, why: 'the landing at ' + K2(col.x, col.z) + ' is not solid and clear' }
+    return { type: 'descend', target: landing, mode: 'drop', fall, entry: tag, why: 'stepping off the rim: ' + Math.max(0, fall - o.maxDrop) + ' hp for a way in that costs nothing to build' }
+  }
+
+  if (E.kind === 'water') {
+    if (kindAt(world, col.x, map.grade, col.z) !== 'water') {
+      if (have(bot, 'water_bucket', o) < 1) return { type: 'restock', item: 'water_bucket', n: 1, entry: tag, why: 'a bucket of water for the way down at ' + K2(col.x, col.z) }
+      return { type: 'place', cell: { x: col.x, y: map.grade, z: col.z }, item: 'water_bucket', column: true, entry: tag, why: 'pouring the way down the wall at ' + K2(col.x, col.z) }
+    }
+    return { type: 'descend', target: landing, mode: 'swim', entry: tag, why: 'swimming down the water column at ' + K2(col.x, col.z) }
+  }
+
+  if (E.kind === 'ladder') {
+    let lowest = null
+    for (let y = map.grade; y >= floor; y--) { if (kindAt(world, col.x, y, col.z) !== 'ladder') break; lowest = y }
+    const rung = lowest == null ? map.grade : lowest - 1
+    if (rung < floor) return same(feet, landing) ? { type: 'wait', release: true, why: 'at the foot of the ladder' } : { type: 'descend', target: landing, mode: 'climb', entry: tag, why: 'down the ladder at ' + K2(col.x, col.z) }
+    if (have(bot, 'ladder', o) < 1) return { type: 'restock', item: 'ladder', n: 16, entry: tag, why: 'ladders for the way in' }
+    const from = lowest == null ? rim : { x: col.x, y: lowest, z: col.z }
+    if (!same(feet, from)) return { type: 'descend', target: from, mode: 'climb', entry: tag, why: 'down to the last rung' }
+    return { type: 'place', cell: { x: col.x, y: rung, z: col.z }, item: 'ladder', entry: tag, why: 'ladder rung y' + rung }
+  }
+
+  // stair / dig_stair: one step per block of depth, 1 wide, 2 high, hugging the wall.
+  // `stair` is BUILT inside the pit column; `dig_stair` is CUT into the wall outside the box.
+  const run = stairRun(map, world, col, floor, E.kind)
+  if (!run) return { type: 'wait', entry: tag, why: 'no room beside the pit for a ' + E.kind }
+  E.cells = new Set(run.map(q => K3(q.x, q.y, q.z)))
+  const next2 = run.find(q => (E.kind === 'stair' ? !isSolid(world, q.x, q.y, q.z) : isSolid(world, q.x, q.y, q.z)))
+  if (!next2) return same(feet, landing) ? { type: 'wait', release: true, why: 'at the foot of the stair' } : { type: 'move', target: landing, entry: tag, why: 'down the finished stair' }
+  if (E.kind === 'stair') {
+    if (have(bot, o.fillItem, o) < 1) return { type: 'restock', item: o.fillItem, n: o.pocket, entry: tag, why: 'blocks for the entry stair' }
+    return { type: 'place', cell: next2, item: o.fillItem, step: true, entry: tag, why: 'entry stair step y' + next2.y }
+  }
+  return { type: 'dig', cell: next2, entry: tag, why: 'cutting the entry stair into the wall at y' + next2.y }
+}
+
+// the cells of a staircase from the rim to the floor beside `col`. `stair` builds treads INSIDE the box
+// against the wall; `dig_stair` cuts a 2-high corridor DOWN THROUGH the wall OUTSIDE the box and breaks
+// through at floor level. Both are 1 block of depth per step, which is what a player can walk.
+function stairRun (map, world, col, floor, kind) {
+  const depth = map.grade - floor
+  if (depth < 1) return null
+  const along = col.ox ? [0, 1] : [1, 0] // run parallel to the wall
+  const out = []
+  for (let i = 0; i < depth; i++) {
+    const y = map.grade - i
+    if (kind === 'stair') {
+      out.push({ x: col.x + along[0] * i, y: y - 1, z: col.z + along[1] * i }) // the tread you step down onto
+    } else {
+      const x = col.x + col.ox + along[0] * i
+      const z = col.z + col.oz + along[1] * i
+      out.push({ x, y, z }) // feet
+      out.push({ x, y: y + 1, z }) // head
     }
   }
-  const floor = firstOpen(map, world, col.x, col.z)
-  const feet = flr(bot.pos)
-  const rim = { x: col.x + col.ox, y: map.grade + 1, z: col.z + col.oz }
-  let lowest = null
-  for (let y = map.grade; y >= floor; y--) { if (kindAt(world, col.x, y, col.z) !== 'ladder') break; lowest = y }
-  const rung = lowest == null ? map.grade : lowest - 1
-  const tag = 'e' + K2(col.x, col.z)
-  if (rung < floor) {
-    const bottom = { x: col.x, y: floor, z: col.z }
-    if (same(feet, bottom)) return { type: 'wait', release: true, why: 'at the foot of the entry ladder: this lane is not the one to take' }
-    return { type: 'descend', target: bottom, entry: tag, why: 'down the entry ladder at ' + K2(col.x, col.z) }
-  }
-  if (have(bot, 'ladder', o) < 1) return { type: 'restock', item: 'ladder', n: 16, entry: tag, why: 'ladders for the way into the pit at ' + K2(col.x, col.z) }
-  const from = lowest == null ? rim : { x: col.x, y: lowest, z: col.z }
-  if (!same(feet, from)) {
-    if (lowest == null) return same(feet, rim) ? { type: 'wait', why: 'at the rim, the first rung goes in next tick' } : { type: 'move', target: rim, entry: tag, why: 'to the rim to start the entry ladder' }
-    return { type: 'descend', target: from, entry: tag, why: 'down to the last rung' }
-  }
-  return { type: 'place', cell: { x: col.x, y: rung, z: col.z }, item: 'ladder', entry: tag, why: 'entry ladder rung y' + rung }
+  if (kind === 'dig_stair') out.push({ x: col.x, y: floor, z: col.z }) // break through into the pit
+  const b = map.box
+  if (out.some(q => kind === 'stair' && (q.x < b.x1 || q.x > b.x2 || q.z < b.z1 || q.z > b.z2))) return null
+  return out
 }
 
 // ---------------------------------------------------------------- the one decision: next()
@@ -610,7 +712,7 @@ function next (bot, tile, world, opts = {}) {
   if (canStand(map, world, feet.x, feet.y, feet.z)) {
     const here = safe.filter(c => !same(c, feet) && canPlaceFrom(world, feet, c, o.reach))
     if (here.length) {
-      const c = pick(here, feet)
+      const c = pick(here, feet, map)
       if (c.litter) return { type: 'dig', cell: c, why: 'a plant in the cell is not a filled cell' }
       return { type: 'place', cell: c, item: o.fillItem, why: 'layer y' + st.layerY + ' of ' + t.id }
     }
@@ -623,7 +725,7 @@ function next (bot, tile, world, opts = {}) {
     // unreachable and its last cell stayed open for ever
     const reach = reachSet(map, world, feet, null, 4000)
     const walkable = stands.filter(s => reach.has(K3(s.x, s.y, s.z)) && !same(s, feet))
-    if (walkable.length) return { type: 'move', target: pick(walkable, feet), why: 'onto the finished floor beside layer y' + st.layerY }
+    if (walkable.length) return { type: 'move', target: pick(walkable, feet, map), why: 'onto the finished floor beside layer y' + st.layerY }
   }
 
   // 5. the cell under my own feet is the last one of this layer: ride up onto it
@@ -678,9 +780,15 @@ function next (bot, tile, world, opts = {}) {
   return { type: 'wait', release: true, why: 'nothing of ' + t.id + ' is reachable from here this second — another lane first' }
 }
 
-function pick (list, feet) {
+// FARTHEST FROM THE ENTRY FIRST — reverse-BFS order from the way in. Lava first (it is quenched before
+// anyone works near it), then the cell furthest from the entry, and only then the nearest to my feet.
+// Distance is banded by 4 so a builder does not run back and forth across the pit for one block.
+function pick (list, feet, map) {
+  const e = map && map.entry && map.entry.landing
+  const far = c => (e ? -Math.floor(Math.hypot(c.x - e.x, c.z - e.z) / 4) : 0)
   return list.slice().sort((a, b) =>
     (b.lava ? 1 : 0) - (a.lava ? 1 : 0) ||
+    far(a) - far(b) ||
     Math.hypot(a.x - feet.x, a.z - feet.z) - Math.hypot(b.x - feet.x, b.z - feet.z) ||
     a.y - b.y || a.x - b.x || a.z - b.z)[0]
 }
@@ -805,6 +913,9 @@ function summary (map, world, now = 0) {
 
 module.exports = {
   DEFAULTS,
+  ENTRY_KINDS,
+  entryColumn,
+  chooseEntry,
   workMap,
   openTiles,
   claim,

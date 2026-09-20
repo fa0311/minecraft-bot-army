@@ -90,11 +90,6 @@
      -509
     ],
     [
-     -329,
-     69,
-     -496
-    ],
-    [
      -365,
      69,
      -509
@@ -431,11 +426,6 @@
      -512
     ],
     [
-     -332,
-     69,
-     -498
-    ],
-    [
      -367,
      69,
      -512
@@ -481,16 +471,6 @@
      -359,
      69,
      -506
-    ],
-    [
-     -332,
-     69,
-     -496
-    ],
-    [
-     -331,
-     69,
-     -496
     ],
     [
      -365,
@@ -980,13 +960,13 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Yui",
+   "by": "Riko",
    "portal": [
     -44,
     98,
     -80
    ],
-   "through": 1789918122168,
+   "through": 1789918420704,
    "scoutRev": 0,
    "hub": {
     "room": [
@@ -1150,7 +1130,32 @@
     "at": 1789918092472,
     "done": false
    },
-   "gatePolicy": "LIT PERMANENTLY (owner 15:0xZ): closing it made the game generate spare gates"
+   "gatePolicy": "LIT PERMANENTLY (owner 15:0xZ): closing it made the game generate spare gates",
+   "gates": [
+    {
+     "dim": "overworld",
+     "at": [
+      -328,
+      70,
+      -518
+     ],
+     "frame": 10,
+     "lit": true,
+     "near": "home"
+    },
+    {
+     "dim": "the_nether",
+     "at": [
+      -39,
+      100,
+      -76
+     ],
+     "frame": 28,
+     "lit": true,
+     "near": "partner"
+    }
+   ],
+   "gatesAt": 1789918640836
   },
   "industry": {
    "village": [
@@ -1158,14 +1163,14 @@
     73,
     27
    ],
-   "surveyed": 1789918293876,
+   "surveyed": 1789918821901,
    "villagers": 9,
    "professions": {
     "leatherworker": 4,
-    "farmer": 2,
-    "unknown": 3
+    "unknown": 2,
+    "farmer": 3
    },
-   "beds": 12,
+   "beds": 10,
    "stations": {
     "composter": 2,
     "blast_furnace": 1
@@ -1173,35 +1178,40 @@
    "golems": 1,
    "bounds": [
     -766,
-    10,
-    -703,
+    11,
+    -710,
     57
    ],
    "nearest": [
     [
-     -740,
+     -738,
      71,
      39
     ],
     [
-     -731,
-     75,
-     37
-    ],
-    [
-     -740,
+     -738,
      71,
      38
     ],
     [
-     -742,
+     -743,
      72,
-     39
+     41
     ],
     [
-     -741,
-     72,
-     42
+     -747,
+     71,
+     36
+    ],
+    [
+     -733,
+     68,
+     22
+    ],
+    [
+     -731,
+     87,
+     41
     ],
     [
      -736,
@@ -1209,14 +1219,9 @@
      58
     ],
     [
-     -724,
-     68,
-     11
-    ],
-    [
-     -696,
-     71,
-     7
+     -709,
+     73,
+     30
     ]
    ]
   }
@@ -1420,7 +1425,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 6,
+   "bots": 1,
    "site": [
     -367,
     69,
@@ -1456,7 +1461,7 @@
      ]
     ]
    },
-   "rev": 62,
+   "rev": 64,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789917857836
   },
@@ -1597,12 +1602,12 @@
       "z": -500,
       "facing": "north"
      },
-     "level": 24
+     "level": -48
     }
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 14,
-   "rev": 45
+   "rev": 46
   },
   {
    "id": "base_dorm",
@@ -1875,7 +1880,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789918337385
+   "restUntil": 1789918744560
   },
   {
    "id": "fill_ring_field2",
@@ -2074,7 +2079,7 @@
      }
     ]
    },
-   "rev": 5
+   "rev": 6
   },
   {
    "id": "clear_yard_trees",
@@ -2554,7 +2559,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 16,
    "site": [
     -311,
     69,
@@ -2785,13 +2790,13 @@
     },
     "order": "near"
    },
-   "rev": 47,
-   "desc": "until `fill_wayin ok:true` (ladder run in work by the engineer) only 3 bots: nobody can reach the trench floor, a bigger crew just stands at the rim - do NOT raise the head-count to hide idle bots",
+   "rev": 48,
+   "desc": "way in PROVEN 15:26Z: dropIn (step off the rim, fall-3 damage, hp>=18) - 4 builders on the floor, left 3216->2379 in 18 min. Crew follows the measured rate: lower it again if gemba shows builders standing at the rim",
    "note": "top model 15:1xZ: 655 OPEN cells (left 3216 minus waiting 2561) - do not lower; ladderWay (fill_wayin) needs builders standing on the RIM to hang the way in",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Yui",
-    "t": 1789918284545,
+    "by": "Madoka",
+    "t": 1789918698628,
     "at": [
      -302,
      57,
@@ -3921,7 +3926,7 @@
      "Akari"
     ]
    },
-   "restUntil": 1789918218751
+   "restUntil": 1789919837077
   },
   {
    "id": "stray_furnace_344",
@@ -4311,7 +4316,7 @@
     },
     "order": "near"
    },
-   "restUntil": 1789918113471,
+   "restUntil": 1789919540974,
    "way": {
     "by": "Madoka",
     "t": 1789916716021,
@@ -4408,7 +4413,7 @@
    "id": "ladders_for_ravine",
    "type": "steps",
    "priority": 96,
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "names": [
     "Mio",
@@ -4719,7 +4724,6 @@
    "status": "active",
    "when": "any",
    "names": [
-    "Tamaki",
     "Yotsuba"
    ],
    "front": "industry",
@@ -4751,7 +4755,7 @@
      }
     ]
    },
-   "rev": 3
+   "rev": 4
   },
   {
    "id": "nether_landing_3",
@@ -5201,11 +5205,11 @@
   {
    "id": "village_post",
    "type": "trade",
-   "priority": 95,
+   "priority": 97,
    "status": "active",
    "when": "any",
    "names": [
-    "Kotori"
+    "Tamaki"
    ],
    "front": "industry",
    "site": [
@@ -5276,14 +5280,14 @@
      }
     ]
    },
-   "rev": 1
+   "rev": 2
   },
   {
    "id": "nether_pair",
    "type": "portal",
    "priority": 97,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 2,
    "shiftMin": 20,
@@ -5317,6 +5321,269 @@
     "crossS": 30,
     "maxDeaths": 6
    }
+  },
+  {
+   "id": "base_infill_minehead_mound",
+   "type": "build",
+   "priority": 75,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 4,
+   "site": [
+    -331,
+    69,
+    -485
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone infill x -337..-325 / z -490..-480 on the base level y68: the owner saw a mound north of the mine head - 63 natural grass blocks one layer above the base level that tidy refuses to cut (kept:grass_block). Cut it to y68; the dirt goes to the depot (dirt stock 170 / target 6500)",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -331,
+     68,
+     -485
+    ],
+    "args": {
+     "w": 13,
+     "d": 11
+    }
+   },
+   "after": "void_fix_base_infill_minehead_mound",
+   "voidFix": {
+    "n": 1,
+    "id": "void_fix_base_infill_minehead_mound",
+    "cols": 1,
+    "t": 1789918703806
+   }
+  },
+  {
+   "id": "bake_bulk",
+   "type": "steps",
+   "priority": 96,
+   "status": "active",
+   "when": "any",
+   "bots": 6,
+   "requires": {
+    "minHp": 6
+   },
+   "plan": "no zone: FOOD EMERGENCY 15:36Z - 15 238 wheat in the depot and 0 bread, 33 bots eating rotten flesh (I removed the bake job as make-work on 09-20; the quartermaster bakes 21 a round, the army eats faster). 6 rounds x 192 bread per baker into the food chests",
+   "params": {
+    "steps": [
+     {
+      "do": "withdraw",
+      "item": "wheat",
+      "n": 576,
+      "atLeast": 192
+     },
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       69,
+       -523
+      ],
+      "range": 3
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 192
+     },
+     {
+      "do": "bank",
+      "keep": {
+       "bread": 8,
+       "torch": 16
+      }
+     },
+     {
+      "do": "withdraw",
+      "item": "wheat",
+      "n": 576,
+      "atLeast": 192
+     },
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       69,
+       -523
+      ],
+      "range": 3
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 192
+     },
+     {
+      "do": "bank",
+      "keep": {
+       "bread": 8,
+       "torch": 16
+      }
+     },
+     {
+      "do": "withdraw",
+      "item": "wheat",
+      "n": 576,
+      "atLeast": 192
+     },
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       69,
+       -523
+      ],
+      "range": 3
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 192
+     },
+     {
+      "do": "bank",
+      "keep": {
+       "bread": 8,
+       "torch": 16
+      }
+     },
+     {
+      "do": "withdraw",
+      "item": "wheat",
+      "n": 576,
+      "atLeast": 192
+     },
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       69,
+       -523
+      ],
+      "range": 3
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 192
+     },
+     {
+      "do": "bank",
+      "keep": {
+       "bread": 8,
+       "torch": 16
+      }
+     },
+     {
+      "do": "withdraw",
+      "item": "wheat",
+      "n": 576,
+      "atLeast": 192
+     },
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       69,
+       -523
+      ],
+      "range": 3
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 192
+     },
+     {
+      "do": "bank",
+      "keep": {
+       "bread": 8,
+       "torch": 16
+      }
+     },
+     {
+      "do": "withdraw",
+      "item": "wheat",
+      "n": 576,
+      "atLeast": 192
+     },
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       69,
+       -523
+      ],
+      "range": 3
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 192
+     },
+     {
+      "do": "bank",
+      "keep": {
+       "bread": 8,
+       "torch": 16
+      }
+     }
+    ]
+   },
+   "rev": 3
+  },
+  {
+   "id": "void_fix_base_infill_minehead_mound",
+   "type": "build",
+   "priority": 70,
+   "front": "works",
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -325,
+    68,
+    -486
+   ],
+   "plan": "void under the finished pad base_infill_minehead_mound: 1 columns of x -325..-325 / z -486..-486 are a deck over air (void_under_pad) - fill SOLID from the natural ground up to grade y68, never deck a hole; base_infill_minehead_mound is `after` this job and re-checks the columns when it is done",
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -325,
+     68,
+     -486
+    ],
+    "unlid": 3,
+    "args": {
+     "box": [
+      -325,
+      -486,
+      -325,
+      -486
+     ],
+     "depth": 5,
+     "fill": "cobblestone",
+     "mats": [
+      "cobbled_deepslate",
+      "cobblestone",
+      "stone",
+      "deepslate",
+      "tuff",
+      "andesite",
+      "diorite",
+      "granite",
+      "dirt",
+      "gravel"
+     ]
+    }
+   },
+   "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) - fill_ravine_s (fill_void, active) has the SAME cell in its blueprint at -325,68,-486"
   }
  ]
 }

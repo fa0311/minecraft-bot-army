@@ -590,7 +590,7 @@ async function main () {
   const [cmd, arg] = process.argv.slice(2)
   // READ-ONLY callers (owner 09-20: the foreman paused jobs for slowness, re-activated an OWNER-LOCKED job and inflated head-counts - its eyes are useful, its hands are not):
   // ARMY_READONLY=1 refuses every command that writes the board or the world. It looks, measures and files findings in docs/BUGS.md.
-  if (process.env.ARMY_READONLY === '1' && (['put', 'putjson', 'patch', 'rm', 'job', 'prune', 'rescue', 'bootstrap', 'chest'].includes(cmd) || (cmd === 'base' && ['set', 'keepout'].includes(arg)) || (cmd === 'mine' && arg === 'level' && !process.argv.includes('dry')) || (cmd === 'targets' && arg) || (cmd === 'plan-base' && process.argv.includes('--put')))) return console.log('REFUSED: this caller is READ-ONLY (inspector role). Write what you SAW and what should change as one evidence line in docs/BUGS.md.')
+  if (process.env.ARMY_READONLY === '1' && (['put', 'putjson', 'patch', 'rm', 'job', 'prune', 'rescue', 'bootstrap'].includes(cmd) || (cmd === 'chest' && ['add', 'rm'].includes(arg)) || (cmd === 'base' && ['set', 'keepout'].includes(arg)) || (cmd === 'mine' && arg === 'level' && !process.argv.includes('dry')) || (cmd === 'targets' && arg) || (cmd === 'plan-base' && process.argv.includes('--put')))) return console.log('REFUSED: this caller is READ-ONLY (inspector role). Write what you SAW and what should change as one evidence line in docs/BUGS.md.')
   const names = (arg || '').split(',').filter(Boolean)
   if (cmd === 'enlist') {
     const b = rj(BOARD); b.enlisted = [...new Set([...(b.enlisted || []), ...names])]; wj(BOARD, b)
@@ -1012,6 +1012,11 @@ async function main () {
     console.log(r ? 'patched ' + arg + ' -> ' + JSON.stringify({ status: r.status, bots: r.bots, minBots: r.minBots, maxBots: r.maxBots, names: r.names, rev: r.rev, priority: r.priority }) : 'no such job')
   } else if (cmd === 'chest') { // chest add <cat> x,y,z | chest list
     const S0 = rj(BOARD).settings.chests || {}
+    if (arg === 'rm') { // chest rm x,y,z = take a chest OUT of the books (owner 09-20: satellite chests at the mine head scatter the stock; ONE depot). Tidy's furniture-litter rule then empties, digs and banks it.
+      const c = (process.argv[4] || '').split(',').map(Number); if (c.length !== 3 || c.some(n => !Number.isFinite(n))) return console.log('usage: chest rm x,y,z')
+      let hit = null; withBoardLock(b => { for (const k of Object.keys(b.settings.chests || {})) { const n0 = b.settings.chests[k].length; b.settings.chests[k] = b.settings.chests[k].filter(q => !(q[0] === c[0] && q[1] === c[1] && q[2] === c[2])); if (b.settings.chests[k].length < n0) hit = k } })
+      return console.log(hit ? 'chest ' + c.join(',') + ' removed from settings.chests.' + hit + ' - it is litter now: tidy empties, digs and banks it' : 'no registered chest at ' + c.join(','))
+    }
     if (arg !== 'add') return console.log(Object.entries(S0).map(([k, v]) => k + ': ' + v.map(c => c.join(',')).join(' | ')).join('\n') + '\nusage: chest add <food|tools|ores|build|salvage> x,y,z   (the chest must already stand there)')
     const cat = process.argv[4]; const c = (process.argv[5] || '').split(',').map(Number)
     if (!['food', 'tools', 'ores', 'build', 'salvage'].includes(cat) || c.length !== 3 || c.some(n => !Number.isFinite(n))) return console.log('usage: chest add <food|tools|ores|build|salvage> x,y,z')

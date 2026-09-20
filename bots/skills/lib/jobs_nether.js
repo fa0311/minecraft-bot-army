@@ -51,7 +51,13 @@ module.exports = ctx => {
   // blocks.js is required per call: army_worker drops the WHOLE lib cache on any edit, so this always resolves to the live copy
   const BL = () => require('./blocks')
   const isNether = bot => /nether/.test(String((bot.game && bot.game.dimension) || ''))
+  // A DIMENSION WE CANNOT READ IS NOT A DIMENSION CHANGE (camera census 15:4xZ: there is exactly ONE overworld gate, ours, and no
+  // gate at all near -130,-240 or -203,-338 — so the bots that reported `portal_through to:"overworld"` there never transferred.
+  // `bot.game.dimension` is briefly falsy while a respawn packet is processed; 'unknown' !== 'overworld' read as "we moved".)
+  const KNOWN_DIM = /^(overworld|the_nether|the_end)$/
   const dimOf = bot => String((bot.game && bot.game.dimension) || 'unknown')
+  const dimKnown = bot => KNOWN_DIM.test(dimOf(bot))
+  const dimChanged = (bot, dim0) => dimKnown(bot) && dimOf(bot) !== dim0
   // what may stand in a frame CORNER (vanilla leaves them empty; ours carry any stone sort, see the blueprint)
   const STONE_RE = /^(cobblestone|cobbled_deepslate|stone|andesite|diorite|granite|tuff|deepslate|stone_bricks|blackstone|basalt|smooth_stone|netherrack)$/
   // THE SHELL IS BUILT FROM WHATEVER STONE WE HAVE, not from one name (11:53Z: the scout refused to cross with `cobblestone 0/32`
@@ -216,14 +222,14 @@ module.exports = ctx => {
       if (!await A.travel(bot, c, { range: 0, ms: 30000, stop: api.stop, quiet: true, anyDepth: true })) continue
       const end = Date.now() + Math.min(seconds, 30) * 1000
       while (Date.now() < end && !api.stop()) {
-        if (dimOf(bot) !== dim0) return dimOf(bot)
+        if (dimChanged(bot, dim0)) return dimOf(bot)
         if (!inGateNow(bot)) { try { await A.travel(bot, c, { range: 0, ms: 8000, stop: api.stop, quiet: true, anyDepth: true }) } catch (e_) { swallow('jobs_nether:hold', e_) } }
         await sleep(500)
       }
-      if (dimOf(bot) !== dim0) return dimOf(bot)
+      if (dimChanged(bot, dim0)) return dimOf(bot)
     }
-    if (dimOf(bot) === dim0) await clearOfGate(bot, api, bod, 2) // never be left standing in the frame
-    return dimOf(bot) !== dim0 ? dimOf(bot) : null
+    if (!dimChanged(bot, dim0)) await clearOfGate(bot, api, bod, 2) // never be left standing in the frame
+    return dimChanged(bot, dim0) ? dimOf(bot) : null
   }
 
   // ---------------------------------------------------------------- building in the Nether: what a cell wants, and the ONE walk allowed
@@ -704,6 +710,7 @@ module.exports = ctx => {
   }
   const _wpM = {}
   async function doWork (bot, job, api, st, P, body, landed) {
+    if (!isNether(bot)) return { work: String(P.work || ''), why: 'not in the Nether - no far-side work runs from the overworld' }
     const until = Date.now() + Math.min(Math.max(1, P.minutes || 6), 10) * 60000
     const t0 = Date.now()
     const N = netherOf()
@@ -860,6 +867,16 @@ module.exports = ctx => {
 
   // ---------------------------------------------------------------- the far side (also the entry point when a new slice starts over there)
   async function netherSide (bot, job, api, ctx2, st, P) {
+    // WE MUST ACTUALLY BE THERE (measured 15:33:40Z: Riko reported `pair_probe from:[-122,64,-218] groundY:86` — an OVERWORLD
+    // column, because the crossing had double-transferred her through a stray gate and back out, while `dimOf` sampled inside
+    // `stepThrough` had briefly read `the_nether`. Every number after that was Nether coordinates measured on overworld ground).
+    // Nothing on this side of the code runs unless the bot is standing in the Nether, checked here and again before each work.
+    if (!isNether(bot)) {
+      netherWalkOff(bot)
+      A.result(bot, { ev: 'portal_bounced', job: job.id, at: xyz(bot.entity.position), dim: dimOf(bot), why: 'the gate put me back in the overworld (a stray gate in range) - no far-side work runs from here' })
+      st.through = 0; st.looked = false; st.landed = false; st.sealed = false; st.worked = false
+      return 'bounced back to ' + dimOf(bot) + ' at ' + xyz(bot.entity.position).join(',') + ': the gates are not paired'
+    }
     netherWalkOn(bot)
     task(bot, 'portal: the Nether — waiting for the world')
     for (let w = 0; w < 80 && !bot.world.getColumnAt(bot.entity.position); w++) await sleep(500)
