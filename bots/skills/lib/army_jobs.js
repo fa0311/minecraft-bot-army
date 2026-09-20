@@ -3188,7 +3188,7 @@ async function build (bot, job, api, ctx) {
   // ONE WALK OF THE BLUEPRINT SERVES A BATCH (same measurement: the loop ran `todo()` again after EVERY single block, so a 30 000-cell fill was walked once per placed
   // block, three times per pass counting the two closing walks). The list is now reused for up to 8 cells or 6 s, and a queued cell is re-read once right before it is
   // worked and dropped when the world already satisfies it - so a mate's block is never placed twice and exactly the same cells get built.
-  let qDig = []; let qPut = []; let qUsed = 0; let qT = 0
+  let qDig = []; let qPut = []; let qUsed = 0; let qT = 0; let qSkip = 0
   const satisfied = (c, cb) => { if (!cb || c.redo || c.block === 'water') return false; if (c.block === 'air') return cb.name === 'air' || cb.name === 'cave_air'; if (c.solid) return solid(cb); if (c.fillOnly && !c.solid) return solid(cb) && !GROUND_TREE_RE.test(cb.name); return cb.name === c.block || !!(c.mats && c.mats.includes(cb.name) && !exact(c)) }
   while (!api.stop() && streak < 8 && done < 120) {
     if (qUsed >= 8 || Date.now() - qT > 6000 || (!qDig.length && !qPut.length)) {
@@ -3223,7 +3223,10 @@ async function build (bot, job, api, ctx) {
       }
     }
     { const i = qDig.indexOf(c); if (i >= 0) qDig.splice(i, 1); else { const j = qPut.indexOf(c); if (j >= 0) qPut.splice(j, 1) } qUsed++ } // taken out of the batch: never worked twice
-    if (satisfied(c, bot.blockAt(new Vec3(c.x, c.y, c.z)))) continue // a mate got there first while this batch was running
+    // a mate got there first while this batch was running. With 30+ bots on one site most of a batch can go that way, and the pass then reported `done:0` although the
+    // squad was working (west_terrace_cut_2, half its passes) - which the dispatcher's yield throttle reads as an idle job. Three skips in a row force a fresh walk.
+    if (satisfied(c, bot.blockAt(new Vec3(c.x, c.y, c.z)))) { qSkip++; if (qSkip >= 3) { qUsed = 8; qSkip = 0 } continue }
+    qSkip = 0
     let r
     // STONE IS NEVER PUNCHED (world 2, 09-19: requireHarvest:false dug stone by hand = 7 s a block and NO drop while the army owned 1 cobblestone): a cell that needs a
     // pickaxe gets one first (getPick: depot -> stone -> the day-one wooden one). A pit (quarry) without a pickaxe is pointless: the builder is handed back.
@@ -3379,7 +3382,28 @@ async function build (bot, job, api, ctx) {
     const ko = (A.settings().keepOut || []).find(q => Array.isArray(q && q.box) && q.box.length === 4 && bx.x1 >= Math.min(q.box[0], q.box[2]) && bx.x2 <= Math.max(q.box[0], q.box[2]) && bx.z1 >= Math.min(q.box[1], q.box[3]) && bx.z2 <= Math.max(q.box[1], q.box[3]))
     if (ko && !openCols) { st.completeSaid = true; A.result(bot, { ev: 'fill_complete', job: job.id, box: [bx.x1, bx.z1, bx.x2, bx.z2], grade: fillG, keepOut: ko.id, note: 'flush, no pinhole, nothing above grade - the keep-out can go' }) }
   }
-  if (isFill && !n && pin.length) { A.result(bot, { ev: 'fill_pinholes', job: job.id, n: pin.length, cells: pin.slice(0, 6).join(' | ') }); A.decline(bot, job, 180000, 'build: ' + pin.length + ' pinholes left in the floor'); return muster(bot, job, api, ctx, 'build: ' + pin.length + ' pinholes left in the floor') }
+  // A PINHOLE IS CLOSED, AND A TAIL THAT CANNOT BE CLOSED ENDS (owner 14:0xZ 「12時間以上経過して未だに穴埋め終わって無い」). The sky flood never offers a 1x1 cell whose four
+  // sides are already solid, so the old branch only REPORTED them and declined for 3 min - fill_ravine_n has been cycling its 64 pinholes like that for an hour while
+  // the board called it active. Now the builder works them itself: the cell over the hole is opened when our own filler caps it, a gravity block is dropped down the
+  // shaft, else the block is placed from the rim; three rounds (st.pinRound) and whatever is still open is counted as DONE with `fill_pinholes {gaveUp}` - a fill may
+  // not hold a squad for ever over cells nobody can reach.
+  if (isFill && !n && pin.length) {
+    st.pinRound = (st.pinRound || 0) + 1
+    let closed = 0
+    const item0 = matsOf(f0).find(q => A.count(bot, q)) || (await restock(), matsOf(f0).find(q => A.count(bot, q)))
+    if (item0) for (const k of pin.slice(0, 24)) {
+      if (api.stop()) break
+      const [px, py, pz] = k.split(',').map(Number)
+      const up = at(px, py + 1, pz)
+      if (up && solid(up) && !U.protectedBlock(up) && !A.ourBlock(up.position, up.name)) { const d = await BL.digBlock(bot, new Vec3(px, py + 1, pz), { collect: true, requireHarvest: false, plug: false, own: job.id }).catch(() => ({ ok: false })); if (!d.ok) continue }
+      const r0 = await fillCell({ x: px, y: py, z: pz, g: fillG, solid: true, block: item0 }, item0).catch(() => ({ ok: false }))
+      if (r0 && r0.ok) { closed++; done++ }
+    }
+    const openLeft = pin.filter(k => { const [px, py, pz] = k.split(',').map(Number); return !solid(at(px, py, pz)) }).length
+    A.result(bot, { ev: 'fill_pinholes', job: job.id, n: pin.length, closed, left: openLeft, round: st.pinRound, cells: pin.slice(0, 4).join(' | ') })
+    if (openLeft && st.pinRound < 3) { A.decline(bot, job, 120000, 'build: ' + openLeft + ' pinholes left in the floor'); return muster(bot, job, api, ctx, 'build: ' + openLeft + ' pinholes left in the floor') }
+    if (openLeft) A.result(bot, { ev: 'fill_pinholes', job: job.id, left: openLeft, gaveUp: true, note: 'three rounds could not close them (sealed rock pockets): counted as done, the fill is finished' })
+  }
   // A TAIL DOES NOT HOLD A SQUAD (gemba 11:19Z: 25 builders on fill_ravine_m, 153 cells left, 1.0 cells/min/bot, 6 of them standing still; 31 bots cycled through the
   // LAST 2 cells of fill_ravine_n). What is open NOW = the cells left minus the ones that only wait for their support, their mate or their material - a fill's last
   // columns are reached by two or three builders at once, never by twenty. Under 8 open cells per builder, everyone above rank ceil(open/8) in the crew hands itself

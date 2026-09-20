@@ -116,6 +116,7 @@ blueprint `level`), then build/plant on it; never deck a hole (`fill_void`); tea
    reusable stair, choose land that suits the task (the world is huge), share services, and keep ALL 50 bots working in big squads
    (数の暴力) — a bot idling at muster by day is a planning failure. Size everything x50. The five questions in `docs/GOALS.md` →
    "Doctrine" decide every order you give. Read them before adding or changing any job.
+0b. **No make-work (owner 09-20).** A job whose product already stands far over its target (wool 10 000 / 150 ...) has NO place on the board - remove it, do not staff it "a little". Tending animals, baking, foraging, bed-making, cutting hills for material we own: only when a measured need exists. Free hands go to what moves the roadmap (holes closed, Nether, iron, the next P-stage), and if nothing on the board can use them, THAT is the finding to fix.
 1. **Flat organisation, two roles, no pyramid.** (a) The field operator on a CHEAP model (sonnet/haiku) runs the army day to day with
    this file: reads status/field/events, writes `steps` plans, switches jobs, rescues bots. It does NOT edit code (only the board through
    `armyctl.js`); a suspected code bug goes to `docs/BUGS.md` with evidence. (b) The top model (Fable) - and, since the owner's word of 09-20 (Fable's weekly limit), Opus 5 subagents with a precise brief and disjoint files - write permanent assets:
