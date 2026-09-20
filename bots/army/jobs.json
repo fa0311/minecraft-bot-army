@@ -4057,7 +4057,7 @@
    "type": "build",
    "priority": 66,
    "front": "works",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 13,
    "minBots": 6,
@@ -4085,7 +4085,14 @@
      "h": 22
     }
    },
-   "rev": 6
+   "rev": 6,
+   "stuckBy": {
+    "key": "rev6",
+    "bots": [
+     "Akari"
+    ]
+   },
+   "note": "auto-paused: build complete"
   },
   {
    "id": "nether_road_xp",
