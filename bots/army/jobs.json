@@ -1615,13 +1615,20 @@
     "t": 1789924913245
    },
    "absorb": {
-    "leather": 96,
+    "leather": 192,
+    "flint": 600,
     "coal": 480,
     "iron_ingot": 144,
-    "flint": 288,
-    "diamond": 12
+    "diamond": 12,
+    "carrot": 704,
+    "wheat": 640,
+    "pumpkin": 216,
+    "melon": 144,
+    "white_wool": 288,
+    "black_wool": 288,
+    "beetroot": 240
    },
-   "absorbT": 1789937976250
+   "absorbT": 1789939881361
   },
   "enchantTable": [
    -344,
@@ -2039,8 +2046,8 @@
     }
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
-   "bots": 8,
-   "rev": 60,
+   "bots": 14,
+   "rev": 61,
    "restUntil": 1789938033428
   },
   {
@@ -2227,9 +2234,9 @@
     "radius": 150,
     "bankAt": 32
    },
-   "rev": 12,
+   "rev": 13,
    "bots": 1,
-   "restUntil": 1789937960840
+   "restUntil": 1789940090469
   },
   {
    "id": "sleeper",
@@ -2316,7 +2323,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789938025613
+   "restUntil": 1789939970457
   },
   {
    "id": "fill_ring_field2",
@@ -2925,7 +2932,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 1,
    "site": [
     -311,
     69,
@@ -3156,7 +3163,7 @@
     },
     "order": "near"
    },
-   "rev": 65,
+   "rev": 71,
    "desc": "MEASURED 16:3xZ by probe: 44 columns (444 cells) still open to the sky = this job (narrow deep shafts: step off / water drop in, pillar out = the column is filled); 3172 air cells lie UNDER the crust below grade = NOT reachable from above, they belong to the cavity job (owner algorithm: shaft down, fill riding up). `left` counts both - do not judge this job by `left`, and do not raise the crew over the number of open shafts",
    "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -333,58,-483",
    "restUntil": 1789906650052,
@@ -3682,7 +3689,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789938466729
+   "restUntil": 1789940381158
   },
   {
    "id": "nether_landing_2",
@@ -5980,7 +5987,7 @@
     "carry": 320
    },
    "rev": 14,
-   "restUntil": 1789939213388
+   "restUntil": 1789941203081
   },
   {
    "id": "fill_buckets",
@@ -6297,7 +6304,7 @@
     ]
    },
    "rev": 4,
-   "restUntil": 0
+   "restUntil": 1789941069153
   },
   {
    "id": "mine_sweep",
@@ -6335,7 +6342,7 @@
     "bankAt": 48
    },
    "restUntil": 1789939014321,
-   "rev": 4
+   "rev": 5
   },
   {
    "id": "craft_gold_boots",
@@ -6515,7 +6522,7 @@
    "type": "build",
    "priority": 88,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 13,
    "site": [
@@ -6540,7 +6547,7 @@
     }
    },
    "rev": 5,
-   "note": "auto-reactivated: 3 columns below pad level (pad_uneven): -369,66,-497 | -365,66,-512 | -345,66,-515",
+   "note": "auto-paused: build complete - BUT 3 cells are left that 3 builders could not do (build_leftover): -369,67,-497 | -365,67,-512 | -345,67,-515",
    "cap": {
     "id": "cap_base_core_pad",
     "cols": 1225,
@@ -6550,9 +6557,11 @@
     "key": "rev5",
     "bots": [
      "Aoi",
-     "Chika"
+     "Chika",
+     "Rin"
     ]
-   }
+   },
+   "restUntil": 1789938880439
   },
   {
    "id": "cap_base_core_pad",
@@ -6942,13 +6951,13 @@
      "clear": 7
     }
    },
-   "rev": 3,
+   "rev": 4,
    "after": "void_fix_base_infill_n337_n555",
    "voidFix": {
-    "n": 1,
+    "n": 2,
     "id": "void_fix_base_infill_n337_n555",
-    "cols": 2,
-    "t": 1789937469550
+    "cols": 1,
+    "t": 1789939216047
    },
    "cap": {
     "id": "cap_base_infill_n337_n555",
@@ -6961,11 +6970,11 @@
    "type": "build",
    "priority": 70,
    "front": "works",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "site": [
-    -315,
+    -316,
     68,
     -525
    ],
@@ -6973,19 +6982,19 @@
    "params": {
     "blueprint": "fill_void",
     "origin": [
-     -315,
+     -316,
      68,
      -525
     ],
-    "unlid": 2,
+    "unlid": 3,
     "args": {
      "box": [
       -316,
       -525,
-      -315,
+      -316,
       -525
      ],
-     "depth": 4,
+     "depth": 5,
      "fill": "cobblestone",
      "mats": [
       "cobbled_deepslate",
@@ -7001,22 +7010,23 @@
      ]
     }
    },
-   "rev": 1,
-   "stuckBy": {
-    "key": "rev1",
-    "bots": [
-     "Hazuki"
-    ]
-   }
+   "rev": 2,
+   "restUntil": 1789938975683,
+   "cap": {
+    "id": "cap_void_fix_base_infill_n337_n555",
+    "cols": 3,
+    "t": 1789939173123
+   },
+   "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) - base_infill_n337_n555 (level, paused) has the SAME cell in its blueprint at -316,68,-525"
   },
   {
    "id": "cap_base_infill_n337_n555",
    "type": "build",
    "priority": 30,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 1,
    "site": [
     -326,
     69,
@@ -7041,6 +7051,14 @@
      "dirt": 128
     },
     "order": "near"
+   },
+   "rev": 2,
+   "note": "auto-activated: `after` void_fix_base_infill_n337_n555 finished (auto-paused: build complete - BUT 1 air cells stay sealed un)",
+   "stuckBy": {
+    "key": "rev2",
+    "bots": [
+     "Ayame"
+    ]
    }
   },
   {
@@ -7080,6 +7098,40 @@
     "cells": {}
    },
    "rev": 2
+  },
+  {
+   "id": "cap_void_fix_base_infill_n337_n555",
+   "type": "build",
+   "priority": 38,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -315,
+    69,
+    -525
+   ],
+   "plan": "the finished fill_void of void_fix_base_infill_n337_n555 is bare stone: cap the grade layer y68 of x -316..-314 / z -525..-525 with DIRT (grass spreads by itself). Only where bare stone, gravel or air stands - never paving, a field, a crop or another blueprint of ours - and only out of the dirt SURPLUS over targets.dirt 128",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -315,
+     68,
+     -525
+    ],
+    "args": {
+     "w": 3,
+     "d": 1,
+     "cap": true,
+     "fill": "dirt"
+    },
+    "needStock": {
+     "dirt": 128
+    },
+    "order": "near"
+   },
+   "note": "auto-paused: build complete"
   }
  ]
 }
