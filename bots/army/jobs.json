@@ -1593,7 +1593,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789914349970
+   "restUntil": 1789914776231
   },
   {
    "id": "fill_ring_field2",
@@ -1865,7 +1865,7 @@
    "id": "toolsmith_picks_fix",
    "type": "steps",
    "priority": 95,
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 2,
    "requires": {
@@ -1881,7 +1881,7 @@
     "steps": [
      {
       "do": "withdraw",
-      "item": "cobbled_deepslate",
+      "item": "cobblestone",
       "n": 48
      },
      {
@@ -1892,26 +1892,35 @@
      {
       "do": "goto",
       "to": [
-       -337,
+       -345,
        69,
-       -460
+       -523
       ],
       "range": 2
      },
      {
       "do": "craft",
       "item": "stone_pickaxe",
-      "n": 8
+      "n": 2
      },
      {
       "do": "craft",
-      "item": "stone_axe",
-      "n": 4
+      "item": "stone_pickaxe",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "stone_pickaxe",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "stone_pickaxe",
+      "n": 2
      },
      {
       "do": "bank",
       "keep": {
-       "stone_pickaxe": 1,
        "torch": 16
       }
      },
@@ -1920,7 +1929,8 @@
       "s": 30
      }
     ]
-   }
+   },
+   "rev": 1
   },
   {
    "id": "fill_hole_field2",
@@ -2493,10 +2503,19 @@
     },
     "order": "near"
    },
-   "rev": 34,
+   "rev": 35,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check.",
    "note": "top model 14:1xZ: OPERATORS - DO NOT LOWER. open cells = left 3616 minus waiting 2920 = 696, so ceil(696/8) = 87 builders could work it at once; 20 is the cap. It reads done:0 because the last trench (x -306..-298 / z -461..-482, floor y52-55) has sheer walls and NO walkable entry, so the switchback ramp (x -300/-301, z -472..-478) can never be started: a ramp column is a solid cell built bottom-up and nobody can stand on the floor. It needs a way in built FROM THE TOP (ladder run, or a gravity-block ramp - gravel depot is 0, so fetch gravel first).",
-   "restUntil": 1789906650052
+   "restUntil": 1789906650052,
+   "way": {
+    "by": "Sumire",
+    "t": 1789914485515,
+    "at": [
+     -330,
+     41,
+     -486
+    ]
+   }
   },
   {
    "id": "fill_ravine_m",
@@ -3353,7 +3372,7 @@
    "type": "build",
    "priority": 96,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 10,
    "site": [
@@ -3610,7 +3629,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 14,
+   "bots": 20,
    "site": [
     -520,
     74,
@@ -3630,8 +3649,8 @@
      "h": 32
     }
    },
-   "rev": 8,
-   "note": "auto-paused: build_runaway - 4 digs of the same cell in one slice (dig/place loop) at -512,102,-485"
+   "rev": 11,
+   "note": "OWNER 09-20 14:3xZ: this cut is make-work (stone stock is 6x the measured need) - DO NOT re-activate it to keep bots busy. Dirt for the caps comes from stock + the fills cuts; if bots idle, fix why real work cannot take them"
   },
   {
    "id": "cap_ravine_nm",
@@ -3665,7 +3684,7 @@
     },
     "order": "near"
    },
-   "note": "top model 14:3xZ: per-COLUMN ownership is live (ownedCols) - the cap yields only the columns an ACTIVE fill has not filled yet. Watch build_runaway.",
+   "note": "needs: dirt (5 cells wait; every cell whose material exists is done or in work)",
    "rev": 2
   },
   {
@@ -3984,7 +4003,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 5,
+   "bots": 2,
    "site": [
     -256,
     68,
@@ -4008,7 +4027,8 @@
      "dirt": 128
     },
     "order": "near"
-   }
+   },
+   "rev": 1
   },
   {
    "id": "fill_minehead_pits",
@@ -4053,7 +4073,16 @@
     },
     "order": "near"
    },
-   "restUntil": 1789914466508
+   "restUntil": 1789915783603,
+   "way": {
+    "by": "Juri",
+    "t": 1789914477889,
+    "at": [
+     -328,
+     62,
+     -495
+    ]
+   }
   }
  ]
 }

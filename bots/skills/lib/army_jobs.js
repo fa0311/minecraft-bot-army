@@ -2852,7 +2852,8 @@ async function build (bot, job, api, ctx) {
         if (!open.has(K(c))) continue
         if (mates && mates.has(K(c))) { wait++; continue } // a mate's body / its last open side / the cell over its head: that block waits for the next pass
         if (wallsIn(c)) { wait++; continue } // it would stand 2 high right beside a bot (mine or a mate's feet): that bot steps up on the new floor first (see wallsIn)
-        if (DECOR.test(b.name)) { dig.push(Object.assign({}, c, { block: 'air', then: c, decor: b.name })); continue }
+        if (DECOR.test(b.name) || b.name === 'ladder') { dig.push(Object.assign({}, c, { block: 'air', then: c, decor: b.name })); continue } // ...a LADDER of our own way in (ladderWay) is taken back as the floor rises past it: the run is fill like everything else, and the cells above it stay a way in until the last one
+
         const side = () => [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1]].some(([dx, dy, dz]) => solid(at(c.x + dx, c.y, c.z + dz)))
         const hot = b.name === 'lava'
         if (!hot && lavaOn && nearLava(c.x, c.y, c.z)) { wait++; continue } // touches lava: its lava neighbour is quenched first, nobody stands here meanwhile
@@ -3217,8 +3218,83 @@ async function build (bot, job, api, ctx) {
     if (!st.rodeUp) { st.rodeUp = true; A.result(bot, { ev: 'fill_ride_up', job: job.id, from: [from.x, from.y, from.z], blocks: up }) }
     return area() > 3 || bot.entity.position.y > fillG
   }
+  // A PIT DEEPER THAN 4 GETS A WAY IN, AND IT IS A LADDER RUN (owner 09-20 14:1xZ 「12時間以上経過して未だに穴埋め終わって無いってありえない」). MEASURED on fill_ravine_s
+  // (trench x -306..-298 / z -461..-482, floor y52-55, sheer 14-high walls): 20 builders, `left 3616, waiting 2920`, **done 0 for hours** - the cell-choice rule rightly
+  // never drops a builder 14 blocks, and a `ramp` is a SOLID column that only somebody already standing on the floor can raise, so the trench could not be started at
+  // all. A good player carries ladders: ONE builder (claimed on the board as `j.way`, 5 min) hangs a run on a wall face of the pit from the rim DOWN, standing on the
+  // ladders it has just placed - sneak holds a bot on a ladder and nothing else does (prismarine-physics: vel.y = sneak ? 0 : -0.15), so the descent is exact and it
+  // never steps past the lowest ladder that stands. From then on the WHOLE crew walks in and out on it (army.js `climbRule`: a step down into a ladder cell is a
+  // 1-block move, not a 14-block fall). The run is part of the fill: as the floor rises past a ladder cell it is dug like decor and filled (see the `solid` branch of
+  // todo). 16 ladders = 42 sticks = ~11 logs of the 2800 in stock. Movement stays READ-ONLY: this is a built way, the same for everybody, not a private shortcut.
+  const ladderWay = async () => {
+    if (!f0 || (st.wayT || 0) > Date.now() - 300000 || depthNow() > 0 || !Number.isFinite(bx.x1)) return false
+    st.wayT = Date.now()
+    const me = bot.entity.position.floored(); let low = null
+    for (const c of cells) { if (!c.solid || Math.abs(c.x - me.x) > 20 || Math.abs(c.z - me.z) > 20 || c.y > fillG - 5) continue; if (low && c.y >= low.y) continue; if (solid(at(c.x, c.y, c.z))) continue; low = c }
+    if (!low) return false // no open cell more than 4 below grade near me: no pit to get into
+    let G = null; try { G = require('mineflayer-pathfinder').goals } catch (e_) { swallow('army_jobs:wayGoals', e_); return false }
+    try { const r = bot.pathfinder.getPathTo(bot.pathfinder.movements, new G.GoalNear(low.x, low.y, low.z, 2), 1500); if (r && r.status === 'success') return false } catch (e_) { swallow('army_jobs:wayPath', e_); return false } // there IS a way in (a ramp, the risen floor, an older run)
+    let mine = false
+    A.boardEdit(b => { const j = (b.jobs || []).find(z => z.id === job.id); if (!j) return; if (j.way && j.way.by !== bot.username && Date.now() - j.way.t < 300000) return; j.way = { by: bot.username, t: Date.now(), at: [low.x, low.y, low.z] }; mine = true })
+    if (!mine) return false // a mate is hanging the run right now
+    // the column for the run: open from grade down to a floor 4+ below, a SOLID wall on one side for the whole run (every ladder needs the block behind it), and a
+    // stand on the rim on top of that wall. Nearest to the deepest open cell first, so the way in lands where the work is.
+    let site = null
+    for (let rad = 1; rad <= 16 && !site; rad++) {
+      for (let x = Math.max(bx.x1, low.x - rad); x <= Math.min(bx.x2, low.x + rad) && !site; x++) for (let z = Math.max(bx.z1, low.z - rad); z <= Math.min(bx.z2, low.z + rad) && !site; z++) {
+        if (Math.max(Math.abs(x - low.x), Math.abs(z - low.z)) !== rad || solid(at(x, fillG, z))) continue
+        let fy = null; for (let y = fillG; y >= fillG - 24; y--) { const q = at(x, y, z); if (!q) break; if (solid(q)) { fy = y + 1; break } }
+        if (fy == null || fillG - fy < 4) continue
+        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+          let ok = true
+          for (let y = fy - 1; y <= fillG && ok; y++) { const q = at(x + dx, y, z + dz); if (!q || !solid(q) || U.protectedBlock(q)) ok = false }
+          if (!ok || solid(at(x + dx, fillG + 1, z + dz)) || solid(at(x + dx, fillG + 2, z + dz))) continue // ...and a mate can stand on the wall top to use it
+          site = { x, z, dx, dz, fy }; break
+        }
+      }
+    }
+    if (!site) { A.result(bot, { ev: 'fill_wayin', job: job.id, ok: false, why: 'no column with a solid wall face from grade down to the floor within 16 of ' + K(low) }); return false }
+    const n = fillG - site.fy + 1
+    if (A.count(bot, 'ladder') < n) { task(bot, 'build: ' + n + ' ladders for the way into the pit'); await A.obtain(bot, 'ladder', n, { stop: api.stop }).catch(e_ => { swallow('army_jobs:wayObtain', e_) }); task(bot, 'build ' + P.blueprint) }
+    if (A.count(bot, 'ladder') < 2) { A.result(bot, { ev: 'fill_wayin', job: job.id, ok: false, why: 'no ladders: ' + A.count(bot, 'ladder') + ' carried, ' + A.stockOf('ladder') + ' in the depot, ' + A.stockOf('stick') + ' sticks' }); return false }
+    task(bot, 'build: hanging the way into the pit')
+    if (!await A.travel(bot, { x: site.x + site.dx, y: fillG + 1, z: site.z + site.dz }, { range: 1, ms: 120000, stop: api.stop })) { A.result(bot, { ev: 'fill_wayin', job: job.id, ok: false, why: 'cannot reach the rim stand ' + [site.x + site.dx, fillG + 1, site.z + site.dz].join(',') }); return false }
+    const faces = [new Vec3(-site.dx, 0, -site.dz), new Vec3(0, -1, 0)] // the wall behind the ladder first, the ladder above it as the fallback reference
+    const hang = async y => { const r = await BL.placeBlock(bot, new Vec3(site.x, y, site.z), 'ladder', { faces, expect: 'ladder', retries: 1, noMove: y < fillG, moveMs: 10000 }).catch(e_ => ({ ok: false, reason: String(e_ && e_.message).slice(0, 30) })); return r }
+    const slideTo = async y => { // release the sneak: the ladder carries the bot down at 0.15/tick; sneak stops it again, always inside a cell that HAS a ladder
+      bot.setControlState('sneak', false)
+      const t1 = Date.now() + 8000
+      while (Date.now() < t1 && !api.stop() && bot.entity.position.y > y + 0.45) await sleep(50)
+      bot.setControlState('sneak', true); await sleep(150)
+      const p = bot.entity.position
+      return Math.floor(p.x) === site.x && Math.floor(p.z) === site.z && Math.floor(p.y) === y
+    }
+    let placed = 0; let why = ''
+    try {
+      const r0 = await hang(fillG)
+      if (!r0.ok) why = 'the top ladder ' + [site.x, fillG, site.z].join(',') + ': ' + r0.reason
+      else {
+        placed++
+        await bot.lookAt(new Vec3(site.x + 0.5, fillG + 0.5, site.z + 0.5), true).catch(e_ => { swallow('army_jobs:wayLook', e_) })
+        bot.setControlState('forward', true) // one step off the rim INTO the ladder cell one below: a 1-block drop the ladder catches
+        const t0 = Date.now() + 3000
+        while (Date.now() < t0 && !(Math.floor(bot.entity.position.x) === site.x && Math.floor(bot.entity.position.z) === site.z)) await sleep(50)
+        bot.setControlState('forward', false); bot.setControlState('sneak', true); await sleep(200)
+        if (Math.floor(bot.entity.position.y) > fillG) why = 'could not step into the ladder column from the rim'
+        else for (let y = fillG - 1; y >= site.fy; y--) {
+          const r = await hang(y)
+          if (!r.ok) { why = 'ladder ' + [site.x, y, site.z].join(',') + ': ' + r.reason; break }
+          placed++
+          if (!await slideTo(y)) { const p = bot.entity.position.floored(); why = 'the descent left the run at ' + [p.x, p.y, p.z].join(',') + ' (wanted ' + [site.x, y, site.z].join(',') + ')'; break }
+        }
+      }
+    } catch (e_) { swallow('army_jobs:ladderWay', e_); why = String(e_ && e_.message).slice(0, 40) } finally { bot.setControlState('sneak', false); bot.setControlState('forward', false) }
+    A.result(bot, Object.assign({ ev: 'fill_wayin', job: job.id, ok: placed >= n - 1, ladders: placed, of: n, top: [site.x, fillG, site.z], floor: site.fy, wall: [site.dx, site.dz] }, why ? { why } : {}))
+    return placed > 0
+  }
   const needNote = (miss, nWait) => { st.miss = st.miss || {}; st.miss[miss] = Date.now(); const all = Object.keys(st.miss).filter(k => Date.now() - st.miss[k] < 600000).sort().join(', '); A.boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (j && j.status === 'active' && !(j.note || '').startsWith('needs: ' + all + ' ')) j.note = 'needs: ' + all + ' (' + nWait + ' cells wait; every cell whose material exists is done or in work)' }) }
   task(bot, 'build ' + P.blueprint)
+  if (f0) await ladderWay() // a pit with no way in gets one BEFORE this builder spends its slice on cells 14 blocks under its feet (see ladderWay)
   // ONE WALK OF THE BLUEPRINT SERVES A BATCH (same measurement: the loop ran `todo()` again after EVERY single block, so a 30 000-cell fill was walked once per placed
   // block, three times per pass counting the two closing walks). The list is now reused for up to 8 cells or 6 s, and a queued cell is re-read once right before it is
   // worked and dropped when the world already satisfies it - so a mate's block is never placed twice and exactly the same cells get built.

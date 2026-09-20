@@ -553,6 +553,13 @@ let _larder = { t: 0, ok: true }
 // Half the target is the honest line ("we are still fine"), never more than the old 256 and never less than 64.
 function larderGate () { const t = (settings().targets || {}).food; return Math.max(64, Math.min(256, t > 0 ? t / 2 : 256)) }
 function larderFull () { if (Date.now() - _larder.t > 120000) { _larder.t = Date.now(); try { _larder.ok = require('../../army/stock.js').have('food') >= larderGate() } catch (e_) { _larder.ok = true } } return _larder.ok } // stock.js reads 50 heartbeat files: once per 2 min, not per trip
+function climbRule (mv) { // idempotent, and applied to the LIVE Movements object in travel() too: it is built once per worker start, so a hot-reloaded rule would otherwise never reach the 50 bots that are already walking
+  if (!mv || mv.__armyClimb || typeof mv.getLandingBlock !== 'function') return mv
+  const glb = mv.getLandingBlock.bind(mv)
+  mv.getLandingBlock = (node, dir) => { const b = mv.getBlock(node, dir.x, -1, dir.z); if (b && b.climbable && !mv.blocksToAvoid.has(b.type)) return b; return glb(node, dir) }
+  mv.__armyClimb = true
+  return mv
+}
 function strictMovements (bot) {
   const mv = new Movements(bot)
   // RUN (owner 09-20: "効率を上げるための作業は惜しみなくやるべき … 走る"): sprinting was banned in world 1 to save food (1 hunger point per ~40 m);
@@ -577,6 +584,13 @@ function strictMovements (bot) {
   // one has boundingBox 'block' with NO shapes: neither "safe" nor "openable work" -> impassable. Probe on Yui: partial -> success with this rule.
   const gb = mv.getBlock.bind(mv)
   mv.getBlock = (pos, dx, dy, dz) => { const b = gb(pos, dx, dy, dz); if (b && b.openable && b.shapes && b.shapes.length === 0) { b.safe = true; b.physical = false } return b }
+  // A LADDER IS A WAY DOWN, NOT A 14-BLOCK FALL (owner 09-20 14:1xZ 「12時間以上経過して未だに穴埋め終わって無い」: the south ravine trench, floor y52-55 under sheer
+  // 14-high walls, had NO entry - `left 3616, waiting 2920, done 0` for hours). `climbables` holds the ladder id (pathfinder default, we never dropped it), so climbing
+  // UP works (getMoveUp, cost 1 per block); going DOWN did not, because getLandingBlock walks a ladder column through as EMPTY air - a ladder is `safe` but not
+  // `physical` - and lands on the rock 14 below, over maxDropDown. One rule: a step down into a ladder cell lands ON THE LADDER, one block, cost 1 - so the A* chains
+  // the run cell by cell, in and out, and the way in a fill builds (army_jobs `ladderWay`) is a way for all 50. Nothing else in the world is climbable (vines are off
+  // in mineflayer-pathfinder), so no other route changes price.
+  climbRule(mv)
   try { require('./terrain_guard').install(bot) } catch (e_) { swallow('army:tgInstall', e_) } // idempotent; a new guard VERSION reaches running bots here (the manager installs it only at spawn)
   bot.pathfinder.setMovements(mv)
   bot.mv = mv
@@ -965,7 +979,7 @@ async function travel (bot, target, opts = {}) {
   const mv0 = bot.pathfinder.movements
   // RUN: the Movements object lives for hours (strictMovements runs at worker start / after a death) - the larder is asked per TRIP, and a new terrain-guard
   // version is installed here (measured 09-20 06:20Z: 50/50 bots allowSprinting=false, the guard's old timer kept switching it off)
-  try { require('./terrain_guard').install(bot); if (mv0) mv0.allowSprinting = larderFull() && bot.food > 6 } catch (e_) { swallow('army:travelSprint', e_) }
+  try { require('./terrain_guard').install(bot); climbRule(mv0); if (mv0) mv0.allowSprinting = larderFull() && bot.food > 6 } catch (e_) { swallow('army:travelSprint', e_) }
   if (surfaceTrip && mv0 && !mv0.exclusionAreasStep.includes(floorRule)) mv0.exclusionAreasStep.push(floorRule)
   if (keepOn && mv0) mv0.exclusionAreasStep.push(keepRule)
   const ms0 = overworldBot(bot) ? musterPos() : null // the muster is an overworld place: no homeward drop bias in another world
