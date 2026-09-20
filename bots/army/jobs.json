@@ -1336,8 +1336,8 @@
     98,
     -80
    ],
-   "through": 1789921822863,
-   "scoutRev": 0,
+   "through": 1789922843931,
+   "scoutRev": 6,
    "hub": {
     "room": [
      -41,
@@ -1437,7 +1437,7 @@
    ],
    "shellY": 98,
    "returnJob": "nether_return",
-   "deaths": 2,
+   "deaths": 1,
    "deathsResetAt": 1789910779294,
    "deathsResetWhy": "owner 13:2xZ: death is an accepted cost of exploring the Nether; the brake is 6 in 30 min",
    "landing": [
@@ -1449,9 +1449,9 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789918122175,
-   "back": 1789921605427,
-   "lastDeath": 1789920279821,
-   "lastDeathBy": "Hazuki",
+   "back": 1789923020391,
+   "lastDeath": 1789922833587,
+   "lastDeathBy": "Sakura",
    "roads": {
     "x+": {
      "from": [
@@ -1478,8 +1478,7 @@
    "outAt": 1789915921402,
    "outBy": "Rin",
    "deathLog": [
-    1789919534346,
-    1789920279821
+    1789922833587
    ],
    "sightings": [],
    "fortress": null,
@@ -1550,25 +1549,25 @@
     73,
     27
    ],
-   "surveyed": 1789922148941,
+   "surveyed": 1789923023950,
    "villagers": 9,
    "professions": {
-    "farmer": 2,
     "leatherworker": 4,
     "weaponsmith": 1,
+    "farmer": 2,
     "toolsmith": 1,
     "unknown": 1
    },
    "beds": 12,
    "stations": {
-    "smithing_table": 1,
     "grindstone": 1,
-    "blast_furnace": 2,
     "loom": 1,
-    "composter": 2,
-    "smoker": 1,
+    "smithing_table": 1,
+    "barrel": 1,
     "lectern": 1,
-    "barrel": 1
+    "blast_furnace": 2,
+    "smoker": 1,
+    "composter": 2
    },
    "golems": 2,
    "bounds": [
@@ -1579,44 +1578,44 @@
    ],
    "nearest": [
     [
-     -724,
+     -740,
      72,
-     30
+     39
     ],
     [
-     -721,
-     72,
-     30
+     -740,
+     73,
+     42
     ],
     [
-     -719,
-     72,
-     27
-    ],
-    [
-     -718,
+     -741,
      71,
-     24
+     39
     ],
     [
-     -717,
+     -738,
+     70,
+     33
+    ],
+    [
+     -735,
+     87,
+     48
+    ],
+    [
+     -746,
+     79,
+     58
+    ],
+    [
+     -736,
+     85,
+     58
+    ],
+    [
+     -763,
      71,
-     31
-    ],
-    [
-     -717,
-     72,
-     32
-    ],
-    [
-     -717,
-     71,
-     25
-    ],
-    [
-     -744,
-     72,
-     38
+     48
     ]
    ],
    "post": {
@@ -1665,16 +1664,17 @@
     "t": 1789920643887
    },
    "absorb": {
-    "carrot": 352,
-    "wheat": 320,
-    "pumpkin": 72,
-    "melon": 48,
-    "coal": 480,
-    "iron_ingot": 48,
-    "flint": 600,
-    "leather": 192
+    "carrot": 1056,
+    "wheat": 800,
+    "pumpkin": 288,
+    "melon": 192,
+    "beetroot": 240,
+    "coal": 720,
+    "iron_ingot": 96,
+    "flint": 888,
+    "leather": 288
    },
-   "absorbT": 1789922014930
+   "absorbT": 1789922800385
   },
   "enchantTable": [
    -344,
@@ -1881,7 +1881,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 14,
    "site": [
     -367,
     69,
@@ -1917,7 +1917,7 @@
      ]
     ]
    },
-   "rev": 70,
+   "rev": 71,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789917857836
   },
@@ -2043,7 +2043,7 @@
     "cobblestone"
    ],
    "minBots": 14,
-   "maxBots": 20,
+   "maxBots": 30,
    "requires": {
     "minHp": 14,
     "minFood": 14
@@ -2063,7 +2063,7 @@
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 12,
-   "rev": 52,
+   "rev": 53,
    "restUntil": 1789922076785
   },
   {
@@ -2252,7 +2252,7 @@
    },
    "rev": 9,
    "bots": 2,
-   "restUntil": 1789920827391
+   "restUntil": 1789922834152
   },
   {
    "id": "sleeper",
@@ -2339,7 +2339,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789922121820
+   "restUntil": 1789922880200
   },
   {
    "id": "fill_ring_field2",
@@ -2948,7 +2948,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 2,
    "site": [
     -311,
     69,
@@ -3179,19 +3179,19 @@
     },
     "order": "near"
    },
-   "rev": 53,
+   "rev": 54,
    "desc": "MEASURED 16:3xZ by probe: 44 columns (444 cells) still open to the sky = this job (narrow deep shafts: step off / water drop in, pillar out = the column is filled); 3172 air cells lie UNDER the crust below grade = NOT reachable from above, they belong to the cavity job (owner algorithm: shaft down, fill riding up). `left` counts both - do not judge this job by `left`, and do not raise the crew over the number of open shafts",
    "note": "top model 15:1xZ: 655 OPEN cells (left 3216 minus waiting 2561) - do not lower; ladderWay (fill_wayin) needs builders standing on the RIM to hang the way in",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Ayame",
-    "t": 1789922134466,
+    "by": "Hotaru",
+    "t": 1789922999783,
     "at": [
-     -301,
-     60,
-     -477
+     -307,
+     65,
+     -461
     ],
-    "drop": 9
+    "drop": 4
    }
   },
   {
@@ -3705,7 +3705,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789922760401
+   "restUntil": 1789924581346
   },
   {
    "id": "nether_landing_2",
@@ -3867,7 +3867,7 @@
    "front": "works",
    "status": "paused",
    "when": "any",
-   "bots": 13,
+   "bots": 10,
    "minBots": 6,
    "maxBots": 30,
    "site": [
@@ -3893,7 +3893,7 @@
      "h": 22
     }
    },
-   "rev": 6,
+   "rev": 7,
    "stuckBy": {
     "key": "rev6",
     "bots": [
@@ -3946,9 +3946,9 @@
    "type": "build",
    "priority": 97,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "day",
-   "bots": 6,
+   "bots": 4,
    "site": [
     -326,
     68,
@@ -3966,18 +3966,19 @@
     "args": {
      "axis": "x",
      "clear": 6,
-     "margin": 6,
-     "stone": "cobbled_deepslate"
+     "margin": 6
     }
    },
    "stuckBy": {
-    "key": "rev0",
+    "key": "rev11",
     "bots": [
-     "Chika"
+     "Chino",
+     "Yukina",
+     "Hazuki"
     ]
    },
-   "note": "needs: cobblestone (150 cells wait; every cell whose material exists is done or in work)",
-   "rev": 8
+   "note": "auto-paused: 1 cells nobody could do: -324,67,-517",
+   "rev": 11
   },
   {
    "id": "base_mine_pad",
@@ -4661,7 +4662,7 @@
     },
     "order": "near"
    },
-   "rev": 5,
+   "rev": 7,
    "note": "needs: dirt (835 cells wait; every cell whose material exists is done or in work)",
    "restUntil": 1789922437833
   },
@@ -4799,7 +4800,7 @@
    },
    "rev": 9,
    "note": "needs: dirt (17 cells wait; every cell whose material exists is done or in work)",
-   "restUntil": 1789921354456
+   "restUntil": 1789922783977
   },
   {
    "id": "ladders_for_ravine",
@@ -5705,7 +5706,7 @@
    "type": "portal",
    "priority": 97,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "day",
    "bots": 1,
    "shiftMin": 20,
@@ -5743,9 +5744,9 @@
    "names": [
     "Aoi"
    ],
-   "rev": 5,
+   "rev": 6,
    "note": "CODE OWNER IS DRIVING THIS (15:5xZ, do not touch until 17:00Z): ONE pinned scout proves the crossing and builds the partner gate at the_nether -41,-65. OPERATORS: do NOT rescue this bot (a `stranded` line from the far gate is EXPECTED - the arrival pocket is 8 cells wide; the last rescue killed a fully kitted scout in the Nether at 15:51:49 and cost 14 obsidian), do NOT pause the job, do NOT add bots.",
-   "desc": "OWNER-LOCKED top model 16:1xZ, nether front. One pinned scout is proving the crossing and building the exact partner gate at the_nether -41,-65. The four deaths in this window were NOT the Nether: every one was an operator `rescue` (= a kill) on a `stranded` line that the 8-cell arrival pocket produces by itself (docs/BUGS.md 16:0xZ). Do not pause, do not rescue its bot, do not add bots."
+   "desc": "OWNER-LOCKED top model 16:3xZ, nether front: the causeway and the 15x15 partner platform at the_nether -41,-65. Deaths in this window were operator rescues, not the Nether. Do not pause, do not rescue its bot, do not add bots - the arrival is still the old 8-cell pocket until the platform stands."
   },
   {
    "id": "base_infill_minehead_mound",
@@ -6277,7 +6278,8 @@
      -455
     ]
    },
-   "rev": 9
+   "rev": 9,
+   "restUntil": 1789923426555
   },
   {
    "id": "fill_buckets",
@@ -6379,52 +6381,6 @@
    }
   },
   {
-   "id": "cane_to_paper",
-   "type": "steps",
-   "priority": 86,
-   "status": "active",
-   "when": "any",
-   "bots": 2,
-   "front": "industry",
-   "site": [
-    -345,
-    69,
-    -523
-   ],
-   "plan": "industry: the 2995 sugar-cane glut becomes paper (librarian buys 24 paper -> 1 emerald; paper+leather = the books the enchanted-book trade costs)",
-   "params": {
-    "repeat": true,
-    "steps": [
-     {
-      "do": "goto",
-      "to": [
-       -345,
-       69,
-       -523
-      ],
-      "range": 3,
-      "s": 300
-     },
-     {
-      "do": "withdraw",
-      "item": "sugar_cane",
-      "n": 192,
-      "atLeast": 48
-     },
-     {
-      "do": "craft",
-      "item": "paper",
-      "n": 64,
-      "s": 600
-     },
-     {
-      "do": "bank",
-      "keep": {}
-     }
-    ]
-   }
-  },
-  {
    "id": "base_depot_east",
    "type": "build",
    "priority": 78,
@@ -6474,7 +6430,7 @@
    "when": "day",
    "bots": 1,
    "names": [
-    "Aoi"
+    "Sakura"
    ],
    "site": [
     -326,
@@ -6506,7 +6462,8 @@
     "cobble": 64,
     "crossS": 30,
     "maxDeaths": 6
-   }
+   },
+   "rev": 1
   },
   {
    "id": "nether_gate_road",
@@ -6547,6 +6504,129 @@
     "bots": [
      "Kanade"
     ]
+   }
+  },
+  {
+   "id": "village_breed",
+   "type": "trade",
+   "priority": 97,
+   "status": "active",
+   "when": "any",
+   "front": "industry",
+   "site": [
+    -714,
+    73,
+    27
+   ],
+   "shiftMin": 45,
+   "plan": "zone: village outpost (docs/WORLD.md) - feed bread to the villagers so pairs breed into the free beds; nothing is built or broken",
+   "params": {
+    "work": "breed",
+    "at": [
+     -714,
+     73,
+     27
+    ],
+    "radius": 48,
+    "loaves": 96,
+    "each": 4,
+    "legS": 300
+   },
+   "bots": 1,
+   "rev": 1
+  },
+  {
+   "id": "bake_bread_industry",
+   "type": "steps",
+   "priority": 88,
+   "status": "active",
+   "when": "any",
+   "bots": 2,
+   "front": "industry",
+   "site": [
+    -345,
+    69,
+    -523
+   ],
+   "plan": "industry: wheat -> bread. Traders sprint 1250 blocks a trip (one arrived on hp1/food0) and villagers breed on bread; depot bread was 34",
+   "params": {
+    "repeat": true,
+    "steps": [
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       69,
+       -523
+      ],
+      "range": 3,
+      "s": 300
+     },
+     {
+      "do": "withdraw",
+      "item": "crafting_table",
+      "n": 1,
+      "atLeast": 1
+     },
+     {
+      "do": "place",
+      "block": "crafting_table",
+      "at": [
+       -343,
+       69,
+       -524
+      ]
+     },
+     {
+      "do": "withdraw",
+      "item": "wheat",
+      "n": 192,
+      "atLeast": 48
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 64,
+      "s": 600
+     },
+     {
+      "do": "bank",
+      "keep": {}
+     }
+    ]
+   },
+   "rev": 1
+  },
+  {
+   "id": "village_book",
+   "type": "trade",
+   "priority": 95,
+   "status": "active",
+   "when": "any",
+   "bots": 1,
+   "front": "industry",
+   "site": [
+    -746,
+    70,
+    32
+   ],
+   "shiftMin": 45,
+   "plan": "zone: village outpost (docs/WORLD.md) - re-roll OUR OWN lectern at -746,70,32 until the librarian's first book is Fortune/Mending/Unbreaking/Efficiency, then buy it to lock it. Only our own block is broken and it goes straight back",
+   "params": {
+    "work": "librarian",
+    "lectern": [
+     -746,
+     70,
+     32
+    ],
+    "want": [
+     "fortune",
+     "mending",
+     "unbreaking",
+     "efficiency"
+    ],
+    "rerolls": 10,
+    "legS": 300
    }
   }
  ]

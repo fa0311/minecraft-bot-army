@@ -843,7 +843,10 @@ module.exports = ctx => {
         const seg = cw.legs.slice(head, head + 6).reduce((a, L) => a.concat(L), [])
           .filter(c => !(c.rim && c.block === 'stone' && c.y === y0 - 1 && (b2 => b2 && b2.boundingBox === 'block')(bot.blockAt(new Vec3(c.x, y0, c.z)))))
         rb = await buildCells(bot, job, api, seg, cw.box, Math.min(until, Date.now() + 200000), 'pair-bridge')
-        if (rb.placed || rb.dug || rb.left) break
+        // WORK IS WORK; WHAT IS LEFT OVER IS NOT (16:43:01Z: `leg 1, placed 0, dug 0, steps 40, left 1` — ONE rim cell at
+        // -40,98,-79 that no stand of ours can reach held the head on the first segment for three trips, with eight legs of road
+        // still missing). A pass moves on unless it actually laid something; the leftovers are picked up when the road is walked.
+        if (rb.placed || rb.dug) break
         start = head + 6
       }
       if (!rb) rb = { placed: 0, dug: 0, steps: 0, left: 0, unloaded: 0, of: 0, leftAt: [] }
@@ -1207,6 +1210,7 @@ module.exports = ctx => {
   // frame with a diamond pickaxe (which also puts it out), bank it - we need 10 for the planned second gate and the depot holds 2 -
   // and never, ever touch the registered pair (`settings.nether.gate` / `settings.nether.portal`).
   async function degate (bot, job, api, at) {
+    const dim0 = dimOf(bot)
     const N = netherOf()
     // WHAT MUST NEVER BE TOUCHED IS WHAT HOLDS A BURNING PORTAL, not a box drawn round a coordinate (owner 16:2xZ "ネザー側に不要
     // なゲートがあります"; camera cell census 16:2xZ: the far side holds 28 obsidian = ONE live frame, -45..-42 / y97..101 / z-80,
@@ -1228,6 +1232,10 @@ module.exports = ctx => {
     const trav = (t, o) => netherHere(bot) ? nTravel(bot, t, o) : A.travel(bot, t, o) // over there every walk is lava-aware
     if (A.dist2(bot, c0.x, c0.z) > 24 && !await trav({ x: c0.x, y: c0.y, z: c0.z }, { range: 4, ms: 300000, stop: api.stop })) return { ok: false, why: 'cannot reach ' + at.join(',') }
     await sleep(500)
+    // CLOSE WHAT CAN BURN YOU BEFORE YOU TOUCH THE FRAME (measured 16:44:55Z: Sakura 'went up in flames' at the_nether
+    // -36,97,-75 taking the dead frame's last column down — there is a lava pocket at -36,98,-78, two blocks from it, and 28 iron
+    // + 5 diamond went with her). The arrival has had this rule since stage 1; the WORK SITE is just as hot.
+    if (netherHere(bot)) { const sealed = await sealNear(bot, api, 24); if (sealed) A.result(bot, { ev: 'nether_sealed', job: job.id, at: xyz(bot.entity.position), blocks: sealed, why: 'lava within arm\'s reach of the frame coming down' }) }
     const pk = A.bestOf(bot, 'pickaxe')
     if (!pk || !/diamond|netherite/.test(pk.name)) { if (!await A.obtain(bot, 'diamond_pickaxe', 1, { stop: api.stop }).catch(() => false)) return { ok: false, why: 'no diamond pickaxe' } }
     let got = 0; let left = 0
@@ -1251,11 +1259,16 @@ module.exports = ctx => {
       const fire2 = holdsFire()
       left = ids.length ? bot.findBlocks({ matching: ids, maxDistance: 12, count: 60, point: c0 }).filter(q => !keep.has(q.x + ',' + q.y + ',' + q.z) && !fire2.has(q.x + ',' + q.y + ',' + q.z)).length : 0 }
     const portalLeft = bot.findBlocks({ matching: b2 => !!b2 && b2.name === 'nether_portal', maxDistance: 12, count: 20, point: c0 }).length
-    A.result(bot, { ev: 'gate_removed', job: job.id, dim: dimOf(bot), at, obsidian: got, obsidianLeft: left, portalCellsLeft: portalLeft })
+    // A COUNT TAKEN IN THE WRONG WORLD IS NOT A COUNT (measured 16:46:53Z: Sakura reported `gate_removed {dim:'overworld', at:
+    // [-38,99,-76], obsidianLeft:0, portalCellsLeft:0}` — the trip had ended and she was home, so the chunk data under those Nether
+    // coordinates was the overworld's: a frame with FIVE blocks still standing read as taken down. A verdict says which world it
+    // was measured in, and an unverified pass never claims the job is finished.)
+    const verified = dimOf(bot) === dim0 && (dim0 !== 'the_nether' || netherHere(bot))
+    A.result(bot, { ev: 'gate_removed', job: job.id, dim: dimOf(bot), at, obsidian: got, obsidianLeft: verified ? left : null, portalCellsLeft: verified ? portalLeft : null, verified, why: verified ? undefined : 'the trip ended before the count: these coordinates were read in ' + dimOf(bot) })
     if (got && !netherHere(bot)) await A.bank(bot, { torch: 16 }, { job: job.id, stop: api.stop }).catch(e_ => swallow('jobs_nether:degateBank', e_)) // there is no depot on the far side: the obsidian comes home in the pocket
     // a DEAD frame is down when no obsidian of it is left; the LIVE gate we still travel through is expected to stand, so
     // its six cells are not counted against us (this job takes the dead ones only until the new pair has its round trips).
-    return { ok: left === 0, obsidian: got, left, portalLeft }
+    return { ok: verified && left === 0, verified, obsidian: got, left: verified ? left : null, portalLeft: verified ? portalLeft : null }
   }
   // WHEN IS A WORK JOB FINISHED? Read from the BOARD, never from one bot's memory — the next bot is in another process.
   // A short human reason when it is done, false while there is work left.

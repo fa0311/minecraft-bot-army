@@ -583,6 +583,7 @@ function heartbeat (bot, extra) {
   // reflex never reach a running bot
   if (bot.__armyGuard && (bot.__armyGuardT || 0) < LOADED_AT) { bot.__armyGuardT = LOADED_AT; startGuard(bot) }
   mealReflex(bot)
+  enchantsShim(bot)
   try { require('./moves').fallGuard(bot, r => result(bot, r)) } catch (e_) { swallow('army:fallGuard', e_) } // owner 09-20: an unplanned fall that would hurt gets a water-bucket landing when a bucket is carried (lib/moves.js)
   try { spotAnimals(bot) } catch (e_) { swallow('army:243', e_) }
   wear(bot).catch(e_ => swallow('army:wearTick', e_))
@@ -2153,6 +2154,21 @@ function gateCloser (bot) {
 // THE MEAL REFLEX (main 09-20 08:5xZ: 7 of 50 bots at food <= 10 WITH bread in the pocket, a miner at food 6 carrying 21 - the worker eats only BETWEEN slices, and a
 // 15-min mine / build slice is long enough to starve; a bot below 18 never regenerates, below 7 it cannot sprint). Every 4 s: hungry (<= 12, or hurt and <= 17), food
 // carried, hands free (not digging, no chest open, nobody else eating) -> feed.js eat rule, then the tool that was in the hand goes back. Re-armed by every hot reload.
+// 26.1 ITEMS BREAK mineflayer's digTime (op_nether 16:40Z: `dig: enchantments.concat is not a function` x8 on base_portal; probe: Fuuka holding the first
+// Fortune pick, `bot.digTime` throws for EVERY block): prismarine-item returns the raw component `{enchantments:[{id,level}]}` where mineflayer expects the old
+// array `[{name,lvl}]`. One shim on the Item prototype, entries carry BOTH spellings ({name,lvl,id,level}) so our own readers (iron_core.fortuneOf,
+// jobs_enchant.enchantsOf) and mineflayer all read the same thing. Without it every bot that is handed an enchanted tool can no longer dig.
+function enchantsShim (bot) {
+  try {
+    if (bot.__enchShim2) return
+    const any = bot.inventory.items()[0]; if (!any) return // the class the BOT's items are made of (the prismarine-item factory builds a new class per call): taken from a live item, retried until one exists
+    bot.__enchShim2 = true; const proto = Object.getPrototypeOf(any); const Item = { prototype: proto }; const d = Object.getOwnPropertyDescriptor(proto, 'enchants'); if (!d || !d.get || d.get.__armyShim) return
+    const g = d.get; const names = bot.registry.enchantmentsArray || []
+    const get = function () { const e = g.call(this); if (Array.isArray(e)) return e; const a = e && Array.isArray(e.enchantments) ? e.enchantments : []; return a.map(x => ({ name: typeof x.id === 'string' ? x.id.replace(/^minecraft:/, '') : ((names[x.id] || {}).name || String(x.id)), lvl: x.level, id: x.id, level: x.level })) }
+    get.__armyShim = true; Object.defineProperty(Item.prototype, 'enchants', Object.assign({}, d, { get }))
+  } catch (e_) { swallow('army:enchantsShim', e_) }
+}
+
 function mealReflex (bot) {
   if (bot.__armyMealT === LOADED_AT) return
   bot.__armyMealT = LOADED_AT; if (bot.__armyMeal) clearInterval(bot.__armyMeal)

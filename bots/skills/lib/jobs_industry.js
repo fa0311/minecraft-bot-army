@@ -14,6 +14,11 @@
 //                  the villagers (`params.cells:[{block,at:[x,y,z]}]`, coordinates probed with `armyctl.js ground`). An
 //                  unemployed villager claims the nearest unclaimed station, so a loom makes a shepherd who buys our wool and a
 //                  blast furnace makes an armorer who sells us iron armour. Nothing that already stands is touched.
+//   work:'breed'   MORE VILLAGERS: throw bread at every adult (3 loaves make one willing) so pairs breed into the free beds.
+//                  The village had 9 villagers and 1 unemployed, so four of our new workstations could never be claimed.
+//   work:'librarian' RE-ROLL THE BOOK: read the librarian's enchanted-book offer and, while he has never traded, break OUR
+//                  lectern and put it straight back until the book is one of `want` (fortune/mending/unbreaking/efficiency);
+//                  then BUY it, which locks it for ever. The way round the XP wall: book + tool on an anvil costs a few levels.
 //   work:'trade'   (default) the standing round trip: load the glut at the depot -> walk to the village -> sell to every villager
 //                  that buys what we carry -> buy what the army lacks with the emeralds -> walk home -> bank. `shiftMin` keeps the
 //                  bot on the job across 15-min slices; the phase lives on the bot (bot.__industry), so a slice boundary costs nothing.
@@ -22,7 +27,9 @@
 //   buy:[{re,want}]  what to bring back, in priority order (default: BUY below — iron armour first)
 //   maxPrice:20    never pay more than this many emeralds for one item (an enchanted book can ask 64)
 //   farmChest:[x,y,z]  the iron farm's collection chest; emptied on every visit (see the verb `collect_farm`)
-// VERB (usable in any `steps` plan): collect_farm {at:[x,y,z]} — empty the farm chest and MEASURE the yield per hour
+// VERBS (usable in any `steps` plan): collect_farm {at:[x,y,z]} — empty the farm chest and MEASURE the yield per hour
+//   · anvil {item:'diamond_pickaxe', with:'enchanted_book', at:[x,y,z]} — combine them on an anvil (31 iron) and read the
+//   result back off the tool. EVENTS: + breed_fed · book_offer · book_locked · book_locked_bad · trade_price · anvil_done
 //   (settings.industry.farm keeps the last emptying's time + total, so the rate is a measurement, not a guess).
 // EVENTS: village_seen · trade_offer (what a profession really buys/sells here) · trade_done {villager,sold,bought,emeralds} ·
 //   trade_none · trade_blocked (restock/locked) · iron_farm_take {items,iron,perHour}
@@ -132,6 +139,7 @@ module.exports = ctx => {
     let last = ''
     let lastT = 0
     while (!api.stop()) {
+      await nibble(bot)
       const line = await surveyOnce(bot, job, at, r, Date.now() - lastT > 10 * 60000 || !last)
       if (line !== last || Date.now() - lastT > 10 * 60000) { last = line; lastT = Date.now() }
       task(bot, 'village: ' + line)
@@ -339,6 +347,10 @@ module.exports = ctx => {
       const spare = A.stockOf(s.item) - (s.reserve || 0)
       if (spare < (s.min || 32)) continue
       const learned = I.absorb && I.absorb[s.item]
+      // A FRESH MEASUREMENT THAT DOES NOT MENTION THIS ITEM MEANS NOBODY THERE BUYS IT. Measured 16:45Z: both traders sprinted
+      // 624 blocks under 416 gray wool because the village still has no shepherd — five slots of dead weight per trip. `force`
+      // on a sell entry overrides this (a profession we are about to create).
+      if (fresh && learned == null && !s.force) continue
       // + a restock's worth of margin: a villager that restocks while we are there takes more than the last reading showed
       const wantN = learned != null ? Math.ceil(learned * (fresh ? 1.5 : 2.5)) : (s.n || 128)
       const n = Math.min(Math.max(wantN, s.min || 32), spare, Math.max(0, room - used))
@@ -399,13 +411,14 @@ module.exports = ctx => {
     const P = job.params || {}
     const at = P.at || industryOf().village
     if (!Array.isArray(at)) return muster(bot, job, api, ctx2, 'trade: no village yet — run a `work:"survey"` job first')
+    await nibble(bot)
     const st = bot.__industry = (bot.__industry && bot.__industry.key === job.id + ':' + (job.rev || 0)) ? bot.__industry : { key: job.id + ':' + (job.rev || 0), phase: 'load' }
     const home = A.chestsOf('food')[0] || A.musterPos()
 
     if (st.phase === 'load') {
       if (home && A.dist2(bot, home.x, home.z) > 40) {
         task(bot, 'trade: walking back to the depot to load')
-        if (!await A.travel(bot, v([home.x, home.y, home.z]), { range: 6, ms: 12 * 60000, stop: api.stop })) return 'trade: no route home to load'
+        if (!await A.travel(bot, v([home.x, home.y, home.z]), { range: 6, ms: (P.legS || 300) * 1000, stop: api.stop })) { await nibble(bot); return 'trade: no route home to load' }
       }
       const r = await loadCargo(bot, job, api)
       if (r.why) { A.decline(bot, job, 20 * 60000, r.why); return muster(bot, job, api, ctx2, 'trade: ' + r.why) }
@@ -416,7 +429,8 @@ module.exports = ctx => {
 
     if (st.phase === 'out') {
       task(bot, 'trade: walking to the village (' + at.join(',') + ')')
-      if (!await A.travel(bot, v(at), { range: 10, ms: 14 * 60000, stop: api.stop })) return 'trade: still on the road to the village'
+      if (!await A.travel(bot, v(at), { range: 10, ms: (P.legS || 300) * 1000, stop: api.stop })) { await nibble(bot); return 'trade: still on the road to the village' }
+      await nibble(bot)
       st.phase = 'trade'
     }
     if (api.stop()) return 'trade: at the village, trading next slice'
@@ -428,6 +442,7 @@ module.exports = ctx => {
       const absorb = {} // what this village could still take, learned from the offers — next trip's cargo size
       let n = 0
       let asleep = 0
+      let gained = 0 // emeralds EARNED on this visit, not the purse we walked in with (the purse would flatter every number)
       const seen = new Set()
       // SEVERAL PASSES. 624 blocks each way is the cost of the trip, so the trip is not over while a buyer is still unserved:
       // villagers walk away mid-visit, one is out of reach on a roof, one is asleep at dusk and awake ten minutes later. A pass
@@ -443,6 +458,7 @@ module.exports = ctx => {
           if (r.dry) seen.add(e.id) // nothing left on either side with this one: never open him again this visit
           if (r.sold) for (const [k, q] of Object.entries(r.sold)) sold[k] = (sold[k] || 0) + q
           if (r.bought) for (const [k, q] of Object.entries(r.bought)) bought[k] = (bought[k] || 0) + q
+          if (Number.isFinite(r.emeralds) && r.emeralds > 0) gained += r.emeralds
           if (Object.keys(r.sold || {}).length || Object.keys(r.bought || {}).length) { n++; did++ }
           // nothing left to sell and nothing left to buy: stop walking the village
           if (!cargoInPockets(bot) && !want.some(w => w.want > 0)) { pass = 99; break }
@@ -452,8 +468,7 @@ module.exports = ctx => {
       st.sold = sold; st.bought = bought
       if (Object.keys(absorb).length) industryEdit({ absorb, absorbT: Date.now() })
       const mins = st.t0 ? (Date.now() - st.t0) / 60000 : 0
-      const em = Object.values(sold).length ? A.count(bot, 'emerald') : 0
-      if (n) A.result(bot, { ev: 'trade_done', job: job.id, villagers: n, sold, bought, emeralds: em, tripMin: Math.round(mins * 10) / 10, emPerBotHour: mins > 1 ? Math.round(em / mins * 60) : null, absorb })
+      if (n) A.result(bot, { ev: 'trade_done', job: job.id, villagers: n, sold, bought, earned: gained, purse: A.count(bot, 'emerald'), tripMin: Math.round(mins * 10) / 10, emPerBotHour: mins > 1 ? Math.round(gained / mins * 60) : null, absorb })
       else A.result(bot, { ev: 'trade_none', job: job.id, at: xyz(bot.entity.position), villagers: villagersNear(bot, P.radius || 48).length, asleep, carrying: Object.keys(cargoNames(bot)).join(',') || 'nothing' })
       // everybody was in bed: hold the goods and try again rather than walking 624 blocks home with a full load
       if (!n && asleep) { await sleep(20000); return 'trade: ' + asleep + ' villagers asleep — waiting for morning' }
@@ -464,7 +479,7 @@ module.exports = ctx => {
     if (st.phase === 'home') {
       if (!home) { st.phase = 'load'; return 'trade: no depot to bank at' }
       task(bot, 'trade: walking home with the goods')
-      if (!await A.travel(bot, v([home.x, home.y, home.z]), { range: 6, ms: 14 * 60000, stop: api.stop })) return 'trade: still on the road home'
+      if (!await A.travel(bot, v([home.x, home.y, home.z]), { range: 6, ms: (P.legS || 300) * 1000, stop: api.stop })) { await nibble(bot); return 'trade: still on the road home' }
       const keep = { bread: 16 }
       const moved = await A.bank(bot, keep, { job: job.id, stop: api.stop })
       A.result(bot, { ev: 'trade_banked', job: job.id, items: moved })
@@ -525,7 +540,7 @@ module.exports = ctx => {
     if (st.phase === 'make') {
       if (home && A.dist2(bot, home.x, home.z) > 40) {
         task(bot, 'post: back to the depot to make the workstations')
-        if (!await A.travel(bot, v([home.x, home.y, home.z]), { range: 6, ms: 12 * 60000, stop: api.stop })) return 'post: no route to the depot'
+        if (!await A.travel(bot, v([home.x, home.y, home.z]), { range: 6, ms: (P.legS || 300) * 1000, stop: api.stop })) return 'post: no route to the depot'
       }
       // EMPTY POCKETS FIRST. Measured 15:44Z: Tamaki carried 800 wheat from an interrupted trade load, so every withdrawal in the
       // recipe chain hit `Bot inventory is full` and `obtain` reported `missing {iron_ingot:5, furnace:1}` while those very items
@@ -543,7 +558,7 @@ module.exports = ctx => {
     if (st.phase === 'out') {
       task(bot, 'post: carrying the workstations to the village')
       const first = cells[0].at
-      if (!await A.travel(bot, v(first), { range: 12, ms: 14 * 60000, stop: api.stop })) return 'post: still on the road to the village'
+      if (!await A.travel(bot, v(first), { range: 12, ms: 14 * 60000, stop: api.stop })) { await nibble(bot); return 'post: still on the road to the village' }
       st.phase = 'place'
     }
     if (api.stop()) return 'post: at the village, placing next slice'
@@ -569,6 +584,54 @@ module.exports = ctx => {
     }
     st.phase = 'make' // fetch what could not be made or placed and come back
     return 'post: ' + Object.keys(st.done).length + '/' + cells.length + ' stations stand; still to do: ' + left.map(c => c.block).join(',')
+  }
+
+  // ---------------------------------------------------------------- work:'breed' — MORE VILLAGERS, NOT A LONGER WALK
+  // Measured 16:35Z, after the seven workstations went down: professions farmer 2, leatherworker 4, toolsmith 1, weaponsmith 1,
+  // unknown 1. Nine villagers and only ONE still unemployed — so the loom, the lectern, the barrel and the smoker can never all
+  // be claimed here, and our wool and paper stay unsellable. The village is not short of workstations, it is short of PEOPLE.
+  // A villager becomes willing to breed when it picks up 3 bread (or 12 carrots/potatoes/beetroot), and a pair breeds when there
+  // is a FREE BED in the village. We have 12 beds for 9 villagers and 17 000 wheat: bread is the cheapest thing we own.
+  // No transport, no redstone, no cheat — a player throws bread at a village and comes back to more villagers.
+  async function breed (bot, job, api, ctx2) {
+    const P = job.params || {}
+    const at = P.at || industryOf().village
+    if (!Array.isArray(at)) return muster(bot, job, api, ctx2, 'breed: no village yet')
+    const loaves = P.loaves || 96
+    const home = A.chestsOf('food')[0] || A.musterPos()
+
+    if (A.count(bot, 'bread') < loaves / 2 && home && A.dist2(bot, home.x, home.z) < 200) {
+      task(bot, 'breed: drawing bread for the village')
+      if (A.dist2(bot, home.x, home.z) > 40) await A.travel(bot, v([home.x, home.y, home.z]), { range: 6, ms: (P.legS || 300) * 1000, stop: api.stop })
+      await A.obtain(bot, 'bread', loaves, { stop: api.stop }).catch(e_ => swallow('jobs_industry:breadBreed', e_))
+      await nibble(bot)
+    }
+    if (A.count(bot, 'bread') < 12) { A.decline(bot, job, 20 * 60000, 'no bread to feed the village with (bake wheat first)'); return muster(bot, job, api, ctx2, 'breed: no bread') }
+    if (A.dist2(bot, at[0], at[2]) > 40) {
+      task(bot, 'breed: carrying ' + A.count(bot, 'bread') + ' bread to the village')
+      if (!await A.travel(bot, v(at), { range: 10, ms: (P.legS || 300) * 1000, stop: api.stop })) { await nibble(bot); return 'breed: still on the road' }
+      await nibble(bot)
+    }
+
+    // FEED EVERY ADULT, 4 loaves each (3 makes it willing, the 4th covers a loaf another villager grabs first)
+    const bread = bot.registry.itemsByName.bread
+    let fed = 0
+    const each = P.each || 4
+    for (const e of villagersNear(bot, P.radius || 48)) {
+      if (api.stop() || A.count(bot, 'bread') < each) break
+      if (isAsleep(bot, e)) continue
+      if (!await A.travel(bot, e.position, { range: 2, ms: 30000, stop: api.stop, quiet: true })) continue
+      try {
+        await bot.lookAt(e.position.offset(0, 0.5, 0), true)
+        await U.withTimeout(bot.toss(bread.id, null, each), 6000, 'tossBread')
+        fed++
+      } catch (e_) { swallow('jobs_industry:toss', e_) }
+      await sleep(600)
+    }
+    const I = industryOf()
+    A.result(bot, { ev: 'breed_fed', job: job.id, villagers: fed, loaves: fed * each, left: A.count(bot, 'bread'), population: I.villagers || null, beds: I.beds || null, why: 'fed villagers breed when a FREE BED stands in the village (' + (I.beds || '?') + ' beds for ' + (I.villagers || '?') + ' villagers); the survey job counts the babies' })
+    if (!fed) { await sleep(20000); return 'breed: nobody to feed (all asleep or out of reach)' }
+    return 'breed: fed ' + fed + ' villagers ' + (fed * each) + ' bread'
   }
 
   // ---------------------------------------------------------------- work:'librarian' — THE WAY AROUND OUR XP WALL
@@ -617,7 +680,7 @@ module.exports = ctx => {
         await A.withdraw(bot, 'emerald', Math.min(64, A.stockOf('emerald')), { stop: api.stop }).catch(e_ => swallow('jobs_industry:purse', e_))
       }
       task(bot, 'librarian: walking to the lectern at ' + lect.join(','))
-      if (!await A.travel(bot, v(lect), { range: 3, ms: 14 * 60000, stop: api.stop })) return 'librarian: still on the road to the lectern'
+      if (!await A.travel(bot, v(lect), { range: 3, ms: 14 * 60000, stop: api.stop })) { await nibble(bot); return 'librarian: still on the road to the lectern' }
     }
 
     while (st.rolls < (P.rerolls || 12) && !api.stop()) {
@@ -728,6 +791,7 @@ module.exports = ctx => {
     if (P.work === 'survey') return await survey(bot, job, api, ctx2)
     if (P.work === 'post') return await post(bot, job, api, ctx2)
     if (P.work === 'librarian') return await librarian(bot, job, api, ctx2)
+    if (P.work === 'breed') return await breed(bot, job, api, ctx2)
     return await tradeRound(bot, job, api, ctx2)
   }
 

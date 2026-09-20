@@ -1,72 +1,86 @@
-# INDUSTRY — turning the depot's glut into what the army lacks (front: village outpost, `bots/skills/lib/jobs_industry.js`)
-Owner 09-20: 「工業化しないのか？ / 在庫の有効活用はしないのか？」. Iron is the bottleneck (620 ingots of armour missing, depot
-iron ~20) while 17 828 wheat, 10 328 wool, 2 995 sugar cane, 1 876 coal and 188 leather rot on the shelf. Trading converts the
-one into the other with no mining at all. **Every design on this page is REDSTONE-FREE** (owner: Paper's redstone is not
-vanilla's — no clocks, observers, piston timing or zero-tick anywhere here; water, gravity, lava and hoppers only).
+# INDUSTRY — turning the depot's glut into what the army lacks (`bots/skills/lib/jobs_industry.js`, job type `trade`)
+Owner 09-20: 「工業化しないのか？在庫の有効活用は？」then「交易の最適化とかも」. Iron was the bottleneck (105 armour pieces
+missing) while 17 828 wheat, 10 328 wool, 2 995 cane, 1 876 coal rotted on the shelf. **A trader is worth about ten miners.**
+**Every design here is REDSTONE-FREE** (Paper's redstone is not vanilla's): water, gravity, lava, hoppers only.
 
-## What stands (09-20)
-| thing | where | state |
+## What stands
+| job (`work:`) | who | what it does |
 |---|---|---|
-| plains village | x -766..-703 / z 10..57, ground y62-76, rally **-714,73,27** (624 blocks SW of base) | 9 villagers, 10 beds, 2 composters + 1 blast furnace, 1 iron golem at -760,63,29 (`armyctl.js events 20 village_seen`) |
-| `village_survey` | job type `trade`, `work:'survey'` | ONE bot patrols the village and re-measures villagers / professions / beds / workstations / golems every 2 min; writes `settings.industry` |
-| `village_trade` | job type `trade`, 2 traders | load glut at the depot → 624-block walk → sell to every villager → buy iron gear → walk home → bank |
-| `village_post` | job type `trade`, `work:'post'` | crafts the workstations the village LACKS and places them on probed free grass at x -746..-738 / z 28..33 |
+| `survey` | 1 bot | patrols the village (Paper ticks a villager only within 32 of a player) and re-measures villagers / professions / beds / stations / golems into `settings.industry` every 2 min |
+| `trade` | 2 bots | load glut → 624-block walk → sell to every buyer → buy what we lack → walk home → bank |
+| `post` | on demand | crafts the workstations the village LACKS and places them on probed free grass (x -746..-738 / z 28..33) |
+| `breed` | 1 bot | throws bread at the adults so pairs breed into the free beds |
+| `librarian` | 1 bot | re-rolls OUR OWN lectern until the enchanted book is one we want, then buys it to lock it |
+Village: x -766..-703 / z 10..57, ground y62-76, rally **-714,73,27**, 624 blocks SW. Zone row in docs/WORLD.md.
+Verbs for any `steps` plan: `collect_farm {at}` (empty a farm chest and measure ingots/h) · `anvil {item, with, at}`.
 
-## What this village really pays (READ FROM THE TRADE WINDOWS, not from a wiki)
-- **farmers** (2): 20 wheat / 22 carrot / 15 beetroot / 6 pumpkin → 1 emerald; sell pumpkin pie.
-- **leatherworkers** (4): 6 leather / 26 flint → 1 emerald; sell leather_helmet 5, leather_leggings 3, leather_chestplate 7 emeralds.
-- **nobody** buys wool, paper, coal or string, and **nobody sells iron**. That is the whole problem, and it is a recipe away (below).
-- Measured trades: Tamaki 320 wheat → **16 emeralds**; second trip 320 wheat + 96 leather over 2 villagers → **51 emeralds**;
-  Yotsuba 320 wheat → **16 emeralds**. ~83 emeralds in three round trips, 0 deaths, 0 `no_route` on the whole 624-block route.
-- **THE LOOP IS CLOSED (15:53Z):** with the new weaponsmith on the board, Yotsuba sold 375 wheat + 12 leather over 4 villagers for
-  36 emeralds and **bought 6 iron axes** — 18 ingots of iron gear paid for with wheat, in one trip, by two bots. That is the whole
-  answer to 「在庫の有効活用はしないのか？」: the depot's glut is iron, at 20 wheat per emerald.
+## What this village pays (READ OUT OF THE LIVE TRADE WINDOWS, never a wiki)
+farmers 20 wheat / 22 carrot / 15 beetroot / 6 pumpkin → 1 emerald · leatherworkers 6 leather / 26 flint → 1, sell leather armour ·
+weaponsmith + toolsmith (OURS, see below) 15 coal → 1, sell iron axe at 2-3 emeralds, buy 4 iron_ingot → 1 (never sell them that).
 
-## Stage 1a — MAKE THE BUYERS (`work:'post'`, running)
-An unemployed villager claims the nearest unclaimed workstation it can reach, so the professions we need are craftable:
-`loom` (shepherd: 18 wool → 1 em) · `lectern` (librarian: 24 paper) · `grindstone` (weaponsmith: 15 coal, sells iron sword/axe) ·
-`smithing_table` (toolsmith, 2 iron: sells iron tools) · **`blast_furnace` (armorer, 5 iron: buys 15 coal AND SELLS IRON ARMOUR
-for 4-9 emeralds a piece)** · `barrel` (fisherman) · `smoker` (butcher). Total iron spent: **7 ingots, reserved from the depot** —
-against 105 armour pieces (620 ingots) that the armorer can then sell us for emeralds we make out of wheat and wool.
-Nothing that already stands in the village is dug, moved or replaced; the stations go on columns probed with `armyctl.js ground`.
-`stone` and `smooth_stone` are SMELTED, not crafted, so the job runs two furnace passes before the recipe solver.
-**PROVEN ON THE FIELD 09-20 15:48Z:** Tamaki placed a `grindstone` at -740,70,33; four minutes later `village_seen` read
-`professions {farmer:2, leatherworker:4, weaponsmith:1}` — a villager had taken the job. The village now buys our coal. The other
-six stations follow on the next pass (the first pass crafted only the grindstone: a bot carrying 800 wheat from an interrupted
-trade load made every withdrawal in the recipe chain fail with "inventory full", so `work:'post'` now banks its pockets first).
+## Stage 1a — MAKE THE BUYERS (`work:'post'`, done)
+An unemployed villager claims the nearest unclaimed workstation, so a missing profession is a recipe away: `loom` (18 wool → 1 em),
+`lectern` (24 paper), `grindstone` (weaponsmith), `smithing_table` (toolsmith, 2 iron), `blast_furnace` (armorer, 5 iron — buys
+coal, SELLS IRON ARMOUR), `barrel`, `smoker`. 7 ingots spent against 620 missing. `stone`/`smooth_stone` are SMELTED, not crafted,
+so the job runs two furnace passes first, and it banks its pockets before solving any recipe chain.
+**PROVEN:** 15:48Z grindstone placed at -740,70,33 → 15:52Z `professions {…, weaponsmith:1}` → 15:53Z he sold us iron axes.
+Later the smithing table made a toolsmith. Nothing that already stood in the village was dug, moved or replaced.
 
-## Stage 1b — THE IRON GOLEM FARM: designed, sited nowhere yet, **0 ingots/hour measured** — and why
-- **A bot must never kill a golem.** A *player* kill costs village reputation (major_negative gossip) and raises every price at the
-  outpost we just built. Any farm here has to kill passively: water push → lava blade → hopper → chest. That also keeps it redstone-free.
-- **A platform over the existing village does not work.** A villager spawns a golem at a random valid spot within ±8 x/z and ±6 y of
-  itself; `iron-golems-can-spawn-in-air: false` only forbids air, so the village's own streets stay valid and most golems land out of
-  reach. Only a pod whose surroundings are non-spawnable collects them.
-- **Chosen design (smallest I can defend):** a levelled pad ≥40 blocks from the village carrying a 3-cell pod — 3 beds, 3 workstations,
-  one villager per cell, walls of any stone — with the golem spawning floor as the only solid ground in the ±8 box (everything around
-  it water or open air), water streams pushing golems into a 1-block hole, a lava blade above a hopper into a chest.
-- **Paper settings it leans on** (all left at their defaults): `spigot.yml entity-activation-range.villagers: 32` +
-  `tick-inactive-villagers: true` → **a villager only runs its brain near a player, so the standing surveyor/traders ARE the farm's
-  clock**; `iron-golems-can-spawn-in-air: false` → a SOLID spawn floor, never a water sheet; `hopper cooldown-when-full: true`,
-  `hopper-transfer 8 / hopper-check 1` → one hopper is enough for a few golems an hour; `max-entity-collisions: 8` → no cramming
-  design; `zombie-aggressive-towards-villager: true` would make the scare variant work but needs a captive zombie — more moving parts.
-- **Material bill:** 2 hoppers = **10 iron** (reserve them), 1 chest, 1 lava bucket, 1 water bucket, 3 beds (wool is glut), 3 cheap
-  workstations, ~200 blocks of stone. Everything but the iron and the lava is already on the shelf.
-- **The one experiment that decides it, NOT YET RUN:** build the pod's 3 beds + 3 workstations on a pad 40 blocks from the village and
-  watch whether unemployed villagers claim them and sleep there (`village_survey` already reports professions and bed counts every
-  2 min). If they do not migrate, the farm needs villager transport (boat) — a separate piece of work, not a patch on this one.
-- Until that is built the honest number is **0 ingots/hour**. Trading is what pays today.
+## Stage 1b — OPTIMISING THE TRIP (measured, one bot, same village)
+| | before | after |
+|---|---|---|
+| emeralds earned per BOT-HOUR | 286 | **729** (`trade_done.emPerBotHour`, off the visit clock) |
+| wheat sold in one visit | 120-192 | 377-480 |
+| minutes per round trip | ~10.4 | 5.6-6.3 |
+| iron bought | 6 axes/trip | **74 iron axes + 219 emeralds banked in one hour** = 222 iron-equivalent/h from 2 bots |
+The mine gives 150-300 iron/h with 18-20 miners = 8-17 iron per bot-hour. What changed:
+- **Several passes** over the villagers until a pass trades nothing: one pass served 3 of 9 (they walk off, stand on a roof, sleep).
+- **Cargo from measurement:** every visit records `settings.industry.absorb` = Σ(remaining uses × price) per item — wheat 624,
+  flint 600, coal 480, carrot 336, leather 288, beetroot 240. The next load carries that much. A fresh measurement that does not
+  mention an item means nobody there buys it, so wool and paper stop riding 1 250 blocks for nothing.
+- **Buy by deficit** against `settings.targets`, not a fixed list. **Eat on the road:** legs capped at 5 min so the handler
+  re-enters and eats (one trader arrived on hp 1 / food 0 with four loaves in her pocket), and a trip is kitted with 32 bread.
+- **Prices:** `trade_price` reports every demand-driven rise it measures; the per-trade uses cap plus the multi-pass loop spread
+  sales over villagers by themselves. Curing zombie villagers for discounts is NOT attempted: it needs a captive zombie, a
+  splash weakness potion (blaze powder → brewing) and a golden apple (8 gold) per villager — say so, do not improvise it.
+- **Levelling the smiths is the buy side's ceiling.** Coal (15 → 1 em) is what pushes a weaponsmith/toolsmith/armorer to
+  journeyman (iron tools) and master (enchanted diamond gear), so coal rides along even though wheat pays better per slot.
 
-## Next industries, ranked by what they unblock
-1. **The post's buyers** (running): unlocks 10 328 wool + 2 995 cane + 1 876 coal ≈ 900 emeralds, and the armorer who sells iron armour.
-2. **An outpost chest + local wheat field at the village**: a round trip is ~25 min today and 22 of them are walking. A site chest
-   (`stash`/`unstash`) plus a `haul` job turns three legs into one.
-3. **Villager breeder + trading hall AT THE BASE** (beds + food, 0 iron): kills the 624-block walk for good, and is where a
-   librarian's mending book comes from. Needs 2 villagers brought home — the same transport problem as the golem pod, solved once.
-4. **The iron golem farm** above, after the pod experiment.
-5. **Mob grinder** (XP, bones, gunpowder) and an **auto-smelter** — both want hoppers, so both queue behind the iron they save.
-6. gold → piglin bartering belongs to the Nether engineer (docs/NETHER.md), not here.
+## Stage 1c — MORE VILLAGERS, and the librarian (the way around our XP wall)
+After the seven stations: `farmer 2, leatherworker 4, toolsmith 1, weaponsmith 1, unknown 1`. Nine villagers, ONE unemployed —
+**the village is short of PEOPLE, not workstations.** `work:'breed'` throws bread at every adult (3 loaves make one willing) and
+they breed into the free beds (12 beds, 9 villagers; wheat is our largest glut). Verified 16:47Z `breed_fed {villagers:8}` ×3.
+`work:'librarian'` is the player's re-roll: while a librarian has NEVER traded, breaking and re-placing his lectern re-rolls his
+whole offer set, so read the book, re-roll until it is Fortune / Mending / Unbreaking / Efficiency, then BUY it — one trade locks
+it for ever. No bot reaches level 30 (deaths wipe XP), so a bought book + the `anvil` verb (a few levels) is the only road to
+Fortune III. An anvil is 31 iron and pays back at ×2.2 raw iron.
+**NOT YET FIELD-PROVEN:** the re-roll and the `anvil` verb are written, load-checked and on the board, but no librarian exists yet
+(waiting on the first baby) and no anvil stands (31 iron). Neither has run once — do not trust them until they have.
+
+## Stage 1d — THE IRON GOLEM FARM: designed, sited nowhere, **0 ingots/hour**, and why
+A bot must never *kill* a golem: a player kill costs village reputation and raises every price at the outpost. A platform over the
+existing village does not collect either — a golem spawns at a random valid spot within ±8 x/z of a villager and
+`iron-golems-can-spawn-in-air: false` only forbids air, so the streets stay valid. The smallest defensible design is a pad ≥40
+blocks out with a 3-cell pod (3 beds, 3 stations, one villager each), the spawn floor the only solid ground in the ±8 box, water
+pushing golems into a lava blade over a hopper. **Paper settings it leans on** (all at their defaults): `entity-activation-range.
+villagers: 32` + `tick-inactive-villagers: true` → the standing traders ARE the farm's clock; `iron-golems-can-spawn-in-air:
+false` → a SOLID spawn floor; `hopper cooldown-when-full: true` → one hopper is enough; `max-entity-collisions: 8` → no cramming.
+Bill: 10 iron of hoppers, 1 chest, lava + water bucket, 3 beds, ~200 stone. **The experiment that decides it has not been run:**
+do villagers claim beds/stations on a pad 40 blocks out? Until then, trading is what pays.
+
+## Next, ranked by what it unblocks
+1. Babies → a shepherd (10 464 wool ≈ 580 em), a librarian (books), an armorer (IRON ARMOUR). Everything else waits on population.
+2. Level the smiths with coal → journeyman iron tools, master enchanted diamond gear.
+3. A site chest + road at the village: 5 of every 6 trip-minutes are still walking.
+4. **Villager breeder + trading hall at the base — BRIEF, not built.** 16x16 pad inside the wall, 8 beds, one station per
+   profession; all glut except 7 iron. The unsolved part is TRANSPORT of 2 villagers over 624 blocks: `bot.mount()` and
+   `bot.moveVehicle()` do exist in mineflayer 4.39 (`lib/plugins/entities.js`) but nothing here has driven a boat, a villager must
+   be shoved in by collision, and boats crawl on land; a minecart line is ~390 rails = 146 iron; a waterway is a mega-build.
+   **Recommendation: build neither yet** — breeding works AT the village, so make the village the hall. Test boats in the lab first.
+5. The iron golem farm (above), after the pod experiment. 6. Mob grinder + auto-smelter (both want hoppers = iron).
+7. gold → piglin bartering is the Nether engineer's (docs/NETHER.md).
 
 ## Rules for this front
-Never hit a villager, never break a block the village already owns, never trade with mobs within 12 blocks (the combat module owns
-mobs), never sell below the depot reserve in `SELL`, and **never trust `bot.inventory` while a trade window is open** — count on the
-window (`inWin`), which is what cost the first trade its report on 09-20.
+Never hit a villager or a golem, never break a block the village built (only our own lectern, and it goes straight back), never
+trade with mobs within 12 blocks, never sell below the `SELL` reserve or sell iron to a smith, and **never trust `bot.inventory`
+while a trade window is open** — count on the window (`inWin`), which is what cost the first trade its report.

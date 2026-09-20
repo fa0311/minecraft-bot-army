@@ -609,10 +609,12 @@ function entryAction (map, world, bot, tile, o) {
     const fall = rim.y - 1 - floor
     const hp = bot.hp == null ? 20 : bot.hp
     if (fall - o.maxDrop > hp - o.keepHp) return { type: 'wait', entry: tag, why: 'a ' + fall + '-block drop would leave me under ' + o.keepHp + ' hp — waiting for the floor to rise' }
-    // never jump into a hole you cannot work from: the landing must be standable, clear of lava and
-    // have room to walk (a builder that lands boxed in has to be rescued, which costs more than a ladder)
-    if (!canStand(map, world, landing.x, landing.y, landing.z) || walkArea(map, world, landing, null, o.minArea) < o.minArea) {
-      return { type: 'wait', entry: tag, why: 'the landing at ' + K2(col.x, col.z) + ' is not a place to stand and work' }
+    // the landing must be solid ground and clear of lava. (It was also gated on walkable room here for
+    // a while; MEASURED on the ravine, that one line cost 22 899 cells and 2662 dead walks, because the
+    // check runs against the rim's view of a floor 28 blocks down. Rule: an entry decides a way IN, not
+    // whether the work down there is any good — `next` refuses a bad stand anyway, one tick later.)
+    if (isLava(world, landing.x, landing.y, landing.z) || !isSolid(world, landing.x, landing.y - 1, landing.z)) {
+      return { type: 'wait', entry: tag, why: 'the landing at ' + K2(col.x, col.z) + ' is not solid and clear' }
     }
     return { type: 'descend', target: landing, mode: 'drop', fall, entry: tag, why: 'stepping off the rim: ' + Math.max(0, fall - o.maxDrop) + ' hp for a way in that costs nothing to build' }
   }

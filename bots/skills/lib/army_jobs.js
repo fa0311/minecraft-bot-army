@@ -3733,6 +3733,14 @@ async function build (bot, job, api, ctx) {
   if (isFill && n && !nMine && done) return 'build' // every open column rests for 3 min, but this pass placed blocks: not stuck
   // everything that is left waits for a water cell ANOTHER builder is pouring right now (its cap, its torch): that is progress, not "stuck"
   if (waterKeys.size && n && !nMine && !left.dig.concat(left.put).some(c => !(c.block === 'water' && waterClaimed(c)))) return muster(bot, job, api, ctx, 'build: the rest waits for a water cell in work')
+  // THE DEPOT HAS IT -> GO AND GET IT (owner 09-20 「え？いっぱいあったから捨ててたんじゃないの？」; op_nether: base_portal / nether_gate_road "waiting for cobblestone", crews of 6 at done 0,
+  // with 6073 cobblestone on the shelf): the exact-material rule saw the wrong stone in a cell, the builder carried no `cobblestone`, and "missing" sent him to muster for 5 min
+  // instead of 40 blocks to the depot. A block the depot holds is never "missing": withdraw a stack and run the pass again. Only what the depot does NOT hold is a wait.
+  if (n && st.missing && Date.now() - st.missing.t < 300000 && /^[a-z_]+$/.test(String(st.missing.item)) && A.count(bot, st.missing.item) === 0 && A.stockOf(st.missing.item) >= 16 && (st.fetchT || 0) < Date.now() - 120000) {
+    st.fetchT = Date.now(); const it = st.missing.item; task(bot, 'build: fetching ' + it + ' from the depot')
+    const got = await A.withdraw(bot, it, 128, { stop: api.stop }).catch(e_ => { swallow('army_jobs:fetchMissing', e_); return 0 })
+    if (A.count(bot, it) > 0) { st.missing = null; A.result(bot, { ev: 'build_fetched', job: job.id, item: it, n: A.count(bot, it), got: !!got }); return 'build' }
+  }
   if (n && !nMine && st.missing && Date.now() - st.missing.t < 300000) needNote(st.missing.item, n)
   if (n && !nMine && st.missing && Date.now() - st.missing.t < 300000) return muster(bot, job, api, ctx, 'build: waiting for ' + st.missing.item) // only furniture nobody has (a gate, a bed) is left: not "stuck"
   // a cap whose remaining cells all still belong to a working fill is NOT stuck (three `stuckBy` bots pause a job, and the cap would be paused by the very job that is
@@ -4321,12 +4329,12 @@ function withHandover (name, fn) {
       const home = A.chestsOf('build')[0]
       // BULK RULE (foreman 09-19: a rescued bot lost 96 cobblestone + 44 planks + 32 clay): more than ~1.5 stacks of bulk blocks beyond the job's
       // working kit is banked too — whatever happens to the bot then costs tools, not a shift of material.
-      const kitOf = n => (n === 'cobblestone' ? stoneKeep(/build|deck|tidy|light/.test(job.type) ? 128 : 0) : n === 'dirt' ? (job.type === 'build' ? 320 : job.type === 'tidy' ? 64 : 0) : 0) // build: the cut feeds the fill (5 stacks of dirt stay)
+      const kitOf = n => (n === 'cobblestone' ? stoneKeep(/build|deck|tidy|light|cavity/.test(job.type) ? 128 : 0) : n === 'dirt' ? (job.type === 'build' ? 320 : job.type === 'tidy' ? 64 : 0) : 0) // build: the cut feeds the fill (5 stacks of dirt stay)
       const bulk = bot.inventory.items().filter(i => /^(cobblestone|cobbled_deepslate|dirt|gravel|sand|clay_ball|stone|andesite|diorite|granite|tuff|.*_planks|.*_log)$/.test(i.name)).reduce((n, i) => n + Math.max(0, i.count - kitOf(i.name)), 0)
       if (ow && home && job.type !== 'delegate' && (U.freeSlots(bot) < 9 || bulk > 96 || (A.count(bot, 'torch') > 32 && !/^(build|light|ores|deck)$/.test(job.type))) && A.dist2(bot, home.x, home.z) < 150 && !underground(bot) && Date.now() - (bot.__armyPocketT || 0) > 120000) {
         bot.__armyPocketT = Date.now()
         task(bot, 'tidying pockets')
-        const keep = { torch: 16, ...rationsOf(bot), sweet_berries: job.type === 'berries' ? 4 : 0, wheat_seeds: job.type === 'farm' ? 64 : 0, cobblestone: stoneKeep(/build|deck|tidy|light/.test(job.type) ? 64 : 0), dirt: job.type === 'build' ? 320 : job.type === 'tidy' ? 64 : 0, bucket: 3, water_bucket: 3, fishing_rod: 1, shears: 1, coal: 8, stick: 8 }
+        const keep = { torch: 16, ...rationsOf(bot), sweet_berries: job.type === 'berries' ? 4 : 0, wheat_seeds: job.type === 'farm' ? 64 : 0, cobblestone: stoneKeep(/build|deck|tidy|light|cavity/.test(job.type) ? 64 : 0), dirt: job.type === 'build' ? 320 : job.type === 'tidy' ? 64 : 0, bucket: 3, water_bucket: 3, fishing_rod: 1, shears: 1, coal: 8, stick: 8 }
         if (job.type === 'sleeper') for (const i of bot.inventory.items()) if (/_bed$/.test(i.name)) keep[i.name] = 1 // a bed on its way back to the bed spot
         if (job.type === 'herd') for (const n of HERD_LURE[(job.params || {}).kind] || []) keep[n] = 32 // the lure in a herder's pocket is a tool
         for (const i of bot.inventory.items()) if (/_hoe$/.test(i.name) && job.type === 'farm') keep[i.name] = 1
