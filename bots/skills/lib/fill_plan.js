@@ -32,7 +32,10 @@
 
 const DEFAULTS = {
   tile: 3, // columns per lane; one builder at a time, so the whole lane is within its reach (2.83 < 4.5)
-  K: 40, // one builder per K open cells — the crew size EMERGES from the work, nobody is assigned
+  K: 8, // one builder per K open cells — the crew size EMERGES from the work, nobody is assigned.
+  // MEASURED on the live trench (tests/fill_sim.js b, 7x21x15, 12 builders available): K 40 -> 1 builder
+  // and 27.6 min, K 9 -> 5 and 16.5, K 8 -> 6 and 12.8, K 6 -> 7 and 10.1, K 4 -> 10 and 10.8 (crowded,
+  // each one slower). K is the ONE throughput knob; the lane rules keep the work correct at any value.
   reach: 4.5,
   pocket: 1024, // one restock trip = full pockets (16 stacks)
   claimMs: 60000, // claims expire: a builder that vanishes frees its lane by itself
@@ -177,6 +180,24 @@ function firstOpen (map, world, x, z) {
   return null
 }
 
+// THE WATER LEVEL, per column: a block may go in only where it ends up at most ONE above each of the
+// four neighbouring columns. Outside the box a column counts as finished, so the rim never holds a cell
+// back. This is the whole anti-well rule (measured, scenarios (a) and (b), 09-20: lanes that rose
+// independently built 5-block wells around each other, and the planner then wanted an entry ladder
+// into a hole IT had made). Consequence: the filled surface is always a 1-step staircase — walkable in
+// every direction, no wall a builder cannot step over — and the fill spreads like water, deepest basin
+// first. It also makes the crew size honest: the columns at the waterline ARE the open work.
+function colFloor (map, world, x, z) {
+  const b = map.box
+  if (x < b.x1 || x > b.x2 || z < b.z1 || z > b.z2) return map.grade + 1
+  const y = firstOpen(map, world, x, z)
+  return y == null ? map.grade + 1 : y
+}
+function levelWith (map, world, x, y, z) {
+  for (const [dx, dz] of SIDES) if (y > colFloor(map, world, x + dx, z + dz)) return false
+  return true
+}
+
 // the lowest cell of a lane that is still work — grade+1 when the lane stands finished
 function laneFloor (map, world, tile) {
   let y = null
@@ -192,14 +213,6 @@ function laneFloor (map, world, tile) {
 // LAYER = the lowest open cell of the whole lane; its targets are the cells of the lane at that height
 // that already have a solid block underneath. The layer is closed before it rises: no pinholes, ever.
 //
-// THE WATER LEVEL (measured, scenarios (a) and (b), 09-20): lanes that rise independently build wells.
-// A lane 5 layers ahead of its neighbours left them in a shaft nobody could walk into, and the planner
-// then wanted an entry ladder into a hole IT had made. So a lane may only work while its floor is at or
-// below every neighbouring lane's floor; once it has closed its layer it stands exactly 1 higher and
-// waits for them. The filled surface is therefore always a 1-step staircase — walkable in every
-// direction, no well, no wall a builder cannot step over — and the fill spreads like water: the deepest
-// basin first, then the level rises. It also makes the crew size honest: the lanes at the waterline ARE
-// the open work, and `capacity` counts nothing else.
 function tileState (map, world, tile, now, fresh) {
   const cached = map.state.get(tile.id)
   if (cached && !fresh && now - cached.t < 2000) return cached
@@ -212,23 +225,18 @@ function tileState (map, world, tile, now, fresh) {
       if (layerY == null || y < layerY) layerY = y
     }
   }
-  let blocked = false
-  if (layerY != null) {
-    for (const nid of neighbourIds(tile)) {
-      const n = map.tiles.get(nid)
-      if (n && layerY > laneFloor(map, world, n)) { blocked = true; break }
-    }
-  }
   const targets = []
-  if (layerY != null && !blocked) {
+  if (layerY != null) {
     for (let x = tile.x1; x <= tile.x2; x++) {
       for (let z = tile.z1; z <= tile.z2; z++) {
         if (!placeable(map, world, x, layerY, z)) continue
+        if (!levelWith(map, world, x, layerY, z)) continue
         targets.push({ x, y: layerY, z, lava: isLava(world, x, layerY, z), litter: isLitter(kindAt(world, x, layerY, z)) })
       }
     }
     targets.sort((a, b) => (b.lava ? 1 : 0) - (a.lava ? 1 : 0) || a.x - b.x || a.z - b.z)
   }
+  const blocked = layerY != null && !targets.length
   const st = { t: now, id: tile.id, layerY, targets, remaining, blocked, done: layerY == null }
   map.state.set(tile.id, st)
   return st
@@ -275,8 +283,9 @@ function openTiles (world, box, grade, opts = {}) {
   const from = opts.from ? flr(opts.from) : { x: map.box.x1, y: grade + 1, z: map.box.z1 }
   expire(claims, now, o.claimMs)
   const av = opts.avoid && opts.avoid.until > now ? opts.avoid.id : null
+  const rc = opts.reachCols || null
   const cand = [...map.tiles.values()]
-    .filter(t => t.id !== av && claimable(map, claims, t, opts.botId || null))
+    .filter(t => t.id !== av && claimable(map, claims, t, opts.botId || null) && (!rc || laneInReach(t, rc)))
     .sort((a, b) => Math.hypot(a.cx - from.x, a.cz - from.z) - Math.hypot(b.cx - from.x, b.cz - from.z) || (a.id < b.id ? -1 : 1))
   const out = []
   for (const t of cand.slice(0, opts.all ? cand.length : o.scan)) {
@@ -298,6 +307,11 @@ function openTiles (world, box, grade, opts = {}) {
     if (out.length >= (opts.limit || 1e9)) break
   }
   return out
+}
+
+function laneInReach (tile, cols) {
+  for (let x = tile.x1; x <= tile.x2; x++) for (let z = tile.z1; z <= tile.z2; z++) if (cols.has(K2(x, z))) return true
+  return false
 }
 
 // how many cells the whole box has open in its working layers — the number that sets the crew size
@@ -446,7 +460,7 @@ function entryAction (map, world, bot, tile, o) {
   const tag = 'e' + K2(col.x, col.z)
   if (rung < floor) {
     const bottom = { x: col.x, y: floor, z: col.z }
-    if (same(feet, bottom)) return { type: 'wait', why: 'at the foot of the entry ladder, waiting for a lane I can reach' }
+    if (same(feet, bottom)) return { type: 'wait', release: true, why: 'at the foot of the entry ladder: this lane is not the one to take' }
     return { type: 'descend', target: bottom, entry: tag, why: 'down the entry ladder at ' + K2(col.x, col.z) }
   }
   if (have(bot, 'ladder', o) < 1) return { type: 'restock', item: 'ladder', n: 16, entry: tag, why: 'ladders for the way into the pit at ' + K2(col.x, col.z) }
@@ -615,9 +629,18 @@ function plan (world, box, grade, crew, opts = {}) {
         actions.push({ id: bot.id, action: { type: 'leave', why: openCells + ' cells open: ' + laneCount(claims) + ' builders are the whole crew this needs' } })
         continue
       }
-      const t = openTiles(world, box, grade, { map, claims, now, from: bot.pos, botId: bot.id, limit: 1, avoid: map.avoid.get(bot.id) })[0]
+      // A builder already down in the pit is only offered a lane it can WALK to. (Measured with a
+      // crowded trench: four of them stood at the foot of the entry ladder for six minutes, each
+      // holding a lane on the far side of a 3-block natural step it could never climb.) On the rim it
+      // may take any lane — from up there it can always build the way in.
+      let reachCols = null
+      if (Math.floor(bot.pos.y) <= grade) {
+        reachCols = new Set()
+        for (const k of reachSet(map, world, flr(bot.pos), null, 1200)) { const p = k.split(','); reachCols.add(p[0] + ',' + p[2]) }
+      }
+      const t = openTiles(world, box, grade, { map, claims, now, from: bot.pos, botId: bot.id, limit: 1, avoid: map.avoid.get(bot.id), reachCols })[0]
       if (!t) {
-        actions.push({ id: bot.id, action: { type: 'leave', why: 'no lane open near me that is not beside a working mate' } })
+        actions.push({ id: bot.id, action: { type: 'leave', why: reachCols ? 'no open lane I can walk to from down here' : 'no lane open near me that is not beside a working mate' } })
         continue
       }
       claim(claims, t.id, bot.id, now, map)

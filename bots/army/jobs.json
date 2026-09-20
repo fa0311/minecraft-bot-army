@@ -187,11 +187,6 @@
      -518
     ],
     [
-     -362,
-     69,
-     -515
-    ],
-    [
      -361,
      69,
      -515
@@ -203,6 +198,81 @@
     ],
     [
      -359,
+     70,
+     -515
+    ],
+    [
+     -365,
+     69,
+     -515
+    ],
+    [
+     -371,
+     69,
+     -515
+    ],
+    [
+     -371,
+     70,
+     -515
+    ],
+    [
+     -371,
+     69,
+     -518
+    ],
+    [
+     -371,
+     70,
+     -518
+    ],
+    [
+     -369,
+     69,
+     -518
+    ],
+    [
+     -367,
+     69,
+     -518
+    ],
+    [
+     -369,
+     69,
+     -515
+    ],
+    [
+     -369,
+     70,
+     -515
+    ],
+    [
+     -367,
+     69,
+     -515
+    ],
+    [
+     -367,
+     70,
+     -515
+    ],
+    [
+     -365,
+     70,
+     -515
+    ],
+    [
+     -363,
+     69,
+     -515
+    ],
+    [
+     -363,
+     70,
+     -515
+    ],
+    [
+     -361,
      70,
      -515
     ]
@@ -1626,7 +1696,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789916195016
+   "restUntil": 1789916351768
   },
   {
    "id": "fill_ring_field2",
@@ -2091,7 +2161,7 @@
    },
    "rev": 3,
    "note": "03:10Z engineer: 40 obsidian banked (want reached) - paused. Re-activate with a higher params.args.want when more is needed; open spot on record: -54/29:-1 (37 cast obsidian left)",
-   "restUntil": 1789914541695
+   "restUntil": 1789916804095
   },
   {
    "id": "base_infill_n404_n556",
@@ -2305,7 +2375,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 3,
+   "bots": 1,
    "site": [
     -311,
     69,
@@ -2536,17 +2606,17 @@
     },
     "order": "near"
    },
-   "rev": 42,
+   "rev": 44,
    "desc": "until `fill_wayin ok:true` (ladder run in work by the engineer) only 3 bots: nobody can reach the trench floor, a bigger crew just stands at the rim - do NOT raise the head-count to hide idle bots",
    "note": "top model 14:1xZ: OPERATORS - DO NOT LOWER. open cells = left 3616 minus waiting 2920 = 696, so ceil(696/8) = 87 builders could work it at once; 20 is the cap. It reads done:0 because the last trench (x -306..-298 / z -461..-482, floor y52-55) has sheer walls and NO walkable entry, so the switchback ramp (x -300/-301, z -472..-478) can never be started: a ramp column is a solid cell built bottom-up and nobody can stand on the floor. It needs a way in built FROM THE TOP (ladder run, or a gravity-block ramp - gravel depot is 0, so fetch gravel first).",
    "restUntil": 1789906650052,
    "way": {
     "by": "Kurumi",
-    "t": 1789916020411,
+    "t": 1789916330153,
     "at": [
-     -318,
+     -302,
      42,
-     -473
+     -475
     ]
    }
   },
@@ -2862,11 +2932,12 @@
     "order": "near"
    },
    "note": "auto-paused: build complete - BUT 2 cells are left that 3 builders could not do (build_leftover): -277,67,-399 | -278,67,-399",
-   "rev": 7,
+   "rev": 8,
    "stuckBy": {
-    "key": "rev7",
+    "key": "rev8",
     "bots": [
-     "Akari"
+     "Iroha",
+     "Juri"
     ]
    },
    "cap": {
@@ -3006,9 +3077,9 @@
   {
    "id": "base_portal_go",
    "type": "portal",
-   "priority": 97,
+   "priority": 96,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "day",
    "bots": 1,
    "shiftMin": 30,
@@ -3029,18 +3100,17 @@
      "axis": "x"
     },
     "buildJob": "base_portal",
-    "go": true,
+    "go": false,
     "cobble": 208,
     "crossS": 45,
     "shell": false,
     "landing": true,
-    "maxDeaths": 1
+    "maxDeaths": 1,
+    "closeGate": false
    },
    "note": "auto-paused: the gate is lit and the round trip is done (bump rev to send another expedition)",
-   "rev": 6,
-   "names": [
-    "Kanade"
-   ]
+   "rev": 7,
+   "names": []
   },
   {
    "id": "base_road_9",
@@ -3337,7 +3407,7 @@
   {
    "id": "base_portal",
    "type": "build",
-   "priority": 88,
+   "priority": 97,
    "front": "base",
    "status": "paused",
    "when": "day",
@@ -3366,7 +3436,8 @@
      "Chika"
     ]
    },
-   "note": "auto-paused: build complete"
+   "note": "auto-paused: build complete",
+   "rev": 4
   },
   {
    "id": "base_mine_pad",
@@ -3600,9 +3671,9 @@
    "type": "portal",
    "priority": 96,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "day",
-   "bots": 6,
+   "bots": 1,
    "shiftMin": 20,
    "site": [
     -326,
@@ -3633,7 +3704,7 @@
     "maxDeaths": 6
    },
    "note": "auto-paused: the gate is lit and the round trip is done (bump rev to send another expedition)",
-   "rev": 4
+   "rev": 6
   },
   {
    "id": "west_terrace_cut_3",
@@ -4049,7 +4120,8 @@
     },
     "order": "near"
    },
-   "rev": 3
+   "rev": 3,
+   "note": "needs: dirt (835 cells wait; every cell whose material exists is done or in work)"
   },
   {
    "id": "fill_minehead_pits",
@@ -4173,7 +4245,8 @@
     },
     "order": "near"
    },
-   "rev": 2
+   "rev": 2,
+   "note": "needs: dirt (17 cells wait; every cell whose material exists is done or in work)"
   },
   {
    "id": "ladders_for_ravine",
@@ -4310,11 +4383,11 @@
   {
    "id": "nether_gate_spare_n607",
    "type": "portal",
-   "priority": 95,
+   "priority": 94,
    "front": "base",
    "status": "active",
    "when": "day",
-   "bots": 1,
+   "bots": 2,
    "shiftMin": 15,
    "site": [
     -284,
@@ -4328,14 +4401,15 @@
      84,
      -607
     ]
-   }
+   },
+   "rev": 1
   },
   {
    "id": "void_fix_base_mine_pad",
    "type": "build",
    "priority": 70,
    "front": "works",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 5,
    "site": [
@@ -4374,7 +4448,8 @@
       "gravel"
      ]
     }
-   }
+   },
+   "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) - base_mine_pad (level, paused) has the SAME cell in its blueprint at -336,68,-501"
   },
   {
    "id": "cap_base_mine_pad",
@@ -4408,6 +4483,66 @@
      "dirt": 128
     },
     "order": "near"
+   }
+  },
+  {
+   "id": "village_scout",
+   "type": "steps",
+   "priority": 97,
+   "status": "active",
+   "when": "any",
+   "names": [
+    "Yotsuba",
+    "Tamaki",
+    "Hina"
+   ],
+   "front": "industry",
+   "site": [
+    -720,
+    70,
+    32
+   ],
+   "plan": "industry stage 1: look at the plains village at -720,32 (no world edits)",
+   "params": {
+    "onFail": "continue",
+    "steps": [
+     {
+      "do": "withdraw",
+      "item": "bread",
+      "n": 16,
+      "atLeast": 6
+     },
+     {
+      "do": "goto",
+      "to": [
+       -720,
+       null,
+       32
+      ],
+      "range": 8,
+      "s": 900
+     },
+     {
+      "do": "say",
+      "text": "村に到着、周りを見ます"
+     },
+     {
+      "do": "wait",
+      "s": 600
+     },
+     {
+      "do": "wait",
+      "s": 600
+     },
+     {
+      "do": "wait",
+      "s": 600
+     },
+     {
+      "do": "wait",
+      "s": 600
+     }
+    ]
    }
   }
  ]

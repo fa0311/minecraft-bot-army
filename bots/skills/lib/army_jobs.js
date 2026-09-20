@@ -3267,7 +3267,10 @@ async function build (bot, job, api, ctx) {
     if (A.count(bot, 'ladder') < 2) { A.result(bot, { ev: 'fill_wayin', job: job.id, ok: false, why: 'no ladders: ' + A.count(bot, 'ladder') + ' carried, ' + A.stockOf('ladder') + ' in the depot, ' + A.stockOf('stick') + ' sticks' }); return false }
     task(bot, 'build: hanging the way into the pit')
     if (!await A.travel(bot, { x: site.x + site.dx, y: fillG + 1, z: site.z + site.dz }, { range: 1, ms: 120000, stop: api.stop })) { A.result(bot, { ev: 'fill_wayin', job: job.id, ok: false, why: 'cannot reach the rim stand ' + [site.x + site.dx, fillG + 1, site.z + site.dz].join(',') }); return false }
-    const faces = [new Vec3(-site.dx, 0, -site.dz), new Vec3(0, -1, 0)] // the wall behind the ladder first, the ladder above it as the fallback reference
+    // the wall behind the ladder FIRST, then every other face (14:5xZ, `ladder -319,67,-472: unreachable`: standing on the rung above, the line of sight to the wall face
+    // clips the 19 cm shape of our OWN ladder 5 cm before it reaches the face - a trench wall is solid on more than one side, and the server refuses any ladder that
+    // cannot survive, so letting placeBlock pick the reference it can SEE costs nothing).
+    const faces = [new Vec3(-site.dx, 0, -site.dz), new Vec3(0, -1, 0), new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1)]
     const hang = async y => { const r = await BL.placeBlock(bot, new Vec3(site.x, y, site.z), 'ladder', { faces, expect: 'ladder', retries: 1, noMove: y < fillG, moveMs: 10000 }).catch(e_ => ({ ok: false, reason: String(e_ && e_.message).slice(0, 30) })); return r }
     // A LADDER IS A STAIR FOR OUR BOTS (PROBED 14:4xZ on Akari: mineflayer reads a ladder as `boundingBox:'block'`, shape [0,0,0,0.1875,1,1] - the pathfinder walks ONTO
     // each rung (physical) and can never enter the cell, and the real physics hold a body that overlaps the 19 cm box). The first three runs all died on the same line,

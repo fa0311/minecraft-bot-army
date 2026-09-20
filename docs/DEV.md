@@ -181,7 +181,7 @@ world spawn. It does NOT write the board: replace `bots/army/jobs.json` jobs/set
 
 ## Paper is not vanilla (owner 09-20) — read before designing any farm, portal or mob mechanic
 The server is PAPER 26.2 at its DEFAULT settings (owner: leave them; design for them): `server/config/paper-world-defaults.yml`, `paper-global.yml`, `server/spigot.yml`.
-What bit us or will: `portal-search-radius 128` / `portal-create-radius 16` with vanilla dimension scaling (16 blocks on the Nether side: a partner gate that is out or farther = a NEW gate is generated) ·
+Portals link exactly as in vanilla (`portal-search-radius 128`, 16 on the Nether side, are the vanilla values): a partner gate that is OUT or farther away = a NEW gate is generated - plain Minecraft, not a Paper quirk (the top model's close/relight cycle caused the extra gates on 09-20) ·
 `entity-activation-range` villagers/monsters/animals 32, misc 16 (entities beyond that of a PLAYER barely tick: a farm needs a bot within ~32 blocks, not just inside the simulation distance) ·
 `iron-golems-can-spawn-in-air false` · `per-player-mob-spawns true`, `mob-spawn-range 8` · `piglins-guard-chests true` · `max-entity-collisions 8` · hopper `cooldown-when-full true` ·
 item `merge-radius 0.5` · duping/zero-tick exploits are patched. REDSTONE BEHAVES DIFFERENTLY FROM VANILLA (owner 09-20; `redstone-implementation: VANILLA` does not make it identical: update order, piston/observer timing, hopper clocks): industry designs are redstone-free (water, lava/fall, hoppers, gravity) or use only level-triggered parts proven on THIS server. Bots speak protocol 26.1 through ViaBackwards: windows (trades, anvils) pass through that translation.

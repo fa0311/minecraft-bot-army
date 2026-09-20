@@ -16,7 +16,12 @@ module.exports = {
     if (!bot.entity || bot.health < 8 || Date.now() - st.t < 4000 || bot.isSleeping || core.pending(bot)) return
     const A = core.A; if (/^iron:/.test(String(bot.state && bot.state.task || '').replace(/^army:/, ''))) return
     if (!(A.bestOf(bot, 'sword') || A.bestOf(bot, 'axe'))) return // unarmed: the kit rule arms it at the next depot visit
-    const near = A.hostiles(bot, 16).filter(h => h.e && h.e.isValid && !SKIP.test(h.e.name) && Math.abs(h.e.position.y - bot.entity.position.y) <= 6)
+    // NO DOGPILE, NO LOST CAUSES (owner 09-20 14:5xZ "-376 72 -510でハング": 13 bots stood on one cell, all `core:combat:threat`, chasing ONE skeleton on a roof 3 blocks up that
+    // nobody could reach - `defended {killed:false, ms:18021, fights:17}`, over and over): a mob this bot failed to kill is ignored for 5 min; a mob that already has two
+    // armed mates within 6 blocks is theirs; a mob more than 2 blocks above or below that is not within melee reach is not chased at all (arrows from a roof are walked away from).
+    const ban = st.ban = st.ban || {}; const now = Date.now(); for (const k of Object.keys(ban)) if (ban[k] < now) delete ban[k]
+    const matesAt = e => { let n = 0; for (const p of Object.values(bot.players || {})) { const q = p.entity; if (q && q !== bot.entity && q.position.distanceTo(e.position) <= 6) n++ } return n }
+    const near = A.hostiles(bot, 16).filter(h => h.e && h.e.isValid && !SKIP.test(h.e.name) && !ban[h.e.id] && (h.d <= 4 || Math.abs(h.e.position.y - bot.entity.position.y) <= 2) && (h.d <= 4 || matesAt(h.e) < 2))
     const pick = near.find(h => h.d <= 6) || near.find(h => RANGED.test(h.e.name)) || (hurt ? near[0] : null)
     if (!pick) return
     st.t = Date.now(); core.raise(bot, { kind: 'threat', by: 'combat', prio: 80, ms: 20000, data: { id: pick.e.id, name: pick.e.name } })
@@ -24,7 +29,8 @@ module.exports = {
   async handle (bot, alert, core) {
     const A = core.A; const e = bot.entities[alert.data && alert.data.id]; if (!e || !e.isValid) return
     const from = bot.entity.position.clone(); const t0 = Date.now()
-    const ok = await A.kill(bot, e, 18000, () => core.cancelled(bot) || bot.health < 6 || bot.entity.position.distanceTo(from) > 24)
+    const ok = await A.kill(bot, e, 12000, () => core.cancelled(bot) || bot.health < 6 || bot.entity.position.distanceTo(from) > 24)
+    if (!ok) { const st0 = bot.__core_combat = bot.__core_combat || {}; (st0.ban = st0.ban || {})[e.id] = Date.now() + 300000 }
     const st = bot.__core_combat || {}; st.n = (st.n || 0) + 1
     if (!st.saidT || Date.now() - st.saidT > 300000) { st.saidT = Date.now(); core.log(bot, 'defended', { mob: e.name, killed: !!ok, ms: Date.now() - t0, fights: st.n, hp: Math.round(bot.health) }); st.n = 0 }
   }
