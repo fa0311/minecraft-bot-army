@@ -601,6 +601,16 @@
      69,
      -415
     ]
+   },
+   {
+    "id": "ravine_se",
+    "box": [
+     -292,
+     -404,
+     -280,
+     -390
+    ],
+    "why": "foreman 09:52 MEASURED (armyctl ground): -286,-397 is y56-60 = 8-12 BELOW base level y68, floating blocks hang over it - the SE lip of the ravine, 3 blocks outside the ravine keep-out. The yard lattice claimed it and the audit flagged it twice as the worst off-level cluster (x19, -17). No yard/road here until the ravine fill reaches it"
    }
   ],
   "furnaces": [
@@ -1014,7 +1024,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 14,
+   "bots": 11,
    "site": [
     -367,
     69,
@@ -1035,10 +1045,16 @@
       -489,
       -286,
       -405
+     ],
+     [
+      -295,
+      -407,
+      -277,
+      -387
      ]
     ]
    },
-   "rev": 36,
+   "rev": 40,
    "note": "engineer 07:45Z: the sponge now works the base audit work list first (tidy_fix events), tiles second"
   },
   {
@@ -1285,8 +1301,8 @@
     ]
    },
    "after": "base_field_3_pad",
-   "rev": 8,
-   "note": "needs: water (water unreachable) (4 cells wait; every cell whose material exists is done or in work)",
+   "rev": 10,
+   "note": "foreman 10:00: re-paused at once - BUGS.md 09:25Z line documents that activating it makes the whole fallback pool walk 60 blocks and decline (build says left:2 gaveUp:2 while the camera sees 12 missing cells). Waits for the code fix.",
    "water": {
     "key": "rev8",
     "cells": {}
@@ -1714,7 +1730,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789897101845
+   "restUntil": 1789898450414
   },
   {
    "id": "guard_muster",
@@ -1886,9 +1902,9 @@
    "id": "bake_bread",
    "type": "steps",
    "priority": 96,
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 6,
+   "bots": 8,
    "requires": {
     "minHp": 6
    },
@@ -1932,8 +1948,8 @@
      }
     ]
    },
-   "rev": 3,
-   "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)"
+   "rev": 4,
+   "note": "foreman 09:58: chest_full x8 (cat food) while the depot holds 19523 wheat and only 2355 bread. Baking compacts 3:1 AND is the food. Re-activated with 8 bots."
   },
   {
    "id": "seed_forage",
@@ -2105,7 +2121,7 @@
    },
    "shiftMin": 20,
    "rev": 12,
-   "restUntil": 1789897150960,
+   "restUntil": 1789898201410,
    "note": "09-20 05:40Z top model: 82 sheep stand OUTSIDE pen 1 (escaped 03:42-05:30Z over step blocks an escape routine left on the pen floor - removed, pen_litter rule live). want 30 + 4 herders until the flock is back; then want 10-24 / minBots 1 again",
    "desc": "OPERATORS: do NOT pause - since 09-20 02:00Z the herd job itself SHEARS the woolly sheep and CULLS the adults beyond want inside the pen (event pen_harvest); a full pen is its work, not a dead end (BUGS 105 fixed)",
    "produces": [
@@ -2150,7 +2166,7 @@
    },
    "shiftMin": 20,
    "rev": 5,
-   "restUntil": 1789897219225,
+   "restUntil": 1789898588103,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "leather"
@@ -2195,7 +2211,7 @@
    },
    "shiftMin": 20,
    "rev": 4,
-   "restUntil": 1789897262796,
+   "restUntil": 1789898579971,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "feather"
@@ -2209,7 +2225,7 @@
    "type": "herd",
    "priority": 85,
    "front": "pens",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 3,
    "site": [
@@ -2240,7 +2256,7 @@
     "radius": 250
    },
    "shiftMin": 20,
-   "rev": 1
+   "rev": 2
   },
   {
    "id": "clear_yard_trees",
@@ -2523,7 +2539,7 @@
    "type": "cane",
    "priority": 84,
    "front": "cane",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "site": [
     -272,
@@ -2552,8 +2568,9 @@
     "bankAt": 48
    },
    "bots": 2,
-   "rev": 7,
-   "restUntil": 1789883283496
+   "rev": 8,
+   "restUntil": 1789883283496,
+   "note": "auto-activated: `after` base_cane finished (auto-paused: build complete)"
   },
   {
    "id": "cane_wild",
@@ -2758,7 +2775,7 @@
    "type": "build",
    "priority": 45,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 4,
    "site": [
@@ -2789,25 +2806,13 @@
    },
    "after": "base_cane_pad",
    "rev": 3,
-   "note": "needs: water (no bucket carried, in stock or craftable (3 iron_ingot)) (45 cells wait; every cell whose material exists is done or in work)",
+   "note": "auto-paused: build complete",
    "water": {
     "key": "rev3",
     "cells": {
      "-273,68,-481": {
-      "by": "Kanade",
-      "t": 1789896881365
-     },
-     "-270,68,-485": {
-      "by": "Mei",
-      "t": 1789896962857
-     },
-     "-275,68,-480": {
-      "by": "Yotsuba",
-      "t": 1789897014294
-     },
-     "-271,68,-482": {
-      "by": "Shiori",
-      "t": 1789897022668
+      "fail": 1,
+      "why": "no water_bucket"
      }
     }
    }
@@ -2852,7 +2857,7 @@
    "front": "base",
    "status": "paused",
    "when": "any",
-   "bots": 5,
+   "bots": 12,
    "site": [
     -406,
     69,
@@ -2871,12 +2876,22 @@
     ],
     "args": {
      "w": 3,
-     "d": 31
+     "d": 31,
+     "fill": "cobbled_deepslate",
+     "depth": 8
     }
    },
    "after": "base_infill_n370_n416",
-   "rev": 1,
-   "note": "auto-activated: `after` base_infill_n370_n416 finished (auto-paused: build complete)"
+   "rev": 2,
+   "note": "auto-paused: 16 cells nobody could do: -407,65,-534 | -407,64,-526 | -406,65,-549 | -406,65,-548 | -405,65,-549 | -405,65,-548",
+   "stuckBy": {
+    "key": "rev2",
+    "bots": [
+     "Kanade",
+     "Fuuka",
+     "Mei"
+    ]
+   }
   },
   {
    "id": "base_infill_n407_n455",
@@ -3047,7 +3062,7 @@
    "type": "build",
    "priority": 62,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 6,
    "site": [
@@ -3073,7 +3088,13 @@
    },
    "after": "fill_ne_valley",
    "rev": 10,
-   "note": "needs: dirt (366 cells wait; every cell whose material exists is done or in work)"
+   "note": "auto-paused: build complete - BUT 35 columns are a deck over air (void_under_pad): -246,66,-373 | -245,66,-374 | -245,66,-373 | -244,66,-374 | -244,66,-373 | -244,66,-372",
+   "stuckBy": {
+    "key": "rev10",
+    "bots": [
+     "Ichika"
+    ]
+   }
   },
   {
    "id": "base_infill_n231_n403",
@@ -3142,7 +3163,7 @@
    "type": "cane",
    "priority": 83,
    "front": "cane",
-   "status": "paused",
+   "status": "active",
    "when": "day",
    "bots": 2,
    "site": [
@@ -3178,7 +3199,9 @@
     "farm": "cane_farm",
     "until": 260
    },
-   "desc": "starts by itself when base_cane (blueprint cane_block) is built. Pauses itself when cane_farm holds 260 plants. The depot also holds cane (626 at 05:30Z): cane_farm plants from stock first."
+   "desc": "starts by itself when base_cane (blueprint cane_block) is built. Pauses itself when cane_farm holds 260 plants. The depot also holds cane (626 at 05:30Z): cane_farm plants from stock first.",
+   "rev": 1,
+   "note": "auto-activated: `after` base_cane finished (auto-paused: build complete)"
   },
   {
    "id": "fill_ravine_s",
@@ -3296,7 +3319,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 12,
+   "bots": 6,
    "site": [
     -311,
     69,
@@ -3382,7 +3405,7 @@
      ]
     }
    },
-   "rev": 6,
+   "rev": 8,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check. | 09-20 09:4x: WALK-IN STAIR first (ramp z=-415, x -330..-323 joins the floor y55 to the natural slope y64->68 at the north end): the hole had NO walkable exit, 12 bots no_route"
   },
   {
@@ -3889,6 +3912,191 @@
     ]
    },
    "note": "auto-paused: 4 cells nobody could do: -253,65,-375 | -254,65,-373 | -253,65,-374 | -253,65,-373"
+  },
+  {
+   "id": "fill_void_infill_n247",
+   "type": "build",
+   "priority": 84,
+   "front": "works",
+   "status": "paused",
+   "when": "day",
+   "bots": 3,
+   "site": [
+    -245,
+    68,
+    -374
+   ],
+   "plan": "base pad n247_n401: 35 air cells under finished pad at y66, fill solid",
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -245,
+     68,
+     -374
+    ],
+    "args": {
+     "box": [
+      -249,
+      -378,
+      -241,
+      -370
+     ],
+     "depth": 4,
+     "fill": "cobblestone"
+    }
+   },
+   "note": "auto-paused: build complete - BUT 23 air cells stay sealed under it (void_under_pad): -246,66,-373 | -246,65,-370 | -246,66,-370 | -245,66,-374 | -245,66,-373 | -245,65,-370"
+  },
+  {
+   "id": "base_field_1",
+   "type": "build",
+   "priority": 89,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 6,
+   "site": [
+    -346,
+    69,
+    -432
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone field_1 x -359..-333 / z -445..-419 on the base level y68 (moved 10 W off the ravine rim): field block 27x27 in a 29x29 slot (its torch ring): nine 9x9 plots, water cells BUILT by the blueprint",
+   "params": {
+    "blueprint": "field_block",
+    "origin": [
+     -359,
+     68,
+     -445
+    ],
+    "args": {},
+    "waterFrom": [
+     -441,
+     62,
+     -422
+    ]
+   },
+   "note": "foreman 09:55: BASE AUDIT - 4 cobblestone path cells are wheat (-350,68,-436 / -350,68,-435 / -349,68,-428) while NO job owned this structure. Restored from archive = the repair.",
+   "rev": 1
+  },
+  {
+   "id": "base_field_6",
+   "type": "build",
+   "priority": 62,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 4,
+   "site": [
+    -390,
+    69,
+    -405
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone field_6 x -403..-377 / z -418..-392 on the base level y68: field block 27x27 in a 29x29 slot (its torch ring): nine 9x9 plots, water cells BUILT by the blueprint.",
+   "params": {
+    "blueprint": "field_block",
+    "origin": [
+     -403,
+     68,
+     -418
+    ],
+    "args": {},
+    "waterFrom": [
+     -441,
+     62,
+     -422
+    ]
+   },
+   "note": "auto-paused: build complete"
+  },
+  {
+   "id": "base_field_2",
+   "type": "build",
+   "priority": 70,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 4,
+   "site": [
+    -288,
+    69,
+    -507
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone field_2 x -301..-275 / z -520..-494 on the base level y68: field block 27x27 in a 29x29 slot (its torch ring): nine 9x9 plots, water cells BUILT by the blueprint",
+   "params": {
+    "blueprint": "field_block",
+    "origin": [
+     -301,
+     68,
+     -520
+    ],
+    "args": {},
+    "waterFrom": [
+     -441,
+     62,
+     -422
+    ]
+   },
+   "note": "foreman 09:56: BASE AUDIT - 13 cells WRONG: the irrigation water at -297/-288/-279,68,-516 is cobbled_deepslate - a levelling/infill job decked the field水路. Restored from archive = the repair.",
+   "water": {
+    "key": "rev0",
+    "cells": {
+     "-288,68,-507": {
+      "fail": 1,
+      "why": "water NOT poured at -288,68,-507: no stand with a verified aim into the hole (bucket kept)"
+     },
+     "-279,68,-507": {
+      "by": "Tamaki",
+      "t": 1789898236734
+     },
+     "-297,68,-516": {
+      "by": "Rena",
+      "t": 1789898278947
+     }
+    }
+   }
+  },
+  {
+   "id": "chika_hold",
+   "type": "steps",
+   "priority": 97,
+   "status": "active",
+   "when": "any",
+   "names": [
+    "Chika"
+   ],
+   "plan": "no world change: Chika is trapped in a low river (y49, 16 below the forest floor at -520,-559; the pathfinder finds 45 nodes, the water body is 2000+). She HOLDS here quietly (no_route storm x38/10 min) until the top model fixes the swim routing - see docs/BUGS.md 10:1xZ",
+   "params": {
+    "steps": [
+     {
+      "do": "eat"
+     },
+     {
+      "do": "wait",
+      "s": 3000
+     },
+     {
+      "do": "wait",
+      "s": 3000
+     },
+     {
+      "do": "wait",
+      "s": 3000
+     },
+     {
+      "do": "wait",
+      "s": 3000
+     }
+    ]
+   }
   }
  ]
 }

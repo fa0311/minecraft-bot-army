@@ -82,6 +82,7 @@ World 2 starts from NOTHING: no chests, no tools, no board coordinates. Order ma
 10. **Waiting is waste, idling is a planning failure.** Sponge jobs with big head-counts, shifts for long commutes, plans that free their bot when done — nobody waits for an LLM.
 
 ## Log (newest first) — `date | bottleneck | change | result`
+- 09-20 10:1xZ | warning storm: 38x no_route from ONE hunter in a low river 150 blocks W | verb `drop`, 3 supply runs from the rim, stairwell job | NOT solved (canopy catches the items; A* stops at 45 nodes) - bug filed, bot parked in `chika_hold`; 7 idle bots -> tidy 22
 - 09-20 09:5xZ | 12 bots no_route on the ravine floor (no walkable exit, segments at different heights) · iron squad on exhausted levels | walk-in stair as `ramp` of fill_ravine_n + `base keepout exit`, m paused until level · `mine level 32` | route foot->rim verified; mine: watch `stairs_done`/hub on y32
 - 09-20 09:0xZ | 8 of 50 bots hungry WITH food carried (no regen, no sprint) | meal reflex every 4 s inside slices + digest `starving_fed` | 8 -> 2 in 2 min, rest after the rolling restart
 - 09-20 09:1xZ | PUBLIC repo github.com/fa0311/minecraft-bot-army (`ops/git.sh publish`, guarded); world-1 records gathered in `attic/world1/` (local only), the LIVE finished-jobs archive moved to `bots/army/jobs-archive.jsonl`, guest names to untracked `server/guests.json`. Owner: "花の除去が出来てない" -> `audit_weeds` (268 on the first run) + tidy kind `weed`. NE valley: `fill_ne_valley` stone sub-base before the dirt cap.

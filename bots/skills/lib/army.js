@@ -619,7 +619,10 @@ function walkableArea (bot, limit = 120, maxDrop = 3) {
   const wet = b => b && b.name === 'water' // a swimming bot is not boxed in: water cells count as ground AND as room (else a bot in a river "has area 1" and digs out)
   const pass = b => b && (b.boundingBox === 'empty' || /fence_gate$/.test(b.name)) && b.name !== 'lava' // a closed fence gate is a door (canOpenDoors), not a wall: 15:37Z Nanami dug out of the closed respawn room
   const solid = b => b && b.boundingBox === 'block' && !/fence_gate$/.test(b.name)
-  const stand = p => (solid(bot.blockAt(p.offset(0, -1, 0))) || wet(bot.blockAt(p.offset(0, -1, 0))) || wet(bot.blockAt(p))) && pass(bot.blockAt(p)) && pass(bot.blockAt(p.offset(0, 1, 0)))
+  // NOBODY STANDS ON WATER (09-20 09:3x-10:0xZ: Chika in a closed 44-cell pond 16 below the forest floor, banks 2 high - the air cell ABOVE the water counted as a
+  // place to stand, from there every bank was "one step up": area 120, island 150, so no escape ever ran; the pathfinder reached 44 nodes, `no_route` x38 in 10 min).
+  // A swimmer is IN a water cell; it leaves onto a bank whose top is level with that cell's top (dy +1 from the water cell) - exactly what the pathfinder can do.
+  const stand = p => (solid(bot.blockAt(p.offset(0, -1, 0))) || wet(bot.blockAt(p))) && pass(bot.blockAt(p)) && pass(bot.blockAt(p.offset(0, 1, 0)))
   const start = bot.entity.position.floored()
   const seen = new Set([start.x + ',' + start.y + ',' + start.z])
   const q = [start]

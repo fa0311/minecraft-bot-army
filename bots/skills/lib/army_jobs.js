@@ -1511,6 +1511,16 @@ const VERBS = {
     return n > 0 || 'no sheep sheared (none within ' + (st.radius || 32) + ' blocks?)'
   },
   async pickup (bot, st) { await A.pickup(bot, st.radius || 6, 6000); return true },
+  // drop: HAND MATERIAL DOWN to a mate who cannot be reached on foot (09-20: a hunter in a closed canyon 15 below the forest floor, no_route x38 in 10 min - she builds the
+  // `stairwell` out herself, but with what?). {do:'drop', item, n, toward:[x,y,z]}: walk to the rim first (goto), look at the spot, toss. Never near lava; max 256 per step.
+  async drop (bot, st) {
+    const it0 = bot.inventory.items().filter(i => i.name === st.item); const have = it0.reduce((n, i) => n + i.count, 0); if (!have) return 'no ' + st.item + ' carried'
+    const t = Array.isArray(st.toward) ? v(st.toward) : null; if (t) { const lava = bot.findBlock({ point: t, matching: b => b && b.name === 'lava', maxDistance: 4 }); if (lava) return 'drop: lava at the target' ; try { await bot.lookAt(t.offset(0.5, 0.5, 0.5), true) } catch (e_) { swallow('army_jobs:dropLook', e_) } }
+    let left = Math.min(have, st.n || have, 256); let n = 0
+    while (left > 0) { const it = bot.inventory.items().find(i => i.name === st.item); if (!it) break; const k = Math.min(left, it.count); try { await U.withTimeout(bot.toss(it.type, null, k), 5000, 'toss') } catch (e) { return 'drop: ' + String(e && e.message).slice(0, 60) } left -= k; n += k; await sleep(250) }
+    A.result(bot, { ev: 'dropped', item: st.item, n, toward: st.toward || null })
+    return true
+  },
   async till (bot, st) { const r = await lib('blocks').tillAndPlant(bot, v(st.at), st.seed || 'wheat_seeds', {}); return r.ok || ('till: ' + r.reason) },
   async equip (bot, st) { const it = bot.inventory.items().find(i => i.name === st.item); if (!it) return 'no ' + st.item; await U.withTimeout(bot.equip(it, st.dest || 'hand'), 5000, 'equip'); return true },
   async eat (bot) { if (bot.food >= 20) return true; try { await U.withTimeout(lib('feed').eat(bot, { rawOk: true }), 20000, 'eatStep') } catch (e_) { swallow('army_jobs:eatStep', e_) } return true }, // full or nothing edible = done at once (helpdesk 09-19 20:04Z: Fuuka "hung" 3 min on step eat with food 20 and empty pockets)

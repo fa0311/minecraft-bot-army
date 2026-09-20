@@ -141,7 +141,7 @@ const HOWTO = {
   arrow: 'flint + stick + feather -> 4 arrows: gravel gives flint (10%), chickens give feathers; skeletons drop arrows and bows.'
 }
 const KNOWN_TYPES = ['ores', 'lumber', 'tidy', 'build', 'berries', 'light', 'sleeper', 'guard', 'muster', 'hunt', 'herd', 'fish', 'scan', 'delegate', 'scout', 'depot', 'farm', 'cane', 'deck', 'haul', 'steps']
-const KNOWN_VERBS = ['goto', 'bank', 'withdraw', 'stash', 'unstash', 'place', 'dig', 'collect', 'fell', 'craft', 'smelt', 'kill', 'pickup', 'shear', 'till', 'equip', 'eat', 'sleep', 'wait', 'say', 'sample', 'fill', 'pour']
+const KNOWN_VERBS = ['goto', 'bank', 'withdraw', 'stash', 'unstash', 'place', 'dig', 'collect', 'fell', 'craft', 'smelt', 'kill', 'pickup', 'drop', 'shear', 'till', 'equip', 'eat', 'sleep', 'wait', 'say', 'sample', 'fill', 'pour']
 const stockKey = k => typeof k === 'string' && (!!STOCK().groups[k] || !!mc().itemsByName[k]) // a stock group (log, planks, food, fuel …) or an item name
 function blueprintFile (name) { const f = path.join(BOTS, 'blueprints', String(name).replace(/[^a-z0-9_]/gi, '') + '.js'); return fs.existsSync(f) ? f : null }
 function blueprintCells (P) { const f = blueprintFile(P.blueprint); delete require.cache[f]; return require(f)({ x: P.origin[0], y: P.origin[1], z: P.origin[2] }, P.args || {}) } // fresh: another engineer may have edited it
@@ -673,6 +673,7 @@ async function main () {
     if (!withDead && nDead) { const top = Object.entries(dead).filter(([k]) => !live[k]).sort((a, b) => b[1].n - a[1].n); console.log('ignored: ' + nDead + ' counter files of dead processes (' + Object.values(dead).reduce((a, v) => a + v.n, 0) + ' errors; `errors ' + (+arg || 20) + ' all` merges them). Signatures seen ONLY there (fixed, or not hit since the restart): ' + (top.slice(0, 3).map(([k, v]) => v.n + 'x ' + k.slice(0, 60)).join(' ; ') || 'none')) }
   } else if (cmd === 'blueprints') {
     const bd = path.join(BOTS, 'blueprints')
+    if (arg && !fs.existsSync(path.join(bd, arg.replace(/[^a-z0-9_]/gi, '') + '.js'))) return console.log('no blueprint `' + arg + '` - known: ' + fs.readdirSync(bd).filter(f => f.endsWith('.js')).map(f => f.slice(0, -3)).join('  '))
     if (arg) { const src = fs.readFileSync(path.join(bd, arg.replace(/[^a-z0-9_]/gi, '') + '.js'), 'utf8'); console.log(src.split('\n').filter(l => l.startsWith('//')).join('\n')); try { const cells = require(path.join(bd, arg + '.js'))({ x: 0, y: 64, z: 0 }, {}); const m = {}; for (const c of cells) m[c.block] = (m[c.block] || 0) + 1; console.log('default size -> ' + JSON.stringify(m)) } catch (e) { console.log('preview failed: ' + e.message) } return }
     console.log(fs.readdirSync(bd).filter(f => f.endsWith('.js')).map(f => f.slice(0, -3)).join('  '))
     console.log('details + material count: blueprints <name>   |   job: template build -> put')

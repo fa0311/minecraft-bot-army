@@ -98,7 +98,7 @@ blueprint `level`), then build/plant on it; never deck a hole (`fill_void`); tea
 | `bed_missing` | nights are real until a bed stands again: `recipe white_bed`, `stock "bed|wool"`, then a `steps` plan places it |
 | where should the farm/outpost go? | `armyctl.js sites` (liquid water, flat, warm biome, animals), then LOOK at the candidate |
 | need exact coordinates | `armyctl.js look <bot> 16` (add `cave` underground), `ground`. No bot there? `template goto_look`, then look |
-| want bots to do something new | write a PLAN, not code: a `steps` job (verbs goto/withdraw/place/collect/craft … — docs/DEV.md §2b); watch `step`/`plan_failed` events and re-plan. World-altering job → needs a zone from docs/WORLD.md in its `plan` |
+| want bots to do something new | write a PLAN, not code: a `steps` job (verbs goto/withdraw/place/collect/craft/drop … — docs/DEV.md §2b); watch `step`/`plan_failed` events and re-plan. World-altering job → needs a zone from docs/WORLD.md in its `plan` |
 | bots placing/digging blocks while walking | must never happen: check `terrain_guard` stats (docs/DEV.md §4); fix the skill, not the bot |
 | API :3000 hangs | `grep loop_stall bots/manager.log | tail`; the shard watchdog restarts a hung shard by itself |
 | you edited `bots/manager.js` or `skills/army_worker.js` | `ops/restart-bots.sh` (rolling, 3 bots at a time). Everything under `skills/lib/` hot-reloads — no restart |
