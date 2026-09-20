@@ -575,7 +575,8 @@
    "wool": 150,
    "stone_shovel": 40,
    "stone_axe": 20,
-   "dirt": 768
+   "dirt": 768,
+   "stone_pickaxe": 16
   },
   "base": {
    "x": -320,
@@ -731,6 +732,11 @@
     -480
    ],
    "why": "NW rim of the ravine keep-out (quarry_sw terraces below): junk is thrown in here, never dropped in the base"
+  },
+  "core": {
+   "enabled": [
+    "combat"
+   ]
   }
  },
  "enlisted": [
@@ -865,8 +871,8 @@
    "produces": [
     "food"
    ],
-   "minBots": 4,
-   "maxBots": 10,
+   "minBots": 2,
+   "maxBots": 6,
    "site": [
     -367,
     69,
@@ -888,7 +894,7 @@
     "haul": 24,
     "maxDist": 160
    },
-   "rev": 12,
+   "rev": 13,
    "bots": 3
   },
   {
@@ -997,7 +1003,7 @@
    "type": "guard",
    "priority": 60,
    "front": "muster",
-   "status": "active",
+   "status": "paused",
    "when": "night",
    "bots": 12,
    "requires": {
@@ -1025,7 +1031,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 10,
+   "bots": 17,
    "site": [
     -367,
     69,
@@ -1055,8 +1061,9 @@
      ]
     ]
    },
-   "rev": 42,
-   "note": "engineer 07:45Z: the sponge now works the base audit work list first (tidy_fix events), tiles second"
+   "rev": 47,
+   "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
+   "restUntil": 1789904824738
   },
   {
    "id": "farm_1",
@@ -1076,7 +1083,7 @@
     "wheat_seeds"
    ],
    "minBots": 1,
-   "maxBots": 3,
+   "maxBots": 1,
    "plan": "BASE PLAN zone field_1: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
    "params": {
     "box": [
@@ -1090,7 +1097,8 @@
     "forage": true,
     "bankAt": 64
    },
-   "rev": 4
+   "rev": 5,
+   "bots": 1
   },
   {
    "id": "lumber_base",
@@ -1275,7 +1283,7 @@
    "type": "build",
    "priority": 68,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "site": [
@@ -1302,8 +1310,8 @@
     ]
    },
    "after": "base_field_3_pad",
-   "rev": 10,
-   "note": "foreman 10:00: re-paused at once - BUGS.md 09:25Z line documents that activating it makes the whole fallback pool walk 60 blocks and decline (build says left:2 gaveUp:2 while the camera sees 12 missing cells). Waits for the code fix.",
+   "rev": 11,
+   "note": "auto-paused: build complete",
    "water": {
     "key": "rev8",
     "cells": {}
@@ -1321,7 +1329,7 @@
    "type": "farm",
    "priority": 80,
    "front": "farm",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "site": [
     -390,
@@ -1348,8 +1356,9 @@
     "forage": true,
     "bankAt": 64
    },
-   "rev": 4,
-   "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)"
+   "rev": 5,
+   "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)",
+   "bots": 2
   },
   {
    "id": "farm_4",
@@ -1439,7 +1448,7 @@
     "wheat_seeds"
    ],
    "minBots": 1,
-   "maxBots": 6,
+   "maxBots": 1,
    "plan": "BASE PLAN zone field_6: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
    "params": {
     "box": [
@@ -1453,8 +1462,9 @@
     "forage": true,
     "bankAt": 64
    },
-   "rev": 3,
-   "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)"
+   "rev": 4,
+   "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)",
+   "bots": 1
   },
   {
    "id": "farm_7",
@@ -1488,7 +1498,7 @@
     "forage": true,
     "bankAt": 64
    },
-   "rev": 3,
+   "rev": 4,
    "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)"
   },
   {
@@ -1731,7 +1741,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789900178208
+   "restUntil": 1789904817865
   },
   {
    "id": "guard_muster",
@@ -1903,7 +1913,7 @@
    "id": "bake_bread",
    "type": "steps",
    "priority": 96,
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 2,
    "requires": {
@@ -2093,7 +2103,7 @@
    "front": "pens",
    "status": "active",
    "when": "any",
-   "bots": 6,
+   "bots": 3,
    "site": [
     -376,
     69,
@@ -2121,15 +2131,15 @@
     "radius": 250
    },
    "shiftMin": 20,
-   "rev": 12,
-   "restUntil": 1789899429329,
+   "rev": 14,
+   "restUntil": 1789901815970,
    "note": "09-20 05:40Z top model: 82 sheep stand OUTSIDE pen 1 (escaped 03:42-05:30Z over step blocks an escape routine left on the pen floor - removed, pen_litter rule live). want 30 + 4 herders until the flock is back; then want 10-24 / minBots 1 again",
    "desc": "OPERATORS: do NOT pause - since 09-20 02:00Z the herd job itself SHEARS the woolly sheep and CULLS the adults beyond want inside the pen (event pen_harvest); a full pen is its work, not a dead end (BUGS 105 fixed)",
    "produces": [
     "wool"
    ],
-   "minBots": 5,
-   "maxBots": 8
+   "minBots": 1,
+   "maxBots": 3
   },
   {
    "id": "herd_cows",
@@ -2167,7 +2177,7 @@
    },
    "shiftMin": 20,
    "rev": 5,
-   "restUntil": 1789899984631,
+   "restUntil": 1789905134064,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "leather"
@@ -2212,7 +2222,7 @@
    },
    "shiftMin": 20,
    "rev": 5,
-   "restUntil": 1789900280276,
+   "restUntil": 1789905066959,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "feather"
@@ -2570,7 +2580,7 @@
    },
    "bots": 2,
    "rev": 8,
-   "restUntil": 1789900585659,
+   "restUntil": 1789904576289,
    "note": "auto-activated: `after` base_cane finished (auto-paused: build complete)"
   },
   {
@@ -2724,7 +2734,7 @@
    "type": "guard",
    "priority": 95,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 4,
    "site": [
@@ -2997,9 +3007,9 @@
    "type": "build",
    "priority": 88,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
-   "bots": 10,
+   "bots": 4,
    "site": [
     -242,
     69,
@@ -3022,8 +3032,15 @@
      "clear": 14
     }
    },
-   "rev": 4,
-   "note": "top model 11:0xZ: re-activated WITH the escort guard_treefarm (post on the hill): no witch death for 45 min; this cut is the army's DIRT source (depot 36, every level cap and the ravine top layer need dirt)"
+   "rev": 7,
+   "after": "void_fix_base_infill_n252_n558",
+   "voidFix": {
+    "n": 1,
+    "id": "void_fix_base_infill_n252_n558",
+    "cols": 16,
+    "t": 1789901723168
+   },
+   "note": "auto-paused: build complete"
   },
   {
    "id": "base_infill_n278_n401",
@@ -3055,9 +3072,8 @@
      "clear": 6
     }
    },
-   "rev": 7,
-   "after": "fill_ne_valley",
-   "note": "auto-paused: build complete - BUT 12 columns are a deck over air (void_under_pad): -254,65,-373 | -253,65,-375 | -253,65,-374 | -253,65,-373 | -251,65,-375 | -251,65,-374"
+   "rev": 15,
+   "note": "auto-paused: build complete"
   },
   {
    "id": "base_infill_n247_n401",
@@ -3134,7 +3150,7 @@
    "type": "build",
    "priority": 88,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 2,
    "site": [
@@ -3159,7 +3175,7 @@
     }
    },
    "rev": 4,
-   "note": "needs: dirt (1 cells wait; every cell whose material exists is done or in work)"
+   "note": "auto-paused: build complete - BUT 6 columns are a deck over air (void_under_pad): -232,66,-392 | -232,66,-391 | -232,66,-379 | -232,65,-378 | -232,65,-376 | -232,66,-375"
   },
   {
    "id": "cane_lake",
@@ -3205,16 +3221,16 @@
    "desc": "starts by itself when base_cane (blueprint cane_block) is built. Pauses itself when cane_farm holds 260 plants. The depot also holds cane (626 at 05:30Z): cane_farm plants from stock first.",
    "rev": 1,
    "note": "auto-activated: `after` base_cane finished (auto-paused: build complete)",
-   "restUntil": 1789901175039
+   "restUntil": 1789905926741
   },
   {
    "id": "fill_ravine_s",
    "type": "build",
    "priority": 70,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 20,
    "site": [
     -311,
     69,
@@ -3243,7 +3259,6 @@
      ],
      "depth": 28,
      "fill": "cobblestone",
-     "top": "dirt",
      "mats": [
       "cobbled_deepslate",
       "cobblestone",
@@ -3256,19 +3271,21 @@
       "dirt",
       "gravel"
      ]
-    }
+    },
+    "order": "near"
    },
-   "rev": 4,
-   "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check."
+   "rev": 9,
+   "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check.",
+   "note": "top model 11:4xZ: 0.2 -> 25 cells/min/bot after the new pit ordering (own layer first, never a wall beside a bot) - 17 bots stood at muster, so the crew goes 10 -> 20. Watch build_tail/fill_flush"
   },
   {
    "id": "fill_ravine_m",
    "type": "build",
    "priority": 70,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 6,
    "site": [
     -311,
     69,
@@ -3297,7 +3314,6 @@
      ],
      "depth": 28,
      "fill": "cobblestone",
-     "top": "dirt",
      "mats": [
       "cobbled_deepslate",
       "cobblestone",
@@ -3309,12 +3325,52 @@
       "granite",
       "dirt",
       "gravel"
+     ],
+     "ramp": [
+      [
+       -324,
+       -437,
+       67
+      ],
+      [
+       -318,
+       -437,
+       64
+      ],
+      [
+       -317,
+       -437,
+       63
+      ],
+      [
+       -316,
+       -437,
+       62
+      ],
+      [
+       -315,
+       -437,
+       61
+      ],
+      [
+       -314,
+       -437,
+       60
+      ]
      ]
-    }
+    },
+    "order": "near"
    },
-   "rev": 7,
+   "rev": 18,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check.",
-   "note": "top model 09:4xZ: m stands 4 above n (a cliff between the segments = the island the bots were marooned on). Resumes when fill_ravine_n has risen to y60; re-activate then"
+   "note": "foreman 11:2xZ: bots 6->2 (=below the dispatcher OVERFLOW threshold of 3): 24 bots were dumped here by overflow while build_pass read done:0 left:153 waiting:114 and depot cobblestone was 0 (3298 carried). Raise again once `stock cobble` shows depot > 1000.",
+   "stuckBy": {
+    "key": "rev18",
+    "bots": [
+     "Chino",
+     "Aika"
+    ]
+   }
   },
   {
    "id": "fill_ravine_n",
@@ -3323,7 +3379,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 10,
+   "bots": 4,
    "site": [
     -311,
     69,
@@ -3352,7 +3408,6 @@
      ],
      "depth": 28,
      "fill": "cobblestone",
-     "top": "dirt",
      "mats": [
       "cobbled_deepslate",
       "cobblestone",
@@ -3407,10 +3462,18 @@
        63
       ]
      ]
-    }
+    },
+    "order": "near"
    },
-   "rev": 13,
-   "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check. | 09-20 09:4x: WALK-IN STAIR first (ramp z=-415, x -330..-323 joins the floor y55 to the natural slope y64->68 at the north end): the hole had NO walkable exit, 12 bots no_route"
+   "rev": 21,
+   "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check. | 09-20 09:4x: WALK-IN STAIR first (ramp z=-415, x -330..-323 joins the floor y55 to the natural slope y64->68 at the north end): the hole had NO walkable exit, 12 bots no_route",
+   "stuckBy": {
+    "key": "rev21",
+    "bots": [
+     "Fuuka"
+    ]
+   },
+   "note": "top model 11:4xZ: re-activated after the above-grade sweep went in (fill_flush): the two leftover cells -328,68,-426 / -318,68,-420 were unreachable because one of the y69 filler lines stood ON them"
   },
   {
    "id": "base_field_7",
@@ -3443,7 +3506,8 @@
      -422
     ]
    },
-   "note": "auto-paused: build complete"
+   "note": "auto-paused: build complete",
+   "rev": 3
   },
   {
    "id": "fill_void_n343_n461",
@@ -3520,9 +3584,9 @@
    "type": "guard",
    "priority": 93,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
-   "bots": 2,
+   "bots": 3,
    "site": [
     -258,
     69,
@@ -3563,7 +3627,8 @@
      "creeper",
      "witch"
     ]
-   }
+   },
+   "rev": 1
   },
   {
    "id": "fill_ne_valley",
@@ -3606,10 +3671,11 @@
       "stone",
       "deepslate"
      ]
-    }
+    },
+    "order": "near"
    },
    "note": "auto-paused: 20 cells nobody could do: -235,65,-393 | -238,66,-396 | -238,66,-397 | -237,66,-397 | -236,66,-395 | -235,66,-395",
-   "rev": 1,
+   "rev": 2,
    "stuckBy": {
     "key": "rev1",
     "bots": [
@@ -3858,14 +3924,12 @@
      "fill": "cobbled_deepslate"
     }
    },
-   "rev": 7,
-   "note": "auto-paused: build complete - BUT 2 cells are left that 3 builders could not do (build_leftover): -346,68,-544 | -349,68,-544",
+   "rev": 8,
+   "note": "needs: cobbled_deepslate (2 cells wait; every cell whose material exists is done or in work)",
    "stuckBy": {
-    "key": "rev7",
+    "key": "rev8",
     "bots": [
-     "Sumire",
-     "Rena",
-     "Sayaka"
+     "Sakura"
     ]
    }
   },
@@ -3876,7 +3940,7 @@
    "front": "works",
    "status": "paused",
    "when": "day",
-   "bots": 6,
+   "bots": 3,
    "site": [
     -254,
     65,
@@ -3895,24 +3959,22 @@
     }
    },
    "stuckBy": {
-    "key": "rev2",
+    "key": "rev3",
     "bots": [
-     "Kaede",
-     "Tsumugi",
-     "Rena"
+     "Kotori"
     ]
    },
-   "note": "auto-paused: 4 cells nobody could do: -253,65,-375 | -253,65,-374 | -254,65,-373 | -253,65,-373",
-   "rev": 2
+   "note": "auto-paused: build complete",
+   "rev": 3
   },
   {
    "id": "base_field_1",
    "type": "build",
    "priority": 89,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
-   "bots": 6,
+   "bots": 1,
    "site": [
     -346,
     69,
@@ -3937,7 +3999,7 @@
     ]
    },
    "note": "foreman 09:55: BASE AUDIT - 4 cobblestone path cells are wheat (-350,68,-436 / -350,68,-435 / -349,68,-428) while NO job owned this structure. Restored from archive = the repair.",
-   "rev": 1
+   "rev": 3
   },
   {
    "id": "base_field_6",
@@ -3946,7 +4008,6 @@
    "front": "base",
    "status": "paused",
    "when": "any",
-   "bots": 4,
    "site": [
     -390,
     69,
@@ -3970,7 +4031,15 @@
      -422
     ]
    },
-   "note": "auto-paused: build complete"
+   "note": "auto-paused: build complete",
+   "rev": 3,
+   "bots": 4,
+   "stuckBy": {
+    "key": "rev3",
+    "bots": [
+     "Honoka"
+    ]
+   }
   },
   {
    "id": "base_field_2",
@@ -4009,6 +4078,634 @@
     "cells": {}
    },
    "rev": 1
+  },
+  {
+   "id": "fill_void_n232_strip",
+   "type": "build",
+   "priority": 84,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -232,
+    68,
+    -385
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE zone infill x -232 / z -400..-370: fill 6 air cells under the finished pad (void_under_pad) solid up to grade y68",
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -232,
+     68,
+     -385
+    ],
+    "args": {
+     "box": [
+      -233,
+      -400,
+      -231,
+      -370
+     ],
+     "depth": 6
+    }
+   },
+   "rev": 1
+  },
+  {
+   "id": "base_pen_1_pad",
+   "type": "build",
+   "priority": 90,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 13,
+   "site": [
+    -389,
+    69,
+    -534
+   ],
+   "requires": {
+    "minHp": 6
+   },
+   "plan": "BASE PLAN zone pen_1 x -403..-375 / z -541..-527 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. animal pen 27x13: fence ring, ONE gate onto the road beside it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -389,
+     68,
+     -534
+    ],
+    "args": {
+     "w": 29,
+     "d": 15
+    }
+   },
+   "rev": 4,
+   "note": "auto-paused: build complete - BUT 4 cells are left that 3 builders could not do (build_leftover): -381,68,-541 | -382,68,-541 | -384,68,-541 | -395,67,-541",
+   "stuckBy": {
+    "key": "rev4",
+    "bots": [
+     "Nagisa",
+     "Tsumugi",
+     "Rin"
+    ]
+   }
+  },
+  {
+   "id": "west_terrace_cut",
+   "type": "build",
+   "priority": 66,
+   "front": "works",
+   "status": "paused",
+   "when": "any",
+   "bots": 20,
+   "minBots": 8,
+   "maxBots": 30,
+   "site": [
+    -484,
+    74,
+    -480
+   ],
+   "plan": "zone WEST TERRACE (docs/WORLD.md): cut the grass hill x -492..-476 / z -502..-458 (tops y76-86, 80 blocks W of the wall) down to a flat terrace at y73 = the army DIRT + stone source (depot dirt 1; every level cap, tidy hole and field needs dirt). No pit: a hill becomes a terrace; whole trees are felled",
+   "produces": [
+    "dirt"
+   ],
+   "params": {
+    "blueprint": "clear_area",
+    "origin": [
+     -484,
+     73,
+     -480
+    ],
+    "args": {
+     "w": 17,
+     "d": 45,
+     "h": 14
+    }
+   },
+   "rev": 2,
+   "stuckBy": {
+    "key": "rev2",
+    "bots": [
+     "Fuuka",
+     "Nozomi"
+    ]
+   },
+   "note": "auto-paused: build complete"
+  },
+  {
+   "id": "void_fix_base_infill_n252_n558",
+   "type": "build",
+   "priority": 70,
+   "front": "works",
+   "status": "paused",
+   "when": "any",
+   "bots": 3,
+   "site": [
+    -235,
+    68,
+    -538
+   ],
+   "plan": "void under the finished pad base_infill_n252_n558: 16 columns of x -239..-232 / z -540..-536 are a deck over air (void_under_pad) - fill SOLID from the natural ground up to grade y68, never deck a hole; base_infill_n252_n558 is `after` this job and re-checks the columns when it is done",
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -235,
+     68,
+     -538
+    ],
+    "unlid": 3,
+    "args": {
+     "box": [
+      -239,
+      -540,
+      -232,
+      -536
+     ],
+     "depth": 5,
+     "fill": "cobblestone",
+     "mats": [
+      "cobbled_deepslate",
+      "cobblestone",
+      "stone",
+      "deepslate",
+      "tuff",
+      "andesite",
+      "diorite",
+      "granite",
+      "dirt",
+      "gravel"
+     ]
+    }
+   },
+   "stuckBy": {
+    "key": "rev0",
+    "bots": [
+     "Mashiro",
+     "Nagisa"
+    ]
+   },
+   "note": "auto-paused: build complete - BUT 1 air cells stay sealed under it (void_under_pad): -233,64,-540"
+  },
+  {
+   "id": "chest_food2",
+   "type": "steps",
+   "priority": 80,
+   "status": "paused",
+   "when": "any",
+   "bots": 1,
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "no zone: 2 storage chests south of the depot food row",
+   "params": {
+    "steps": [
+     {
+      "do": "withdraw",
+      "item": "chest",
+      "n": 2
+     },
+     {
+      "do": "goto",
+      "to": [
+       -369,
+       69,
+       -517
+      ],
+      "range": 3
+     },
+     {
+      "do": "place",
+      "block": "chest",
+      "at": [
+       -371,
+       69,
+       -515
+      ]
+     },
+     {
+      "do": "place",
+      "block": "chest",
+      "at": [
+       -367,
+       69,
+       -515
+      ]
+     }
+    ]
+   },
+   "note": "auto-paused: plan finished"
+  },
+  {
+   "id": "light_ravine",
+   "type": "light",
+   "priority": 74,
+   "front": "base",
+   "status": "paused",
+   "when": "day",
+   "bots": 2,
+   "site": [
+    -311,
+    69,
+    -447
+   ],
+   "requires": {
+    "minHp": 14,
+    "minFood": 10
+   },
+   "plan": "no world change beyond torches: light the ravine keep-out x -334..-289 / z -486..-408 so the fill_void crews stop being killed on their own site (11:18:11 three deaths by zombie at -290,58,-472; 9 skeleton deaths in 30 min). Torches go on the ground of each column, rim or floor.",
+   "params": {
+    "box": [
+     -334,
+     -486,
+     -289,
+     -408
+    ],
+    "step": 7,
+    "y": 68
+   },
+   "note": "auto-paused: grid complete"
+  },
+  {
+   "id": "base_yard_pad",
+   "type": "build",
+   "priority": 85,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 4,
+   "site": [
+    -355,
+    69,
+    -483
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone yard x -370..-340 / z -490..-476 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. muster yard 29x13 (settings.muster): a level pad, nothing built on it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -355,
+     68,
+     -483
+    ],
+    "args": {
+     "w": 31,
+     "d": 15
+    }
+   },
+   "note": "auto-reactivated: 3 columns below pad level (pad_uneven): -343,67,-483 | -342,66,-483 | -341,65,-483",
+   "rev": 8
+  },
+  {
+   "id": "base_portal",
+   "type": "build",
+   "priority": 88,
+   "front": "base",
+   "status": "active",
+   "when": "day",
+   "bots": 5,
+   "site": [
+    -326,
+    68,
+    -518
+   ],
+   "plan": "zone portal (docs/WORLD.md): THE Nether gate of the base — 4x5 obsidian frame on a 2-deep stone plinth with a paved, lit apron (3 clear cells in front and behind). x -330..-323 / z -522..-514, probed flat grass y68 on 2026-09-20 (armyctl ground), 18 blocks N of the mine head, clear of every zone, road and keep-out.",
+   "params": {
+    "blueprint": "nether_portal",
+    "origin": [
+     -326,
+     68,
+     -518
+    ],
+    "pad": false,
+    "args": {
+     "axis": "x"
+    }
+   },
+   "stuckBy": {
+    "key": "rev1",
+    "bots": [
+     "Aika",
+     "Chino",
+     "Kaede"
+    ]
+   },
+   "note": "needs: obsidian (1 cells wait; every cell whose material exists is done or in work)",
+   "rev": 2
+  },
+  {
+   "id": "toolsmith_picks",
+   "type": "steps",
+   "priority": 96,
+   "status": "paused",
+   "when": "any",
+   "bots": 1,
+   "plan": "no world change: pickaxes for the 15 bots without one (owner 09-20): 16 stone + 10 diamond, crafted 2 at a time (craft n>2 of an unstackable tool stops at 2 - bug filed)",
+   "params": {
+    "onFail": "continue",
+    "steps": [
+     {
+      "do": "withdraw",
+      "item": "cobblestone",
+      "n": 64
+     },
+     {
+      "do": "withdraw",
+      "item": "stick",
+      "n": 40
+     },
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       69,
+       -523
+      ],
+      "range": 3
+     },
+     {
+      "do": "craft",
+      "item": "stone_pickaxe",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "stone_pickaxe",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "stone_pickaxe",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "stone_pickaxe",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "stone_pickaxe",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "stone_pickaxe",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "stone_pickaxe",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "stone_pickaxe",
+      "n": 2
+     },
+     {
+      "do": "bank"
+     },
+     {
+      "do": "withdraw",
+      "item": "diamond",
+      "n": 30
+     },
+     {
+      "do": "withdraw",
+      "item": "stick",
+      "n": 20
+     },
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       69,
+       -523
+      ],
+      "range": 3
+     },
+     {
+      "do": "craft",
+      "item": "diamond_pickaxe",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_pickaxe",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_pickaxe",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_pickaxe",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_pickaxe",
+      "n": 2
+     },
+     {
+      "do": "bank"
+     }
+    ]
+   },
+   "note": "auto-paused: plan failed"
+  },
+  {
+   "id": "armoury_swords",
+   "type": "steps",
+   "priority": 96,
+   "status": "paused",
+   "when": "any",
+   "bots": 1,
+   "plan": "no world change: owner 09-20 - EVERY bot is armed (30 of 50 carried no sword, 398 diamonds lay idle): 34 diamond swords, 2 per craft step, banked; the kit rule hands them out",
+   "params": {
+    "onFail": "continue",
+    "steps": [
+     {
+      "do": "withdraw",
+      "item": "diamond",
+      "n": 68
+     },
+     {
+      "do": "withdraw",
+      "item": "stick",
+      "n": 34
+     },
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       69,
+       -523
+      ],
+      "range": 3
+     },
+     {
+      "do": "craft",
+      "item": "diamond_sword",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_sword",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_sword",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_sword",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_sword",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_sword",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_sword",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_sword",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_sword",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_sword",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_sword",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_sword",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_sword",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_sword",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_sword",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_sword",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_sword",
+      "n": 2
+     },
+     {
+      "do": "bank"
+     }
+    ]
+   },
+   "note": "auto-paused: plan failed"
+  },
+  {
+   "id": "armoury_leather",
+   "type": "steps",
+   "priority": 96,
+   "status": "paused",
+   "when": "any",
+   "bots": 1,
+   "plan": "no world change: owner 09-20 - EVERY bot wears armour (9 of 50 wore nothing, 303 leather lay idle): leather chestplates/leggings/helmets/boots, 2 per craft step, banked; the kit rule hands them out",
+   "params": {
+    "onFail": "continue",
+    "steps": [
+     {
+      "do": "withdraw",
+      "item": "leather",
+      "n": 256
+     },
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       69,
+       -523
+      ],
+      "range": 3
+     },
+     {
+      "do": "craft",
+      "item": "leather_chestplate",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "leather_chestplate",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "leather_chestplate",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "leather_chestplate",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "leather_chestplate",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "leather_chestplate",
+      "n": 2
+     },
+     {
+      "do": "bank"
+     }
+    ]
+   },
+   "note": "auto-paused: plan failed"
   }
  ]
 }

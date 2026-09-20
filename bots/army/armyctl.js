@@ -142,6 +142,8 @@ const HOWTO = {
 }
 const KNOWN_TYPES = ['ores', 'lumber', 'tidy', 'build', 'berries', 'light', 'sleeper', 'guard', 'muster', 'hunt', 'herd', 'fish', 'scan', 'delegate', 'scout', 'depot', 'farm', 'cane', 'deck', 'haul', 'steps']
 const KNOWN_VERBS = ['goto', 'bank', 'withdraw', 'stash', 'unstash', 'place', 'dig', 'collect', 'fell', 'craft', 'smelt', 'kill', 'pickup', 'drop', 'shear', 'till', 'equip', 'eat', 'sleep', 'wait', 'say', 'sample', 'fill', 'pour']
+// extension modules bots/skills/lib/jobs_<name>.js bring their own job types and verbs (static TYPES / VERBS lists): see the end of army_jobs.js
+try { for (const f of fs.readdirSync(path.join(__dirname, '..', 'skills', 'lib')).filter(q => /^jobs_[a-z0-9]+\.js$/.test(q))) { const m = require(path.join(__dirname, '..', 'skills', 'lib', f)); for (const t of m.TYPES || []) if (!KNOWN_TYPES.includes(t)) KNOWN_TYPES.push(t); for (const v of m.VERBS || []) if (!KNOWN_VERBS.includes(v)) KNOWN_VERBS.push(v) } } catch (e_) { console.error('armyctl: extension list failed: ' + (e_ && e_.message)) }
 const stockKey = k => typeof k === 'string' && (!!STOCK().groups[k] || !!mc().itemsByName[k]) // a stock group (log, planks, food, fuel …) or an item name
 function blueprintFile (name) { const f = path.join(BOTS, 'blueprints', String(name).replace(/[^a-z0-9_]/gi, '') + '.js'); return fs.existsSync(f) ? f : null }
 function blueprintCells (P) { const f = blueprintFile(P.blueprint); delete require.cache[f]; return require(f)({ x: P.origin[0], y: P.origin[1], z: P.origin[2] }, P.args || {}) } // fresh: another engineer may have edited it
@@ -718,7 +720,15 @@ async function main () {
     console.log('mine job ' + (job ? job.id + ' (' + job.status + ', level arg ' + (lvOf(job) == null ? 'unset' : lvOf(job)) + ')' : 'NONE on the board') + '  entrance ' + JSON.stringify(st.entrance || (job && (job.params.args || {}).entrance) || settings().mineHead || null) + (st.facing != null ? ' facing ' + st.facing : ''))
     if (!Object.keys(st).length) return console.log('no mine cache yet (bots/iron_mine.json is written by the first miner)')
     console.log('working level y ' + cur + '  levels ' + JSON.stringify(st.levels || []) + '  stair rows dug ' + (st.dug == null ? '-' : st.dug) + '  hub ' + JSON.stringify(st.hub || null) + '  steps ' + (st.steps || []).length + '  stair lease ' + ((st.stairLease && (st.stairLease.owner || st.stairLease.bot)) || '-') + '  defects ' + (st.defects || []).length)
-    for (const [y, L] of Object.entries(lv)) { const bs = Object.values((L && L.branches) || {}); console.log('  level y ' + String(y).padEnd(4) + ' branches ' + bs.length + ' (open ' + bs.filter(x => !x.done).length + ', claimed ' + bs.filter(x => !x.done && x.owner).length + '), length ' + ((L && L.branchLen) || '-') + ', ore blocks ' + bs.reduce((n, x) => n + (x.ore || 0), 0) + (+y === cur ? '   <- working' : '')) }
+    // EXHAUSTED and the COMMUTE come from iron_core (ONE definition, the miners' own growth guard): exhausted = every trunk mouth taken, every branch at
+    // MAX_BRANCH, none open - such a level needs a NEW landing, not more bots (the miners open one themselves, `mine_level_opened`, at most one per hour).
+    let IC = null; try { IC = require(path.join(BOTS, 'skills', 'lib', 'iron_core.js')) } catch {}
+    if (st.grewT) console.log('last level the miners opened themselves: y ' + st.grewY + ' ' + Math.round((Date.now() - st.grewT) / 60000) + ' min ago (at most one per hour; `mine level <y>` overrules it)')
+    for (const [y, L] of Object.entries(lv)) {
+      const bs = Object.values((L && L.branches) || {}); const open = bs.filter(x => !x.done)
+      const out = IC ? IC.commute(L) : null // mean blocks from the hub to the open branch ends: "6 open branches, 220 blocks out" is a 4-minute walk each way
+      console.log('  level y ' + String(y).padEnd(4) + ' branches ' + bs.length + ' (open ' + open.length + ', claimed ' + open.filter(x => x.owner).length + '), length ' + ((L && L.branchLen) || '-') + ', ore blocks ' + bs.reduce((n, x) => n + (x.ore || 0), 0) + (out == null ? '' : ', ' + out + ' blocks out') + (IC && IC.exhausted(L) ? '  EXHAUSTED (' + IC.levelCap(L) + ' branches x ' + IC.MAX_BRANCH + ', none open)' : '') + (+y === cur ? '   <- working' : ''))
+    }
   } else if (cmd === 'animals') {
     let rows = []; try { rows = fs.readFileSync(path.join(DIR, 'animals.jsonl'), 'utf8').trim().split('\n').map(l => JSON.parse(l)) } catch {}
     const S = musterOf(settings()); const best = {}
@@ -1122,6 +1132,16 @@ async function main () {
       const idx = (() => { try { return rj(path.join(DIR, 'chests.json')) } catch { return {} } })(); const stock = re => Object.values(idx).reduce((n, v) => n + Object.entries(v.items || {}).filter(([k]) => re.test(k)).reduce((a, [, c]) => a + c, 0), 0)
       if (stock(/^(cooked_|bread$|baked_potato$)/) < 16) cond('lowfood', 'LOW cooked food in stock: ' + stock(/^(cooked_|bread$)/) + ' (raw fish ' + stock(/^(cod|salmon)$/) + ')')
       if (stock(/_pickaxe$/) < 2) cond('lowpicks', 'LOW pickaxes in stock: ' + stock(/_pickaxe$/) + ' -> toolsmith plan')
+      { // GEMBA (ops/gemba.js, one 60 s watch every 10 min, the inspector is its clock): the CLASS-AGNOSTIC yardsticks the owner uses - who STANDS,
+        // which job CRAWLS against one player by hand, who produced NOTHING in 10 min. The line says WHERE and WHAT TO LOOK AT; the diagnosis is
+        // yours AFTER you looked (`look`, `mapshot.js`). At most one line per finding per 20 min. Full block: REPORT.md § GEMBA.
+        let G = null; try { G = rj(path.join(BOTS, 'metrics', 'gemba.json')) } catch {}
+        const gcond = (key, text) => { if (Date.now() - (cur.seen[key] || 0) > 1200000) { cur.seen[key] = Date.now(); out.push(text) } }
+        if (G && Array.isArray(G.bangs) && Date.now() - G.t < 25 * 60000) for (const b of G.bangs) {
+          if (b.kind === 'slow_job' ? (b.job && !mine(b.job)) : !general) continue
+          gcond('gemba:' + b.key, b.digest)
+        }
+      }
       for (const pre of ['HUNG ', 'no_route ', 'STRANDED ']) { // a backlog must not push the rest out of the 25 lines: 3 of a kind, then a count
         const l = out.filter(x => x.startsWith(pre)); if (l.length <= 3) continue
         const rest = l.slice(3); for (const x of rest) out.splice(out.indexOf(x), 1)

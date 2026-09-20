@@ -32,11 +32,16 @@ async function noBranch (bot, M, o) {
   o = o || I.branchOutlook(bot, M, (I.bestPick(bot) ? I.pickRank(I.bestPick(bot).name) : 2))
   // EVERY dug level at its limit (nothing free, waiting for a pick or in work - for ANY pick): the mine itself is worked out. Once an hour, for the board.
   const all = M.levels.filter(lv => M.G.levels[lv] && M.st.dug >= M.G.levels[lv].g).map(lv => I.branchOutlook(bot, M, 4, lv))
-  if (all.length && all.every(q => !q.free && !q.needPick && !q.busy)) await I.sayMine(bot, M.E, 'mine_exhausted', 3600000, { ev: 'mine_exhausted', job: jobRef(bot).id, levels: M.levels, limit: { branchPairs: I.K_MAX, branchLen: I.MAX_BRANCH }, note: 'every level is at its limit (all mouths taken, every branch at full length or ended at a cave/liquid): open another level (armyctl.js mine level <y>, >= 3 from the others) or a second mine head' })
+  if (all.length && all.every(q => !q.free && !q.needPick && !q.busy)) await I.sayMine(bot, M.E, 'mine_exhausted', 3600000, { ev: 'mine_exhausted', job: jobRef(bot).id, levels: M.levels, limit: { branchPairs: I.K_MAX, branchLen: I.MAX_BRANCH }, note: 'every level is at its limit (all mouths taken, every branch at full length or ended at a cave/liquid) AND the miners found no landing of the iron band left to open themselves (growLevel): open another level (armyctl.js mine level <y>, >= 3 from the others) or a second mine head' })
   await I.sayMine(bot, M.E, 'no_branch@' + M.level, 600000, { ev: 'mine_no_branch', job: jobRef(bot).id, level: M.level, needPick: o.needPick, busy: o.busy, note: o.needPick ? o.needPick + ' open branches wait for an iron pickaxe (ore face a stone pick cannot harvest)' : o.busy ? 'every open branch is claimed' : 'level worked out: open the next level (armyctl.js mine level <y>)' })
   return handBack(bot, o.busy && !o.needPick ? 180000 : 600000, 'mine: no branch for this pick on level ' + M.level + ' (need better pick: ' + o.needPick + ', claimed: ' + o.busy + ')')
 }
 
+// THE IRON BAND, one definition (iron spawns y -24..56, peak y16): the landings the squad works and may OPEN BY ITSELF while iron is short. A landing of
+// the band that the BOARD names beats an old level's far ends (09-20 09:4xZ: the tie |32-16| = |0-16| sent every miner back to the last 6 branches of
+// level 0, 220 blocks from the hub) - and a level the miners opened themselves (growLevel) is exactly such a board level.
+const BAND = [-16, 48]
+const rich = lv => lv >= BAND[0] && lv <= BAND[1]
 // WHICH LEVEL? The miners decide it themselves among the levels whose stairs are dug (09-19 23:37Z the job pointed at the worked-out level 16 while 66
 // branches of level -54 lay open; 09-20 03:00Z iron stood at 8/224 while the squad was sent to y-48): while the army is short of IRON (stock group `iron`
 // under settings.targets.iron) the iron-rich levels come first (nearest y16: 16, 0, -16 ...); else the board's level, then the deep ones (diamonds,
@@ -49,9 +54,8 @@ async function pickLevel (bot, M, args, rank) {
   const deepOk = rank >= 3 || I.stoneWanted()
   const iron = ironWanted(bot)
   const skip = bot.__ironLvSkip = bot.__ironLvSkip || {} // a level that just refused us (claimBranch null although the outlook said free): not again for a minute
-  // THE BOARD'S LEVEL FIRST WHEN IT IS IRON-RICH ITSELF (09-20 09:4xZ: levels 16/0/-16 at the cap of 160 branches x 256, the operator opened y32 - and the tie |32-16| = |0-16|
-  // sent every miner back to the 6 last branches of level 0, 220 blocks from the hub): a fresh landing in the iron band (y -8..40) beats an old level's far ends.
-  const rich = lv => lv >= -8 && lv <= 40
+  // THE BOARD'S LEVEL FIRST WHEN IT IS IRON-RICH ITSELF (09-20 09:4xZ: levels 16/0/-16 at the cap of 160 branches x 256, the operator opened y32 - and the tie
+  // |32-16| = |0-16| sent every miner back to the 6 last branches of level 0, 220 blocks from the hub): a fresh landing in the iron BAND beats old far ends.
   const order = M.levels.slice().sort((a, b) => iron ? ((((b === board && rich(b)) ? 1 : 0) - ((a === board && rich(a)) ? 1 : 0)) || (Math.abs(a - 16) - Math.abs(b - 16))) : (((b === board) - (a === board)) || (rank >= 3 ? a - b : b - a)))
   for (const lv of order) {
     if ((lv < -32 && !deepOk) || (skip[lv] || 0) > Date.now() || !M.G.levels[lv] || M.st.dug < M.G.levels[lv].g || !I.branchOutlook(bot, M, rank, lv).free) continue
@@ -62,6 +66,33 @@ async function pickLevel (bot, M, args, rank) {
     return M2
   }
   return null
+}
+
+// MINE GROWTH WITHOUT AN OPERATOR (docs/BUGS.md 09-20 09:5xZ). Every DUG level of the band the army needs NOW is EXHAUSTED (I.exhausted: every trunk mouth
+// taken, every branch at MAX_BRANCH, none open - neither a claim nor the level's own growth can do anything there), so the squad opens the NEXT landing
+// itself instead of falling back to the last branches 220 blocks out or to iron-poor y-32. Band: iron short -> BAND, else the board's level alone; deeper
+// than the band only for an iron pick or while stone is wanted, as ever. Asked BEFORE pickLevel - the point is not to fall back at all. The new level goes
+// ON THE BOARD the way `armyctl.js mine level` writes it (params.args.level + rev, so `armyctl.js mine`, the digest and the other miners see the truth),
+// at most ONE per hour for the whole squad (I.claimGrowth: no flapping between landings when eleven miners see the same second). Then the existing
+// "NEW level" path does the work: this bot takes the stair lease - or, when that landing is already dug, walks down and cuts the hub with walkTrunk - while
+// the others keep the branches that are left. The board's own order is never overruled while it still has work. -> M of the new level | null.
+async function growLevel (bot, M, args, rank) {
+  const board = Number.isFinite(args.level) ? Math.floor(args.level) : M.level
+  const bg = M.G.levels[board]
+  if (!bg || M.st.dug < bg.g || !I.exhausted(I.lvState(M.st, board))) return null // the board's level is still being dug / still has work (a diamond level at y-54)
+  const iron = ironWanted(bot)
+  const band = iron ? BAND : [board, board]
+  const dug = M.levels.filter(lv => lv >= band[0] && lv <= band[1] && M.G.levels[lv] && M.st.dug >= M.G.levels[lv].g)
+  if (!dug.length || !dug.every(lv => I.exhausted(I.lvState(M.st, lv)))) return null
+  const y = I.nextLanding(M, rank >= 3 || I.stoneWanted() ? -48 : BAND[0], BAND[1], iron ? I.LEVEL_Y : board)
+  if (y == null || !await I.claimGrowth(M.E, y)) return null // nothing left to open (noBranch says `mine_exhausted`) / somebody opened a level within the hour
+  const M2 = await I.mine(bot, Object.assign(args, { level: y })) // args.level: this bot works the new level from here on; the cache's levelY follows it (armyctl `mine`)
+  if (!M2 || M2.level !== y) return null // refused after all (`mine_level_refused`): the hour's stamp stays and the caller falls back as before
+  const why = 'every dug level of y' + band[0] + '..' + band[1] + ' (' + dug.join(', ') + ') is at its limit: ' + 2 * I.K_MAX + ' branches x ' + I.MAX_BRANCH + ' blocks, none open'
+  let onBoard = false // the ORDER moves too, not just this bot: params.args.level + rev (the rev ends the squad's slices, so every miner re-reads the level within seconds)
+  ARMY.boardEdit(b => { const j = (b.jobs || []).find(x => x.id === jobRef(bot).id); if (!j) return; j.params = j.params || {}; j.params.args = Object.assign({}, j.params.args, { level: y }); j.rev = (j.rev || 0) + 1; j.note = 'mine growth ' + new Date().toISOString().slice(11, 16) + 'Z: level y' + y + ' opened by ' + bot.username + ' (' + why + ')'; onBoard = true })
+  ARMY.result(bot, { ev: 'mine_level_opened', job: jobRef(bot).id, level: y, from: board, why, board: onBoard, note: 'the miners opened this landing themselves (at most one per hour): one takes the stair lease, the rest work what branches are left. Wrong level? `armyctl.js mine level <y>` overrules it' })
+  return M2
 }
 
 // what stays in the pockets at the bank: the kit. Wood and food are matched by KIND, never by species (world 1 kept only spruce and bread)
@@ -366,7 +397,8 @@ module.exports = async (bot, args = {}, ctx) => {
       if (!under) {
         const bp = I.bestPick(bot)
         const rank = Math.max(2, bp ? I.pickRank(bp.name) : 0, ARMY.stockOf('diamond_pickaxe') > 0 ? 4 : 0, (ARMY.stockOf('iron_pickaxe') > 0 || ARMY.stockOf('iron_ingot') >= 12) ? 3 : 0)
-        const M2 = await pickLevel(bot, M, args, rank)
+        // growth FIRST: when the band the army needs is worked out, a new landing beats any fallback to far ends / iron-poor depths (pickLevel)
+        const M2 = await growLevel(bot, M, args, rank) || await pickLevel(bot, M, args, rank)
         if (M2) M = M2
         else {
           // nothing on any dug level: is the BOARD's level still to be dug (a new `mine level`)? then its stairwell is the work (one digger, below)

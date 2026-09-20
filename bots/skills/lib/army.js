@@ -405,6 +405,16 @@ async function kitUp (bot, opts = {}) {
       if (U.cancelled(bot) || (opts.stop && opts.stop())) break
       if (await withdraw(bot, n, 1, { stop: opts.stop, maxDist: opts.maxDist == null ? 96 : opts.maxDist }) > 0) took.push(n)
     }
+    // EVERY BOT CARRIES A PICKAXE, A SHOVEL AND AN AXE (owner 09-20: "つるはしを持っておらず、手で掘るやつが多すぎ" - 15 of 47 bots had no pickaxe at all, the depot held none and
+    // 398 diamonds; escapes, tidy cuts and fills then dig stone BY HAND: 7.5 s a block and no drop). Tools are part of the kit like armour: the plainest one the depot
+    // has (stone first - iron and diamond stay for the miners unless nothing else is there). The quartermaster keeps the shelf filled (targets).
+    { const sm = stockMap(); const mineInv = carried(bot)
+      for (const kind of ['pickaxe', 'shovel', 'axe']) {
+        if (U.cancelled(bot) || (opts.stop && opts.stop())) break
+        if (Object.keys(mineInv).some(k => k.endsWith('_' + kind))) continue
+        const n = ['stone_', 'iron_', 'diamond_', 'golden_', 'wooden_'].map(t => t + kind).find(q => sm[q] > 0); if (!n) continue
+        if (await withdraw(bot, n, 1, { stop: opts.stop, maxDist: opts.maxDist == null ? 96 : opts.maxDist }) > 0) took.push(n)
+      } }
     if (took.length) { await wear(bot); result(bot, { ev: 'kitted', items: took, risk: !!opts.risk, why: opts.why || null }) }
   } catch (e_) { swallow('army:kitUp', e_) } finally { bot.__armyKitBusy = false }
   return took
@@ -449,6 +459,26 @@ function spotAnimals (bot) {
     try { fs.appendFileSync(path.join(DIR, 'animals.jsonl'), JSON.stringify({ t: Date.now(), bot: bot.username, kind: k, n, at: [p.x, p.y, p.z] }) + '\n') } catch (e_) { swallow('army:237', e_) }
   }
 }
+// ENTOMBED = WALLED IN WHERE IT STANDS (owner 09-20: builders disappeared inside the ravine fill and nobody noticed - the escapes exist, a SENSOR for it did
+// not). Perception only, no escape: every heartbeat (~15 s) a bot with 3 or fewer cells to walk to (`walkableArea(bot, 12)`: surface water counts, the air
+// over it does not) is boxed in; 60 s of it without a break -> ONE `entombed` event (then at most once per 5 min per bot) and `boxed:true` in the heartbeat,
+// so `armyctl.js field` and every status reader see it. A sleeper in its bed and the mine's stairwell work (task `iron:…`, 1-wide by design) are not entombed.
+function entombWatch (bot) {
+  try {
+    if (bot.isSleeping || /^iron:/.test(String((bot.state && bot.state.task) || ''))) { bot.__armyBoxT = 0; return false }
+    const area = walkableArea(bot, 12)
+    if (area > 3) { bot.__armyBoxT = 0; return false }
+    const now = Date.now()
+    if (!bot.__armyBoxT) { bot.__armyBoxT = now; return false }
+    if (now - bot.__armyBoxT < 60000) return false
+    if (now - (bot.__armyBoxSaidT || 0) > 300000) {
+      bot.__armyBoxSaidT = now
+      const p = bot.entity.position.floored()
+      result(bot, { ev: 'entombed', at: [p.x, p.y, p.z], area, job: bot.__armyJob || null, task: String(bot.state && bot.state.task || '').slice(0, 60), hp: Math.round(bot.health || 0), sky: skyAbove(bot) })
+    }
+    return true
+  } catch (e_) { swallow('army:entombWatch', e_); return false }
+}
 function heartbeat (bot, extra) {
   if (!bot.entity) return
   sensors(bot)
@@ -460,12 +490,13 @@ function heartbeat (bot, extra) {
   wear(bot).catch(e_ => swallow('army:wearTick', e_))
   try { watchdog(bot, extra) } catch (e_) { swallow('army:245', e_) }
   const p = bot.entity.position
+  const boxed = entombWatch(bot) // perception, not an escape: 60 s with 3 cells to walk to = entombed (see entombWatch)
   bot.__armyLastInv = carried(bot) // the death report gets this snapshot (the inventory is already empty when 'death' fires)
   // `inv` = EVERYTHING on the bot as {item:count} (pockets + worn armour + off-hand) — bots/army/stock.js and the dispatcher read it; `worn` = what of it is equipped
   writeJSON(F.hb(bot.username), Object.assign({
     bot: bot.username, t: Date.now(), pos: [Math.round(p.x), Math.round(p.y), Math.round(p.z)],
     hp: Math.round(bot.health || 0), food: bot.food, inv: carried(bot), worn: worn(bot), task: bot.state && bot.state.task,
-    deaths: bot.__armyDeaths || 0, dim: bot.game && bot.game.dimension
+    deaths: bot.__armyDeaths || 0, dim: bot.game && bot.game.dimension, boxed: boxed || undefined
   }, extra || {}))
 }
 function assignment (bot) {
@@ -1240,41 +1271,57 @@ async function obtain (bot, name, n, opts = {}) {
   const item = C.resolve(reg, name, both())
   if (!reg.itemsByName[item]) return false
   if (count(bot, item) >= n) return true
-  await withdraw(bot, item, Math.max(n, /torch|planks|cobblestone|dirt/.test(item) ? 32 : n) - count(bot, item), opts)
+  const stop = () => U.cancelled(bot) || !!(opts.stop && opts.stop())
+  const promised = stockMap()[item] || 0
+  const got0 = await withdraw(bot, item, Math.max(n, /torch|planks|cobblestone|dirt/.test(item) ? 32 : n) - count(bot, item), opts)
   if (count(bot, item) >= n) return true
-  const fail = why => { result(bot, { ev: 'obtain_failed', item, n, why: String(why).slice(0, 120) }); return count(bot, item) > 0 }
-  const all = both(); const plan = C.solve(reg, item, n, all)
-  if (!plan.ok) return C.plans(reg, item).length ? fail('missing ' + JSON.stringify(plan.missing)) : count(bot, item) > 0 // not craftable (cobblestone, dirt): the depot was the only source
-  for (const [k, had] of Object.entries(all)) { // fetch exactly what the chain consumes and the pockets lack
-    const short = had - (plan.left[k] || 0) - count(bot, k)
-    if (short > 0 && !U.cancelled(bot) && !(opts.stop && opts.stop())) await withdraw(bot, k, short, opts)
-  }
-  let mine = C.solve(reg, item, n, inv(bot)) // re-plan on what really arrived: the pockets are the truth
-  // THE NEXT-BEST CHAIN BEFORE THE FAILURE (foreman 09-20 05:40Z: `obtain_failed stick ... ingredients did not arrive: {"#planks":4}` from 5 miners, then iron_pickaxe,
-  // with 2677 LOGS in the depot: the plan was solved on a stock map that still showed ~170 planks, the builders had drained them, the withdraw came back short and
-  // the re-plan on the pockets gave up). ONE retry: what came back short counts as NOT IN THE DEPOT (pockets only), the chain is solved again on the current stock
-  // (logs -> planks -> sticks), its ingredients are fetched, the pockets decide. Then the honest failure.
-  if (!mine.ok && !U.cancelled(bot) && !(opts.stop && opts.stop())) {
-    const short = Object.keys(mine.missing || {}); const pockets = inv(bot); const all2 = both()
-    const isShort = k => short.some(m => m === k || (m[0] === '#' && (m === '#planks' ? /_planks$/.test(k) : /^#logs?$/.test(m) ? /_(log|stem)$/.test(k) : (k === m.slice(1) || k.endsWith('_' + m.slice(1))))))
-    for (const k of Object.keys(all2)) if (isShort(k)) all2[k] = pockets[k] || 0
-    const plan2 = C.solve(reg, item, n, all2)
-    if (plan2.ok) {
-      for (const [k, had] of Object.entries(all2)) { const need = had - (plan2.left[k] || 0) - count(bot, k); if (need > 0 && !U.cancelled(bot) && !(opts.stop && opts.stop())) await withdraw(bot, k, need, opts) }
+  // AN INTERRUPTED FETCH IS NOT A FAILURE (same lesson as `bank_unreachable` on 09-20 00:03Z; measured 10:54-10:55Z: `the depot index promised 945 dirt, the
+  // chests gave 0` from Yuzu `build: interrupted while fetching dirt`, from Kokoro in the same second as its job switch, from Rena one second after it DIED -
+  // the withdrawal never happened). A bot whose job was taken away or who died says nothing.
+  const fail = why => { if (!stop()) result(bot, { ev: 'obtain_failed', item, n, why: String(why).slice(0, 120) }); return count(bot, item) > 0 }
+  // NOT CRAFTABLE (cobblestone, dirt, gravel): the depot was the only source. Worth an event only when the INDEX promised what the chests then did not give
+  // (a stale entry an operator can act on); "we simply have none of it" is not news (it was 79 of the 100 obtain_failed per hour on 09-20 10:30Z).
+  if (!C.plans(reg, item).length) return promised >= n ? fail('the depot index promised ' + promised + ' ' + item + ', the chests gave ' + got0 + (U.freeSlots(bot) < 1 ? ' - THE POCKETS WERE FULL' : '')) : count(bot, item) > 0 // `Unable to withdraw, Bot inventory is full` 42/h (errors, 11:3xZ) must not look like a stale index
+  // A PLAN IS ONLY AS TRUE AS THE LAST WITHDRAWAL (top model 11:0xZ + probe 10:35Z: `obtain stick 64` ended `crafted 63/64`, Erika `crafted 22/24` - the chain was
+  // solved on a stock map that counted 55 sticks in the depot, 51 of them arrived, and it crafted only the handful it thought was missing). So PASSES, like a
+  // player who walks back for more: each pass solves the chain on the POCKETS for the FULL n (the pockets are the only truth), fetches exactly what that chain
+  // still lacks, crafts it. What the depot promised and did not deliver counts as gone (`notInDepot`), so the next pass takes the next-best chain (logs ->
+  // planks -> sticks). A pass that neither fetched nor crafted anything ends the loop - with a failure that names what is really missing, not a bare count.
+  const notInDepot = new Set()
+  const shortOf = k => { for (const m of notInDepot) { if (m === k) return true; if (m[0] === '#' && (m === '#planks' ? /_planks$/.test(k) : /^#logs?$/.test(m) ? /_(log|stem)$/.test(k) : (k === m.slice(1) || k.endsWith('_' + m.slice(1))))) return true } return false }
+  const depotView = () => { const m = both(); const pk = inv(bot); for (const k of Object.keys(m)) if (shortOf(k)) m[k] = pk[k] || 0; return m }
+  const dt = settings().craftTable
+  let miss = null
+  for (let pass = 0; pass < 3 && count(bot, item) < n && !stop(); pass++) {
+    if (pass) result(bot, { ev: 'obtain_retry', item, n, have: count(bot, item), short: Object.keys(miss || {}) })
+    const was = count(bot, item); let fetched = 0
+    let mine = C.solve(reg, item, n, inv(bot))
+    if (!mine.ok) { // fetch exactly what the chain consumes and the pockets lack; the depot view hides what it already failed to deliver
+      const view = depotView(); const plan = C.solve(reg, item, n, view)
+      miss = plan.ok ? mine.missing : plan.missing
+      if (!plan.ok) break // not even the depot has the raw material: no walk, name it
+      for (const [k, had] of Object.entries(view)) {
+        const need = had - (plan.left[k] || 0) - count(bot, k)
+        if (need <= 0 || stop()) continue
+        const came = await withdraw(bot, k, need, opts)
+        fetched += came
+        if (came < need) notInDepot.add(k) // whatever the index says, it is not in the chests
+      }
       mine = C.solve(reg, item, n, inv(bot))
-      result(bot, { ev: 'obtain_retry', item, n, short, ok: !!mine.ok })
+      if (!mine.ok) { miss = mine.missing; if (!fetched) break; continue } // the fetch brought something: solve the next-best chain on it
     }
+    try {
+      const tbl = await craftSpot(bot, opts)
+      if (!tbl) return fail(dt ? 'no crafting table within reach of settings.craftTable ' + dt.join(',') : 'no settings.craftTable and no table could be placed here')
+      for (const st of mine.steps) { if (stop()) break; if (!await C.craft(bot, st.item, st.runs, tbl)) break }
+    } catch (e_) { swallow('army:obtain', e_) }
+    await sleep(400)
+    if (count(bot, item) <= was && !fetched) break // this pass changed nothing in the world: the next one would not either
   }
-  if (!mine.ok) return fail('ingredients did not arrive: ' + JSON.stringify(mine.missing))
-  try {
-    const dt = settings().craftTable
-    const tbl = await craftSpot(bot, opts)
-    if (!tbl) return fail(dt ? 'no crafting table within reach of settings.craftTable ' + dt.join(',') : 'no settings.craftTable and no table could be placed here')
-    for (const st of mine.steps) { if (U.cancelled(bot) || (opts.stop && opts.stop())) break; if (!await C.craft(bot, st.item, st.runs, tbl)) break }
-    if (!dt && bot.__placedTable) await C.releaseTable(bot) // another bot's table was registered first: take mine back
-  } catch (e_) { swallow('army:obtain', e_) }
-  await sleep(400)
-  return count(bot, item) >= n || fail('crafted ' + count(bot, item) + '/' + n)
+  if (!dt && bot.__placedTable) await C.releaseTable(bot) // another bot's table was registered first: take mine back
+  if (count(bot, item) >= n) return true
+  const gone = [...notInDepot].slice(0, 3).join(',')
+  return fail('got ' + count(bot, item) + '/' + n + (miss && Object.keys(miss).length ? ' missing ' + JSON.stringify(miss) : '') + (gone ? ' (depot short of ' + gone + ')' : ''))
 }
 // FILL A CELL FROM INSIDE IT: stand in the cell (solid floor, air for body, head and the jump), jump, place the block under the feet, ride up with it. For a FILL this is what a
 // player does in a shaft whose floor no rim shows; the block is the work (ledger:false), never scaffold. Only plain full blocks, never inside a pen. -> true when the block stands.
@@ -1313,8 +1360,34 @@ async function gravityDrop (bot, p, topY) {
   } catch (e_) { swallow('army:gravityDrop', e_) }
   return null
 }
+// ---- A CELL THAT REFUSES THE ARMY RESTS (foreman 09-20 10:20Z: `place_failed x119/30 min by 25 bots, most: unreachable @-406,65,-546`; from the other side
+// `iron_core:placeAt ... the block is still air` 49/h). unreachable / no_los is GEOMETRY: it does not change because the next bot walks there, so every bot
+// rediscovering it is pure waste. Ledger like chest_missing.json: bots/army/place_rest.json, one entry per cell, one SIGHTING per bot (geometry that beat two
+// different bots is not bad luck), atomic tmp+rename write, read through a 5 s cache (the 17 shards ask several times a second). A resting cell is refused at
+// once with reason `resting` - and reported ONCE per rest, not once per try; the rest expires by itself after 10 min, so a filled hole or a new stair reopens
+// the cell without anybody clearing anything.
+const REST_MS = 600000
+const _rest = { t: 0, d: {} }
+const restKey = p => p.x + ',' + p.y + ',' + p.z
+function restMap () { if (Date.now() - _rest.t > 5000) { _rest.d = readJSON(path.join(DIR, 'place_rest.json'), {}) || {}; _rest.t = Date.now() } return _rest.d }
+function restingCell (p) { const e = restMap()[restKey(p)]; return !!(e && e.until > Date.now()) }
+function restCell (bot, p, why) { // one sighting; -> how many bots beat this cell when the rest STARTS here, else 0
+  const f = path.join(DIR, 'place_rest.json'); const now = Date.now(); const key = restKey(p)
+  try {
+    const d = readJSON(f, {}) || {}
+    for (const k of Object.keys(d)) if (now - (d[k].t || 0) > 3600000) delete d[k] // a cell nobody has touched for an hour is not news any more
+    const e = d[key] = d[key] || { bots: [], t: 0, until: 0, why: null }
+    if (!e.bots.includes(bot.username)) e.bots.push(bot.username)
+    e.t = now; e.why = String(why).slice(0, 40)
+    const start = e.bots.length >= 2 && e.until <= now
+    if (start) e.until = now + REST_MS
+    writeJSON(f, d); _rest.d = d; _rest.t = now
+    return start ? e.bots.length : 0
+  } catch (e_) { swallow('army:restCell', e_); return 0 }
+}
 async function placeHard (bot, pos, item, opts = {}) {
   const BL = require('./blocks'); const p = pos.clone ? pos.clone() : new Vec3(pos.x, pos.y, pos.z)
+  if (!opts.noRest && restingCell(p)) return { ok: false, reason: 'resting', resting: true, remedies: [] } // geometry two bots already lost against: no walk, no ticket, no event
   const remedies = []; let r = null; const home = bot.entity.position.clone(); const sideSupports = []; let geo = 0; const triedStands = new Set()
   for (let round = 0; round < 7 && !U.cancelled(bot) && !(opts.stop && opts.stop()); round++) {
     r = await BL.placeBlock(bot, p, item, Object.assign({ retries: 1, triedStands }, opts.place || {})).catch(e => ({ ok: false, reason: e && e.cancelled ? 'cancelled' : String(e && e.message) }))
@@ -1366,10 +1439,13 @@ async function placeHard (bot, pos, item, opts = {}) {
     const b = bot.blockAt(q.at); if (b && b.name === q.name && !ourBlock(q.at, b.name)) await BL.digBlock(bot, q.at, { collect: true, requireHarvest: false, plug: false }).catch(e_ => swallow('army:supportCleanup', e_))
   }
   if (r) r.remedies = remedies
-  // no_los / unreachable = geometry, like `locked` = contention: NO help-desk ticket (an LLM cannot see the faces either), and the event is said once per bot + cell in 10 min
+  // no_los / unreachable = geometry, like `locked` = contention: NO help-desk ticket (an LLM cannot see the faces either). The cell gets a SIGHTING in the
+  // army-wide rest ledger; the second bot it beats puts it to rest for 10 min (`resting`, reported once with the bots that lost against it). Until then the
+  // old rule holds: one line per bot and cell per 10 min.
   const geoFail = !!r && !r.ok && /^(no_los|unreachable)$|\((no_los|unreachable)\)$/.test(String(r.reason)) // also `occupied by X and cannot dig it (unreachable)`
+  const rest = geoFail && remedies.length && r.reason !== 'cancelled' && !opts.noRest ? restCell(bot, p, r.reason) : 0
   if (r && !r.ok && remedies.length && r.reason !== 'cancelled' && !geoFail) askHelp(bot, 'place_failed', item + ' at ' + [p.x, p.y, p.z].join(',') + ': ' + r.reason, { tried: remedies.slice(0, 6) })
-  if (r && !r.ok && remedies.length) { const said = bot.__armyPlaceSaid = bot.__armyPlaceSaid || {}; const k = p.x + ',' + p.y + ',' + p.z; const now = Date.now(); for (const q of Object.keys(said)) if (now - said[q] > 600000) delete said[q]; if (!geoFail || !said[k]) { said[k] = now; result(bot, { ev: 'place_failed', at: [p.x, p.y, p.z], item, why: String(r.reason).slice(0, 90), tried: remedies.slice(0, 6) }) } }
+  if (r && !r.ok && remedies.length) { const said = bot.__armyPlaceSaid = bot.__armyPlaceSaid || {}; const k = p.x + ',' + p.y + ',' + p.z; const now = Date.now(); for (const q of Object.keys(said)) if (now - said[q] > 600000) delete said[q]; if (!geoFail || rest || !said[k]) { said[k] = now; result(bot, Object.assign({ ev: 'place_failed', at: [p.x, p.y, p.z], item, why: String(r.reason).slice(0, 90), tried: remedies.slice(0, 6) }, rest ? { resting: REST_MS / 60000, bots: rest } : {})) } }
   void home
   return r || { ok: false, reason: 'cancelled' }
 }
@@ -1458,10 +1534,13 @@ async function withdraw (bot, name, n, opts = {}) {
   const holds = Object.entries(d).filter(([, v]) => v.items && v.items[name] > 0); const fresh = holds.filter(([, v]) => Date.now() - v.t < 30 * 60000)
   const cands = (fresh.length ? fresh : holds)
     .sort((a, b) => b[1].items[name] - a[1].items[name])
-    .map(([k]) => { const [x, y, z] = k.split(',').map(Number); return new Vec3(x, y, z) })
-  // NEAR FIRST (camps 150-400 blocks out are in the same index): containers within 64 blocks (fullest first); only when none of them holds the
-  // item, the others - nearest first
-  const me0 = bot.entity.position; const nearC = cands.filter(cp => cp.distanceTo(me0) <= 64)
+    .map(([k, v]) => { const [x, y, z] = k.split(',').map(Number); return Object.assign(new Vec3(x, y, z), { held: v.items[name] }) })
+  // NEAR FIRST (camps 150-400 blocks out are in the same index): containers within 64 blocks; only when none of them holds the item, the others - nearest first.
+  // Among the near ones the NEAREST THAT COVERS THE WHOLE NEED comes first, not the fullest (timed probe 09-20 10:55Z, `withdraw cobbled_deepslate 8`: 24 s in
+  // all, of which 23.9 s WALKING - opening the container took 0.05-2.3 s and the window transaction 0-1 ms. So the only expensive thing is the walk, and the
+  // row of 14 build chests must not be crossed for a fuller container). What no single container can cover is still taken fullest first: fewer stops.
+  const me0 = bot.entity.position; const covers = cp => cp.held >= n
+  const nearC = cands.filter(cp => cp.distanceTo(me0) <= 64).sort((a, b) => (covers(b) ? 1 : 0) - (covers(a) ? 1 : 0) || (covers(a) ? a.distanceTo(me0) - b.distanceTo(me0) : 0))
   const pickC = (nearC.length ? nearC : cands.slice().sort((a, b) => a.distanceTo(me0) - b.distanceTo(me0))).filter(cp => opts.maxDist == null || cp.distanceTo(me0) <= opts.maxDist)
   let got = 0
   for (const cp of pickC.slice(0, 6)) {

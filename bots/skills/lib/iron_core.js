@@ -1060,6 +1060,7 @@ async function walkLine (bot, x, z, gen, ms = 60000, opts = {}) {
   const f0 = feet(bot)
   const Y = opts.y != null ? opts.y : f0.y
   const budget = Math.max(ms, 30000 + (Math.abs(x - f0.x) + Math.abs(z - f0.z)) * 1500)
+  let paused = 0 // time NOT spent walking (a fight, a convoy hold): the budget is for the ROUTE, not for what happens on it (11:0xZ, see defend())
   let best = 1e9; let progT = Date.now(); let held = 0; let lastTorchAt = null
   const hotSt = { plugs: 0 }; const runLine = running()
   const quit = (why, extra) => {
@@ -1073,14 +1074,14 @@ async function walkLine (bot, x, z, gen, ms = 60000, opts = {}) {
   while (true) {
     await sleep(5)
     if (stale(bot, gen)) { bot.clearControlStates(); return false }
-    if (Date.now() - t0 > budget) return quit('budget')
+    if (Date.now() - t0 - paused > budget) return quit('budget', { paused: Math.round(paused / 1000) })
     const f = feet(bot)
     if (f.y > Y + 2 || f.y < Y - 3) return quit('off_level') // fell into a cave / respawned: this is no longer the line we were walking
     const dist = Math.abs(x - f.x) + Math.abs(z - f.z) + Math.abs(Y - f.y)
     if (dist === 0) break
     if (dist < best) { best = dist; progT = Date.now() } else if (Date.now() - progT > 60000) return quit('no_progress')
     // a walking miner is not blind: 12:39Z one creeper took a convoy of 5 that never looked up from the trunk
-    if (threat(bot, 6)) { bot.clearControlStates(); await defend(bot, gen); progT = Date.now(); continue }
+    if (threat(bot, 6)) { bot.clearControlStates(); const tp = Date.now(); await defend(bot, gen); paused += Date.now() - tp; progT = Date.now(); continue }
     const dx = Math.sign(x - f.x); const dz = Math.sign(z - f.z)
     let nx = f.x; let nz = f.z
     const tryX = dx !== 0 && (Math.abs(x - f.x) >= Math.abs(z - f.z) || dz === 0)
@@ -1126,7 +1127,7 @@ async function walkLine (bot, x, z, gen, ms = 60000, opts = {}) {
         const lat = Math.abs((e.position.x - me.x) * step[1]) + Math.abs((e.position.z - me.z) * step[0])
         return ax > 0.6 && ax < 5 && lat < 1.2
       })
-      if (close) { bot.clearControlStates(); await sleep(500); held += 500; progT += 500; continue }
+      if (close) { bot.clearControlStates(); await sleep(500); held += 500; paused += 500; progT += 500; continue }
     }
     // LIGHT the line as we pass
     if (opts.light && f.y === Y && U.count(bot, 'torch') > 0 && !(lastTorchAt && lastTorchAt[0] === f.x && lastTorchAt[1] === f.z) && !torchAlong(bot, f.x, Y, f.z, step)) {
@@ -1436,11 +1437,13 @@ function los (bot, target) {
 }
 function threat (bot, r = 7) {
   const me = bot.entity.position
+  const skip = bot.__ironNoMob || null // mobs defend() could neither reach nor drive off (a cave pocket above the gallery): see defend()
   let best = null; let bd = r
   for (const e of Object.values(bot.entities)) {
     if (!e || e === bot.entity || !e.position || !HOSTILE.has(e.name)) continue
     const d = e.position.distanceTo(me)
     if (d >= bd || Math.abs(e.position.y - me.y) > 3) continue
+    if (skip && skip[e.id] > Date.now() && d > 3.5) continue // ignored for 2 min - but the moment it is really in reach it is a fight again
     if (!los(bot, e.position.offset(0, 1.2, 0)) && !los(bot, e.position.offset(0, 0.3, 0))) continue
     best = e; bd = d
   }
@@ -1473,13 +1476,24 @@ async function defend (bot, gen) {
   const w = ['diamond_sword', 'iron_sword', 'stone_sword', 'stone_axe', 'wooden_sword'].find(n => U.has(bot, n)) || (bestPick(bot) || {}).name
   if (w) await U.equip(bot, w, 'hand')
   const cd = /sword/.test(w || '') ? 650 : 1000
-  const end = Date.now() + 25000
-  let last = 0
+  let t0 = Date.now(); const end = t0 + 25000
+  let last = 0; let near = dist()
   while (Date.now() < end && !stale(bot, gen)) {
-    if (!mob.isValid || !bot.entities[mob.id]) { mob = threat(bot); if (!mob) break }
+    if (!mob.isValid || !bot.entities[mob.id]) { mob = threat(bot); if (!mob) break; t0 = Date.now(); near = dist() } // a fresh target gets its own 3 s to come into reach
     if (bot.health < 7 && fillItem(bot)) { if (await wallOff(bot, mob)) break }
     const d = dist()
     if (d > 9) break
+    near = Math.min(near, d)
+    // A MOB WE CAN NEITHER REACH NOR DRIVE OFF (11:0xZ: a zombie in a cave pocket 3 blocks above the y32 branch - d 5.4, dy 3.0, line of sight through the
+    // gap - held FIVE miners: every walkLine iteration called defend, defend stared at it for its full 25 s, and `mine_blocked budget` x8 killed every
+    // recall at -374,32,-601). It never came within reach in 3 s: leave it alone for 2 minutes and walk on - a miner that cannot fight must not stand.
+    if (Date.now() - t0 > 3000 && near > 3.5) {
+      const m = bot.__ironNoMob = bot.__ironNoMob || {}; const now = Date.now()
+      for (const k of Object.keys(m)) if (m[k] < now) delete m[k]
+      m[mob.id] = now + 120000
+      sayOnce(bot, 'mob_far', 600000, { ev: 'mine_mob_ignored', kind: mob.name, at: [Math.round(mob.position.x), Math.round(mob.position.y), Math.round(mob.position.z)], d: Math.round(near * 10) / 10, note: 'the mob neither came into reach nor could be hit (a cave pocket beside/above the gallery): ignored for 2 min so the walk goes on' })
+      break
+    }
     try { await bot.lookAt(mob.position.offset(0, (mob.height || 1.6) * 0.8, 0), true) } catch (e_) { swallow('iron_core:q16', e_) }
     if (d <= 3.3 && Date.now() - last >= cd) { try { bot.attack(mob) } catch (e_) { swallow('iron_core:q17', e_) } last = Date.now(); bump(bot, 'hits') }
     await sleep(60)
@@ -1630,6 +1644,37 @@ function branchOutlook (bot, M, rank, level = M.level) {
   return o
 }
 async function saveBranch (M, key, patch) { return update(M.E, d => { const b = lvState(d, M.level).branches[key]; if (b) Object.assign(b, patch, { t: Date.now() }) }) }
+// EXHAUSTED: the level is at ITS limit - every mouth of the trunk taken (kStop/K_MAX), every branch at MAX_BRANCH, none open. Neither a claim nor the
+// level's own growth (claimBranch) can do anything here any more. ONE definition, used by iron_miner's growth guard and by `armyctl.js mine`.
+function levelCap (L) { return 2 * Math.min(K_MAX, L && L.kStop != null ? L.kStop : K_MAX) }
+function exhausted (L) { const bs = Object.values((L && L.branches) || {}); return bs.length >= levelCap(L) && ((L && L.branchLen) || BRANCH_LEN) >= MAX_BRANCH && !bs.some(b => !b.done) }
+// mean COMMUTE of the open branches: blocks from the hub to their working ends. The operator must see "6 open branches, 220 blocks out" before he staffs a
+// level (09-20 09:25Z: 11 miners walked to the far ends of y0 - 256-long branches, 0 m/5 min - because the board only showed "open 6").
+function commute (L) { const o = Object.values((L && L.branches) || {}).filter(b => !b.done && Number.isFinite(b.k)); return o.length ? Math.round(o.reduce((n, b) => n + branchOff(b.k) + (b.len || 0), 0) / o.length) : null }
+// ---- AND THE MINE OPENS THE NEXT LANDING BY ITSELF (docs/BUGS.md 09-20 09:5xZ: y16/0/-16 all stood at the cap of 2x80 branches x 256; the fallback then
+// sent 11 miners 220 blocks out to the last 6 branches of y0 - "0 m / 5 min, 4 stuck" - or down to iron-poor y-32, and only an operator's `mine level 32`
+// helped). nextLanding = the nearest UNUSED landing to `near` inside lo..hi (multiples of LANDING_EVERY) that this stairwell accepts WITHOUT moving a row
+// that is already dug - the same pure check mine() refuses a level with, so a candidate from here is never `mine_level_refused`. null = nothing to open.
+function nextLanding (M, lo, hi, near = LEVEL_Y) {
+  const st = M.st; const have = new Set((st.levels || []).map(Number)); const cand = []
+  for (let y = Math.ceil(lo / LANDING_EVERY) * LANDING_EVERY; y <= hi; y += LANDING_EVERY) if (!have.has(y)) cand.push(y)
+  cand.sort((a, b) => (Math.abs(a - near) - Math.abs(b - near)) || (b - a)) // nearest the iron band first, the shallower one on a tie (shorter commute, warmer rock)
+  for (const y of cand) {
+    try {
+      const levels = [...have]
+      if (!levels.length || !(st.dug >= 0)) { stairCells(M.E, y, { levels }); return y }
+      const deepest = Math.min(...levels)
+      const oldG = stairCells(M.E, deepest, { levels }); const newG = stairCells(M.E, Math.min(y, deepest), { levels: levels.concat([y]) })
+      let same = true
+      for (let g = 0; g <= Math.min(st.dug, oldG.groups.length - 1); g++) if (!newG.groups[g] || rowSig(newG.groups[g]) !== rowSig(oldG.groups[g])) { same = false; break }
+      if (same) return y // a landing that is already dug gains nothing but its hub door (rowSig ignores door rows): the commuters' own audit opens it
+    } catch (e_) { swallow('iron_core:nextLanding', e_) }
+  }
+  return null
+}
+// ONE new level per hour for the whole squad, whoever asks first (the stamp lives in the mine's cache, under its lock): eleven miners find the band worked
+// out in the same second, and a landing opened every minute is flapping, not growth. -> true = this bot may open `y` now.
+async function claimGrowth (E, y, ms = 3600000) { return update(E, d => { if (Date.now() - (d.grewT || 0) < ms) return false; d.grewT = Date.now(); d.grewY = y; return true }) }
 
 // A BRANCH THAT HURTS goes on record and off the market. rec: {kind:'lava'|'fire', at:[x,y,z], died?, close?, len?}. The claim is released, this bot does
 // not get the branch again (hazardBy + an hour's skip), claimBranch hands it out only as a repair; `close` (the walk could not make it safe and walled
@@ -1685,7 +1730,7 @@ async function walkTrunk (bot, M, hub, toOff, gen, opts = {}) {
     const r = DIRS[(hub.dir + 1) % 4]; const wide = hotLane != null ? null : (lane ? [-r[0], -r[1]] : [r[0], r[1]]) // beside a lava wall the other lane stays SHUT
     let ok = true
     if (q.across !== lane) { const c = trunkCell(hub, from, lane); ok = await walkLine(bot, c.x, c.z, gen, 30000, { y: hub.y, hand: opts.hand, sacrifice }) }
-    if (ok) { const t = trunkCell(hub, toOff, lane); ok = await walkLine(bot, t.x, t.z, gen, 90000, { y: hub.y, light: true, space: !!opts.space, wide, hand: opts.hand, sacrifice }) }
+    if (ok) { const t = trunkCell(hub, toOff, lane); ok = await walkLine(bot, t.x, t.z, gen, opts.ms || 90000, { y: hub.y, light: true, space: !!opts.space, wide, hand: opts.hand, sacrifice }) }
     if (ok) return true
     // `needpick` although the scan saw nothing (the far end was not loaded yet, the ore sits in the lane change): look again from where we stand now
     if (stale(bot, gen)) return false
@@ -2011,7 +2056,10 @@ async function toSurface (bot, opts = {}) {
       if (leg.line) {
         const hub = M.G.levels[plan.level].hub
         const home = leg.line[0] === hub.x && leg.line[2] === hub.z
-        ok = home ? await walkTrunk(bot, M, hub, 0, gen, { hand: true }) : await walkLine(bot, leg.line[0], leg.line[2], gen, 90000, { y: hub.y, hand: true })
+        // the way out of a 192-long branch at the far end of a 240-block trunk is a REAL walk: the budget follows the route planUp measured (cells =
+        // branch + trunk + stairs), never a flat 90 s (11:0xZ: `recalled surfaced:false why:budget` from branch 30:-1 of the new level y32)
+        const legMs = Math.max(90000, plan.cells.length * 1500)
+        ok = home ? await walkTrunk(bot, M, hub, 0, gen, { hand: true, ms: legMs }) : await walkLine(bot, leg.line[0], leg.line[2], gen, legMs, { y: hub.y, hand: true })
         if (!ok) { why = (bot.__ironLineFail || {}).why || 'line'; break }
       } else {
         ok = await walkRoute(bot, M, leg.stairs, gen, { near: 3 })
@@ -2368,7 +2416,7 @@ async function toEntrance (bot, M, gen) {
 }
 
 module.exports = {
-  FILE, DIRS, LEVEL_Y, SPACING, FIRST_OFF, BRANCH_LEN, MAX_BRANCH, K_MAX, STAIR_TORCH, ORE_RE, JUNK_RE, FILL,
+  FILE, DIRS, LEVEL_Y, LANDING_EVERY, SPACING, FIRST_OFF, BRANCH_LEN, MAX_BRANCH, K_MAX, STAIR_TORCH, ORE_RE, JUNK_RE, FILL,
   // geometry (pure)
   normEntrance, stairCells, routeDown, routeUp, trunkCell, branchOff, branchCell, branchDir, locate, onGraph, planUp, mineBox, inBox, isWalk, isRepairable,
   // the mine of this job + its cache
@@ -2378,7 +2426,7 @@ module.exports = {
   digCell, openCell, sealSides, torchNear, stepTo, settle, walkLine, pillarOne, blocked, sweep, returnTo,
   auditStairs, repairStairs, walkRoute, nearestWp, treadState, layTreads, stairItem, STAIR_RE, isSupport, supportChain, placeSupported,
   exposedOre, veinOf, mineVein, threat, defend, wallOff, eat, tossJunk,
-  claimStairs, digStairs, claimBranch, branchOutlook, sayMine, pickRank, stoneWanted, saveBranch, gotoBranchFace, mineBranch, walkTrunk,
+  claimStairs, digStairs, claimBranch, branchOutlook, exhausted, levelCap, commute, nextLanding, claimGrowth, sayMine, pickRank, stoneWanted, saveBranch, gotoBranchFace, mineBranch, walkTrunk,
   rawIron, lootScore, needHaul, foodUnits, pickUses, readiness, exitReason, reconnect, toSurface, toEntrance,
   // lava on record + the obsidian trip
   cur: () => CUR, markHazard, branchAt, isHot, hotAhead, clearHot,

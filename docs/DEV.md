@@ -144,12 +144,22 @@ Command blocks are enabled on the server (`enable-command-block=true`); the bots
   compares it with the board: `settings.base.y` / `keepOut` / registered furniture, every build job's blueprint cells (board + `bots/army/jobs-archive.jsonl`, walls under
   roofs included), herd pens, farm boxes; bot positions per minute come from `bots/metrics/samples-*.jsonl`, output from `results.jsonl` (table `OUTPUT` on top of the
   script - extend it there). Findings = events `{bot:'audit', ev, msg, alert, fresh, text}`: `audit_rough` (off-level columns → clusters, NEW craters, never-levelled
-  areas) · `audit_stray` (placed blocks in no blueprint; pens / depot / hall first) · `audit_weeds` (flowers / grass tufts on the base ground outside fields, pens, tree farm → tidy kind `weed`, pulled by hand, nothing collected) · `audit_floating` (leaf/log clusters without a rooted trunk or hanging over a pad / road / field; routine, no escalation) · `audit_pen` (inside vs OUTSIDE ≤ 96, open gate, climbable blocks, fence cells) ·
+  areas) · `audit_stray` (placed blocks in no blueprint; pens / depot / hall first) · `audit_fill` (per fill_void job, keep-outs included: columns still below grade, PINHOLES = open cell with four higher neighbours, coordinates) · `audit_weeds` (flowers / grass tufts on the base ground outside fields, pens, tree farm → tidy kind `weed`, pulled by hand, nothing collected) · `audit_floating` (leaf/log clusters without a rooted trunk or hanging over a pad / road / field; routine, no escalation) · `audit_pen` (inside vs OUTSIDE ≤ 96, open gate, climbable blocks, fence cells) ·
   `audit_growth` (share of the hour a bot stood within 128 = chunks ticked; ripe share; grew / stood still since the last audit; cane/lumber judged against their expected rate - 18 / 45 min per step - over 90 min / 3 h, a tree plot ≥ 50 % ripe = `backlog:true`, never an alert) · `audit_furniture` (registered but not
   standing) · `audit_field` (holes / raised / untilled / junk) · `audit_structure` (missing / wrong cells whatever the job's status; `unbuilt`) · `audit_idle` (bot-hours
   a job HELD vs what it produced; alert ≥ 30 % standing or ≥ 2 bot-h at zero). State: `bots/army/base_audit.json` (latest + prev for deltas; `fresh` = new or clearly
   worse). Read by REPORT.md (BASE AUDIT block + STANDING headline), the foreman's prompt (+ the picture: RED bump, BLUE hole, MAGENTA stray, YELLOW missing, ORANGE
   animal outside), `ops/escalate.sh` (fresh findings, once per kind per 60 min; kind `idle`), `armyctl.js events 20 audit`. Log of clock-started runs: `ops/base-audit.log`.
+- **THE GEMBA WATCH (`node ops/gemba.js [seconds=60]`; library `require("ops/gemba.js").watch(60)`):** the audits above each know ONE failure CLASS; this one knows none
+  (owner 09-20: "その解決方法だとその2件しか気が付けないのでは？"). It watches heartbeats for a minute and reads the last 10 min of `results.jsonl`, and answers the three
+  questions the owner asks by just looking: WHO STANDS STILL (no 1.5 blocks moved; task/pos/boxed, sleeper/furnace/fishing/banking tasks marked excused), WHO IS USELESS
+  (zero events of the `OUTPUT` table - the same table as ops/base-audit.js, extend BOTH - in 10 min), and WHICH JOB CRAWLS (cells/min/bot vs `PLAYER` = what one human does by
+  hand on that blueprint; `left`, ETA, fails). A ring of the last 24 `left` samples per build job lives in `bots/metrics/gemba.json` (atomic write) and adds PROGRESS OVER
+  TIME: `left` unchanged for >= 30 min with >= 2 bots = stalled. Lines beginning with `!` are findings and carry WHERE to look (`look`, `mapshot.js`), never a diagnosis:
+  `army_still` (> 25 % of bots still), `useless_bots` (>= 8 without output), `slow_job` (> 5x slower than a player two samples running, stalled, or ETA > 2 h). The
+  inspector is its clock (one 60 s watch every 10 min, async - the 60 s report loop never waits) and writes REPORT.md § GEMBA at the very top; readers: `ops/status.sh`
+  (first lines), `armyctl.js wait` (one line per finding per 20 min), the foreman and operator prompts (they must answer every `!` line with what they SAW and CHANGED),
+  `ops/escalate.sh` kind `gemba` (a `!` line still standing 30 min after the operator was told wakes the top model).
 - **Who hears what:** `armyctl.js wait` = one line per audit signature, at most once per 30 min, plus ONE `info:` line (spawn_set, bed_replaced, forged; topic-less
   operators only). `ops/escalate.sh`: every kind once per 60 min; the top model's own BUGS.md lines never wake it; a BROKEN EDIT only when it lasts >= 60 s;
   `ops/escalate.sh check` = dry pass. REPORT.md: FIELD ANOMALIES block on top (assets damaged, planted vs standing, motion without output, warning storms).
@@ -160,6 +170,8 @@ Command blocks are enabled on the server (`enable-command-block=true`); the bots
   lit, OWNED and audited by the miners on every commute (`stair_broken` → `stair_repaired`; `stair_no_filler` = no cobblestone in the kit). Step floors are TREADS = real `*_stairs` blocks (`stairCells().treads`, laid by climbers with stair blocks in the kit, `treads_laid`; walked up without jumping: 2.5 -> 3.9 steps/s). A bot in a `settings.keepOut` hole (the ravine) is never "in the mine". Underground movement is GRAPH-ONLY
   (branch → trunk → hub → stairs, no pathfinder, no private tunnel); `toSurface` is the one exit from any cell, `mine_reconnect ok:false` = a bot off the graph. A level that would
   move rows already dug is refused by the miners (`mine_level_refused`, the squad keeps its level); levels lie ≥ 3 apart. `wait` digests all of these.
+  The miners also open the NEXT landing THEMSELVES (`mine_level_opened`, at most one per hour) when every dug level of the iron band y-16..48 is EXHAUSTED — every trunk
+  mouth taken, every branch at 256, none open — and write it to the board like `mine level` does; `armyctl.js mine` marks such a level `EXHAUSTED` and prints the mean blocks out.
 - **Chat:** `bots/chatter.js` (haiku, thinking off) answers PLAYERS in character and can do nothing else (no actuator); `speak()` in `lib/army.js` is the LLM-free work chatter.
 
 ## 8. New world (`ops/new-world.sh <seed>`; seed candidates: `ops/seed-gacha.js [n]` → `server-gacha/results.json`)

@@ -1,10 +1,10 @@
 #!/bin/bash
-# git wrapper for this workspace: the directory is owned by another user and ~/.gitconfig is read-only, so the settings ride on the command line.
+# git wrapper for this workspace (author = the owner's GitHub account through its no-reply address, so commits show as fa0311 on github.com; his real e-mail is never used): the directory is owned by another user and ~/.gitconfig is read-only, so the settings ride on the command line.
 #   ops/git.sh <any git command>
 #   ops/git.sh publish ["message"]   = add -A + commit (no GPG) + push to origin (PUBLIC: github.com/fa0311/minecraft-bot-army). The token comes
 #                                      from $GITHUB_TOKEN through a one-shot credential helper: never in the remote URL, never in a file.
 #                                      Refuses when a staged file holds a token, the rcon password or a non-documentation IPv4 address.
-G=(git -c safe.directory=/root/workspace -c commit.gpgsign=false -c user.name=fa0311-army -c user.email=noreply@localhost)
+G=(git -c safe.directory=/root/workspace -c commit.gpgsign=false -c user.name=fa0311 -c user.email=34892635+fa0311@users.noreply.github.com)
 if [ "$1" = publish ]; then
   cd /root/workspace || exit 1; "${G[@]}" add -A
   PW=$(cat server/.rcon_pw 2>/dev/null)

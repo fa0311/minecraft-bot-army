@@ -6,3 +6,7 @@ extra: []
 # 09-19: somebody logged in as the owner from 203.0.113.79 (the owner's own address is 192.168.69.1, LAN).
 pinned:
   fa0311: ["192.168.0.0/16", "127.0.0.0/8"]
+# THE ARMY'S STORES ARE CLOSED TO GUESTS: players of this scoreboard team cannot use or break containers / furnaces / work tables inside box [x1, z1, x2, z2]. Remove the section = off.
+#stores:
+#  team: guests
+#  box: [-416, -567, -222, -361]

@@ -34,6 +34,8 @@ Fill it in AFTER looking (`ops/skyshot.js x z [half]` = aerial photo + flat-land
 | dump (`settings.dump`) | stand -333,69,-480 (NW rim of the ravine keep-out, spread along z), aim -329,64,-480 | the ONE junk disposal (`A.dumpJunk`): nothing is ever dropped inside the base. THE craft table = the hall's, -345,69,-523 (`settings.craftTable`) |
 | infill | everything else inside the wall line except keep-out +3 | `base_infill_*` level tiles (plan-base), ONE level y68 |
 | tree farm · mine head | x -282..-235 / z -454..-407 (E of the ravine) · x -337..-323 / z -507..-493, stairs descend NORTH (away from the ravine) | `base_tree` → `lumber_base` · `base_mine` → `mine_iron` |
+| portal (Nether gate) | x -331..-322 / z -522..-514, y68 (frame at -328..-325,68..72,-518) | `base_portal` (blueprint `nether_portal`, `pad:false`) → job type `portal` lights it and crosses; probed flat grass y68 09-20, 18 N of the mine head, clear of every zone/road/keep-out. Far side: `settings.nether` (docs/NETHER.md) |
+| WEST TERRACE | x -492..-476 / z -502..-458, cut to y73 | dirt + stone source, job `west_terrace_cut`: a grass hill 80 blocks W of the wall (tops y76-86) becomes a flat terrace - never a pit. Between it and the wall the land lies 5-6 below the base level (a gully at x -460..-452): future fill, not a building site yet |
 
 Size every zone x50 (docs/GOALS.md scale rule): storage for ~200 containers, fields of 1000+ cells, a furnace bank, beds for 50, pens, lumber grid.
 Style: straight axis-aligned edges, one or two materials, no dirt in anything permanent, no floating blocks, no holes, scaffolds removed,

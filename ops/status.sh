@@ -3,6 +3,8 @@
 #   processes -> army board (who does what) -> inspector headline + FIELD ANOMALIES + top problems
 W=/root/workspace
 p () { pgrep -f "$1" >/dev/null && echo "  ok    $2" || echo "  DOWN  $2   -> ops/up.sh"; }
+# GEMBA FIRST (ops/gemba.js through the inspector): who stands, which job crawls, who produces nothing. "!" lines are the ones to ANSWER.
+[ -f $W/REPORT.md ] && sed -n '/^## GEMBA/,/^$/p' $W/REPORT.md | grep -E '^(## GEMBA|!|  \()' | cut -c1-320 | head -6
 echo "## processes"
 p paper.jar "minecraft server"
 p "army/dispatcher.js" "dispatcher"

@@ -154,6 +154,7 @@ async function main () {
   // per-column books of the base box
   const dy = new Int8Array(bw * bdp); const cls = new Uint8Array(bw * bdp) // cls: 0 wild · 1 pad/footprint · 2 structure column / pit / keep-out (not judged) · 3 tidy yard; +16 = seen
   const topY = new Int16Array(pw * ph).fill(-999); const topN = new Uint16Array(pw * ph); const names = ['?']; const nameIx = new Map(); const ix = n => { let i = nameIx.get(n); if (i == null) { i = names.length; names.push(n); nameIx.set(n, i) } return i }
+  const wdN = new Uint8Array(bw * bdp); const gY = new Int16Array(bw * bdp).fill(-999) // solid top of EVERY column of the box, keep-outs included (fill audit below)
   const lvlN = new Uint16Array(bw * bdp); const upN = new Uint16Array(bw * bdp) // block at the level / one above it (field audit)
   const trN = new Uint8Array(bw * bdp); const trLo = new Int16Array(bw * bdp); const trHi = new Int16Array(bw * bdp); const trRoot = new Uint8Array(bw * bdp) // tree blocks above the level per column: count, lowest, highest, rooted trunk
   // a `level` pad CLAIMS its columns as flat only once it is done (archived by `prune`, or a build_done on record): a pad that is still planned or being cut is
@@ -196,6 +197,7 @@ async function main () {
         let g = null; let wet = false
         for (let y = level; y >= level - 16; y--) { const id = R.sid(x, y, z); if (id == null || air(id)) continue; const b = R.block(id); if (top == null) { top = y; topY[pi] = y; topN[pi] = ix(b.name) } if (!inside) break; if (b.name === 'water') { wet = true; continue } if (WEED.test(b.name) && judged && !(weeds.length && weeds[weeds.length - 1][0] === x && weeds[weeds.length - 1][2] === z)) weeds.push([x, y, z, b.name]); if (TREE.test(b.name) || b.boundingBox !== 'block') continue; g = y; break }
         if (!inside) continue
+        gY[bi] = (wet && (P.planned.get(x + ',' + level + ',' + z) || {}).block === 'water') ? level : bump != null ? bump : (g == null ? -999 : g); // a field's own water cell is not a hole if (gY[bi] !== -999 && WEED.test(R.name(x, gY[bi] + 1, z) || '')) wdN[bi] = 1
         cls[bi] |= 16; lvlN[bi] = ix(R.name(x, level, z) || '?'); upN[bi] = ix(R.name(x, level + 1, z) || '?')
         if (trN[bi]) { const gt = bump != null ? bump : g; trRoot[bi] = gt != null && /_log$|_wood$/.test(R.name(x, gt + 1, z) || '') ? 1 : 0 } // a trunk standing on the ground of this column
         if (judged) { const planWater = (P.planned.get(x + ',' + level + ',' + z) || {}).block === 'water'; dy[bi] = bump != null ? Math.min(100, bump - level) : planWater ? 0 : g == null ? -17 : g - level; if (wet && !planWater && dy[bi] === 0) dy[bi] = -1 }
@@ -279,6 +281,22 @@ async function main () {
     const wk = {}; const wz = {}; for (const w of weeds) { wk[w[3]] = (wk[w[3]] || 0) + 1; const z0 = whereOf(P, w[0], w[2]); wz[z0] = (wz[z0] || 0) + 1 }
     say({ ev: 'audit_weeds', key: '', alert: false, n: weeds.length, was: prev && prev.weedN != null ? prev.weedN : null, kinds: Object.fromEntries(Object.entries(wk).sort((a, b) => b[1] - a[1]).slice(0, 6)), where: Object.fromEntries(Object.entries(wz).sort((a, b) => b[1] - a[1]).slice(0, 6)),
       text: 'WEEDS: ' + weeds.length + ' flowers / grass tufts stand on the base ground' + (prev && prev.weedN != null ? ' (' + prev.weedN + ' at the last audit)' : '') + ': ' + Object.entries(wz).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, n]) => k + ' ' + n).join(', ') + ' -> the tidy sponge pulls them (kind `weed`); a number that does not fall = tidy is unstaffed or declines' }) }
+
+  // ---------- a3. FILLS (owner 09-20: "花のある位置にブロックが置けず、穴が空いている ... 何故これらの問題に気が付けない？" - the ravine is a KEEP-OUT, and keep-outs were never judged:
+  // the one place where 30 bots worked for hours was the one place this audit did not look at). Per fill_void job: columns still open below grade and PINHOLES = an open
+  // column whose four neighbours all stand higher (a cell nobody could place: a flower, a lock, a bot stood there) - each with coordinates, plants flagged. ----------
+  for (const b of P.builds.filter(q => q.blueprint === 'fill_void' && q.bbox)) {
+    const bb = b.bbox; let open = 0; let deepest = 0; const pin = []
+    for (let z = Math.max(bb[1], box[1]); z <= Math.min(bb[3], box[3]); z++) for (let x = Math.max(bb[0], box[0]); x <= Math.min(bb[2], box[2]); x++) {
+      const i = (z - box[1]) * bw + x - box[0]; const g = gY[i]; if (g === -999 || g >= level) continue
+      open++; deepest = Math.max(deepest, level - g)
+      const nb = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dz]) => { const X = x + dx; const Z = z + dz; return inBox(box, X, Z) ? gY[(Z - box[1]) * bw + X - box[0]] : level })
+      if (nb.every(h => h !== -999 && h > g)) pin.push([x, g + 1, z, Math.min(...nb) - g, wdN[i]])
+    }
+    if (!open && b.status !== 'active') continue
+    say({ ev: 'audit_fill', key: b.id, alert: pin.length >= 5 && b.status !== 'active', job: b.id, status: b.status, open, deepest, pinholes: pin.length, plants: pin.filter(q => q[4]).length, cells: pin.slice(0, 12).map(q => q.slice(0, 3).join(',')),
+      text: 'FILL ' + b.id + ' (job ' + b.status + '): ' + open + ' columns still below grade y' + level + ' (deepest ' + deepest + '), ' + pin.length + ' PINHOLES (open cell, all four neighbours higher' + (pin.some(q => q[4]) ? '; ' + pin.filter(q => q[4]).length + ' hold a flower/grass' : '') + '): ' + pin.slice(0, 8).map(q => q.slice(0, 3).join(',') + (q[4] ? ' plant' : '')).join(' | ') + ' -> the fill job closes them (pull the plant, place the block); pinholes with the job paused/archived = a `steps` plan or re-activate the job' })
+  }
 
   // ---------- b. STRAY BLOCKS ----------
   const kinds = {}; const byZone = {}; for (const s of stray) { kinds[s[3]] = (kinds[s[3]] || 0) + 1; const w = whereOf(P, s[0], s[2]); (byZone[w] = byZone[w] || []).push(s) }

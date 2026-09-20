@@ -73,3 +73,6 @@ bots/army/chatter.alive
 bots/army/chest_missing.json
 bots/army/helpdesk_escalated.json
 bots/army/census.json
+# op is granted only temporarily from the terminal: the live state of this file is never published
+server/ops.json
+bots/army/place_rest.json

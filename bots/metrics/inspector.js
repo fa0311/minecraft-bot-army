@@ -671,6 +671,28 @@ function armyBuildProgress (ev) {
 }
 
 // ---------- report ----------
+// ---------- GEMBA (ops/gemba.js): the CLASS-AGNOSTIC look - who stands still, which job crawls against one player by hand, who produced nothing in 10 min.
+// The audits know failure CLASSES; this one needs no theory of the cause (owner 09-20: "その解決方法だとその2件しか気が付けないのでは？"). No new daemon:
+// the inspector is its clock (one 60 s watch every 10 min, async - the 60 s report loop must never wait for it). Its "!" lines LEAD the REPORT.
+let GEMBA = null; let gembaAt = 0; let gembaBusy = false
+function gembaTick () {
+  if (gembaBusy || now() - gembaAt < 600000) return
+  gembaBusy = true; gembaAt = now()
+  try {
+    const g = require(path.join(WS, 'ops', 'gemba.js'))
+    g.watch(60).then(r => { GEMBA = r; gembaBusy = false }, e => { gembaBusy = false; log('gemba: ' + ((e && e.message) || e)) })
+  } catch (e) { gembaBusy = false; log('gemba: ' + e.message) }
+}
+function gembaBlock (L) {
+  let rep = GEMBA && GEMBA.report; let t = GEMBA && GEMBA.t
+  if (!rep) { const R = readJSON(path.join(MET, 'gemba.json'), null); if (R && R.report) { rep = R.report; t = R.t } } // just restarted: the last watch on disk
+  const bangs = (rep || []).filter(l => l.startsWith('!')).length
+  L.push('## GEMBA (go and look — ops/gemba.js watches the field for 60 s every 10 min: who STANDS, which job CRAWLS against one player by hand, who produced NOTHING) — ' +
+    (rep ? bangs + ' line(s) to answer, ' + Math.round((now() - t) / 60000) + ' min old' : 'no watch yet: node ops/gemba.js 60'))
+  for (const l of (rep || []).slice(1)) L.push(l)
+  L.push('')
+}
+
 // ---------- BASE AUDIT (ops/base-audit.js): the PLAN against the WORLD seen by the spectator camera - outcomes nobody reports about himself (owner 09-20:
 // sheep outside the pen, junk blocks, a bumpy base, furnaces that are air, cane that does not grow, bots that stand). The inspector is its CLOCK (no new
 // daemon): a result older than 30 min -> start the script detached (its own lock keeps a second camera out; one try per 10 min), and its alerts lead the REPORT.
@@ -701,6 +723,7 @@ function renderReport (d) {
   const reg = armySettings().chests || {}
   L.push(`  storage: ${Object.values(reg).reduce((a, l) => a + l.length, 0)} containers registered (${Object.entries(reg).map(([k, l]) => k + ' ' + l.length).join(', ')}), ${g1.containers} indexed | ${(base.furnaces || []).length} furnaces, ${g1.beds.placed} beds${(() => { try { const f = (readJSON(path.join(BOTS, 'army', 'base_audit.json'), {}).findings || []).find(q => q.ev === 'audit_furniture'); return f && f.n ? ' (REGISTERED - the camera saw ' + f.n + ' of all registered furniture NOT standing, see BASE AUDIT)' : '' } catch { return '' } })()} | API ${fix((d.apiMs || 0) / 1000, 1)}s${d.shardsDown.length ? ' | SHARDS DOWN ' + d.shardsDown.join(',') : ''}`)
   L.push('')
+  try { gembaBlock(L) } catch (e) { log('gembaBlock: ' + (e.stack || e)) }
   try {
     const { A, age } = baseAudit(); const al = A ? (A.findings || []).filter(f => f.alert) : []; const idle = A && (A.findings || []).find(f => f.ev === 'audit_idle')
     if (idle && idle.standingShare != null) L.splice(3, 0, `  STANDING: ${Math.round(idle.standingShare * 100)} % of bot time produced nothing in the last hour (${idle.idleHours} of ${idle.botHours} bot-h; worst: ${(idle.worst || []).slice(0, 3).map(w => w.job + ' ' + w.idleHours + ' bot-h').join(', ')})${idle.alert ? '  <-- ABOVE 30 %: see BASE AUDIT' : ''}`)
@@ -745,7 +768,7 @@ function renderReport (d) {
   for (const [n, p] of badb) L.push(`  ${pad(n, 9)}${pad(p.team, 9)}${pad(p.cls, 11)}hp${lpad(p.hp, 3)} food${lpad(p.food, 3)} bank30 ${lpad(p.banked30, 3)}  ${p.water ? 'WATER ' : ''}${String(p.task).slice(0, 22)}`)
   L.push('')
   L.push('(food = army ledger results.jsonl [cooked/banked/canteen] + chest index chests.json; "bank30" = the bots own banked reports; visits(dry) = 30 s inventory diff near a registered container; inspector.js ~60s)')
-  return L.slice(0, 70).join('\n') + '\n'
+  return L.slice(0, 82).join('\n') + '\n' // GEMBA + BASE AUDIT lead the report; the tail (per-job table, bots needing attention) must still fit
 }
 
 // ---------- loop ----------
@@ -767,6 +790,7 @@ async function probeShards () {
 let tick = 0
 async function loop () {
   try {
+    gembaTick() // fire-and-forget: a 60 s field watch every 10 min, never awaited
     await probeShards()
     const snap = await sample(tick % 2 === 0)
     tick++

@@ -57,6 +57,11 @@ while [ $(date +%s) -lt $end ]; do
     if(floods.length)msg.push(["flood","FLOOD on a farm (flowing water where only capped holes belong): "+floods.slice(-2).join(" | ")]);
     // BASE AUDIT (ops/base-audit.js, camera + books, every ~30 min): a NEW finding (not an alert at the last audit, or clearly worse) wakes once per kind per 60 min
     for(const [ev,l] of Object.entries(audits))msg.push([ev==="audit_idle"?"idle":"audit:"+ev.slice(6),"BASE AUDIT "+ev.slice(6).toUpperCase()+" (camera: plan vs world; details `armyctl.js events 20 audit`, REPORT.md, picture /tmp/base-audit.png): "+[...new Set(l)].slice(-3).map(x=>x.slice(0,200)).join(" | ")]);
+    // GEMBA (ops/gemba.js, one 60 s watch every 10 min): a "!" line that is STILL standing 30 min after the operator was told is not an operator
+    // problem any more - the board alone cannot fix it (a job crawling at 1/40 of a player, a quarter of the army standing, bots without output)
+    try{const G=JSON.parse(fs.readFileSync("'$W'/bots/metrics/gemba.json","utf8"));
+      if(Date.now()-G.t<25*60000&&Date.now()-lastWait<35*60000){const old=(G.bangs||[]).filter(b=>b.standingMin>=30);
+        if(old.length)msg.push(["gemba","GEMBA (measured by WATCHING the field, REPORT.md section GEMBA): "+old.length+" finding(s) still standing 30+ min after the operator was told - the board alone is not fixing it: "+old.slice(0,3).map(b=>b.text.slice(0,200)+" ["+b.standingMin+" min]").join(" | ")+" -> LOOK (node bots/army/mapshot.js <bot> 48, armyctl.js look), then fix the CODE or the plan, not the head-count"])}}catch(e){}
     if(errs.length){const last=errs[errs.length-1];msg.push(["error:"+last.replace(/^[^:]*: /,"").replace(/[0-9]+/g,"N").slice(0,60),"worker errors (code bug): "+errs.slice(-3).join(" | ")])}
     // a half-written file seen by the hot-reloader for a few seconds is somebody saving, not a bug: only a file that STAYS broken (>= 60 s, still failing) wakes
     if(broken.length&&broken[broken.length-1]-broken[0]>=60000&&Date.now()-broken[broken.length-1]<90000)msg.push(["broken","BROKEN EDIT for "+Math.round((broken[broken.length-1]-broken[0])/1000)+" s and still failing: a lib file does not parse, the bots run the last good copy -> ops/check.sh"]);

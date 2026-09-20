@@ -59,6 +59,7 @@ const doneEv = {} // job id -> {t, standing}: the last build_done / light_done r
 // bot held < 0.34 -> head-count cap = ceil(current / 2) (min 1) for 10 min; outputs back -> the cap doubles again until it is gone. LLM-free.
 const outAt = {} // job id -> [t] of output events
 const yieldCap = {} // job id -> {cap, until}
+const workLeft = {} // job id -> {left, t}: open cells of the last build_pass (the only honest "how much work is left" the dispatcher can see)
 const isOutput = r => (r.ev === 'banked' && r.items && Object.keys(r.items).some(k => !/^(dirt|cobblestone|cobbled_deepslate|torch|bread|stick|wheat_seeds)$/.test(k))) || (r.ev === 'build_pass' && r.done > 0) || (r.ev === 'tidy_fix' && r.n > 0) ||
   (r.ev === 'farm_pass' && r.st && (r.st.harvested > 0 || r.st.planted > 0)) || (r.ev === 'cane_pass' && (r.cut > 0 || r.planted > 0)) || (r.ev === 'guard_pass' && r.kills > 0) || (r.ev === 'trip' && r.kills > 0) ||
   /^(herded|bred|pen_harvest|crafted_to_target|forged|furnaces|torch|water_cell|lumber_pass|fish_session|tree_cleared|stair_repaired|obsidian_cast|step)$/.test(r.ev) && !(r.ev === 'herded' && !(r.n > 0)) && !(r.ev === 'step' && r.ok === false) && !(r.ev === 'lumber_pass' && !(r.felled > 0 || r.planted > 0))
@@ -88,6 +89,7 @@ function tailResults () {
     for (const line of buf.toString('utf8').split('\n')) {
       if (!line.trim()) continue
       try { const r = JSON.parse(line); if (r.job && r.t && isOutput(r)) (outAt[r.job] = outAt[r.job] || []).push(r.t)
+        if (r.ev === 'build_pass' && r.job && typeof r.left === 'number') workLeft[r.job] = { left: r.left, t: r.t || Date.now() } // how many cells are still open = how many hands the job can really use (OVERFLOW)
         if (r.ev === 'death' || r.ev === 'banked' || r.ev === 'trip') events.push(r); else if ((r.ev === 'build_done' || r.ev === 'light_done') && r.job) doneEv[r.job] = { t: r.t, standing: !!r.standing } } catch {}
     }
     const cut = Date.now() - 6 * 3600000
@@ -96,10 +98,33 @@ function tailResults () {
 }
 
 // a worker may DECLINE a job it cannot do right now (army/decline/<bot>.json) — skip that job for it until the note expires or the job's rev changes
+// ONE READ PER BOT PER TICK (09-20: the pool filter called declined() for 24 jobs x 50 bots x 3 passes = ~3600 file reads every 5 s; the
+// decline map is also the evidence for the REST rule below, so the tick reads it once and both use the same snapshot).
+let declCache = {}
+function declMap (name) {
+  if (name in declCache) return declCache[name]
+  let d = readJSON(path.join(FIELD, 'decline', name + '.json'), null)
+  if (d && d.job) d = { [d.job]: d } // old single-entry format
+  return (declCache[name] = d || {})
+}
 function declined (job, name) {
-  const d = readJSON(path.join(FIELD, 'decline', name + '.json'), null)
-  const e = d && (d[job.id] || (d.job === job.id ? d : null))
+  const e = declMap(name)[job.id]
   return !!(e && e.until > Date.now() && (e.rev || 0) === (job.rev || 0))
+}
+// CHURN (owner 09-20 "全体的にタスクの効率が悪すぎる"; measured 1203 ASSIGN/h = 24 per bot per hour, a job change every 2.5 min, each one a walk +
+// a handover bank + an interrupted slice; `base-audit --idle` 56 % of bot time without output, 12.8 of 52.1 bot-h at muster). The dispatcher now
+// MEASURES its own churn: assignsPerHour + the top flows go into status.json (REPORT.md / ops/status.sh) and one CHURN line per 10 min into the log.
+const assigns = [] // {t, from, to} of the last hour
+let churnLog = 0
+function churnStat () {
+  const t0 = Date.now()
+  while (assigns.length && assigns[0].t < t0 - 3600000) assigns.shift()
+  const flow = {}
+  for (const a of assigns) { const k = a.from + ' -> ' + a.to; flow[k] = (flow[k] || 0) + 1 }
+  return {
+    assignsPerHour: assigns.length, assigns10min: assigns.filter(a => a.t > t0 - 600000).length,
+    churnFlows: Object.entries(flow).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, n]) => k + ' x' + n)
+  }
 }
 function eligible (job, hb, phase, sticky) {
   if (job.restUntil && job.restUntil > Date.now()) return false // the JOB rests (its handler found nothing to do for anybody: herd with no animal in reach / breeding cooldown) - nobody is sent until then // sticky = the bot already holds this job: HYSTERESIS on hp/food so a bot at the threshold does not flap between two jobs every 5 s (Mio, 09-19)
@@ -121,6 +146,9 @@ let NIGHT_SKIP = false
 let WANT_STRING = false
 let last = {} // bot -> job id
 let lastWrite = {} // bot -> ms
+const over = {} // bot -> job id it OVERFLOWED into (see OVERFLOW below): a standing assignment, not a per-tick lottery
+const declSeen = {} // "job|bot|until" -> ms we first saw that decline note (a note is unique per bot+job+expiry) = the REST rule's 10-min window
+const restedAt = {} // job id -> ms of the last rest the dispatcher ordered (never re-rest inside the rest itself)
 const since = {} // bot -> ms when it got its current job (shifts). Survives a dispatcher restart through assign/<bot>.json
 if (!DRY) for (const f of fs.readdirSync(P.assign)) { const a = f.endsWith('.json') && readJSON(path.join(P.assign, f), null); if (a && a.bot && a.job && a.job.id && Date.now() - a.t < 120000) { last[a.bot] = a.job.id; since[a.bot] = a.since || a.t } }
 
@@ -203,6 +231,7 @@ const wantText = d => 'want ' + d.want + ' of ' + d.min + '-' + d.max + ' (defic
 function tick () {
   const board = readJSON(P.board, null)
   if (!board) { log('jobs.json unreadable - keeping assignments'); return }
+  declCache = {} // one decline read per bot per tick
   const S = board.settings || {}
   const activated = afterPass(board)
   // string nights are real nights — but ONLY when the army can actually fight one: >= 6 armoured bots with hp >= 10 online. Otherwise sleep
@@ -240,7 +269,9 @@ function tick () {
     if (!hbs[n] && !quiet[n]) continue
     if ((job.names && !job.names.includes(n)) || (job.exclude && job.exclude.includes(n)) || (hbs[n] && !eligible(job, hbs[n], phase, true)) || declined(job, n)) continue
     const have = staffed[job.id] || (staffed[job.id] = [])
-    if (have.length >= (job.names ? job.names.length : D[job.id] ? D[job.id].max : (job.bots || 1))) { if (!have.length) delete staffed[job.id]; continue } // DEMAND: cap = maxBots, a shrinking demand waits for the shift's end
+    // DEMAND: cap = maxBots, a shrinking demand waits for the shift's end — EXCEPT at deficit 0 (owner 09-20: herders and farmers sat out a 20-min
+    // shift on a full pen / a full larder). Nothing is missing, so the shift ends now and the extra bots are released at this tick.
+    if (have.length >= (job.names ? job.names.length : D[job.id] ? (D[job.id].deficit <= 0 ? D[job.id].want : D[job.id].max) : (job.bots || 1))) { if (!have.length) delete staffed[job.id]; continue }
     have.push(n); out[n] = job; free.delete(n)
     if (job.front) fronts.add(job.front)
   }
@@ -273,15 +304,70 @@ function tick () {
   // ignore tenure; a second pass hands out whoever is left over - bots their own job no longer wants are free at once, so nobody idles for tenure.
   const TENURE = (S.tenureMin == null ? 10 : S.tenureMin) * 60000
   const activeIds = new Set(jobs.filter(j => j.status === 'active').map(j => j.id))
-  const young = (n, job) => !!last[n] && last[n] !== job.id && last[n] !== S.fallback && activeIds.has(last[n]) && NOW() - (since[n] || 0) < TENURE
+  // A BOT THAT WAITS IS NOT BUSY (owner 09-20): tenure protects productive work, never a farmer standing in a grown-out field or a herder whose pen
+  // has nothing to breed - the heartbeat's own task text says so, and such a bot is free game for any job at any time.
+  const IDLE_TASK = /waiting for growth|nobody ready to breed|no open work|nothing open|handed back|declined|muster/i
+  const busy = n => !IDLE_TASK.test(String((hbs[n] || {}).task || ''))
+  const young = (n, job) => !!last[n] && last[n] !== job.id && last[n] !== S.fallback && activeIds.has(last[n]) && NOW() - (since[n] || 0) < TENURE && busy(n)
   let tenurePass = true
   // A JOB THAT TURNS BOTS AWAY IS FULL (09-20 07:35Z: the tenure rule changed nothing - 846 switches/h - because the churn is DECLINE-driven: `base_field_1
   // "the rest waits for a water cell in work"` declined by 37 bots x63 in a few minutes, herd_cows/herd_chickens "nobody ready to breed" x8 each, finished
   // infill tiles "build: complete": every decline only excluded THAT bot, so the dispatcher fed the job the next one, and the next…). While >= 3 bots hold
   // an unexpired decline note for a job (same rev), the job gets no NEW bots - only those who already work it stay.
   const declineCount = {}
-  for (const n of enlisted) { const d = readJSON(path.join(FIELD, 'decline', n + '.json'), null); if (!d) continue; for (const [id, e] of Object.entries(d.job ? { [d.job]: d } : d)) { const j = jobs.find(q => q.id === id); if (j && e && e.until > Date.now() && (e.rev || 0) === (j.rev || 0)) declineCount[id] = (declineCount[id] || 0) + 1 } }
+  const declWhy = {} // job id -> normalised reason -> Set of bots that declined it for that reason within the last 10 min
+  const tNow = Date.now()
+  for (const n of enlisted) {
+    for (const [id, e] of Object.entries(declMap(n))) {
+      const j = jobs.find(q => q.id === id)
+      if (!j || !e || !(e.until > tNow) || (e.rev || 0) !== (j.rev || 0)) continue
+      declineCount[id] = (declineCount[id] || 0) + 1
+      const key = id + '|' + n + '|' + e.until
+      if (!declSeen[key]) declSeen[key] = tNow
+      if (tNow - declSeen[key] > 600000) continue
+      const why = String(e.why || '').replace(/\d+/g, '#').slice(0, 40) // "sheep 67/60 … nobody ready to breed" and "sheep 60/60 …" are ONE reason
+      const w = declWhy[id] = declWhy[id] || {}
+      ;(w[why] = w[why] || new Set()).add(n)
+    }
+  }
+  for (const k of Object.keys(declSeen)) if (tNow - declSeen[k] > 1800000) delete declSeen[k]
   const saturated = job => (declineCount[job.id] || 0) >= 3
+  const headOf = j => j.names ? j.names.length : D[j.id] ? D[j.id].want : (j.bots == null ? 1 : j.bots)
+  const crew = {} // active job id -> the ONLINE bots that held it when this tick started (who a job may be drained of, and who still works it)
+  for (const n of Object.keys(hbs)) if (last[n] && activeIds.has(last[n])) (crew[last[n]] = crew[last[n]] || []).push(n)
+  // A JOB THAT NOBODY CAN DO RESTS - it is not refilled with the next bot (09-20: `base_field_1 "build: the rest waits for a water cell in work"`
+  // was declined 23x, herd_sheep "nobody ready to breed" 14x, tidy_spawn "nothing open" 17x: every decline only excluded THAT bot, the dispatcher fed
+  // the job the next one, and the muster<->fallback ping-pong alone made 285+284 of 1210 moves an hour). >= 3 bots decline with the SAME reason inside
+  // 10 min AND the job showed no OUTPUT in those 5 min -> the JOB rests 10 min (the `restUntil` mechanism the herd/cane handlers already use).
+  // Urgent jobs (>= 96) and producing jobs are never rested, so this can never eject somebody who IS producing.
+  for (const job of jobs) {
+    if ((job.priority || 0) >= 96 || job.status !== 'active') continue
+    if ((job.restUntil || 0) > tNow || tNow - (restedAt[job.id] || 0) < 600000) continue
+    const w = declWhy[job.id]; if (!w) continue
+    const worst = Object.entries(w).sort((a, b) => b[1].size - a[1].size)[0]
+    if (!worst || worst[1].size < 3) continue
+    // …but never rest a job that is actually PRODUCING (resting ejects its holders too). Measured output, not "somebody has not declined yet":
+    // a job refilled every minute always has one fresh bot without a note, which kept base_portal/base_dorm_pad cycling bots all morning.
+    if ((outAt[job.id] || []).some(x => x >= tNow - 300000)) continue
+    restedAt[job.id] = tNow; job.restUntil = tNow + 600000
+    log('REST', job.id, worst[1].size + ' bots declined "' + worst[0] + '" in 10 min -> rests 10 min')
+    if (!DRY) boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (j) j.restUntil = Date.now() + 600000 })
+  }
+  // TENURE THAT HOLDS (09-20: the soft tenure above changed nothing - the SECOND pass ignored it altogether, and `last[n] !== S.fallback` made every
+  // bot sitting in the sponge free game, which is how tidy_spawn <-> muster became the top two flows). A bot younger than tenureMin in a job that
+  // SHOWED OUTPUT in the last 15 min (same bookkeeping as the yield throttle) is taken by NO job under priority 96, in either pass. Exceptions that
+  // must stay: urgent jobs (>= 96) and the producers' reserved minBots FLOOR - a starving army may always re-man its food/iron floor.
+  const producing = id => { const a = outAt[id]; return !!(a && a.length && a[a.length - 1] >= tNow - 900000) }
+  const holdFast = (n, job) => (job.priority || 0) < 96 && !!last[n] && last[n] !== job.id && last[n] !== S.fallback && activeIds.has(last[n]) && NOW() - (since[n] || 0) < TENURE && producing(last[n]) && busy(n)
+  // …and a squad is never drained below HALF its head-count by a job under 96: small jobs of priority 84-98 used to pull the 16-bot ravine squads
+  // apart within 2-5 min (fill_ravine_n: 62 in / 63 out an hour, held 0-1 bots of 16).
+  const drained = {}
+  const drainable = (n, job) => {
+    const src = last[n]
+    if (!src || src === job.id || src === 'muster' || src === S.fallback || !activeIds.has(src) || (job.priority || 0) >= 96) return true
+    const s = jobs.find(j => j.id === src); if (!s) return true
+    return (crew[src] || []).length - (drained[src] || 0) > Math.floor(headOf(s) / 2)
+  }
   // staff(job, head, floor): bring the job up to `head` bots from the free pool — the ONE way squads are filled (floor pass + priority loop)
   const staff = (job, head, floor) => {
     const front = job.front || null
@@ -290,15 +376,20 @@ function tick () {
     const yc = yieldCap[job.id]; if (yc && yc.until > Date.now()) head = Math.min(head, yc.cap) // YIELD THROTTLE: a squad without output is cut by itself
     const want = head - (staffed[job.id] || []).length
     if (want <= 0) return
-    const pool = [...free].filter(n => !(saturated(job) && last[n] !== job.id) && !(tenurePass && (job.priority || 0) < 96 && young(n, job)) && (!job.names || job.names.includes(n)) && (!job.exclude || !job.exclude.includes(n)) && eligible(job, hbs[n], phase, last[n] === job.id) && !declined(job, n) && (!floor || ((hbs[n].hp == null || hbs[n].hp >= 10) && (hbs[n].food == null || hbs[n].food >= 7))))
-    // sticky first, then nearest to the site
+    const pool = [...free].filter(n => !(saturated(job) && last[n] !== job.id) && !(tenurePass && (job.priority || 0) < 96 && young(n, job)) && !(!floor && holdFast(n, job)) && drainable(n, job) && (!job.names || job.names.includes(n)) && (!job.exclude || !job.exclude.includes(n)) && eligible(job, hbs[n], phase, last[n] === job.id) && !declined(job, n) && (!floor || ((hbs[n].hp == null || hbs[n].hp >= 10) && (hbs[n].food == null || hbs[n].food >= 7))))
+    // WHERE A JOB TAKES ITS BOTS FROM (09-20): sticky first, then the bots nobody is using - muster, the fallback sponge, an overflow hold - and only
+    // then somebody else's squad: the LOWEST priority one holding the MOST bots. Within each source the bot NEAREST to the site (heartbeat pos).
     const R = job.requires || {}
-    pool.sort((a, b) => (carries(R, hbs[b]) - carries(R, hbs[a])) || ((last[b] === job.id) - (last[a] === job.id)) || (dist(hbs[a], job.site) - dist(hbs[b], job.site)))
+    const srcOf = n => jobs.find(j => j.id === last[n])
+    const rank = n => { const s = last[n]; if (s === job.id) return 0; if (!s || s === 'muster' || !activeIds.has(s)) return 1; if (s === S.fallback) return 2; if (over[n] === s) return 3; return 4 }
+    pool.sort((a, b) => (carries(R, hbs[b]) - carries(R, hbs[a])) || (rank(a) - rank(b)) ||
+      (rank(a) === 4 ? (((srcOf(a) || {}).priority || 0) - ((srcOf(b) || {}).priority || 0)) || ((crew[last[b]] || []).length - (crew[last[a]] || []).length) : 0) ||
+      (dist(hbs[a], job.site) - dist(hbs[b], job.site)))
     const carriers = pool.filter(n => carries(R, hbs[n])).length
     const take = pool.slice(0, R.anyItem ? Math.min(want, carriers + stockOf(R.anyItem)) : want)
     if (process.env.DISPATCH_DEBUG && job.id === process.env.DISPATCH_DEBUG) log('DEBUG', job.id, floor ? 'FLOOR' : '', 'free', free.size, 'pool', pool.length, 'want', want, 'take', take.length, 'phase', phase, 'front', front, 'fronts', [...fronts].join(','))
     if (job.minBots && !D[job.id] && take.length + (staffed[job.id] || []).length < job.minBots) return // producers: minBots is the demand floor, not a start gate (see DEMAND)
-    for (const n of take) { out[n] = job; free.delete(n) }
+    for (const n of take) { out[n] = job; free.delete(n); const src = last[n]; if (src && src !== job.id && src !== S.fallback && activeIds.has(src)) drained[src] = (drained[src] || 0) + 1 }
     if (take.length) { staffed[job.id] = (staffed[job.id] || []).concat(take); if (front) fronts.add(front) }
   }
   for (const job of jobs) if (D[job.id] && D[job.id].min > 0) staff(job, Math.min(D[job.id].min, D[job.id].want), true) // FLOORS first (see DEMAND)
@@ -307,22 +398,60 @@ function tick () {
   for (const job of jobs) staff(job, job.names ? job.names.length : D[job.id] ? D[job.id].want : (job.bots == null ? 1 : job.bots), false)
   try { yieldPass(jobs, staffed) } catch (e) { log('yieldPass error', e && e.message) }
   const muster = { id: 'muster', type: 'muster' }
+  // OVERFLOW instead of ping-pong (09-20: muster -> tidy_spawn 285x and tidy_spawn -> muster 284x an hour - the fallback has no open work most of
+  // the time, declines, the bot musters, the 10-min decline expires and it is sent straight back; meanwhile fill_ravine_n wanted 16 and held 0-1).
+  // A bot nobody wants joins a REAL squad: an active squad job (a handler that scales by algorithm, head-count >= 3, no `names`, not resting, not
+  // saturated by declines, the bot fits its `requires`) with the most work left relative to its head-count - the dispatcher cannot count blueprint
+  // cells, so "work left" = it produced something in the last 15 min AND it is short of its head-count - and among those the NEAREST to the bot.
+  // The overflow goes BEYOND the job's head-count on purpose (数の暴力) and it STANDS: `over[n]` is re-claimed every tick until the job ends,
+  // rests, pauses or declines the bot, so an overflow bot is as stable as a staffed one (tenure/holdFast protect it from jobs under 96).
+  // ONLY WORK THAT CAN USE MORE HANDS (owner 09-20 on the field: "畑でサボってるやつ居る" - 9 bots stood on farm jobs, 5 of them "farm: waiting for
+  // growth", while food was 9590 against a target of 448: a field does not grow faster with more farmers, and a pen does not breed faster). Overflow
+  // goes ONLY into terrain/squad work that scales with head-count, NEVER into farm/cane/herd/hunt/guard/scan/fish, NEVER into a `produces` job whose
+  // deficit is 0, and only while the job has cells left for the extra hand: 20 open cells (`build_pass.left`) per bot already on it.
+  const SQUAD = /^(build|deck|lumber|light|tidy|ores)$/
+  const roomFor = job => {
+    const held = Math.max(1, (staffed[job.id] || []).length); const w = workLeft[job.id]
+    if (w && Date.now() - w.t < 600000) return w.left > 20 * held
+    return producing(job.id) && held < 2 * Math.max(1, headOf(job)) // handlers that report no cell count (lumber, light, tidy): never more than double
+  }
+  const overFit = (job, n) => !!job && job.status === 'active' && SQUAD.test(job.type) && !(job.names && job.names.length) && !((job.restUntil || 0) > Date.now()) &&
+    !saturated(job) && ((job.bots || 0) >= 3 || (job.maxBots || 0) >= 3) && !(D[job.id] && D[job.id].deficit <= 0) && roomFor(job) && !(job.front && !fronts.has(job.front) && fronts.size >= maxFronts) &&
+    !(job.exclude && job.exclude.includes(n)) && eligible(job, hbs[n], phase, last[n] === job.id) && !declined(job, n) &&
+    !(yieldCap[job.id] && yieldCap[job.id].until > Date.now() && (staffed[job.id] || []).length >= yieldCap[job.id].cap) // a squad the YIELD THROTTLE cut is the last place for another bot
+  const pickOverflow = n => {
+    const c = jobs.filter(j => overFit(j, n)).map(j => { const head = Math.max(1, headOf(j)); return { j, t: producing(j.id) ? 1 : 0, s: (head - (staffed[j.id] || []).length) / head, d: dist(hbs[n], j.site) } })
+    c.sort((a, b) => (b.t - a.t) || (Math.round(b.s * 4) - Math.round(a.s * 4)) || (a.d - b.d))
+    return c.length ? c[0].j : null
+  }
+  const join = (n, job) => { out[n] = job; (staffed[job.id] = staffed[job.id] || []).push(n); if (job.front) fronts.add(job.front) }
   // STANDBY IS FORBIDDEN (owner 09-19): a bot no job wants goes to settings.fallback (a sponge job that always has work), whatever its hp/kit —
-  // unless it declined that too a moment ago.
+  // unless it declined that too a moment ago, or the fallback itself rests (REST rule above), or it already holds an overflow squad.
+  // THE SPONGE IS NOT A WAYPOINT (09-20 measurement after the first cut: churn fell 1203 -> ~850/h only, and the top flows were
+  // `tidy_spawn -> fill_ravine_s x13` against `fill_ravine_m -> tidy_spawn x10` per 10 min: a bot handed back by a finished build tile walked to
+  // the sponge at base and was recruited into a real squad on the NEXT tick = two walks and two handovers for one move). So a bot nobody wants
+  // is offered the OVERFLOW squad first and the sponge only when no squad has cells for it - the sponge still gets its own head-count from the
+  // priority loop above, and it stays the last stop before muster, because standby is forbidden (owner 09-19).
   const fb = S.fallback && (board.jobs || []).find(j => j.id === S.fallback)
   for (const n of enlisted) {
     // ...but never a DYING bot (foreman 09-19: hp1/food0 bots were sent down the 140-step shaft while 179 bread sat in the depot): under
     // hp 10 / food 7 (or under the fallback's own `requires`) the bot musters on the surface, where the canteen reflex feeds and heals it.
     const h = hbs[n]; const rq = (fb && fb.requires) || {}
-    const fitFb = h && (h.hp == null || h.hp >= Math.max(10, rq.minHp || 0)) && (h.food == null || h.food >= Math.max(7, rq.minFood || 0))
-    if (!out[n] && fb && h && fitFb && !declined(fb, n)) { out[n] = fb; (staffed[fb.id] = staffed[fb.id] || []).push(n) }
+    const fitWork = !!h && (h.hp == null || h.hp >= 10) && (h.food == null || h.food >= 7)
+    const fitFb = !!h && (h.hp == null || h.hp >= Math.max(10, rq.minHp || 0)) && (h.food == null || h.food >= Math.max(7, rq.minFood || 0))
+    if (!out[n] && fitWork) {
+      const hold = over[n] === last[n] ? jobs.find(j => j.id === over[n]) : null
+      const j = hold && overFit(hold, n) ? hold : pickOverflow(n)
+      if (j) { over[n] = j.id; join(n, j) } else if (fb && fitFb && !((fb.restUntil || 0) > Date.now()) && !declined(fb, n)) { out[n] = fb; (staffed[fb.id] = staffed[fb.id] || []).push(n) }
+    }
     const job = out[n] || muster
+    if (over[n] && over[n] !== job.id) delete over[n]
     const changed = last[n] !== job.id
     if (changed || Date.now() - (lastWrite[n] || 0) > 15000) {
       if (changed) since[n] = NOW()
       if (!DRY) writeJSON(path.join(P.assign, n + '.json'), { bot: n, t: Date.now(), since: since[n] || 0, time: t, phase, job: { id: job.id, type: job.type, site: job.site, params: job.params, rev: job.rev || 0, plan: job.plan, names: job.names } })
       lastWrite[n] = Date.now()
-      if (changed && hbs[n] && !DRY) log('ASSIGN', n, (last[n] || '-') + ' -> ' + job.id)
+      if (changed && hbs[n] && !DRY) { log('ASSIGN', n, (last[n] || '-') + ' -> ' + job.id); assigns.push({ t: Date.now(), from: last[n] || '-', to: job.id }) }
       last[n] = job.id
     }
   }
@@ -347,8 +476,11 @@ function report (ctx) {
     staffed: ctx.staffed, output: byJob,
     targets: Object.fromEntries(Object.entries(ctx.S.targets || {}).map(([k, n]) => [k, { have: Stock.count(k, ctx.st), target: n }])), demand // WHY each producer has its head-count (and the hysteresis memory, read back at start)
   }
+  const ch = churnStat() // CHURN: one number that shows whether the army works or walks (see above)
+  Object.assign(status, ch)
+  if (Date.now() - churnLog > 600000) { churnLog = Date.now(); log('CHURN', ch.assignsPerHour + '/h ' + ch.assigns10min + '/10min |', ch.churnFlows.join(' · ') || 'no moves') }
   writeJSON(P.status, status, true)
-  const lines = ['# ARMY BOARD  ' + status.t + '  time ' + ctx.t + ' (' + ctx.phase + ')  enlisted ' + status.enlisted + ' online ' + status.online + '  deaths/1h ' + status.deaths1h, '']
+  const lines = ['# ARMY BOARD  ' + status.t + '  time ' + ctx.t + ' (' + ctx.phase + ')  enlisted ' + status.enlisted + ' online ' + status.online + '  deaths/1h ' + status.deaths1h + '  assigns/h ' + ch.assignsPerHour, '']
   lines.push(stockLine(ctx), '')
   lines.push('| pri | job | type | front | status | plan | staffed | banked 1h |', '|---|---|---|---|---|---|---|---|')
   for (const j of (ctx.board.jobs || []).slice().sort((a, b) => (b.priority || 0) - (a.priority || 0))) {

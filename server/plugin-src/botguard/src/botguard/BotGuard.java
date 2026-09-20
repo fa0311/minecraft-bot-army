@@ -48,8 +48,49 @@ public final class BotGuard extends JavaPlugin implements Listener {
         if (sec != null) for (String k : sec.getKeys(false)) pin.put(k.toLowerCase(Locale.ROOT), sec.getStringList(k));
         pinned = pin;
         getLogger().info("IP-pinned names: " + pinned);
+        java.util.List<Integer> sb = getConfig().getIntegerList("stores.box");
+        if (sb.size() == 4 && getConfig().getString("stores.team") != null) {
+            storesTeam = getConfig().getString("stores.team");
+            storesBox = new int[]{Math.min(sb.get(0), sb.get(2)), Math.min(sb.get(1), sb.get(3)), Math.max(sb.get(0), sb.get(2)), Math.max(sb.get(1), sb.get(3))};
+            getLogger().info("stores closed to team '" + storesTeam + "' inside x " + storesBox[0] + ".." + storesBox[2] + " / z " + storesBox[1] + ".." + storesBox[3]);
+        }
         getServer().getPluginManager().registerEvents(this, this);
         getLogger().info("protecting " + names.size() + " names (roster " + roster + "); they may only log in from loopback");
+    }
+
+    /** THE ARMY'S STORES ARE CLOSED TO GUESTS (owner 09-20: the guest team's externally driven AI bots took items out of the army's chests; first answer was a datapack
+     *  rule that killed them on touch, the owner asked "空けられないようにするとか出来る？"): a player of scoreboard team `stores.team` cannot USE or BREAK a container, furnace
+     *  or work table inside `stores.box` [x1,z1,x2,z2]. Nobody else is touched: the army's own bots are in other teams, humans are spectators. No config = off. */
+    private String storesTeam = null;
+    private int[] storesBox = null;
+    static final java.util.regex.Pattern STORES = java.util.regex.Pattern.compile("CHEST|TRAPPED_CHEST|BARREL|FURNACE|BLAST_FURNACE|SMOKER|HOPPER|DROPPER|DISPENSER|BREWING_STAND|CRAFTING_TABLE|ENCHANTING_TABLE|.*ANVIL|.*SHULKER_BOX|CHISELED_BOOKSHELF|LECTERN");
+
+    static boolean isStore(String material, int x, int z, int[] box) {
+        return box != null && x >= box[0] && x <= box[2] && z >= box[1] && z <= box[3] && STORES.matcher(material).matches();
+    }
+
+    private boolean guest(org.bukkit.entity.Player p) {
+        if (storesTeam == null) return false;
+        org.bukkit.scoreboard.Team t = getServer().getScoreboardManager().getMainScoreboard().getEntryTeam(p.getName());
+        return t != null && t.getName().equals(storesTeam);
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onUse(org.bukkit.event.player.PlayerInteractEvent e) {
+        if (e.getAction() != org.bukkit.event.block.Action.RIGHT_CLICK_BLOCK || e.getClickedBlock() == null) return;
+        org.bukkit.block.Block b = e.getClickedBlock();
+        if (!isStore(b.getType().name(), b.getX(), b.getZ(), storesBox) || !guest(e.getPlayer())) return;
+        e.setUseInteractedBlock(org.bukkit.event.Event.Result.DENY);
+        e.setCancelled(true);
+        e.getPlayer().sendActionBar(Component.text("the army's stores are closed to guests"));
+    }
+
+    @EventHandler(priority = EventPriority.LOWEST)
+    public void onBreak(org.bukkit.event.block.BlockBreakEvent e) {
+        org.bukkit.block.Block b = e.getBlock();
+        if (!isStore(b.getType().name(), b.getX(), b.getZ(), storesBox) || !guest(e.getPlayer())) return;
+        e.setCancelled(true);
+        e.getPlayer().sendActionBar(Component.text("the army's stores are closed to guests"));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST)

@@ -36,8 +36,13 @@ function hostileNear (bot, r) {
 
 // ---------------------------------------------------------------- 1. eat
 // PLAYBOOK §3 eat rule. Returns number of items eaten.
+// ONE MEAL AT A TIME (09-20 11:3xZ: `Consuming cancelled due to calling bot.consume() again` 75/h - the worker's between-slice meal and army.js mealReflex ate at once)
 async function eat (bot, opts = {}) {
-  if (!bot.entity || bot.food == null) return 0
+  if (!bot.entity || bot.food == null || bot.__feedBusy) return 0
+  bot.__feedBusy = true
+  try { return await eat1(bot, opts) } finally { bot.__feedBusy = false }
+}
+async function eat1 (bot, opts = {}) {
   let eaten = 0
   for (let n = 0; n < 4; n++) {
     const food = bot.food
