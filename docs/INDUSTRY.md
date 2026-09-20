@@ -32,8 +32,15 @@ Later the smithing table made a toolsmith. Nothing that already stood in the vil
 | emeralds earned per BOT-HOUR | 286 | **729** (`trade_done.emPerBotHour`, off the visit clock) |
 | wheat sold in one visit | 120-192 | 377-480 |
 | minutes per round trip | ~10.4 | 5.6-6.3 |
-| iron bought | 6 axes/trip | **74 iron axes + 219 emeralds banked in one hour** = 222 iron-equivalent/h from 2 bots |
-The mine gives 150-300 iron/h with 18-20 miners = 8-17 iron per bot-hour. What changed:
+| wheat sold per visit / villagers served | 120-192 / 3 | **925 / 6** |
+**A BOUGHT TOOL IS NOT IRON** (coordinator 09-20, and the earlier "222 iron-equivalent/h" here was wrong): smelting an iron tool
+yields ONE nugget, so an axe is worth ingots only while the army is short of axes — and it held 38 for 50 bots. Buying is now
+strictly `settings.targets` minus what stock.js counts, per KIND: `iron_axe 38/8` buys nothing, `iron_chestplate 19/30` buys
+eleven. `trade_done.ironSaved` reports the ingots we did not have to forge, counted only for kinds we were short of. What the
+army really lacks is ARMOUR (helmet 5, chestplate 8, leggings 7, boots 4 ingots), shields, buckets and an anvil (31).
+**Emeralds are hoarded** for the two things only trade can give: the ARMORER's iron armour and the LIBRARIAN's books. Emerald
+stock is the measure until those two villagers exist. The purse is 448 so one visit can buy an armorer's whole stock (x50: 105
+pieces at 4-9 emeralds is ~700, which one bot now earns in about an hour). What changed:
 - **Several passes** over the villagers until a pass trades nothing: one pass served 3 of 9 (they walk off, stand on a roof, sleep).
 - **Cargo from measurement:** every visit records `settings.industry.absorb` = Σ(remaining uses × price) per item — wheat 624,
   flint 600, coal 480, carrot 336, leather 288, beetroot 240. The next load carries that much. A fresh measurement that does not
@@ -71,7 +78,12 @@ do villagers claim beds/stations on a pad 40 blocks out? Until then, trading is 
 ## Next, ranked by what it unblocks
 1. Babies → a shepherd (10 464 wool ≈ 580 em), a librarian (books), an armorer (IRON ARMOUR). Everything else waits on population.
 2. Level the smiths with coal → journeyman iron tools, master enchanted diamond gear.
-3. A site chest + road at the village: 5 of every 6 trip-minutes are still walking.
+3. **Site chest at the village: DONE** (`village_trade.params.siteChest`, chest at -744,70,31 + a second at -744,70,30). It is a
+   work-site chest through `A.stash`/`A.unstash`, so it never enters the depot's chest index and no bank/withdraw walks to it: a
+   trip tops up from it on arrival and leaves whatever did not sell there instead of carrying it 1 250 blocks. **The road line
+   (measured, the corridor the traders actually walk, not a drawn line):** -371,-490 → -415,-421 → -439,-378 → -484,-318 →
+   -514,-242 → -573,-180 → -596,-139 → -636,-85 → -675,-27 → -714,27. 624 blocks, 0 `no_route` in ~20 trips; look at it from
+   above before anyone paves it.
 4. **Villager breeder + trading hall at the base — BRIEF, not built.** 16x16 pad inside the wall, 8 beds, one station per
    profession; all glut except 7 iron. The unsolved part is TRANSPORT of 2 villagers over 624 blocks: `bot.mount()` and
    `bot.moveVehicle()` do exist in mineflayer 4.39 (`lib/plugins/entities.js`) but nothing here has driven a boat, a villager must

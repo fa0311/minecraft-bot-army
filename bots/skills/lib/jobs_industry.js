@@ -26,6 +26,9 @@
 //   sell:[{item,n}]  what to carry out (default: SELL below, capped by the depot reserve so the army never sells its own supply)
 //   buy:[{re,want}]  what to bring back, in priority order (default: BUY below — iron armour first)
 //   maxPrice:20    never pay more than this many emeralds for one item (an enchanted book can ask 64)
+//   siteChest:[x,y,z]  a WORK-SITE chest at the village (A.stash/A.unstash, so it never enters the depot's chest index):
+//                  topped up from on arrival, and whatever did not sell is left in it instead of walking 1 250 blocks
+//   purse:448      emeralds carried out as working capital — big enough to buy an armorer's whole armour stock in one visit
 //   farmChest:[x,y,z]  the iron farm's collection chest; emptied on every visit (see the verb `collect_farm`)
 // VERBS (usable in any `steps` plan): collect_farm {at:[x,y,z]} — empty the farm chest and MEASURE the yield per hour
 //   · anvil {item:'diamond_pickaxe', with:'enchanted_book', at:[x,y,z]} — combine them on an anvil (31 iron) and read the
@@ -78,13 +81,20 @@ module.exports = ctx => {
     { item: 'leather', reserve: 64, n: 96 }, // leatherworker 6 -> 1
     { item: 'rotten_flesh', reserve: 0, n: 256 } // cleric 32 -> 1
   ]
-  // priority order: what unblocks the army first. `want` = pieces per trip.
+  // WHAT TO BUY, in priority order. `max` = the most of that kind one visit may take; the AMOUNT is always the army's real
+  // deficit (`settings.targets` minus what stock.js counts), never a fixed number.
+  // A BOUGHT TOOL IS NOT IRON (coordinator 09-20): smelting an iron tool gives ONE nugget, so an axe is worth ingots only while
+  // the army is short of axes — and it holds 53 for 50 bots. The iron the army actually lacks is ARMOUR, shields, buckets and an
+  // anvil, so buying stops at the target of each kind and the emeralds are HOARDED for the two things only trade can give:
+  // the armorer's iron armour and the librarian's books.
+  const IRON_COST = { iron_helmet: 5, iron_chestplate: 8, iron_leggings: 7, iron_boots: 4, iron_sword: 2, iron_pickaxe: 3, iron_axe: 3, iron_shovel: 1, iron_hoe: 2, shield: 1, bucket: 3, iron_ingot: 1 }
   const BUY = [
-    { re: /^iron_(helmet|chestplate|leggings|boots)$/, want: 12 },
-    { re: /^iron_(pickaxe|axe|shovel|sword)$/, want: 6 },
-    { re: /^(chainmail_(helmet|chestplate|leggings|boots))$/, want: 4 },
-    { re: /^enchanted_book$/, want: 2 },
-    { re: /^arrow$/, want: 128 }
+    { re: /^iron_(helmet|chestplate|leggings|boots)$/, max: 64, maxPrice: 12 }, // x50: one armorer visit should kit MANY bots
+    { re: /^enchanted_book$/, max: 4, maxPrice: 64 }, // Fortune/Mending/Unbreaking: the only road round our XP wall
+    { re: /^(chainmail_(helmet|chestplate|leggings|boots))$/, max: 16, maxPrice: 12 },
+    { re: /^iron_(pickaxe|axe|shovel|sword)$/, max: 8, maxPrice: 6 },
+    { re: /^(shield|bucket)$/, max: 8, maxPrice: 6 },
+    { re: /^arrow$/, max: 128, maxPrice: 2 }
   ]
 
   // ---------------------------------------------------------------- reading the village back
@@ -291,7 +301,7 @@ module.exports = ctx => {
         for (let i = 0; i < offers.length; i++) {
           const o = offersNow()[i]
           if (!o || !o.left || o.in1 !== 'emerald' || o.in2 || !b.re.test(o.out)) continue
-          if (o.price > maxPrice) continue
+          if (o.price > (b.maxPrice == null ? maxPrice : b.maxPrice)) continue
           const canPay = Math.floor(inWin(win, 'emerald') / o.price)
           const n = Math.min(o.left, canPay, Math.ceil(b.want / o.outN))
           if (n <= 0) continue
@@ -362,20 +372,28 @@ module.exports = ctx => {
     return out.slice(0, 6)
   }
 
-  // COME HOME FULL. What the army lacks is not a constant: it is `settings.targets` minus what is on the shelf. The static BUY
-  // list is the PRIORITY order (iron armour before arrows); the amount per trip is the real deficit, capped so one trip cannot
-  // spend the whole purse on arrows. Anything the village offers that we are short of is worth more than the walk home empty.
-  function buyList (P) {
-    if (Array.isArray(P.buy) && P.buy.length) return P.buy.map(b => ({ re: new RegExp(b.re), want: b.want || 1 }))
+  // COME HOME WITH WHAT THE ARMY IS SHORT OF — counted in PIECES of that kind, never in "iron-equivalents". `settings.targets`
+  // holds how many of each kind we want on the shelf (an operator sets them; `armyctl.js targets <key> <n>`), stock.js counts
+  // chests + what the bots carry. A kind at or over its target is not bought at all, however cheap it is on offer.
+  function armyShort () {
     let have = {}
-    try { have = A.stockMap() || {} } catch (e_) { swallow('jobs_industry:stockMap', e_) }
-    const targets = A.settings().targets || {}
-    return BUY.map(b => {
+    try { have = require('../../army/stock.js').stock() || {} } catch (e_) { swallow('jobs_industry:stock', e_); try { have = A.stockMap() || {} } catch (e2) { swallow('jobs_industry:stockMap', e2) } }
+    return { have, targets: A.settings().targets || {} }
+  }
+  function buyList (P) {
+    if (Array.isArray(P.buy) && P.buy.length) return P.buy.map(b => ({ re: new RegExp(b.re), want: b.want || 1, maxPrice: b.maxPrice }))
+    const { have, targets } = armyShort()
+    const out = []
+    for (const b of BUY) {
       let deficit = 0
       for (const [k, t] of Object.entries(targets)) if (b.re.test(k)) deficit += Math.max(0, t - (have[k] || 0))
-      return { re: b.re, want: Math.max(b.want, Math.min(b.max || b.want * 4, deficit)) }
-    })
+      if (deficit <= 0) continue // AT TARGET: do not buy it, hoard the emeralds instead
+      out.push({ re: b.re, want: Math.min(b.max || deficit, deficit), maxPrice: b.maxPrice })
+    }
+    return out
   }
+  // ingots the army did NOT have to forge, counted only for kinds it was short of
+  const ironSaved = bought => Object.entries(bought).reduce((n, [k, q]) => n + (IRON_COST[k] || 0) * q, 0)
 
   async function loadCargo (bot, job, api) {
     const P = job.params || {}
@@ -398,7 +416,9 @@ module.exports = ctx => {
     }
     // EMERALDS ARE WORKING CAPITAL, not loot: whatever a previous trip banked goes back out, so a visit can buy even when this
     // village has little left to buy from us that day.
-    const purse = Math.min(64, A.stockOf('emerald'))
+    // A PURSE BIG ENOUGH FOR THE ARMORER. 105 armour pieces at 4-9 emeralds is ~700 emeralds, and one bot now earns that in an
+    // hour: a visit that finds iron armour on offer must be able to buy every piece until the trade reads `tradeDisabled`.
+    const purse = Math.min(P.purse || 448, A.stockOf('emerald'))
     if (purse > 0) { const n = await A.withdraw(bot, 'emerald', purse, { stop: api.stop }); if (n > 0) got.emerald = n }
     // FOOD FOR 1 250 BLOCKS. A trader SPRINTS both ways and eats all the way (measured 16:32Z: Tamaki reached the village on
     // hp 6 / food 0 carrying 51 emeralds — one mob and the whole trip is on the ground). A full trip needs about a stack.
@@ -431,6 +451,13 @@ module.exports = ctx => {
       task(bot, 'trade: walking to the village (' + at.join(',') + ')')
       if (!await A.travel(bot, v(at), { range: 10, ms: (P.legS || 300) * 1000, stop: api.stop })) { await nibble(bot); return 'trade: still on the road to the village' }
       await nibble(bot)
+      // THE SITE CHEST (coordinator 09-20, accepted): five of every six trip-minutes are walking, so the cargo should already be
+      // HERE. It is a work-site chest read through A.stash/A.unstash (`siteInfo`, not `record`), so the depot's chest index never
+      // counts it as base stock and no bank/withdraw ever walks 624 blocks to it.
+      if (Array.isArray(P.siteChest) && U.freeSlots(bot) > 6) {
+        const got = await A.unstash(bot, v(P.siteChest), { stop: api.stop }).catch(e_ => { swallow('jobs_industry:siteTake', e_); return null })
+        if (got && Object.keys(got).length) A.result(bot, { ev: 'trade_site_take', job: job.id, at: P.siteChest, items: got })
+      }
       st.phase = 'trade'
     }
     if (api.stop()) return 'trade: at the village, trading next slice'
@@ -468,10 +495,18 @@ module.exports = ctx => {
       st.sold = sold; st.bought = bought
       if (Object.keys(absorb).length) industryEdit({ absorb, absorbT: Date.now() })
       const mins = st.t0 ? (Date.now() - st.t0) / 60000 : 0
-      if (n) A.result(bot, { ev: 'trade_done', job: job.id, villagers: n, sold, bought, earned: gained, purse: A.count(bot, 'emerald'), tripMin: Math.round(mins * 10) / 10, emPerBotHour: mins > 1 ? Math.round(gained / mins * 60) : null, absorb })
+      if (n) A.result(bot, { ev: 'trade_done', job: job.id, villagers: n, sold, bought, ironSaved: ironSaved(bought), earned: gained, purse: A.count(bot, 'emerald'), tripMin: Math.round(mins * 10) / 10, emPerBotHour: mins > 1 ? Math.round(gained / mins * 60) : null, absorb })
       else A.result(bot, { ev: 'trade_none', job: job.id, at: xyz(bot.entity.position), villagers: villagersNear(bot, P.radius || 48).length, asleep, carrying: Object.keys(cargoNames(bot)).join(',') || 'nothing' })
       // everybody was in bed: hold the goods and try again rather than walking 624 blocks home with a full load
       if (!n && asleep) { await sleep(20000); return 'trade: ' + asleep + ' villagers asleep — waiting for morning' }
+      // WHAT DID NOT SELL STAYS HERE. It will sell at the next restock; carrying it 624 blocks home and 624 back is pure walking.
+      // Emeralds, the purchases and the kit go home; only cargo is left behind.
+      if (Array.isArray(P.siteChest) && cargoInPockets(bot)) {
+        const keep = { bread: 32, emerald: 512 }
+        for (const k of Object.keys(bought)) keep[k] = 512
+        const left = await A.stash(bot, v(P.siteChest), keep, { stop: api.stop }).catch(e_ => { swallow('jobs_industry:siteLeave', e_); return null })
+        if (left && Object.keys(left).length) A.result(bot, { ev: 'trade_site_leave', job: job.id, at: P.siteChest, items: left })
+      }
       st.phase = 'home'
     }
     if (api.stop()) return 'trade: traded, walking home next slice'

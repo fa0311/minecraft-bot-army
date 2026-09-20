@@ -517,7 +517,7 @@ async function kitUp (bot, opts = {}) {
 // HANG WATCHDOG (owner: "bots standing around the base"): a bot on a working job that has not moved 1.5 blocks for 3 minutes, while its
 // task is not one that legitimately stands still, is HUNG. It says so (event `hung` -> operators' digest + chat), hands the job back
 // (decline 5 min) and interrupts its handler so the dispatcher can give it something else. LLM-free, runs from heartbeat().
-const STILL_OK = /portal|sleep|fish|farm:waiting|plan idle|muster|guard|scan|cook|craft|smelt|step \d+\/\d+ (craft|smelt|wait|withdraw|bank)|canteen|iron:(branch|mine|vein|dig|stairs|craft|base)/
+const STILL_OK = /portal|sleep|fish|farm:waiting|plan idle|muster|guard|scan|cook|craft|smelt|librarian: waiting|trade:|enchant|cavity: filling|step \d+\/\d+ (craft|smelt|wait|withdraw|bank)|canteen|iron:(branch|mine|vein|dig|stairs|craft|base)/
 function watchdog (bot, extra) {
   const p = bot.entity.position; const w = bot.__armyWd = bot.__armyWd || { pos: p.clone(), t: Date.now() }
   if (p.distanceTo(w.pos) > 1.5) { w.pos = p.clone(); w.t = Date.now(); return }

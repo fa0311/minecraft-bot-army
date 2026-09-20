@@ -1080,7 +1080,16 @@
    "bow": 8,
    "arrow": 256,
    "diamond_chestplate": 10,
-   "diamond_leggings": 10
+   "diamond_leggings": 10,
+   "iron_helmet": 30,
+   "iron_chestplate": 30,
+   "iron_leggings": 30,
+   "iron_boots": 30,
+   "iron_axe": 8,
+   "iron_pickaxe": 12,
+   "iron_sword": 12,
+   "iron_shovel": 8,
+   "enchanted_book": 8
   },
   "base": {
    "x": -320,
@@ -1227,7 +1236,148 @@
    ]
   ],
   "legacyChests": {
-   "found": []
+   "found": [
+    [
+     -358,
+     69,
+     -521
+    ],
+    [
+     -358,
+     70,
+     -521
+    ],
+    [
+     -359,
+     69,
+     -521
+    ],
+    [
+     -359,
+     70,
+     -521
+    ],
+    [
+     -360,
+     69,
+     -521
+    ],
+    [
+     -360,
+     70,
+     -521
+    ],
+    [
+     -361,
+     69,
+     -521
+    ],
+    [
+     -361,
+     70,
+     -521
+    ],
+    [
+     -362,
+     69,
+     -521
+    ],
+    [
+     -362,
+     70,
+     -521
+    ],
+    [
+     -363,
+     69,
+     -521
+    ],
+    [
+     -363,
+     70,
+     -521
+    ],
+    [
+     -364,
+     69,
+     -521
+    ],
+    [
+     -364,
+     70,
+     -521
+    ],
+    [
+     -365,
+     69,
+     -521
+    ],
+    [
+     -365,
+     70,
+     -521
+    ],
+    [
+     -366,
+     69,
+     -521
+    ],
+    [
+     -366,
+     70,
+     -521
+    ],
+    [
+     -367,
+     69,
+     -521
+    ],
+    [
+     -367,
+     70,
+     -521
+    ],
+    [
+     -368,
+     69,
+     -521
+    ],
+    [
+     -368,
+     70,
+     -521
+    ],
+    [
+     -369,
+     69,
+     -521
+    ],
+    [
+     -369,
+     70,
+     -521
+    ],
+    [
+     -370,
+     69,
+     -521
+    ],
+    [
+     -370,
+     70,
+     -521
+    ],
+    [
+     -371,
+     69,
+     -521
+    ],
+    [
+     -371,
+     70,
+     -521
+    ]
+   ]
   },
   "dump": {
    "at": [
@@ -1367,7 +1517,7 @@
    ],
    "shellY": 98,
    "returnJob": "nether_return",
-   "deaths": 1,
+   "deaths": 2,
    "deathsResetAt": 1789910779294,
    "deathsResetWhy": "owner 13:2xZ: death is an accepted cost of exploring the Nether; the brake is 6 in 30 min",
    "landing": [
@@ -1380,8 +1530,8 @@
    "landingSafe": false,
    "landingAt": 1789918122175,
    "back": 1789923122590,
-   "lastDeath": 1789922833587,
-   "lastDeathBy": "Sakura",
+   "lastDeath": 1789923209104,
+   "lastDeathBy": "Aoi",
    "roads": {
     "x+": {
      "from": [
@@ -1408,7 +1558,8 @@
    "outAt": 1789915921402,
    "outBy": "Rin",
    "deathLog": [
-    1789922833587
+    1789922833587,
+    1789923209104
    ],
    "sightings": [],
    "fortress": null,
@@ -1479,73 +1630,73 @@
     73,
     27
    ],
-   "surveyed": 1789923193856,
+   "surveyed": 1789923484625,
    "villagers": 9,
    "professions": {
-    "farmer": 2,
-    "unknown": 1,
     "leatherworker": 4,
+    "farmer": 2,
+    "toolsmith": 1,
     "weaponsmith": 1,
-    "toolsmith": 1
+    "unknown": 1
    },
    "beds": 10,
    "stations": {
     "composter": 2,
-    "blast_furnace": 2,
-    "grindstone": 1,
-    "loom": 1,
-    "barrel": 1,
-    "lectern": 1,
     "smithing_table": 1,
-    "smoker": 1
+    "grindstone": 1,
+    "blast_furnace": 2,
+    "loom": 1,
+    "smoker": 1,
+    "lectern": 1,
+    "barrel": 1
    },
    "golems": 2,
    "bounds": [
     -766,
-    11,
-    -710,
+    10,
+    -703,
     57
    ],
    "nearest": [
     [
-     -734,
-     86,
-     39
+     -724,
+     68,
+     13
     ],
     [
-     -736,
-     85,
-     58
-    ],
-    [
-     -738,
+     -729,
      71,
-     39
+     32
     ],
     [
-     -741,
+     -715,
      72,
-     39
+     36
     ],
     [
-     -740,
-     71,
-     39
-    ],
-    [
-     -742,
+     -712,
      72,
-     39
+     35
     ],
     [
-     -741,
-     69,
-     31
+     -729,
+     72,
+     33
     ],
     [
-     -740,
-     70,
-     29
+     -714,
+     72,
+     36
+    ],
+    [
+     -713,
+     72,
+     36
+    ],
+    [
+     -730,
+     73,
+     33
     ]
    ],
    "post": {
@@ -1594,17 +1745,17 @@
     "t": 1789920643887
    },
    "absorb": {
-    "carrot": 1056,
-    "wheat": 800,
-    "pumpkin": 288,
-    "melon": 192,
-    "beetroot": 240,
+    "carrot": 1008,
+    "wheat": 1457,
+    "pumpkin": 324,
+    "melon": 204,
     "coal": 720,
     "iron_ingot": 96,
     "flint": 888,
-    "leather": 288
+    "leather": 288,
+    "beetroot": 480
    },
-   "absorbT": 1789922800385
+   "absorbT": 1789923334538
   },
   "enchantTable": [
    -344,
@@ -1811,7 +1962,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 14,
+   "bots": 1,
    "site": [
     -367,
     69,
@@ -1847,7 +1998,7 @@
      ]
     ]
    },
-   "rev": 71,
+   "rev": 72,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789917857836
   },
@@ -1988,12 +2139,12 @@
       "z": -500,
       "facing": "north"
      },
-     "level": 48
+     "level": 16
     }
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
-   "bots": 12,
-   "rev": 53,
+   "bots": 20,
+   "rev": 55,
    "restUntil": 1789922076785
   },
   {
@@ -2269,7 +2420,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789923173566
+   "restUntil": 1789923454620
   },
   {
    "id": "fill_ring_field2",
@@ -2878,7 +3029,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 1,
    "site": [
     -311,
     69,
@@ -3109,7 +3260,7 @@
     },
     "order": "near"
    },
-   "rev": 54,
+   "rev": 55,
    "desc": "MEASURED 16:3xZ by probe: 44 columns (444 cells) still open to the sky = this job (narrow deep shafts: step off / water drop in, pillar out = the column is filled); 3172 air cells lie UNDER the crust below grade = NOT reachable from above, they belong to the cavity job (owner algorithm: shaft down, fill riding up). `left` counts both - do not judge this job by `left`, and do not raise the crew over the number of open shafts",
    "note": "top model 15:1xZ: 655 OPEN cells (left 3216 minus waiting 2561) - do not lower; ladderWay (fill_wayin) needs builders standing on the RIM to hang the way in",
    "restUntil": 1789906650052,
@@ -5100,9 +5251,16 @@
     ],
     "passes": 3,
     "cargoSlots": 22,
-    "food": 32
+    "food": 32,
+    "purse": 448,
+    "legS": 300,
+    "siteChest": [
+     -744,
+     70,
+     31
+    ]
    },
-   "rev": 7
+   "rev": 8
   },
   {
    "id": "nether_landing_3",
@@ -5552,12 +5710,9 @@
   {
    "id": "village_post",
    "type": "trade",
-   "priority": 97,
-   "status": "paused",
+   "priority": 94,
+   "status": "active",
    "when": "any",
-   "names": [
-    "Tamaki"
-   ],
    "front": "industry",
    "site": [
     -742,
@@ -5569,6 +5724,22 @@
    "params": {
     "work": "post",
     "cells": [
+     {
+      "block": "chest",
+      "at": [
+       -744,
+       70,
+       31
+      ]
+     },
+     {
+      "block": "chest",
+      "at": [
+       -744,
+       70,
+       30
+      ]
+     },
      {
       "block": "blast_furnace",
       "at": [
@@ -5625,17 +5796,19 @@
        28
       ]
      }
-    ]
+    ],
+    "legS": 300
    },
-   "rev": 2,
-   "note": "auto-paused: every workstation stands; the survey job now watches which professions the villagers take"
+   "rev": 3,
+   "note": "auto-paused: every workstation stands; the survey job now watches which professions the villagers take",
+   "bots": 1
   },
   {
    "id": "nether_pair",
    "type": "portal",
    "priority": 97,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 1,
    "shiftMin": 20,
@@ -5715,292 +5888,6 @@
    }
   },
   {
-   "id": "bake_bulk",
-   "type": "steps",
-   "priority": 96,
-   "status": "paused",
-   "when": "any",
-   "bots": 4,
-   "requires": {
-    "minHp": 6
-   },
-   "plan": "no zone: FOOD - 13 000 wheat in the depot, bread short (mine_not_ready missing food 16:3xZ). craft.js makes 21 bread per call (one wheat stack per window - filed), so each round = 9 craft calls of 21; 4 rounds x 189 per baker",
-   "params": {
-    "steps": [
-     {
-      "do": "withdraw",
-      "item": "wheat",
-      "n": 567,
-      "atLeast": 63
-     },
-     {
-      "do": "goto",
-      "to": [
-       -345,
-       69,
-       -523
-      ],
-      "range": 3
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "bank",
-      "keep": {
-       "bread": 8,
-       "torch": 16
-      }
-     },
-     {
-      "do": "withdraw",
-      "item": "wheat",
-      "n": 567,
-      "atLeast": 63
-     },
-     {
-      "do": "goto",
-      "to": [
-       -345,
-       69,
-       -523
-      ],
-      "range": 3
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "bank",
-      "keep": {
-       "bread": 8,
-       "torch": 16
-      }
-     },
-     {
-      "do": "withdraw",
-      "item": "wheat",
-      "n": 567,
-      "atLeast": 63
-     },
-     {
-      "do": "goto",
-      "to": [
-       -345,
-       69,
-       -523
-      ],
-      "range": 3
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "bank",
-      "keep": {
-       "bread": 8,
-       "torch": 16
-      }
-     },
-     {
-      "do": "withdraw",
-      "item": "wheat",
-      "n": 567,
-      "atLeast": 63
-     },
-     {
-      "do": "goto",
-      "to": [
-       -345,
-       69,
-       -523
-      ],
-      "range": 3
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "bank",
-      "keep": {
-       "bread": 8,
-       "torch": 16
-      }
-     }
-    ]
-   },
-   "rev": 6,
-   "note": "auto-paused: plan failed"
-  },
-  {
    "id": "void_fix_base_infill_minehead_mound",
    "type": "build",
    "priority": 70,
@@ -6047,39 +5934,6 @@
    },
    "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) - fill_ravine_s (fill_void, active) has the SAME cell in its blueprint at -325,68,-486",
    "rev": 1
-  },
-  {
-   "id": "test_bucket_drop",
-   "type": "steps",
-   "priority": 99,
-   "status": "active",
-   "when": "any",
-   "bots": 1,
-   "names": [
-    "Yuzu"
-   ],
-   "requires": {
-    "minHp": 18
-   },
-   "plan": "no zone: TEST ordered by the owner - is a water-bucket landing reliable? One bot fetches a bucket, fills it at the pond -408,62,-455, then stands at the ravine rim; the top model drives the drops by probe and measures hp lost",
-   "params": {
-    "steps": [
-     {
-      "do": "goto",
-      "to": [
-       -301,
-       69,
-       -479
-      ],
-      "range": 0
-     },
-     {
-      "do": "wait",
-      "s": 1500
-     }
-    ]
-   },
-   "rev": 10
   },
   {
    "id": "enchant_room",
@@ -6565,7 +6419,7 @@
    "front": "mine",
    "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 1,
    "site": [
     -327,
     48,
@@ -6592,7 +6446,9 @@
     "minY": 24,
     "radius": 150,
     "bankAt": 48
-   }
+   },
+   "restUntil": 1789923943046,
+   "rev": 1
   }
  ]
 }
