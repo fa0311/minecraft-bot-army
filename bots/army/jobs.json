@@ -1243,36 +1243,6 @@
   "legacyChests": {
    "found": [
     [
-     -362,
-     70,
-     -521
-    ],
-    [
-     -363,
-     70,
-     -521
-    ],
-    [
-     -364,
-     69,
-     -521
-    ],
-    [
-     -364,
-     70,
-     -521
-    ],
-    [
-     -365,
-     69,
-     -521
-    ],
-    [
-     -365,
-     70,
-     -521
-    ],
-    [
      -366,
      69,
      -521
@@ -1360,13 +1330,13 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Hotaru",
+   "by": "Kotori",
    "portal": [
     -44,
     98,
     -80
    ],
-   "through": 1789925441402,
+   "through": 1789927287093,
    "scoutRev": 2,
    "hub": {
     "room": [
@@ -1478,8 +1448,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789925442746,
-   "back": 1789925455773,
+   "landingAt": 1789927287242,
+   "back": 1789927299742,
    "lastDeath": 1789924669079,
    "lastDeathBy": "Fuuka",
    "roads": {
@@ -1701,18 +1671,17 @@
     "t": 1789924913245
    },
    "absorb": {
-    "coal": 720,
-    "iron_ingot": 144,
-    "flint": 888,
-    "diamond": 24,
+    "coal": 464,
+    "iron_ingot": 84,
+    "flint": 588,
+    "diamond": 12,
     "leather": 288,
-    "carrot": 688,
-    "wheat": 320,
-    "pumpkin": 204,
-    "melon": 132,
-    "beetroot": 240
+    "carrot": 336,
+    "wheat": 304,
+    "pumpkin": 60,
+    "melon": 36
    },
-   "absorbT": 1789924576384
+   "absorbT": 1789926374409
   },
   "enchantTable": [
    -344,
@@ -2305,9 +2274,9 @@
     "radius": 150,
     "bankAt": 32
    },
-   "rev": 9,
-   "bots": 2,
-   "restUntil": 1789925076688
+   "rev": 10,
+   "bots": 1,
+   "restUntil": 1789927063102
   },
   {
    "id": "sleeper",
@@ -2394,7 +2363,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789925524400
+   "restUntil": 1789927414304
   },
   {
    "id": "fill_ring_field2",
@@ -3003,7 +2972,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 1,
    "site": [
     -311,
     69,
@@ -3234,19 +3203,19 @@
     },
     "order": "near"
    },
-   "rev": 60,
+   "rev": 61,
    "desc": "MEASURED 16:3xZ by probe: 44 columns (444 cells) still open to the sky = this job (narrow deep shafts: step off / water drop in, pillar out = the column is filled); 3172 air cells lie UNDER the crust below grade = NOT reachable from above, they belong to the cavity job (owner algorithm: shaft down, fill riding up). `left` counts both - do not judge this job by `left`, and do not raise the crew over the number of open shafts",
    "note": "top model 15:1xZ: 655 OPEN cells (left 3216 minus waiting 2561) - do not lower; ladderWay (fill_wayin) needs builders standing on the RIM to hang the way in",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Aoi",
-    "t": 1789925419618,
+    "by": "Misaki",
+    "t": 1789927268618,
     "at": [
-     -301,
-     62,
-     -476
+     -325,
+     64,
+     -478
     ],
-    "drop": 7
+    "drop": 5
    }
   },
   {
@@ -4732,7 +4701,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 1,
    "site": [
     -327,
     68,
@@ -4768,7 +4737,7 @@
     },
     "order": "near"
    },
-   "restUntil": 1789925759861,
+   "restUntil": 1789927791482,
    "way": {
     "by": "Madoka",
     "t": 1789916716021,
@@ -4778,7 +4747,7 @@
      -504
     ]
    },
-   "rev": 9,
+   "rev": 10,
    "pri": 97
   },
   {
@@ -6368,40 +6337,8 @@
      }
     ]
    },
-   "rev": 1
-  },
-  {
-   "id": "village_book",
-   "type": "trade",
-   "priority": 95,
-   "status": "active",
-   "when": "any",
-   "bots": 1,
-   "front": "industry",
-   "site": [
-    -746,
-    70,
-    32
-   ],
-   "shiftMin": 45,
-   "plan": "zone: village outpost (docs/WORLD.md) - re-roll OUR OWN lectern at -746,70,32 until the librarian's first book is Fortune/Mending/Unbreaking/Efficiency, then buy it to lock it. Only our own block is broken and it goes straight back",
-   "params": {
-    "work": "librarian",
-    "lectern": [
-     -746,
-     70,
-     32
-    ],
-    "want": [
-     "fortune",
-     "mending",
-     "unbreaking",
-     "efficiency"
-    ],
-    "rerolls": 10,
-    "legS": 300
-   },
-   "rev": 1
+   "rev": 1,
+   "restUntil": 1789927288999
   },
   {
    "id": "mine_sweep",
@@ -6438,7 +6375,7 @@
     "radius": 150,
     "bankAt": 48
    },
-   "restUntil": 1789925686726,
+   "restUntil": 1789927193607,
    "rev": 1
   },
   {
@@ -6567,6 +6504,126 @@
     ]
    },
    "note": "auto-paused: plan failed"
+  },
+  {
+   "id": "base_pen_2_pad",
+   "type": "build",
+   "priority": 57,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 13,
+   "site": [
+    -389,
+    69,
+    -549
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone pen_2 x -403..-375 / z -556..-542 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. animal pen 27x13: fence ring, ONE gate onto the road beside it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -389,
+     68,
+     -549
+    ],
+    "args": {
+     "w": 29,
+     "d": 15
+    }
+   },
+   "rev": 3,
+   "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -402,66,-546",
+   "stuckBy": {
+    "key": "rev3",
+    "bots": [
+     "Fuuka",
+     "Aika"
+    ]
+   },
+   "restUntil": 1789927675343
+  },
+  {
+   "id": "base_core_pad",
+   "type": "build",
+   "priority": 88,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 13,
+   "site": [
+    -356,
+    69,
+    -508
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone core x -373..-339 / z -525..-491 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. core 32x32: THE craft table + furnace bank (north strip 32x10), depot rows of double chests by category (south 32x20; grow them with len/high + rev)",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -356,
+     68,
+     -508
+    ],
+    "args": {
+     "w": 35,
+     "d": 35
+    }
+   },
+   "rev": 4,
+   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -345,67,-515",
+   "stuckBy": {
+    "key": "rev4",
+    "bots": [
+     "Akari",
+     "Botan",
+     "Chika"
+    ]
+   },
+   "cap": {
+    "id": "cap_base_core_pad",
+    "cols": 1225,
+    "t": 1789926449257
+   }
+  },
+  {
+   "id": "cap_base_core_pad",
+   "type": "build",
+   "priority": 38,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 4,
+   "site": [
+    -356,
+    69,
+    -508
+   ],
+   "plan": "the finished level of base_core_pad is bare stone: cap the grade layer y68 of x -373..-339 / z -525..-491 with DIRT (grass spreads by itself). Only where bare stone, gravel or air stands - never paving, a field, a crop or another blueprint of ours - and only out of the dirt SURPLUS over targets.dirt 128",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -356,
+     68,
+     -508
+    ],
+    "args": {
+     "w": 35,
+     "d": 35,
+     "cap": true,
+     "fill": "dirt"
+    },
+    "needStock": {
+     "dirt": 128
+    },
+    "order": "near"
+   },
+   "note": "needs: dirt (4 cells wait; every cell whose material exists is done or in work)",
+   "restUntil": 1789927399419
   }
  ]
 }
