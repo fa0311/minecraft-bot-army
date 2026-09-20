@@ -1274,13 +1274,13 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Kokoro",
+   "by": "Yotsuba",
    "portal": [
     -44,
     98,
     -80
    ],
-   "through": 1789930871447,
+   "through": 1789932692565,
    "scoutRev": 2,
    "hub": {
     "room": [
@@ -1392,8 +1392,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789930871647,
-   "back": 1789930884596,
+   "landingAt": 1789932692768,
+   "back": 1789932704814,
    "lastDeath": 1789924669079,
    "lastDeathBy": "Fuuka",
    "roads": {
@@ -1615,18 +1615,20 @@
     "t": 1789924913245
    },
    "absorb": {
-    "coal": 480,
-    "iron_ingot": 96,
-    "flint": 600,
-    "diamond": 12,
-    "leather": 288,
+    "iron_ingot": 336,
+    "coal": 1200,
+    "white_wool": 288,
+    "black_wool": 288,
+    "flint": 1176,
+    "diamond": 36,
+    "leather": 192,
     "carrot": 704,
-    "wheat": 500,
+    "wheat": 640,
     "pumpkin": 216,
     "melon": 144,
     "beetroot": 240
    },
-   "absorbT": 1789929349524
+   "absorbT": 1789931726176
   },
   "enchantTable": [
    -344,
@@ -2033,7 +2035,7 @@
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 20,
    "rev": 59,
-   "restUntil": 1789922076785
+   "restUntil": 1789933276877
   },
   {
    "id": "base_dorm",
@@ -2221,7 +2223,7 @@
    },
    "rev": 10,
    "bots": 1,
-   "restUntil": 1789930634083
+   "restUntil": 1789933761548
   },
   {
    "id": "sleeper",
@@ -2308,7 +2310,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789930877116
+   "restUntil": 1789932781240
   },
   {
    "id": "fill_ring_field2",
@@ -3674,7 +3676,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789931177507
+   "restUntil": 1789933007771
   },
   {
    "id": "nether_landing_2",
@@ -6283,7 +6285,7 @@
     ]
    },
    "rev": 1,
-   "restUntil": 1789930951932
+   "restUntil": 1789932761974
   },
   {
    "id": "mine_sweep",
