@@ -781,7 +781,9 @@
     -35,
     -74
    ],
-   "shellY": 98
+   "shellY": 98,
+   "returnJob": "nether_return",
+   "deaths": 2
   }
  },
  "enlisted": [
@@ -1760,7 +1762,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789906656017
+   "restUntil": 1789906847839
   },
   {
    "id": "fill_ring_field2",
@@ -4746,7 +4748,14 @@
      ]
     }
    },
-   "restUntil": 1789906645060
+   "restUntil": 1789906645060,
+   "stuckBy": {
+    "key": "rev0",
+    "bots": [
+     "Himari",
+     "Chika"
+    ]
+   }
   },
   {
    "id": "void_fix_base_infill_n232_n400",
@@ -4874,7 +4883,14 @@
     }
    },
    "rev": 5,
-   "note": "needs: cobblestone, dirt (141 cells wait; every cell whose material exists is done or in work)"
+   "note": "needs: cobblestone (3 cells wait; every cell whose material exists is done or in work)",
+   "stuckBy": {
+    "key": "rev5",
+    "bots": [
+     "Kanade",
+     "Kokoro"
+    ]
+   }
   },
   {
    "id": "base_road_9",
@@ -4908,6 +4924,23 @@
    },
    "rev": 4,
    "note": "needs: cobblestone (97 cells wait; every cell whose material exists is done or in work)"
+  },
+  {
+   "id": "nether_return",
+   "type": "portal",
+   "priority": 40,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "dim": "the_nether",
+   "bots": 1,
+   "shiftMin": 20,
+   "plan": "zone portal (docs/WORLD.md): THE WAY HOME. The only job a bot that is in the Nether with nothing to do there may hold (settings.nether.returnJob; the dispatcher hands it out by the heartbeat's `dim`). It walks to settings.nether.portal, steps out of the gate and back in, and verifies the overworld (`portal_back`). In the overworld it frees its bot at once.",
+   "params": {
+    "return": true,
+    "crossS": 45
+   },
+   "rev": 1
   }
  ]
 }

@@ -3323,7 +3323,7 @@ async function build (bot, job, api, ctx) {
     if (paused && leftover) { A.result(bot, { ev: 'build_leftover', job: job.id, left: n, cells: cellsLeft }); A.result(bot, { ev: 'build_done', job: job.id, blueprint: P.blueprint, leftover: n }); putCap(); return muster(bot, job, api, ctx, 'build: complete') }
     if (paused) A.result(bot, { ev: 'build_stuck', job: job.id, left: n, cells: cellsLeft })
   }
-  if (n && !nMine) { A.askHelp(bot, 'build_stuck', n + ' cells of ' + job.id + ' left but I failed twice on each (first: ' + K(left.dig[0] || left.put[0]) + ')'); A.decline(bot, job, isFill ? 200000 : 600000, 'build: every remaining cell failed twice for me'); return 'build: stuck' }
+  if (n && !nMine) { A.askHelp(bot, 'build_stuck', n + ' cells of ' + job.id + ' left but I failed twice on each (first: ' + (left.dig[0] || left.put[0] ? K(left.dig[0] || left.put[0]) : 'none listed - only waiting cells') + ')'); A.decline(bot, job, isFill ? 200000 : 600000, 'build: every remaining cell failed twice for me'); return 'build: stuck' }
   // A FINISHED FILL IS GROUND, NOT RUBBLE (owner 11:2xZ "明らかに地形が悪い"; base-audit picture 11:20Z: the filled ravine is a bare grey slab and the cut hills in the
   // north are bare stone - a base is grass or paving, not rubble). A terrain job that is DONE puts ONE low-priority `cap_<id>` over its own footprint, the same way a
   // pad puts its `void_fix_`: blueprint `level` in CAP mode lays DIRT on the grade layer wherever bare stone, gravel or air stands (grass spreads by itself), and the

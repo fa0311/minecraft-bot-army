@@ -10,12 +10,15 @@
 //   go:true          ONE pinned bot (job.names length 1) crosses: 128 blocks of ANY stone + food + sword, walks in, waits for the
 //                    dimension change, looks, walks back. Bump `rev` to send another expedition (settings.nether.scoutRev
 //                    remembers which rev already went).
-//   shell:true       ALSO wall the far gate in (5x5x3 with a door gap) when `nether_look` calls the far side unsafe. OFF by default:
-//                    the first two scouts died building it on a ledge at y98 — send it only once `nether_look` shows solid footing.
+//   shell            wall the far gate in (5x5x3 with a door gap) when `nether_look` calls the far side unsafe; `false` switches it
+//                    off. Built STRICTLY without walking (arm's reach from where the gate put the bot) — see sealNear/shell.
+//   return:true      THE RETURN JOB (`dim:"the_nether"`, its id in `settings.nether.returnJob`): the one job a bot that is in the
+//                    Nether with nothing to do there may hold. No origin needed; a no-op in the overworld.
+//   maxDeaths:2      scouts that may die at this gate before the crossing job pauses itself (count on the board, `settings.nether.deaths`)
 //   cobble:128 (blocks of stone to carry, any sort) · crossS:90 (seconds to stand in the portal, both ways)
-// EVENTS (all verified): portal_frame_incomplete · flint_knapped · portal_lit · portal_light_failed · portal_through ·
-//   nether_look · nether_shell · portal_back · portal_scout_died · portal_scout_missing
-// BOARD: settings.nether = {gate:[x,y,z] overworld, lit, portal:[x,y,z] NETHER coords, hub:[x,y,z], through, back, scoutRev}
+// EVENTS (all verified): portal_frame_incomplete · flint_knapped · portal_lit · portal_light_failed · portal_through · nether_sealed ·
+//   nether_look · nether_shell · portal_back · nether_lost · portal_scout_died · portal_unsafe · portal_scout_missing
+// BOARD: settings.nether = {gate:[x,y,z] overworld, lit, portal:[x,y,z] NETHER coords, hub, through, back, scoutRev, returnJob, deaths}
 //
 // WHAT THIS FILE MUST NOT DO: no cheats (no /give, /tp, no creative), no new state file, no new daemon. A bot that dies over
 // there declines the job for 30 min, so one bad gate can never burn a bot in a loop.
@@ -200,6 +203,65 @@ module.exports = ctx => {
     return { placed, lava, outOfReach: far, gap: gap ? [gap[0], y0, gap[1]] : null, box: [cx - 2, cz - 2, cx + 2, cz + 2], y: y0 }
   }
 
+  // ---------------------------------------------------------------- ON ARRIVAL NOBODY WALKS
+  // Both deaths at this gate (11:59:14Z "tried to swim in lava", 12:02:24Z "fell from a high place") happened in a step that MOVED
+  // the builder, and `nether_look` had reported lava at the arrival both times. So the FIRST thing a scout does after the gate spits
+  // it out is close the lava/fire faces it can reach from exactly where it stands, and put a floor under its own feet — no travel,
+  // no scaffold, arm's length only. `sealed` is read back from the world.
+  async function sealNear (bot, api, budget) {
+    const me = bot.entity.position.floored(); const eye = () => bot.entity.position.offset(0, 1.62, 0)
+    const cells = []
+    for (let dx = -3; dx <= 3; dx++) for (let dy = -2; dy <= 3; dy++) for (let dz = -3; dz <= 3; dz++) cells.push(me.offset(dx, dy, dz))
+    cells.sort((a, b) => a.distanceTo(me) - b.distanceTo(me))
+    const foot = me.offset(0, -1, 0)
+    let sealed = 0; const t0 = Date.now()
+    for (const c of [foot].concat(cells)) {
+      if (api.stop() || sealed >= budget || Date.now() - t0 > 90000) break
+      const b = bot.blockAt(c); if (!b) continue
+      const isFoot = c.equals(foot)
+      if (!isFoot && !/^(lava|fire)$/.test(b.name)) continue
+      if (isFoot && b.boundingBox === 'block') continue
+      if (b.name === 'nether_portal' || b.name === 'obsidian') continue
+      if (eye().distanceTo(c.offset(0.5, 0.5, 0.5)) > 4.0) continue
+      const item = stoneItem(bot); if (!item) break
+      task(bot, 'portal: closing the lava at the far gate (' + sealed + ')')
+      const r = await A.placeHard(bot, c, item, { stop: api.stop, noRest: true, place: { noMove: true } }).catch(e => ({ ok: false, reason: String(e && e.message) }))
+      const nb = bot.blockAt(c)
+      if ((r && r.ok) || (nb && nb.boundingBox === 'block')) sealed++
+    }
+    return sealed
+  }
+
+  // ---------------------------------------------------------------- THE WAY HOME (shared by the crossing job and the return job)
+  // A bot that is in the Nether always has this one thing to do. The gate is whatever `nether_portal` block is in view; only if
+  // none is, it walks towards the one the board registered (`settings.nether.portal`) — that walk is the ONE walk allowed over
+  // there, and it is bounded, because standing still in the Nether is not a plan either.
+  async function comeHome (bot, job, api, ctx2, st, P) {
+    task(bot, 'portal: finding the way home')
+    for (let w = 0; w < 40 && !bot.world.getColumnAt(bot.entity.position); w++) await sleep(500)
+    let far = bot.findBlock({ matching: b => !!b && b.name === 'nether_portal', maxDistance: 48 })
+    if (!far) {
+      const reg = netherOf().portal
+      if (!Array.isArray(reg) || reg.length !== 3) { A.result(bot, { ev: 'nether_lost', job: job.id, pos: xyz(bot.entity.position), why: 'no gate in view and settings.nether.portal is not set' }); return 'in the Nether with no gate in view and none on the board' }
+      task(bot, 'portal: walking to the far gate ' + reg.join(','))
+      if (!await A.travel(bot, v(reg), { range: 2, ms: 240000, stop: api.stop, anyDepth: true })) {
+        if (!api.stop()) { A.result(bot, { ev: 'nether_lost', job: job.id, pos: xyz(bot.entity.position), to: reg, why: 'no route to the registered far gate' }); A.askHelp(bot, 'nether_lost', 'I am in the Nether at ' + xyz(bot.entity.position).join(',') + ' and cannot reach the gate at ' + reg.join(',')) }
+        return 'in the Nether at ' + xyz(bot.entity.position).join(',') + ': no route to the gate'
+      }
+      far = bot.findBlock({ matching: b => !!b && b.name === 'nether_portal', maxDistance: 16 })
+      if (!far) { A.result(bot, { ev: 'nether_lost', job: job.id, pos: xyz(bot.entity.position), to: reg, why: 'arrived at the registered gate and there is no nether_portal block there' }); return 'the registered far gate is gone' }
+    }
+    const cells = portalBody(bot, far.position, 10).map(p => [p.x, p.y, p.z])
+    const to = await stepThrough(bot, api, cells.length ? cells : [xyz(far.position)], Math.min(P.crossS || 45, 120), 'standing in the far gate')
+    if (to && !/nether/.test(to)) {
+      A.result(bot, { ev: 'portal_back', job: job.id, to, pos: xyz(bot.entity.position), from: xyz(far.position) })
+      netherEdit({ back: Date.now(), portal: xyz(far.position) })
+      st.home = true
+      return 'portal_back: ' + to
+    }
+    return 'still in the Nether at ' + xyz(bot.entity.position).join(',') + ' (' + (api.stop() ? 'slice over' : 'the gate did not take me') + ')'
+  }
+
   // ---------------------------------------------------------------- the far side (also the entry point when a new slice starts over there)
   async function netherSide (bot, job, api, ctx2, st, P) {
     task(bot, 'portal: the Nether — waiting for the world')
@@ -219,6 +281,12 @@ module.exports = ctx => {
       A.askHelp(bot, 'nether_lost', 'I am in the Nether at ' + xyz(me).join(',') + ' and see no portal within 32 blocks')
       return 'in the Nether at ' + xyz(me).join(',') + ' with no portal in sight'
     }
+    // SAFETY BEFORE EVERYTHING ELSE (top model 12:15Z): close what can burn us from where we stand, then look.
+    if (!st.sealed && stoneCarried(bot) > 0) {
+      st.sealed = true
+      const n = await sealNear(bot, api, 48)
+      if (n) A.result(bot, { ev: 'nether_sealed', job: job.id, at: xyz(bot.entity.position), blocks: n })
+    }
     // LOOK: what a player checks in the first three seconds
     if (!st.looked) {
       st.looked = true
@@ -229,32 +297,33 @@ module.exports = ctx => {
       st.unsafe = lava > 0 || mobs.length > 0 || drop > 2 || drop < 0
       A.result(bot, { ev: 'nether_look', job: job.id, at: xyz(far.position), lava, mobs: mobs.slice(0, 8), drop, hp: bot.health, unsafe: st.unsafe })
     }
-    // SHELL: only when it is needed, only with what we carried in, and only when the operator asked for it (`params.shell:true`).
-    // STAGE 1 IS THE ROUND TRIP, NOT THE HUB (09-20 12:0xZ): two scouts died shelling a gate that generated on a ledge at y98, so
-    // walling the far side in is a job for an expedition that already knows the terrain from `nether_look` — see docs/NETHER.md.
-    if (P.shell === true && st.unsafe && !st.shelled && stoneCarried(bot) >= 16) {
+    // SHELL: only when the look calls the far side unsafe, only with what we carried in, and (since 12:1xZ) STRICTLY WITHOUT WALKING —
+    // `params.shell:false` switches it off. Whatever it could not reach stays for an expedition that knows the terrain.
+    if (P.shell !== false && st.unsafe && !st.shelled && stoneCarried(bot) >= 16) {
       st.shelled = true
       const r = await shell(bot, job, api, body, Math.min(stoneCarried(bot), 160))
       A.result(bot, Object.assign({ ev: 'nether_shell', job: job.id }, r))
       if (r.placed) netherEdit({ hub: [r.box[0] + 2, r.y, r.box[1] + 2], shell: r.box, shellY: r.y })
     }
-    // HOME. Never stay: keep_inventory is OFF and a slice is 15 min.
-    if (api.stop()) return 'in the Nether at ' + xyz(me).join(',') + ' (slice over, going home next slice)'
-    task(bot, 'portal: walking home')
-    const back = portalBody(bot, far.position, 10).map(p => [p.x, p.y, p.z])
-    const to = await stepThrough(bot, api, back.length ? back : [xyz(far.position)], Math.min(P.crossS || 90, 120), 'standing in the far gate')
-    if (to && !/nether/.test(to)) {
-      A.result(bot, { ev: 'portal_back', job: job.id, to, pos: xyz(bot.entity.position), ms: Date.now() - (st.through || Date.now()) })
-      netherEdit({ back: Date.now() })
-      st.phase = 'done'; st.deathsAtGo = null
-      return 'portal_back: ' + to
-    }
-    return 'still in the Nether at ' + xyz(bot.entity.position) .join(',') + ' (' + (api.stop() ? 'slice over' : 'the gate did not take me') + ')'
+    // HOME. Never stay: keep_inventory is OFF, a slice is 15 min, and whatever the shell could not reach is the next trip's work.
+    if (api.stop()) return 'in the Nether at ' + xyz(me).join(',') + ' (slice over, the return job takes it from here)'
+    const r = await comeHome(bot, job, api, ctx2, st, P)
+    if (st.home) { st.phase = 'done'; st.deathsAtGo = null }
+    return r
   }
 
   // ================================================================ the job
   async function portal (bot, job, api, ctx2) {
     const P = job.params || {}
+    // THE RETURN JOB (`params.return:true`, `dim:"the_nether"`, id in settings.nether.returnJob): the only job a bot that is in the
+    // Nether with nothing to do there may hold (the dispatcher hands it out by `hb.dim`). It needs no gate geometry — the far gate
+    // is wherever the world put it. In the overworld it is a no-op that frees its bot at once: it must never hold anybody at base.
+    if (P.return === true) {
+      if (!isNether(bot)) { A.decline(bot, job, 15 * 60000, 'not in the Nether'); return muster(bot, job, api, ctx2, 'portal: the return job only carries bots that are in the Nether') }
+      const rk = job.id + ':' + (job.rev || 0)
+      const rs = bot.__armyPortalBack = (bot.__armyPortalBack && bot.__armyPortalBack.key === rk) ? bot.__armyPortalBack : { key: rk }
+      return await comeHome(bot, job, api, ctx2, rs, P)
+    }
     if (!Array.isArray(P.origin) || P.origin.length !== 3 || !P.origin.every(Number.isFinite)) return muster(bot, job, api, ctx2, 'portal: params.origin [x,y,z] is missing (it is the origin of the nether_portal BUILD job)')
     let G; try { G = geomOf(P) } catch (e) { return muster(bot, job, api, ctx2, 'portal: blueprint error ' + String(e && e.message).slice(0, 80)) }
     const key = job.id + ':' + (job.rev || 0)
@@ -263,8 +332,12 @@ module.exports = ctx => {
     // A BOT THAT DIED ON THE TRIP DOES NOT GO AGAIN (30 min): one bad gate must never burn a bot in a loop. Deaths are counted
     // from the moment the expedition started, so a creeper at base on another job never blocks the gate.
     if (st.deathsAtGo != null && (bot.__armyDeaths || 0) > st.deathsAtGo) {
-      A.result(bot, { ev: 'portal_scout_died', job: job.id, deaths: (bot.__armyDeaths || 0) - st.deathsAtGo, at: st.through ? 'the_nether' : 'the gate' })
-      st.deathsAtGo = null; st.phase = 'gate'; st.through = 0; st.looked = false; st.shelled = false
+      // TWO DEATHS AT ONE GATE AND NOBODY ELSE GOES (top model 12:15Z). The count lives on the board, not in this process, because
+      // the next scout is another bot in another shard; an operator who has made the far side safe clears settings.nether.deaths.
+      const n = (netherOf().deaths || 0) + 1
+      netherEdit({ deaths: n, lastDeath: Date.now(), lastDeathBy: bot.username })
+      A.result(bot, { ev: 'portal_scout_died', job: job.id, deaths: n, at: st.through ? 'the_nether' : 'the gate' })
+      st.deathsAtGo = null; st.phase = 'gate'; st.through = 0; st.looked = false; st.shelled = false; st.sealed = false
       A.decline(bot, job, 30 * 60000, 'died on the nether trip')
       return muster(bot, job, api, ctx2, 'portal: I died on the trip — this job is declined for 30 min')
     }
@@ -313,6 +386,14 @@ module.exports = ctx => {
       // the gate stands and burns and nobody has to watch it: free the bot (a job that holds a bot for nothing is a planning failure)
       if ((job.names || []).length <= 1 && !P.standing) A.boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (j && (j.rev || 0) === (job.rev || 0) && j.status === 'active') { j.status = 'paused'; j.note = 'auto-paused: the gate is lit' + (P.go === true ? ' and the round trip is done (bump rev to send another expedition)' : '') } })
       return muster(bot, job, api, ctx2, 'portal: the gate stands and burns (' + lit + '/' + G.inner.length + ' cells)')
+    }
+    // TWO DEATHS AT THIS GATE = NOBODY ELSE GOES (top model 12:15Z). The gate stays lit and the board keeps the count; an operator
+    // who has made the arrival safe (or moved the gate) clears `settings.nether.deaths` and re-activates this job.
+    const maxD = P.maxDeaths == null ? 2 : P.maxDeaths
+    if ((N.deaths || 0) >= maxD) {
+      A.result(bot, { ev: 'portal_unsafe', job: job.id, deaths: N.deaths, portal: N.portal || null, why: N.deaths + ' scouts died at this gate — no third goes through until the arrival is safe' })
+      A.boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (j && j.status === 'active') { j.status = 'paused'; j.note = 'auto-paused: ' + N.deaths + ' scouts died at the far gate ' + JSON.stringify(N.portal || null) + ' (lava at the arrival). Make it safe, clear settings.nether.deaths, then re-activate' } })
+      return muster(bot, job, api, ctx2, 'portal: the gate is lit; ' + N.deaths + ' scouts died on the far side, so nobody else crosses')
     }
     if ((job.names || []).length !== 1) {
       if (!st.saidScout) { st.saidScout = true; A.result(bot, { ev: 'portal_scout_missing', job: job.id, why: 'params.go needs exactly ONE pinned bot: set job.names:["<bot>"] (a squad would queue in the frame and the dispatcher could pull a bot while it is in the Nether)' }) }
