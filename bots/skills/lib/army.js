@@ -1283,7 +1283,7 @@ async function bank (bot, keep = {}, opts = {}) {
 // the start, the target or the line between them); only a bot that has held a surplus since its last job change, or for OVERDUE_MS, accepts a
 // detour (FAR). At most one visit per EVERY_MS and never underground.
 const MATERIAL_RE = /^(cobblestone|cobbled_deepslate|stone|deepslate|andesite|diorite|granite|tuff|dirt|coarse_dirt|gravel|sand|red_sand|sandstone|[a-z_]+_planks|[a-z_]+_log)$/
-const KEEPS_MATERIAL = /^(build|deck|tidy|light|steps|delegate|haul|scan)$/
+const KEEPS_MATERIAL = /^(build|deck|tidy|light|steps|delegate|haul|scan|portal)$/ // + `portal`: a bot going through the gate carries 128 stone on purpose (docs/NETHER.md safety)
 const OFF = { allow: 16, near: 24, far: 96, min: 32, every: 180000, overdue: 600000, recheck: 20000 }
 function surplusOf (bot) { const m = inv(bot); const out = {}; for (const k of Object.keys(m)) if (MATERIAL_RE.test(k) && m[k] > OFF.allow) out[k] = m[k] - OFF.allow; return out }
 function segDist (c, a, b) { // XZ distance of the chest from the line the bot is about to walk

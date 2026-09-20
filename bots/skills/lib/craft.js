@@ -166,6 +166,16 @@ async function craftOnTable (bot, name, tbl, times = 1) {
   const reg = bot.registry
   const w = await U.withTimeout(bot.openBlock(tbl), 8000, 'openTable')
   let made = 0
+  // A CLICK THAT IS NOT CONFIRMED IS NOT A FAILED CRAFT (measured 09-20 12:5xZ - this is what was behind `0/2 crafted` with full pockets:
+  // `craft:run stone_pickaxe | Event updateSlot:N did not fire within timeout`. mineflayer waits for the server to send the slot back and
+  // Paper does not always send one for a slot it considers unchanged.) The truth is the WINDOW, read after the click: swallow the missing
+  // confirmation, go on, and let the result COUNT decide whether the run worked.
+  const clk = async (slot, button, mode) => {
+    try { await bot.clickWindow(slot, button, mode) } catch (e_) {
+      if (!/updateSlot|did not fire|timeout/i.test(String(e_ && e_.message))) throw e_
+      swallow('craft:click not confirmed ' + name, e_); await U.sleep(120)
+    }
+  }
   try {
     for (let k = 0; k < times; k++) {
       if (U.cancelled(bot)) break
@@ -190,23 +200,25 @@ async function craftOnTable (bot, name, tbl, times = 1) {
           const src = w.items().find(i => i.type === +id && i.slot >= w.inventoryStart)
           if (!src) { short = (reg.items[id] || {}).name || id; break }
           const srcSlot = src.slot
-          await bot.clickWindow(srcSlot, 0, 0) // pick the stack up
-          while (todo.length && w.selectedItem) await bot.clickWindow(todo.shift(), 1, 0) // right click = put ONE down
-          if (w.selectedItem) await bot.clickWindow(srcSlot, 0, 0) // put the rest back where it came from
+          await clk(srcSlot, 0, 0) // pick the stack up
+          while (todo.length && w.selectedItem) await clk(todo.shift(), 1, 0) // right click = put ONE down
+          if (w.selectedItem) await clk(srcSlot, 0, 0) // put the rest back where it came from
         }
         if (short) break
       }
       if (short) { swallow('craft:ingredient gone ' + short, new Error('the window lost ' + short + ' while filling the grid')); break }
-      for (let i = 0; i < 15 && !(w.slots[0] && w.slots[0].type === resId); i++) await U.sleep(100)
+      // 3 s for the result (measured 12:5xZ: `craft:no result slot stick` x6/h - when a grid click was not confirmed the server never builds a result;
+      // the batch retry in craft() opens a fresh window for what is left, which is the honest remedy)
+      for (let i = 0; i < 30 && !(w.slots[0] && w.slots[0].type === resId); i++) await U.sleep(100)
       if (!(w.slots[0] && w.slots[0].type === resId)) { swallow('craft:no result slot ' + name, new Error('the server sent no result')); break }
-      await bot.clickWindow(0, 0, 0) // take the result onto the cursor …
+      await clk(0, 0, 0) // take the result onto the cursor …
       // … and put it onto an existing stack with room, else into a free slot (world 1: every run took a NEW slot, so 32 torch runs stopped after 3
       // when the pockets were full of 4-torch stacks; the result stayed on the cursor and counted as "nothing crafted")
       const held = w.selectedItem; const need = held ? held.count : run.count
       const stack = w.items().find(i => i.type === resId && i.slot >= w.inventoryStart && i.count + need <= (i.stackSize || 64))
       const free = stack ? stack.slot : w.firstEmptySlotRange(w.inventoryStart, w.inventoryEnd)
       if (free == null) { swallow('craft:nowhere to put ' + name, new Error('no free slot for the result')); break }
-      await bot.clickWindow(free, 0, 0)
+      await clk(free, 0, 0)
       // WAIT FOR THE SERVER between runs (the next run reads this window again): a run counts only when the item really arrived
       let ok = false
       for (let i = 0; i < 20 && !(ok = cnt() > before); i++) await U.sleep(100)
@@ -216,8 +228,8 @@ async function craftOnTable (bot, name, tbl, times = 1) {
     }
   } finally {
     // give back what is on the cursor and clear the grid, whatever happened
-    try { if (w.selectedItem) { const f = w.firstEmptySlotRange(w.inventoryStart, w.inventoryEnd); if (f != null) await bot.clickWindow(f, 0, 0) } } catch (e_) { swallow('craft:cursorBack', e_) }
-    try { for (let sl = 1; sl <= 9; sl++) if (w.slots[sl]) { await bot.clickWindow(sl, 0, 0); const f = w.firstEmptySlotRange(w.inventoryStart, w.inventoryEnd); if (f != null) await bot.clickWindow(f, 0, 0) } } catch (e_) { swallow('craft:gridBack', e_) }
+    try { if (w.selectedItem) { const f = w.firstEmptySlotRange(w.inventoryStart, w.inventoryEnd); if (f != null) await clk(f, 0, 0) } } catch (e_) { swallow('craft:cursorBack', e_) }
+    try { for (let sl = 1; sl <= 9; sl++) if (w.slots[sl]) { await clk(sl, 0, 0); const f = w.firstEmptySlotRange(w.inventoryStart, w.inventoryEnd); if (f != null) await clk(f, 0, 0) } } catch (e_) { swallow('craft:gridBack', e_) }
     try { w.close() } catch (e_) { swallow('craft:close', e_) }
     await U.sleep(200)
   }

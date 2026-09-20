@@ -778,8 +778,8 @@
     98,
     -76
    ],
-   "through": 1789908114167,
-   "scoutRev": 0,
+   "through": 1789908393960,
+   "scoutRev": 2,
    "hub": [
     -37,
     98,
@@ -804,8 +804,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789908134191,
-   "back": 1789908139532
+   "landingAt": 1789908398350,
+   "back": 1789908405930
   }
  },
  "enlisted": [
@@ -1744,7 +1744,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789908229791
+   "restUntil": 1789908634076
   },
   {
    "id": "fill_ring_field2",
@@ -3545,7 +3545,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 1,
    "site": [
     -355,
     69,
@@ -3568,7 +3568,7 @@
     }
    },
    "note": "needs: dirt (32 cells wait; every cell whose material exists is done or in work)",
-   "rev": 9,
+   "rev": 10,
    "restUntil": 1789908774993
   },
   {
@@ -3717,9 +3717,9 @@
    "rev": 3,
    "restUntil": 1789908221342,
    "stuckBy": {
-    "key": "rev2",
+    "key": "rev3",
     "bots": [
-     "Akari"
+     "Mei"
     ]
    }
   },
@@ -3818,7 +3818,40 @@
     "maxDeaths": 2
    },
    "note": "auto-paused: the gate is lit and the round trip is done (bump rev to send another expedition)",
-   "rev": 1
+   "rev": 3
+  },
+  {
+   "id": "base_infill_n232_n400",
+   "type": "build",
+   "priority": 80,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 3,
+   "site": [
+    -232,
+    69,
+    -385
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone infill x -232..-232 / z -400..-370 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): INFILL between the zones: the whole base is ONE level - cut what stands above y68, fill dents from the natural ground up, 4 headroom; nothing is built on it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -232,
+     68,
+     -385
+    ],
+    "args": {
+     "w": 1,
+     "d": 31,
+     "depth": 8
+    }
+   },
+   "rev": 8,
+   "note": "top model 12:5xZ: restored + re-opened after the fix - a trunk standing in a fillOnly ground cell no longer counts as filled (level_skipped 12:37Z measured an oak_log at grade y68 on col -232,-377 over a 4-deep hole)"
   }
  ]
 }

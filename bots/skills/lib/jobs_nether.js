@@ -174,6 +174,11 @@ module.exports = ctx => {
     if (c.block === 'torch') return /torch/.test(b.name)
     return b.name === c.block
   }
+  // A FLOOR CELL IS SAFE WHEN NOBODY CAN FALL THROUGH IT (measured 12:44-12:46Z: the last two cells of this landing, -38,97,-74 and
+  // -35,97,-74, read `place: unreachable` from an adjacent stand with `noMove` — they are SEALED VOIDS one layer under the surface
+  // the bot walks on, with solid netherrack at y98 over them. A pocket you cannot see, cannot reach and cannot fall into is not a
+  // hole; calling it one kept a landing "unsafe" for ever and would have sent the gate to be relocated for nothing).
+  const floorSafe = (bot, c) => { const b = bot.blockAt(v([c.x, c.y, c.z])); if (b && b.boundingBox === 'block' && !/^(lava|water)$/.test(b.name)) return true; const up = bot.blockAt(v([c.x, c.y + 1, c.z])); return !!up && up.boundingBox === 'block' && !/^(lava|water)$/.test(up.name) }
   const hasRef = (bot, c) => [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].some(d => { const n = bot.blockAt(c.offset(d[0], d[1], d[2])); return !!n && n.boundingBox === 'block' })
   const eyeOf = bot => bot.entity.position.offset(0, 1.62, 0)
   // THE ONLY WALKING ALLOWED OVER THERE (both deaths of stage 1 were steps onto ground nobody had checked): one cell at a time,
@@ -193,7 +198,7 @@ module.exports = ctx => {
   // (`place:{noMove:true}`). Returns what was MEASURED, plus what is still left.
   async function buildCells (bot, job, api, cells, box, until, what) {
     let placed = 0; let dug = 0; let steps = 0
-    const done = new Set(); const tried = [] // cells our own floor cannot reach: reported, never chased round the box
+    const done = new Set(); const tried = []; const why = {} // cells our own floor cannot reach: REPORTED with the reason, never chased round the box
     for (let round = 0; round < 120 && Date.now() < until && !api.stop(); round++) {
       const todo = cells.filter(c => !done.has(c.x + ',' + c.y + ',' + c.z) && !cellOK(bot, c))
       if (!todo.length) break
@@ -202,15 +207,15 @@ module.exports = ctx => {
       let prog = 0
       for (const c of todo) {
         if (Date.now() >= until || api.stop()) break
-        const q = v([c.x, c.y, c.z])
-        if (eyeOf(bot).distanceTo(q.offset(0.5, 0.5, 0.5)) > 4.0) continue
+        const q = v([c.x, c.y, c.z]); const k = c.x + ',' + c.y + ',' + c.z
+        if (eyeOf(bot).distanceTo(q.offset(0.5, 0.5, 0.5)) > 4.0) { why[k] = 'out of reach'; continue }
         task(bot, 'nether ' + what + ': ' + placed + ' placed, ' + dug + ' cleared')
-        if (c.block === 'air') { const r = await BL().digBlock(bot, q, { collect: true, requireHarvest: false, noMove: true }).catch(() => ({ ok: false })); if (r && r.ok) { dug++; prog++ } ; continue }
-        if (!hasRef(bot, q)) continue
+        if (c.block === 'air') { const r = await BL().digBlock(bot, q, { collect: true, requireHarvest: false, noMove: true }).catch(e => ({ ok: false, reason: String(e && e.message) })); if (r && r.ok) { dug++; prog++ } else why[k] = 'dig: ' + String((r || {}).reason).slice(0, 40); continue }
+        if (!hasRef(bot, q)) { why[k] = 'no solid face to place against'; continue }
         const item = c.block === 'stone' ? stoneItem(bot) : c.block
-        if (!item || !A.count(bot, item)) continue
-        await A.placeHard(bot, q, item, { stop: api.stop, noRest: true, place: { noMove: true } }).catch(e => swallow('jobs_nether:buildCells', e))
-        if (cellOK(bot, c)) { placed++; prog++ }
+        if (!item || !A.count(bot, item)) { why[k] = 'none of ' + (item || c.block) + ' carried'; continue }
+        const pr = await A.placeHard(bot, q, item, { stop: api.stop, noRest: true, place: { noMove: true } }).catch(e => ({ ok: false, reason: String(e && e.message) }))
+        if (cellOK(bot, c)) { placed++; prog++; delete why[k] } else why[k] = 'place: ' + String((pr || {}).reason || '?').slice(0, 44)
       }
       if (prog) continue
       // nothing in reach: ONE step towards the nearest unfinished cell, inside our own box
@@ -223,10 +228,10 @@ module.exports = ctx => {
       for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) for (const dy of [0, 1, -1]) { const c2 = new Vec3(t.x + dx, t.y + dy + 1, t.z + dz); if (!c2.equals(here) && c2.distanceTo(tp) < d0 - 0.2) cands.push(c2) }
       cands.sort((a, b) => a.distanceTo(tp) - b.distanceTo(tp))
       for (const s2 of cands.slice(0, 20)) { if (api.stop()) break; if (await safeStep(bot, api, s2, box)) { moved = true; steps++; break } }
-      if (!moved) { tried.push([t.x, t.y, t.z]); done.add(t.x + ',' + t.y + ',' + t.z); continue } // this one cannot be reached from our own floor: leave it, take the next
+      if (!moved) { tried.push([t.x, t.y, t.z]); if (!why[t.x + ',' + t.y + ',' + t.z]) why[t.x + ',' + t.y + ',' + t.z] = 'no safe stand of ours within reach of it'; done.add(t.x + ',' + t.y + ',' + t.z); continue } // this one cannot be reached from our own floor: leave it, take the next
     }
     const left = cells.filter(c => !cellOK(bot, c))
-    return { placed, dug, steps, left: left.length, leftAt: left.slice(0, 4).map(c => c.x + ',' + c.y + ',' + c.z + '=' + c.block), unreachable: tried.length }
+    return { placed, dug, steps, left: left.length, leftAt: left.slice(0, 4).map(c => c.x + ',' + c.y + ',' + c.z + '=' + c.block + ' (' + (why[c.x + ',' + c.y + ',' + c.z] || '?') + ')'), unreachable: tried.length }
   }
 
   // ---------------------------------------------------------------- THE LANDING: a 5x5 floor, walls 2 high, a door gap, torches
@@ -282,12 +287,13 @@ module.exports = ctx => {
       }
     }
     // THE VERDICT IS READ, NOT COUNTED: holes left in the floor, and lava/fire still within 5 of any landing cell
-    const holes = floorCells.filter(c => { const b = bot.blockAt(c); return !b || b.boundingBox !== 'block' })
+    const holes = floorCells.filter(c => !floorSafe(bot, { x: c.x, y: c.y, z: c.z }))
+    const covered = floorCells.filter(c => { const b = bot.blockAt(c); return (!b || b.boundingBox !== 'block') && floorSafe(bot, { x: c.x, y: c.y, z: c.z }) }).length
     const hotIds = ['lava', 'fire'].map(n => bot.registry.blocksByName[n] && bot.registry.blocksByName[n].id).filter(q => q != null)
     const hot = hotIds.length ? bot.findBlocks({ matching: hotIds, maxDistance: 12, count: 400, point: new Vec3(cx, y0, cz) }) : []
     const near = hot.filter(q => floorCells.some(c => Math.max(Math.abs(q.x - c.x), Math.abs(q.y - c.y), Math.abs(q.z - c.z)) <= 5))
     const safe = holes.length === 0 && near.length === 0
-    return { floor, walls, torches, placed: floor + walls, outOfReach: out, lavaPlugged: lava, holes: holes.length, hotNear: near.length, safe, gap: gap ? [gap[0], y0, gap[1]] : null, box: [cx - 2, cz - 2, cx + 2, cz + 2], y: y0, cells: floorCells.map(c => ({ x: c.x, y: c.y, z: c.z, block: 'stone' })).concat(wallCells.map(c => ({ x: c.x, y: c.y, z: c.z, block: 'stone' }))).filter(c => !keep.has(c.x + ',' + c.y + ',' + c.z)) }
+    return { floor, walls, torches, placed: floor + walls, outOfReach: out, lavaPlugged: lava, holes: holes.length, coveredVoids: covered, hotNear: near.length, safe, gap: gap ? [gap[0], y0, gap[1]] : null, box: [cx - 2, cz - 2, cx + 2, cz + 2], y: y0, cells: floorCells.map(c => ({ x: c.x, y: c.y, z: c.z, block: 'stone' })).concat(wallCells.map(c => ({ x: c.x, y: c.y, z: c.z, block: 'stone' }))).filter(c => !keep.has(c.x + ',' + c.y + ',' + c.z)) }
   }
 
   // ---------------------------------------------------------------- ON ARRIVAL NOBODY WALKS
@@ -367,7 +373,7 @@ module.exports = ctx => {
     const out = Object.assign({ work, box, y: y0 }, r, { min: Math.round(min * 10) / 10, perBotMin: Math.round((r.placed + r.dug) / min * 10) / 10, carried: stoneCarried(bot) })
 
     if (work === 'landing') { // the verdict again, read back
-      const holes = cells.filter(c => c.block === 'stone' && c.y === y0 - 1 && !cellOK(bot, c))
+      const holes = cells.filter(c => c.block === 'stone' && c.y === y0 - 1 && !floorSafe(bot, c))
       const hotIds = ['lava', 'fire'].map(n => bot.registry.blocksByName[n] && bot.registry.blocksByName[n].id).filter(q => q != null)
       const hot = hotIds.length ? bot.findBlocks({ matching: hotIds, maxDistance: 12, count: 400, point: new Vec3(cx, y0, cz) }) : []
       const near = hot.filter(q => Math.abs(q.x - cx) <= 7 && Math.abs(q.z - cz) <= 7 && Math.abs(q.y - y0) <= 6)
