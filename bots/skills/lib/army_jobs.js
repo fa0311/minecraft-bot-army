@@ -849,7 +849,9 @@ function stairCols () {
   // pit - [-328,65,-499], [-327,65,-503..-499], [-326,64,-503..-502] ... - and its own way-in sent Madoka into it; six bots sat there 38 min, 366 no_route, rescued
   // with their kits lost. Every one of those columns is within 1 of a mine step, and the 3x3 halo below declared them "never filled, never counted as left". The
   // corridor itself is what must stay open; a column BESIDE it is ordinary ground, and leaving it open is what traps the crew.
-  try { for (const st of (A.readJSON(require('path').join(A.DIR, '..', 'iron_mine.json'), {}) || {}).steps || []) { const k = st[0] + ',' + st[2]; if (!m.has(k) || m.get(k) > st[1] - 1) m.set(k, st[1] - 1) } } catch (e_) { swallow('army_jobs:stairCols', e_) }
+  // ...and the TOPMOST step of a column, not the deepest: a switchback stair passes the same column at several depths, and keeping the deepest (y-37 under the mine
+  // head) made `c.y > stairs.get(col)` exclude that whole column from y-36 up to the sky - the other half of the `left 0 over an open pit` lie.
+  try { for (const st of (A.readJSON(require('path').join(A.DIR, '..', 'iron_mine.json'), {}) || {}).steps || []) { const k = st[0] + ',' + st[2]; if (!m.has(k) || m.get(k) < st[1] - 1) m.set(k, st[1] - 1) } } catch (e_) { swallow('army_jobs:stairCols', e_) }
   _stairCols = { t: Date.now(), m }
   return m
 }

@@ -588,6 +588,9 @@ function infoSummary (rows) { // quiet good news, ONE line, or null
 const sleep = ms => new Promise(resolve => setTimeout(resolve, ms))
 async function main () {
   const [cmd, arg] = process.argv.slice(2)
+  // READ-ONLY callers (owner 09-20: the foreman paused jobs for slowness, re-activated an OWNER-LOCKED job and inflated head-counts - its eyes are useful, its hands are not):
+  // ARMY_READONLY=1 refuses every command that writes the board or the world. It looks, measures and files findings in docs/BUGS.md.
+  if (process.env.ARMY_READONLY === '1' && (['put', 'putjson', 'patch', 'rm', 'job', 'prune', 'rescue', 'bootstrap', 'chest'].includes(cmd) || (cmd === 'base' && ['set', 'keepout'].includes(arg)) || (cmd === 'mine' && arg === 'level' && !process.argv.includes('dry')) || (cmd === 'targets' && arg) || (cmd === 'plan-base' && process.argv.includes('--put')))) return console.log('REFUSED: this caller is READ-ONLY (inspector role). Write what you SAW and what should change as one evidence line in docs/BUGS.md.')
   const names = (arg || '').split(',').filter(Boolean)
   if (cmd === 'enlist') {
     const b = rj(BOARD); b.enlisted = [...new Set([...(b.enlisted || []), ...names])]; wj(BOARD, b)

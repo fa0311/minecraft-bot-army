@@ -64,8 +64,8 @@ cached and scored in `bots/army/remedies.json`. Log: `ops/helpdesk.log`.
 
 **SEE the field (top model and foreman).** Numbers hide what the owner sees at a glance. `node bots/army/mapshot.js <bot> [radius] [out.png] [px]`
 renders a top-down PNG through a bot's eyes (heights, water, floating blocks in RED, bots, mobs, torches, 16-block grid) — READ the image
-before judging a site. `ops/foreman.sh` (started by `ops/up.sh`) does this every 25 min with a strong model for the base and every active
-job site: it looks, fixes via the board, files code findings in docs/BUGS.md. **Outcomes are MEASURED, not reported:** `node ops/base-audit.js` (LLM-free, ~40 s,
+before judging a site. `ops/foreman.sh` (started by `ops/up.sh`) does this every 60 min with a strong model for the base and every active
+job site: an INSPECTOR with no hands (owner 09-20: `ARMY_READONLY=1` makes `armyctl.js` refuse every board write) - it looks and files findings in docs/BUGS.md. A job whose `desc` starts with `OWNER-LOCKED` is refused by `job active`/`patch`/`put` for everybody (`ARMY_OWNER=1` = the top model at the owner's word). **Outcomes are MEASURED, not reported:** `node ops/base-audit.js` (LLM-free, ~40 s,
 every ~30 min by the inspector's clock and before each foreman round) flies the spectator camera over the base at 1 block/px and compares the WORLD with the
 PLAN: off-level ground, stray blocks, heads inside vs outside each pen, farms in unloaded chunks / not growing, registered furniture that is air, fields and
 structures vs their blueprint, bot-hours held without output → REPORT.md `BASE AUDIT`, `armyctl.js events 20 audit`, picture `/tmp/base-audit.png` (READ it). WIDE view: `node ops/skyshot.js <x> <z> [half=256] [out.png]` = aerial photo by the spectator camera `SkyEye` (+ ranked flat 128x128 windows): use it BEFORE choosing a site, an origin or a road. **One site = ONE height**: level a pad first (`build` +

@@ -26,6 +26,6 @@ up "ops/operator.sh op( |$)" "field operator daemon (fresh capped sonnet session
 # topical SONNET operators (ops/operator.topics): one site lead per front, event-driven like the general one (zero tokens while nothing needs judgement)
 while read -r NAME TOPICS; do [ -n "$NAME" ] && up "ops/operator.sh $NAME " "operator $NAME ($TOPICS)" $W/ops/operator.sh "$NAME" "$TOPICS"; done < $W/ops/operator.topics
 up "ops/helpdesk.js" "help desk (LLM answers bots' failure tickets; remedies are cached by signature)" sh -c "node $W/ops/helpdesk.js >> $W/ops/helpdesk.log 2>&1"
-up "ops/foreman.sh" "foreman (strong model looks at rendered maps every 25 min, nags + fixes)" $W/ops/foreman.sh
+up "ops/foreman.sh" "foreman (INSPECTOR: strong model looks at rendered maps every 60 min, READ-ONLY, files findings)" $W/ops/foreman.sh
 up "run-chatter.sh" "chatter (haiku answers PLAYERS in character; zero tokens while nobody speaks)" $W/ops/run-chatter.sh
 echo "done. ops/status.sh in ~1 min."

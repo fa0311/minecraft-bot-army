@@ -1158,14 +1158,14 @@
     73,
     27
    ],
-   "surveyed": 1789918247097,
-   "villagers": 8,
+   "surveyed": 1789918293876,
+   "villagers": 9,
    "professions": {
     "leatherworker": 4,
     "farmer": 2,
-    "unknown": 2
+    "unknown": 3
    },
-   "beds": 10,
+   "beds": 12,
    "stations": {
     "composter": 2,
     "blast_furnace": 1
@@ -1173,29 +1173,14 @@
    "golems": 1,
    "bounds": [
     -766,
-    11,
-    -710,
+    10,
+    -703,
     57
    ],
    "nearest": [
     [
-     -744,
-     72,
-     41
-    ],
-    [
      -740,
      71,
-     39
-    ],
-    [
-     -739,
-     71,
-     38
-    ],
-    [
-     -739,
-     72,
      39
     ],
     [
@@ -1204,19 +1189,34 @@
      37
     ],
     [
+     -740,
+     71,
+     38
+    ],
+    [
+     -742,
+     72,
+     39
+    ],
+    [
+     -741,
+     72,
+     42
+    ],
+    [
      -736,
      85,
      58
     ],
     [
-     -728,
-     69,
-     10
+     -724,
+     68,
+     11
     ],
     [
-     -703,
-     72,
-     18
+     -696,
+     71,
+     7
     ]
    ]
   }
@@ -2790,14 +2790,14 @@
    "note": "top model 15:1xZ: 655 OPEN cells (left 3216 minus waiting 2561) - do not lower; ladderWay (fill_wayin) needs builders standing on the RIM to hang the way in",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Sayaka",
-    "t": 1789918212872,
+    "by": "Yui",
+    "t": 1789918284545,
     "at": [
-     -318,
-     60,
-     -479
+     -302,
+     57,
+     -463
     ],
-    "drop": 9
+    "drop": 12
    }
   },
   {
@@ -4751,7 +4751,7 @@
      }
     ]
    },
-   "rev": 2
+   "rev": 3
   },
   {
    "id": "nether_landing_3",
@@ -5205,7 +5205,7 @@
    "status": "active",
    "when": "any",
    "names": [
-    "Yotsuba"
+    "Kotori"
    ],
    "front": "industry",
    "site": [
@@ -5275,6 +5275,47 @@
       ]
      }
     ]
+   },
+   "rev": 1
+  },
+  {
+   "id": "nether_pair",
+   "type": "portal",
+   "priority": 97,
+   "front": "base",
+   "status": "active",
+   "when": "day",
+   "bots": 2,
+   "shiftMin": 20,
+   "site": [
+    -326,
+    69,
+    -518
+   ],
+   "plan": "zone portal (docs/WORLD.md): PAIR THE GATES EXACTLY. Home is -327,68,-518, so its Nether partner is floor(-327/8), floor(-518/8) = -41,-65. The gate we have sits at -44,-80 - 15 Nether blocks off = 124 overworld blocks from home, just inside Paper's 128-block search, so every return was a coin toss between our gate and a freshly generated one (that is why gates kept multiplying). This job probes the column at -41,-65, walks there read-only, builds the 7x9 platform first, then the frame with an inner column exactly on -41,-65, and lights it. Obsidian 25 in the depot from the spare gate.",
+   "params": {
+    "blueprint": "nether_portal",
+    "origin": [
+     -326,
+     68,
+     -518
+    ],
+    "args": {
+     "axis": "x"
+    },
+    "buildJob": "base_portal",
+    "go": true,
+    "landing": false,
+    "work": "pair",
+    "at": [
+     -41,
+     null,
+     -65
+    ],
+    "minutes": 7,
+    "cobble": 256,
+    "crossS": 30,
+    "maxDeaths": 6
    }
   }
  ]
