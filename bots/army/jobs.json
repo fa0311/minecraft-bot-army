@@ -1241,28 +1241,7 @@
    ]
   ],
   "legacyChests": {
-   "found": [
-    [
-     -370,
-     69,
-     -521
-    ],
-    [
-     -370,
-     70,
-     -521
-    ],
-    [
-     -371,
-     69,
-     -521
-    ],
-    [
-     -371,
-     70,
-     -521
-    ]
-   ]
+   "found": []
   },
   "dump": {
    "at": [
@@ -1295,13 +1274,13 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Kotori",
+   "by": "Kokoro",
    "portal": [
     -44,
     98,
     -80
    ],
-   "through": 1789929050704,
+   "through": 1789930871447,
    "scoutRev": 2,
    "hub": {
     "room": [
@@ -1413,8 +1392,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789929050915,
-   "back": 1789929063320,
+   "landingAt": 1789930871647,
+   "back": 1789930884596,
    "lastDeath": 1789924669079,
    "lastDeathBy": "Fuuka",
    "roads": {
@@ -1636,17 +1615,18 @@
     "t": 1789924913245
    },
    "absorb": {
-    "coal": 464,
-    "iron_ingot": 84,
-    "flint": 588,
+    "coal": 480,
+    "iron_ingot": 96,
+    "flint": 600,
     "diamond": 12,
     "leather": 288,
-    "carrot": 336,
-    "wheat": 304,
-    "pumpkin": 60,
-    "melon": 36
+    "carrot": 704,
+    "wheat": 500,
+    "pumpkin": 216,
+    "melon": 144,
+    "beetroot": 240
    },
-   "absorbT": 1789926374409
+   "absorbT": 1789929349524
   },
   "enchantTable": [
    -344,
@@ -2241,7 +2221,7 @@
    },
    "rev": 10,
    "bots": 1,
-   "restUntil": 1789928984128
+   "restUntil": 1789930634083
   },
   {
    "id": "sleeper",
@@ -2328,7 +2308,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789929144252
+   "restUntil": 1789930877116
   },
   {
    "id": "fill_ring_field2",
@@ -2935,7 +2915,7 @@
    "type": "build",
    "priority": 70,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "site": [
@@ -3170,7 +3150,7 @@
    },
    "rev": 61,
    "desc": "MEASURED 16:3xZ by probe: 44 columns (444 cells) still open to the sky = this job (narrow deep shafts: step off / water drop in, pillar out = the column is filled); 3172 air cells lie UNDER the crust below grade = NOT reachable from above, they belong to the cavity job (owner algorithm: shaft down, fill riding up). `left` counts both - do not judge this job by `left`, and do not raise the crew over the number of open shafts",
-   "note": "top model 15:1xZ: 655 OPEN cells (left 3216 minus waiting 2561) - do not lower; ladderWay (fill_wayin) needs builders standing on the RIM to hang the way in",
+   "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -333,58,-483",
    "restUntil": 1789906650052,
    "way": {
     "by": "Noa",
@@ -3694,7 +3674,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789929296406
+   "restUntil": 1789931177507
   },
   {
    "id": "nether_landing_2",
@@ -4702,7 +4682,7 @@
     },
     "order": "near"
    },
-   "restUntil": 1789930384838,
+   "restUntil": 1789932631533,
    "way": {
     "by": "Madoka",
     "t": 1789916716021,
@@ -5986,7 +5966,7 @@
     "carry": 320
    },
    "rev": 14,
-   "restUntil": 1789929024273
+   "restUntil": 1789932691718
   },
   {
    "id": "fill_buckets",
@@ -6303,7 +6283,7 @@
     ]
    },
    "rev": 1,
-   "restUntil": 1789929132664
+   "restUntil": 1789930951932
   },
   {
    "id": "mine_sweep",
@@ -6499,21 +6479,21 @@
      "d": 15
     }
    },
-   "rev": 3,
+   "rev": 4,
    "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -402,65,-548",
-   "stuckBy": {
-    "key": "rev3",
-    "bots": [
-     "Fuuka",
-     "Aika",
-     "Erika"
-    ]
-   },
-   "restUntil": 1789927675343,
+   "restUntil": 1789931178935,
    "cap": {
     "id": "cap_base_pen_2_pad",
     "cols": 435,
     "t": 1789927911282
+   },
+   "stuckBy": {
+    "key": "rev4",
+    "bots": [
+     "Yui",
+     "Sayaka",
+     "Kotori"
+    ]
    }
   },
   {
@@ -6566,7 +6546,7 @@
    "type": "build",
    "priority": 38,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 4,
    "site": [
@@ -6593,13 +6573,14 @@
     },
     "order": "near"
    },
-   "note": "needs: dirt (4 cells wait; every cell whose material exists is done or in work)",
+   "note": "auto-paused: 4 cells nobody could do: -345,68,-503 | -344,68,-500 | -369,67,-497 | -345,67,-515",
    "restUntil": 1789930271637,
    "stuckBy": {
     "key": "rev0",
     "bots": [
      "Akari",
-     "Yui"
+     "Yui",
+     "Rin"
     ]
    }
   },
