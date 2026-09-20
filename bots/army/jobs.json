@@ -1133,7 +1133,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 8,
+   "bots": 16,
    "site": [
     -367,
     69,
@@ -1169,7 +1169,7 @@
      ]
     ]
    },
-   "rev": 53,
+   "rev": 54,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789909537319
   },
@@ -1294,8 +1294,8 @@
     "fuel",
     "cobblestone"
    ],
-   "minBots": 2,
-   "maxBots": 6,
+   "minBots": 4,
+   "maxBots": 14,
    "requires": {
     "minHp": 14,
     "minFood": 14
@@ -1314,8 +1314,8 @@
     }
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
-   "bots": 10,
-   "rev": 30
+   "bots": 14,
+   "rev": 32
   },
   {
    "id": "base_dorm",
@@ -1803,7 +1803,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789910235503
+   "restUntil": 1789910439019
   },
   {
    "id": "fill_ring_field2",
@@ -2232,7 +2232,7 @@
    },
    "shiftMin": 20,
    "rev": 9,
-   "restUntil": 1789910460882,
+   "restUntil": 1789910799900,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "feather"
@@ -2995,7 +2995,7 @@
    "type": "build",
    "priority": 70,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "site": [
@@ -3299,7 +3299,7 @@
    "type": "build",
    "priority": 70,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 10,
    "site": [
@@ -3733,7 +3733,7 @@
    "type": "build",
    "priority": 58,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 5,
    "site": [
@@ -3874,7 +3874,7 @@
    "front": "base",
    "status": "paused",
    "when": "any",
-   "bots": 2,
+   "bots": 10,
    "site": [
     -259,
     68,
@@ -3895,7 +3895,7 @@
     }
    },
    "restUntil": 1789910066206,
-   "rev": 1
+   "rev": 2
   },
   {
    "id": "nether_hub",
@@ -4045,6 +4045,40 @@
     "go": false,
     "close": true
    }
+  },
+  {
+   "id": "base_portal",
+   "type": "build",
+   "priority": 88,
+   "front": "base",
+   "status": "paused",
+   "when": "day",
+   "bots": 3,
+   "site": [
+    -326,
+    68,
+    -518
+   ],
+   "plan": "zone portal (docs/WORLD.md): THE Nether gate of the base — 4x5 obsidian frame on a 2-deep stone plinth with a paved, lit apron (3 clear cells in front and behind). x -330..-323 / z -522..-514. Re-activated 09-20 by the foreman: base audit found 6 apron cells missing (cobblestone@-330,69,-518, -329,69,-518, -329,70,-518 = air).",
+   "params": {
+    "blueprint": "nether_portal",
+    "origin": [
+     -326,
+     68,
+     -518
+    ],
+    "pad": false,
+    "args": {
+     "axis": "x"
+    }
+   },
+   "stuckBy": {
+    "key": "rev0",
+    "bots": [
+     "Chika"
+    ]
+   },
+   "note": "auto-paused: build complete"
   }
  ]
 }

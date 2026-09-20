@@ -121,6 +121,9 @@ async function watch (seconds = 60) {
         const span = Math.round((now - ring[i][0]) / 60000)
         if (span >= 30 && minBots >= 2) { row.stalledMin = span; row.flags.push('stalled') }
       }
+      // RUNAWAY (owner 09-20 13:2xZ "道路Erikaバグってる": base_road_9 reported 3138 cells DONE in 70 min while `left` stayed at 2 - a swap rule was digging the road into a
+      // 9-deep trench and every yardstick read it as a fast, healthy job): work that is "done" far beyond what was left, with `left` not falling, is DESTRUCTION or a loop.
+      if (prev && prev[1] != null && left != null && left >= prev[1] && s.cells >= Math.max(60, 5 * Math.max(left, 1))) { row.flags.push('runaway'); row.runaway = { done10: s.cells, left } }
       if (slowNow && row.slowPrev) row.flags.push('slow')
       if (eta != null && eta > 120) row.flags.push('eta')
       if (left > 0 && s.cells === 0 && n >= 2) row.flags.push('nocells')
@@ -141,7 +144,8 @@ async function watch (seconds = 60) {
     const g = {}; for (const u of useless) (g[u.job] = g[u.job] || []).push(u.bot)
     bangs.push({ kind: 'useless_bots', key: 'useless_bots', text: 'USELESS 10 min: ' + useless.length + ' bots produced nothing — ' + Object.entries(g).sort((a, b) => b[1].length - a[1].length).slice(0, 4).map(([k, v]) => v.length + 'x ' + k + ' (' + v.slice(0, 3).join(' ') + ')').join(' · ') + '; e.g. ' + useless[0].bot + ' "' + useless[0].task + '" @' + useless[0].pos, look: 'node bots/army/armyctl.js bot ' + useless[0].bot + ' · ' + eyes([useless[0].bot]) })
   }
-  for (const r of out.filter(x => x.flags.length).sort((a, b) => b.bots - a.bots).slice(0, 4)) {
+  for (const r of out.filter(x => x.flags.includes('runaway'))) bangs.unshift({ kind: 'slow_job', key: 'runaway:' + r.id, job: r.id, text: 'RUNAWAY ' + r.id + ': ' + r.runaway.done10 + ' cells "done" in 10 min while left stays ' + r.runaway.left + ' - a job that digs/places far more than it has left is DESTROYING something or looping: PAUSE it (armyctl.js job ' + r.id + ' paused), then look', look: eyes(r.names, r.site) })
+  for (const r of out.filter(x => x.flags.length && !x.flags.includes('runaway')).sort((a, b) => b.bots - a.bots).slice(0, 4)) {
     const why = r.flags.includes('stalled') ? 'left ' + r.left + ' UNCHANGED for ' + r.stalledMin + ' min with ' + r.bots + ' bots'
       : r.flags.includes('nocells') ? 'not one cell in 10 min with ' + r.bots + ' bots, left ' + r.left
         : r.bots + ' bots do ' + r.rate + ' cells/min/bot, ONE player does ' + r.player + (r.left != null ? ', left ' + r.left + (r.leftStale ? ' (no build pass in 10 min)' : '') : '') + (r.eta != null ? ', ETA ' + (r.eta >= 120 ? Math.round(r.eta / 60) + ' h' : r.eta + ' min') : '')

@@ -3292,7 +3292,11 @@ async function build (bot, job, api, ctx) {
     const knownF = A.furnaces(); const fresh = fur.filter(c => !knownF.some(q => q.x === c.x && q.y === c.y && q.z === c.z))
     if (fresh.length) { const n = A.registerFurnaces(fresh.map(c => [c.x, c.y, c.z])); if (n) A.result(bot, { ev: 'furnaces_registered', job: job.id, n }) }
   } catch (e_) { swallow('army_jobs:furnaceReg', e_) }
-  const left = todo(true); const n = left.dig.length + left.put.length + left.wait; const mine = todo(); const nMine = mine.dig.length + mine.put.length
+  // ONE closing walk, not two (same measurement: a fill's pass ended on `nMine === 0` and each end walked the whole 33 000-cell box TWICE - `left` and `mine` differ
+  // only by this bot's own rest lists, which is a filter over the result, not a second reading of the world).
+  const left = todo(true); const n = left.dig.length + left.put.length + left.wait
+  const rested = c => (st.bad[K(c)] || 0) >= 2 || (st.lockSkip && st.lockSkip[K(c)] > Date.now()) || (c.solid && st.colSkip && st.colSkip[c.x + ',' + c.z] > Date.now())
+  const nMine = left.dig.concat(left.put).filter(c => !rested(c)).length
   const isFill = cells.some(q => q.solid)
   // A DECK OVER AIR IS NOT "DONE" (09-19: the trench and the east yard were "decked" one block thick over 6-16 deep dark voids). Solid fills report the air
   // their flood could not reach (`sealed`); level pads (params.solidBelow: N layers, default 3 for blueprint `level`, false = off) report every
