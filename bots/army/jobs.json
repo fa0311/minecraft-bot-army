@@ -4857,7 +4857,7 @@
    "type": "build",
    "priority": 58,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 5,
    "site": [
@@ -4883,12 +4883,13 @@
     }
    },
    "rev": 5,
-   "note": "needs: cobblestone (3 cells wait; every cell whose material exists is done or in work)",
+   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -279,67,-404",
    "stuckBy": {
     "key": "rev5",
     "bots": [
      "Kanade",
-     "Kokoro"
+     "Kokoro",
+     "Himari"
     ]
    }
   },

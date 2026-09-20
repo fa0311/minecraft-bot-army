@@ -3329,7 +3329,7 @@ async function build (bot, job, api, ctx) {
   // pad puts its `void_fix_`: blueprint `level` in CAP mode lays DIRT on the grade layer wherever bare stone, gravel or air stands (grass spreads by itself), and the
   // cell's `only` list plus the handler's `foreign` rule keep it off paving, fields, crops and every cell of another blueprint. `needStock` holds it to the SURPLUS
   // over settings.targets.dirt, so the cap can never eat the farms' reserve. Once per job (j.cap), pushed inside the locked edit = never twice.
-  const putCap = () => {
+  function putCap () { // a DECLARATION, hoisted: the leftover path above calls it (12:4xZ: `Cannot access 'putCap' before initialization`, Himari)
     try {
       if (!/^(fill_void|level)$/.test(String(P.blueprint)) || P.cap || (P.args || {}).cap) return
       const tgt = (A.settings().targets || {}).dirt; if (!(tgt > 0) || A.stockOf('dirt') <= tgt + 64) return

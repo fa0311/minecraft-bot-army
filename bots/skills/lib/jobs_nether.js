@@ -319,7 +319,9 @@ module.exports = ctx => {
     // Nether with nothing to do there may hold (the dispatcher hands it out by `hb.dim`). It needs no gate geometry — the far gate
     // is wherever the world put it. In the overworld it is a no-op that frees its bot at once: it must never hold anybody at base.
     if (P.return === true) {
-      if (!isNether(bot)) { A.decline(bot, job, 15 * 60000, 'not in the Nether'); return muster(bot, job, api, ctx2, 'portal: the return job only carries bots that are in the Nether') }
+      // 45 min, not 5: until the dispatcher filters by `hb.dim` this job is offered to overworld bots too, and a short decline would
+      // bounce the whole army through it every few minutes (churn is backlog item 1). One bounce per bot per 45 min costs nothing.
+      if (!isNether(bot)) { A.decline(bot, job, 45 * 60000, 'not in the Nether'); return muster(bot, job, api, ctx2, 'portal: the return job only carries bots that are in the Nether') }
       const rk = job.id + ':' + (job.rev || 0)
       const rs = bot.__armyPortalBack = (bot.__armyPortalBack && bot.__armyPortalBack.key === rk) ? bot.__armyPortalBack : { key: rk }
       return await comeHome(bot, job, api, ctx2, rs, P)
