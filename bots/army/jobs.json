@@ -3852,6 +3852,34 @@
    },
    "rev": 8,
    "note": "top model 12:5xZ: restored + re-opened after the fix - a trunk standing in a fillOnly ground cell no longer counts as filled (level_skipped 12:37Z measured an oak_log at grade y68 on col -232,-377 over a 4-deep hole)"
+  },
+  {
+   "id": "base_infill_edge_n259",
+   "type": "build",
+   "priority": 62,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 4,
+   "site": [
+    -259,
+    68,
+    -558
+   ],
+   "plan": "BASE PLAN zone infill (north edge of the base box): the ridge x -269..-250 / z -559..-557 stands up to 11 above the base level and belongs to no tile (audit cluster +13 x59, `level_skipped none:true` of the neighbour tile proved it) - cut it to y68",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -259,
+     68,
+     -558
+    ],
+    "args": {
+     "w": 21,
+     "d": 3,
+     "clear": 14
+    }
+   }
   }
  ]
 }
