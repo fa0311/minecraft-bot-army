@@ -1615,20 +1615,19 @@
     "t": 1789924913245
    },
    "absorb": {
-    "coal": 480,
-    "iron_ingot": 144,
-    "white_wool": 288,
-    "black_wool": 288,
-    "flint": 600,
-    "diamond": 12,
-    "leather": 192,
-    "carrot": 352,
-    "wheat": 320,
+    "carrot": 704,
+    "wheat": 640,
     "pumpkin": 144,
     "melon": 96,
-    "beetroot": 240
+    "coal": 480,
+    "iron_ingot": 144,
+    "flint": 600,
+    "diamond": 12,
+    "white_wool": 288,
+    "black_wool": 288,
+    "leather": 192
    },
-   "absorbT": 1789933837273
+   "absorbT": 1789935874775
   },
   "enchantTable": [
    -344,
@@ -1901,9 +1900,9 @@
      ]
     ]
    },
-   "rev": 72,
+   "rev": 74,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
-   "restUntil": 1789917857836
+   "restUntil": 1789936495499
   },
   {
    "id": "farm_1",
@@ -2048,7 +2047,7 @@
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 20,
    "rev": 59,
-   "restUntil": 1789933276877
+   "restUntil": 1789936435436
   },
   {
    "id": "base_dorm",
@@ -2234,9 +2233,9 @@
     "radius": 150,
     "bankAt": 32
    },
-   "rev": 10,
+   "rev": 12,
    "bots": 1,
-   "restUntil": 1789935680169
+   "restUntil": 1789937960840
   },
   {
    "id": "sleeper",
@@ -2323,7 +2322,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789934628497
+   "restUntil": 1789936383560
   },
   {
    "id": "fill_ring_field2",
@@ -3689,7 +3688,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789934822887
+   "restUntil": 1789936638073
   },
   {
    "id": "nether_landing_2",
@@ -4273,7 +4272,7 @@
    "front": "base",
    "status": "paused",
    "when": "any",
-   "bots": 2,
+   "bots": 8,
    "site": [
     -311,
     68,
@@ -4299,11 +4298,11 @@
     "order": "near"
    },
    "note": "auto-paused: build complete",
-   "rev": 5,
+   "rev": 6,
    "stuckBy": {
-    "key": "rev2",
+    "key": "rev6",
     "bots": [
-     "Akari"
+     "Hazuki"
     ]
    },
    "restUntil": 1789923833466
@@ -4764,7 +4763,7 @@
    "type": "build",
    "priority": 60,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 3,
    "site": [
@@ -4791,14 +4790,15 @@
     },
     "order": "near"
    },
-   "rev": 14,
-   "note": "needs: dirt (18 cells wait; every cell whose material exists is done or in work)",
+   "rev": 15,
+   "note": "auto-paused: 17 cells nobody could do: -345,68,-542 | -345,68,-543 | -345,68,-538 | -344,68,-543 | -344,68,-538 | -346,68,-537",
    "restUntil": 1789922783977,
    "stuckBy": {
-    "key": "rev14",
+    "key": "rev15",
     "bots": [
-     "Hina",
-     "Kokoro"
+     "Misaki",
+     "Ichika",
+     "Rin"
     ]
    }
   },
@@ -5986,7 +5986,7 @@
     "carry": 320
    },
    "rev": 14,
-   "restUntil": 1789934983419
+   "restUntil": 1789937109212
   },
   {
    "id": "fill_buckets",
@@ -6248,7 +6248,7 @@
    "priority": 88,
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 4,
    "front": "industry",
    "site": [
     -345,
@@ -6302,8 +6302,8 @@
      }
     ]
    },
-   "rev": 1,
-   "restUntil": 1789932761974
+   "rev": 3,
+   "restUntil": 0
   },
   {
    "id": "mine_sweep",
@@ -6475,9 +6475,9 @@
    "type": "build",
    "priority": 57,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
-   "bots": 13,
+   "bots": 1,
    "site": [
     -389,
     69,
@@ -6499,13 +6499,21 @@
      "d": 15
     }
    },
-   "rev": 5,
-   "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -402,64,-548",
-   "restUntil": 1789931178935,
+   "rev": 8,
+   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -402,65,-548",
+   "restUntil": 1789935147159,
    "cap": {
     "id": "cap_base_pen_2_pad",
     "cols": 435,
     "t": 1789927911282
+   },
+   "stuckBy": {
+    "key": "rev8",
+    "bots": [
+     "Yui",
+     "Koharu",
+     "Suzu"
+    ]
    }
   },
   {
@@ -6676,6 +6684,239 @@
     "bots": [
      "Hazuki"
     ]
+   }
+  },
+  {
+   "id": "base_field_4_pad",
+   "type": "build",
+   "priority": 90,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 13,
+   "site": [
+    -390,
+    69,
+    -507
+   ],
+   "requires": {
+    "minHp": 6
+   },
+   "plan": "BASE PLAN zone field_4 x -405..-375 / z -522..-492 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. field block 27x27 in a 29x29 slot (its torch ring): nine 9x9 plots, water cells BUILT by the blueprint",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -390,
+     68,
+     -507
+    ],
+    "args": {
+     "w": 31,
+     "d": 31
+    }
+   },
+   "rev": 6,
+   "after": "void_fix_base_field_4_pad",
+   "voidFix": {
+    "n": 2,
+    "id": "void_fix_base_field_4_pad",
+    "cols": 12,
+    "t": 1789935425564
+   },
+   "cap": {
+    "id": "cap_base_field_4_pad",
+    "cols": 961,
+    "t": 1789935260724
+   },
+   "note": "auto-paused: build complete - BUT 12 columns are a deck over air (void_under_pad): -395,67,-510 | -395,65,-492 | -394,67,-492 | -392,65,-510 | -391,66,-510 | -390,67,-510"
+  },
+  {
+   "id": "void_fix_base_field_4_pad",
+   "type": "build",
+   "priority": 70,
+   "front": "works",
+   "status": "paused",
+   "when": "any",
+   "bots": 4,
+   "site": [
+    -386,
+    68,
+    -501
+   ],
+   "plan": "void under the finished pad base_field_4_pad: 12 columns of x -395..-377 / z -511..-492 are a deck over air (void_under_pad) - fill SOLID from the natural ground up to grade y68, never deck a hole; base_field_4_pad is `after` this job and re-checks the columns when it is done",
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -386,
+     68,
+     -501
+    ],
+    "unlid": 3,
+    "args": {
+     "box": [
+      -395,
+      -511,
+      -377,
+      -492
+     ],
+     "depth": 5,
+     "fill": "cobblestone",
+     "mats": [
+      "cobbled_deepslate",
+      "cobblestone",
+      "stone",
+      "deepslate",
+      "tuff",
+      "andesite",
+      "diorite",
+      "granite",
+      "dirt",
+      "gravel"
+     ]
+    }
+   },
+   "rev": 2,
+   "cap": {
+    "id": "cap_void_fix_base_field_4_pad",
+    "cols": 399,
+    "t": 1789935422881
+   },
+   "stuckBy": {
+    "key": "rev2",
+    "bots": [
+     "Yui",
+     "Aoi",
+     "Hinata"
+    ]
+   },
+   "note": "auto-paused: build complete - BUT 9 cells are left that 3 builders could not do (build_leftover): -394,68,-492 | -395,68,-492 | -395,67,-492 | -395,66,-492 | -380,68,-511 | -379,68,-511"
+  },
+  {
+   "id": "cap_base_field_4_pad",
+   "type": "build",
+   "priority": 30,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 3,
+   "site": [
+    -390,
+    69,
+    -507
+   ],
+   "after": "void_fix_base_field_4_pad",
+   "plan": "the finished level of base_field_4_pad is bare stone: cap the grade layer y68 of x -405..-375 / z -522..-492 with DIRT (grass spreads by itself). Only where bare stone, gravel or air stands - never paving, a field, a crop or another blueprint of ours - and only out of the dirt SURPLUS over targets.dirt 128",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -390,
+     68,
+     -507
+    ],
+    "args": {
+     "w": 31,
+     "d": 31,
+     "cap": true,
+     "fill": "dirt"
+    },
+    "needStock": {
+     "dirt": 128
+    },
+    "order": "near"
+   },
+   "rev": 1,
+   "note": "auto-paused: build complete",
+   "stuckBy": {
+    "key": "rev1",
+    "bots": [
+     "Aika"
+    ]
+   },
+   "restUntil": 1789936034496
+  },
+  {
+   "id": "cap_void_fix_base_field_4_pad",
+   "type": "build",
+   "priority": 38,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -386,
+    69,
+    -501
+   ],
+   "plan": "the finished fill_void of void_fix_base_field_4_pad is bare stone: cap the grade layer y68 of x -395..-377 / z -511..-491 with DIRT (grass spreads by itself). Only where bare stone, gravel or air stands - never paving, a field, a crop or another blueprint of ours - and only out of the dirt SURPLUS over targets.dirt 128",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -386,
+     68,
+     -501
+    ],
+    "args": {
+     "w": 19,
+     "d": 21,
+     "cap": true,
+     "fill": "dirt"
+    },
+    "needStock": {
+     "dirt": 128
+    },
+    "order": "near"
+   },
+   "restUntil": 1789936044526,
+   "stuckBy": {
+    "key": "rev0",
+    "bots": [
+     "Chino"
+    ]
+   },
+   "note": "auto-paused: build complete"
+  },
+  {
+   "id": "base_field_4",
+   "type": "build",
+   "priority": 66,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 3,
+   "site": [
+    -390,
+    69,
+    -507
+   ],
+   "requires": {
+    "minHp": 6
+   },
+   "plan": "BASE PLAN zone field_4 x -403..-377 / z -520..-494 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): field block 27x27 in a 29x29 slot (its torch ring): nine 9x9 plots, water cells BUILT by the blueprint",
+   "params": {
+    "blueprint": "field_block",
+    "origin": [
+     -403,
+     68,
+     -520
+    ],
+    "args": {},
+    "waterFrom": [
+     -441,
+     62,
+     -422
+    ]
+   },
+   "after": "base_field_4_pad",
+   "rev": 8,
+   "note": "auto-paused: build complete",
+   "water": {
+    "key": "rev7",
+    "cells": {
+     "-390,68,-498": {
+      "fail": 1,
+      "why": "no water_bucket"
+     }
+    }
    }
   }
  ]
