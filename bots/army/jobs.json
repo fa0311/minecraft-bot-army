@@ -1713,7 +1713,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789894176335
+   "restUntil": 1789894187527
   },
   {
    "id": "guard_muster",
@@ -2995,9 +2995,9 @@
    "type": "build",
    "priority": 88,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 6,
    "site": [
     -263,
     69,
@@ -3020,7 +3020,7 @@
      "clear": 6
     }
    },
-   "rev": 4
+   "rev": 5
   },
   {
    "id": "base_infill_n247_n401",
@@ -3221,7 +3221,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 2,
    "site": [
     -311,
     69,
@@ -3265,7 +3265,7 @@
      ]
     }
    },
-   "rev": 4,
+   "rev": 5,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check."
   },
   {
