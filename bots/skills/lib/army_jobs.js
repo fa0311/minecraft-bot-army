@@ -2748,6 +2748,15 @@ async function build (bot, job, api, ctx) {
     for (const c of cells) { if (c.solid || c.fillOnly || c.block === 'air' || /torch|button|_sign$|_door$|ladder|lever|rail$/.test(c.block)) continue; const k = c.x + ',' + c.z; const e = top.get(k); if (e == null || c.y > e.y) top.set(k, c) }
     for (const c of top.values()) if (c.mats && c.mats.length > 1 && !c.wood && !/_bed$/.test(c.block) && !HARD_SOIL.test(c.block)) EXACT.add(K(c)) }
   const exact = c => EXACT.has(K(c))
+  // THE ROAD THAT DUG ITSELF INTO A TRENCH (owner 13:2xZ 「道路Erikaバグってる」; MEASURED: base_road_9 `build_pass done:120` EIGHTEEN times with `left` stuck at 2 and every
+  // failure on ONE cell, -285,67,-476, while the strip x -288..-286 / z -486..-468 sank 1-9 blocks). The engine was a pair of old rules, not the visible-material rule
+  // itself: `unlid` takes the PAVING off whenever its sub-base cell is open, and the paving cell then measures its column as "open below" and fills one block LOWER -
+  // so dig, fill, dig, fill, marching down. It used to close on the first pass because ANY stone could go back on top; with the exact-material rule and cobblestone 0 in
+  // the depot the paving could never return, so the pair ran for an hour. Cure: nothing of the blueprint is ever taken off unless the block that must replace it is
+  // ALREADY IN THE POCKETS - the depot index is not a promise (it read cobblestone > 0 all afternoon and the chests gave none).
+  const cellAt = new Map(cells.map(c => [K(c), c]))
+  const allKeys = new Set(cellAt.keys())
+  const inHand = q => !q || q.block === 'air' || A.count(bot, q.block) > 0 || (!exact(q) && matsOf(q).some(n => A.count(bot, n) > 0))
   const pickList = c => exact(c) ? [c.block] : matsOf(c) // what this cell may be made of, here and now
   const waterKeys = new Set(cells.filter(c => c.block === 'water').map(K))
   const groundFill = (cells.find(c => c.fillOnly && !c.solid && c.block !== 'air') || {}).block || null // what this blueprint's ground cells are made of (level: dirt)
@@ -2833,11 +2842,11 @@ async function build (bot, job, api, ctx) {
       if (c.layer && c.y < o.y && solid(b) && SIDES.some(([dx, dz]) => cellKeys.has((c.x + dx) + ',' + (c.y + 1) + ',' + (c.z + dz)) && solid(at(c.x + dx, c.y + 1, c.z + dz)))) { wait++; continue }
       // a ground cell with `unlid:true` (road sub-base) that is OPEN UNDER A BLOCK OF THE BLUEPRINT (paving laid as a deck over a dip or a trench): the paving comes off,
       // the column is filled from the natural ground up, the paving goes back on (it waits for its ground cell, see below). Never under a torch/chest, never over water.
-      if (c.fillOnly && c.unlid && !c.solid && !solid(b) && !/^(water|lava)$/.test(b.name)) { const up = at(c.x, c.y + 1, c.z); const kUp = c.x + ',' + (c.y + 1) + ',' + c.z; if (solid(up) && bodyKeys.has(kUp) && !groundKeys.has(kUp) && !U.protectedBlock(up) && !U.protectedBlock(at(c.x, c.y + 2, c.z)) && shallow(c)) { dig.push({ x: c.x, y: c.y + 1, z: c.z, block: 'air', unlid: true }); continue } }
+      if (c.fillOnly && c.unlid && !c.solid && !solid(b) && !/^(water|lava)$/.test(b.name)) { const up = at(c.x, c.y + 1, c.z); const kUp = c.x + ',' + (c.y + 1) + ',' + c.z; if (solid(up) && bodyKeys.has(kUp) && !groundKeys.has(kUp) && !U.protectedBlock(up) && !U.protectedBlock(at(c.x, c.y + 2, c.z)) && shallow(c) && inHand(cellAt.get(kUp))) { dig.push({ x: c.x, y: c.y + 1, z: c.z, block: 'air', unlid: true }); continue } }
       if (c.fillOnly && !c.solid && c.block !== 'air' && softBelow(c) && !(c.unlid && !solid(b) && !shallow(c))) { // the column under this ground cell is open (a road over a CAVE MOUTH, deeper than 3: no ground-up fill - sub-base + paving go in from the rim as a 2-thick bridge)
         const gy = groundUnder(c); const lid = solid(b)
         if (gy == null) { if (!lid) deep.push(K(c)); continue } // bottomless for us: no lid is put over it (a lid that stands is reported by the void audit below)
-        if (lid) { if (!foreign() && !U.protectedBlock(b) && !U.protectedBlock(at(c.x, c.y + 1, c.z))) dig.push({ x: c.x, y: c.y, z: c.z, block: 'air', unlid: true }); continue } // a deck (ours or an overhang): taken off, the column is then filled from its floor
+        if (lid) { if (!foreign() && !U.protectedBlock(b) && !U.protectedBlock(at(c.x, c.y + 1, c.z)) && inHand(c)) dig.push({ x: c.x, y: c.y, z: c.z, block: 'air', unlid: true }); continue } // a deck (ours or an overhang): taken off, the column is then filled from its floor
         put.push(Object.assign({}, c, { y: gy, under: true, g: c.y, deepFill: c.y - gy >= 3 })); continue // deepFill: the floor of a 1x1 shaft 3+ deep is out of reach from the rim (09-20, hall column -342,64..67,-516: 10 builders spun on `put:locked`, 3 reported hung) -> fillCell drops a gravity block down it
       }
       // `natural:true` air (a road's terraced shoulder, 09-20): only NATURAL ground is cut - the hall, fence or field beside the road is not terrain - and never the block something stands on (a torch, a chest, a fence, a TREE: a trunk left hanging over a terrace is tidy work we made ourselves)
@@ -2860,7 +2869,7 @@ async function build (bot, job, api, ctx) {
         // OUR OWN small decoration (a torch of the light job, a button) inside a cell that wants a solid block is MOVED: dug (allowProtected), the block placed, a torch put back on top
         if (DECOR.test(b.name) && solidItem(c.block)) { dig.push(Object.assign({}, c, { block: 'air', then: c, decor: b.name })); continue }
         // ... and only when the block that goes in EXISTS (09-19: field paths were cut out of the grass with 0 cobblestone in the world = a net of trenches)
-        if (solid(b) && !BL.isReplaceable(b)) { if (!U.protectedBlock(b) && !foreign()) { if (haveMat(c)) dig.push(Object.assign({}, c, { block: 'air', then: c })); else { wait++; st.missing = { item: c.block, t: Date.now() } } } continue } // wrong block in the way (chests/beds/torches are never dug)
+        if (solid(b) && !BL.isReplaceable(b)) { if (!U.protectedBlock(b) && !foreign()) { if (exact(c) ? A.count(bot, c.block) > 0 : haveMat(c)) dig.push(Object.assign({}, c, { block: 'air', then: c })); else { wait++; st.missing = { item: c.block, t: Date.now() } } } continue } // wrong block in the way (chests/beds/torches are never dug)
         // NOTHING IS PLACED ON A GROUND CELL THAT IS STILL OPEN (road paving / a wall over the blueprint's own `fillOnly` ground cell): with a side neighbour as support the
         // paving went in first = a deck over air (09-19: road 2, cobblestone y68 over air y67-66 on its whole centre line). It waits until the column is filled from the
         // natural ground up; over water/lava or a drop of 7+ (groundUnder null, reported as void) it is placed as before (a deck over water is a bridge).
@@ -3199,6 +3208,20 @@ async function build (bot, job, api, ctx) {
     }
     const feet = bot.entity.position.floored(); const notUnderMe = q => !(q.x === feet.x && q.z === feet.z && q.y === feet.y - 1) // digBlock refuses the block we stand on: another builder takes it, it is not a failure of the cell
     let c = dig.length ? (dig.find(notUnderMe) || (put.length ? put[0] : dig[0])) : put[0]
+    // A BUILD JOB THAT DIGS MORE THAN IT MAY STOPS ITSELF (owner 13:2xZ, the road trench). Two rules, both cheap: nothing is ever dug at a coordinate that is not a cell
+    // of this blueprint, and no single cell may be dug more than 3 times in one slice - an honest repair digs a cell once, a loop digs it a hundred times (road_9:
+    // -285,68,-476, 120 digs per pass). Either one pauses the job with `build_runaway {job, at, dug, allowed}` so the damage stops at four blocks, not four hundred.
+    if (c.block === 'air') {
+      const dk = K(c); st.dug = st.dug || {}
+      const outside = !allKeys.has(dk) && !c.roof
+      st.dug[dk] = (st.dug[dk] || 0) + 1
+      if (outside || st.dug[dk] > 3) {
+        const why = outside ? 'a cell that is not in this blueprint' : st.dug[dk] + ' digs of the same cell in one slice (dig/place loop)'
+        A.result(bot, { ev: 'build_runaway', job: job.id, at: [c.x, c.y, c.z], dug: st.dug[dk], allowed: 3, why })
+        A.boardEdit(b => { const q = (b.jobs || []).find(z => z.id === job.id); if (q && q.status === 'active') { q.status = 'paused'; q.note = 'auto-paused: build_runaway - ' + why + ' at ' + dk } })
+        return muster(bot, job, api, ctx, 'build: runaway dig stopped (' + why + ')')
+      }
+    }
     { const i = qDig.indexOf(c); if (i >= 0) qDig.splice(i, 1); else { const j = qPut.indexOf(c); if (j >= 0) qPut.splice(j, 1) } qUsed++ } // taken out of the batch: never worked twice
     if (satisfied(c, bot.blockAt(new Vec3(c.x, c.y, c.z)))) continue // a mate got there first while this batch was running
     let r
@@ -3221,6 +3244,14 @@ async function build (bot, job, api, ctx) {
     } else if (c.block === 'air') {
       r = await BL.digBlock(bot, new Vec3(c.x, c.y, c.z), Object.assign({ collect: true, requireHarvest: false, allowProtected: !!c.decor, own: job.id }, nearWater(c) ? { plug: false } : {})).catch(e => ({ ok: false, reason: String(e && e.message) })) // beside a water cell nothing is ever "plugged"
       if (r && r.ok && c.decor && /torch/.test(c.decor)) { st.retorch = st.retorch || {}; st.retorch[K(c)] = true }
+      // A SWAP IS ONE STEP, NOT TWO PASSES (owner 13:2xZ): the wrong block comes out and the right one goes in immediately from the pockets - the cell is never left
+      // open for the next walk to re-measure as "a hole". If the place fails, what was dug goes straight back so the road keeps its surface either way.
+      if (r && r.ok && c.then && !c.decor && c.then.block !== 'air') {
+        const want = pickList(c.then).find(q => A.count(bot, q))
+        if (want) { const p2 = await A.placeHard(bot, new Vec3(c.x, c.y, c.z), want, { stop: api.stop }).catch(() => ({ ok: false })); if (p2 && p2.ok) done++ }
+        const back = at(c.x, c.y, c.z)
+        if ((!back || !solid(back)) && c.decorBack !== false && r.block && A.count(bot, r.block)) await BL.placeBlock(bot, new Vec3(c.x, c.y, c.z), r.block, { retries: 0 }).catch(e_ => swallow('army_jobs:swapBack', e_))
+      }
     } else if (c.block === 'water') {
       r = await waterCell(c)
       if (r && r.noWater) { // no bucket / no source: every water cell rests 5 min, the rest of the blueprint goes on; said once per rest

@@ -771,15 +771,15 @@
     -518
    ],
    "axis": "x",
-   "lit": false,
-   "by": "Erika",
+   "lit": 1789910808319,
+   "by": "Honoka",
    "portal": [
     -38,
     98,
     -76
    ],
-   "through": 1789909617745,
-   "scoutRev": 3,
+   "through": 1789911106966,
+   "scoutRev": 0,
    "hub": {
     "room": [
      -41,
@@ -810,11 +810,10 @@
      98,
      -73
     ],
-    "built": true,
+    "built": false,
     "chestStands": true,
     "tableStands": true,
-    "at": 1789909551855,
-    "note": "restored 13:0xZ after the landing step clobbered it; verified built by nether_hub left:0 at 12:55:44Z"
+    "at": 1789911072732
    },
    "shell": [
     -39,
@@ -824,9 +823,9 @@
    ],
    "shellY": 98,
    "returnJob": "nether_return",
-   "deaths": 1,
-   "deathsResetAt": 1789909260634,
-   "deathsResetWhy": "stage 2: placeHard replaced by a never-moving placer 12:5xZ (the hub death came from its reposition/support remedies, not from a step of ours)",
+   "deaths": 0,
+   "deathsResetAt": 1789910779294,
+   "deathsResetWhy": "owner 13:2xZ: death is an accepted cost of exploring the Nether; the brake is 6 in 30 min",
    "landing": [
     -39,
     -78,
@@ -835,8 +834,8 @@
    ],
    "landingY": 98,
    "landingSafe": true,
-   "landingAt": 1789909618021,
-   "back": 1789909468415,
+   "landingAt": 1789911107263,
+   "back": 1789911097722,
    "lastDeath": 1789909676766,
    "lastDeathBy": "Erika",
    "roads": {
@@ -863,7 +862,8 @@
     }
    },
    "outAt": 1789909945544,
-   "outBy": "Honoka"
+   "outBy": "Honoka",
+   "deathLog": []
   }
  },
  "enlisted": [
@@ -1133,7 +1133,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 16,
+   "bots": 4,
    "site": [
     -367,
     69,
@@ -1169,7 +1169,7 @@
      ]
     ]
    },
-   "rev": 54,
+   "rev": 55,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789909537319
   },
@@ -1295,7 +1295,7 @@
     "cobblestone"
    ],
    "minBots": 4,
-   "maxBots": 14,
+   "maxBots": 18,
    "requires": {
     "minHp": 14,
     "minFood": 14
@@ -1314,8 +1314,8 @@
     }
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
-   "bots": 14,
-   "rev": 32
+   "bots": 18,
+   "rev": 34
   },
   {
    "id": "base_dorm",
@@ -1803,7 +1803,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789910439019
+   "restUntil": 1789911061213
   },
   {
    "id": "fill_ring_field2",
@@ -2142,7 +2142,7 @@
    },
    "shiftMin": 20,
    "rev": 17,
-   "restUntil": 1789901815970,
+   "restUntil": 1789910987400,
    "note": "09-20 05:40Z top model: 82 sheep stand OUTSIDE pen 1 (escaped 03:42-05:30Z over step blocks an escape routine left on the pen floor - removed, pen_litter rule live). want 30 + 4 herders until the flock is back; then want 10-24 / minBots 1 again",
    "desc": "OPERATORS: do NOT pause - since 09-20 02:00Z the herd job itself SHEARS the woolly sheep and CULLS the adults beyond want inside the pen (event pen_harvest); a full pen is its work, not a dead end (BUGS 105 fixed)",
    "produces": [
@@ -2186,13 +2186,13 @@
     "max": 20
    },
    "shiftMin": 20,
-   "rev": 7,
-   "restUntil": 1789905134064,
+   "rev": 8,
+   "restUntil": 1789911370106,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "leather"
    ],
-   "minBots": 0,
+   "minBots": 1,
    "maxBots": 4,
    "bots": 2
   },
@@ -2232,7 +2232,7 @@
    },
    "shiftMin": 20,
    "rev": 9,
-   "restUntil": 1789910799900,
+   "restUntil": 1789911287049,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "feather"
@@ -2995,9 +2995,9 @@
    "type": "build",
    "priority": 70,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 1,
+   "bots": 12,
    "site": [
     -311,
     69,
@@ -3041,123 +3041,63 @@
      ],
      "ramp": [
       [
-       -301,
-       -461,
+       -300,
+       -472,
        67
       ],
       [
        -300,
-       -461,
-       67
-      ],
-      [
-       -301,
-       -462,
+       -473,
        66
       ],
       [
        -300,
-       -462,
-       66
-      ],
-      [
-       -301,
-       -463,
+       -474,
        65
       ],
       [
        -300,
-       -463,
-       65
-      ],
-      [
-       -301,
-       -464,
+       -475,
        64
       ],
       [
        -300,
-       -464,
-       64
-      ],
-      [
-       -301,
-       -465,
+       -476,
        63
       ],
       [
        -300,
-       -465,
-       63
-      ],
-      [
-       -301,
-       -466,
+       -477,
        62
       ],
       [
        -300,
-       -466,
-       62
-      ],
-      [
-       -301,
-       -467,
-       61
-      ],
-      [
-       -300,
-       -467,
+       -478,
        61
       ],
       [
        -301,
-       -468,
-       60
-      ],
-      [
-       -300,
-       -468,
+       -478,
        60
       ],
       [
        -301,
-       -469,
-       59
-      ],
-      [
-       -300,
-       -469,
+       -477,
        59
       ],
       [
        -301,
-       -470,
-       58
-      ],
-      [
-       -300,
-       -470,
+       -476,
        58
       ],
       [
        -301,
-       -471,
-       57
-      ],
-      [
-       -300,
-       -471,
+       -475,
        57
       ],
       [
        -301,
-       -472,
-       56
-      ],
-      [
-       -300,
-       -472,
+       -474,
        56
       ],
       [
@@ -3166,37 +3106,131 @@
        55
       ],
       [
+       -301,
+       -472,
+       54
+      ]
+     ],
+     "keep": [
+      [
        -300,
+       68,
+       -472,
+       -300,
+       70,
+       -472
+      ],
+      [
+       -300,
+       67,
        -473,
-       55
-      ],
-      [
-       -301,
-       -474,
-       54
+       -300,
+       70,
+       -473
       ],
       [
        -300,
+       66,
        -474,
-       54
-      ],
-      [
-       -301,
-       -475,
-       53
+       -300,
+       70,
+       -474
       ],
       [
        -300,
+       65,
        -475,
-       53
+       -300,
+       70,
+       -475
+      ],
+      [
+       -300,
+       64,
+       -476,
+       -300,
+       70,
+       -476
+      ],
+      [
+       -300,
+       63,
+       -477,
+       -300,
+       70,
+       -477
+      ],
+      [
+       -300,
+       62,
+       -478,
+       -300,
+       70,
+       -478
+      ],
+      [
+       -301,
+       61,
+       -478,
+       -301,
+       70,
+       -478
+      ],
+      [
+       -301,
+       60,
+       -477,
+       -301,
+       70,
+       -477
+      ],
+      [
+       -301,
+       59,
+       -476,
+       -301,
+       70,
+       -476
+      ],
+      [
+       -301,
+       58,
+       -475,
+       -301,
+       70,
+       -475
+      ],
+      [
+       -301,
+       57,
+       -474,
+       -301,
+       70,
+       -474
+      ],
+      [
+       -301,
+       56,
+       -473,
+       -301,
+       70,
+       -473
+      ],
+      [
+       -301,
+       55,
+       -472,
+       -301,
+       70,
+       -472
       ]
      ]
     },
     "order": "near"
    },
-   "rev": 18,
+   "rev": 19,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check.",
-   "note": "top model 12:4xZ (gemba: 32 bots, not one cell in 10 min, no_los 229 / unreachable 129): the rest is a trench 14-16 deep with sheer walls and the new rule never drops into a pit - it had NO way in. WALK-IN STAIR first: ramp x -301/-300, z -461..-475 from the finished middle segment (y68) down to the floor y53. 12 bots: the trench is 7 wide",
+   "note": "top model 13:3xZ: the first stair was swallowed by the fill itself (ramp columns are filled on up to grade) and the front became a 9-high cliff again = no way in, bots dropped in and pillared out (foreman paused it: \"roofing, not filling\"). NEW: a switchback stair from the finished front at z -471 (lane x -300 south 67->61, lane x -301 north 60->54) with  boxes that hold the air above every step open. Fill the stair itself last",
    "restUntil": 1789906650052
   },
   {
@@ -3758,8 +3792,8 @@
      "width": 3
     }
    },
-   "rev": 4,
-   "note": "needs: dirt (2 cells wait; every cell whose material exists is done or in work)",
+   "rev": 5,
+   "note": "top model 13:3xZ: PAUSED until fill_road9_trench has closed the 47 columns it dug below grade. The cause is fixed (nothing of a blueprint is taken off unless its replacement is already in the pockets; a swap is dig+place in one step; build_runaway pauses a job that digs one cell more than 3 times in a slice) - re-activate only with cobblestone in the DEPOT",
    "stuckBy": {
     "key": "rev4",
     "bots": [
@@ -3784,7 +3818,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789910718602
+   "restUntil": 1789911975063
   },
   {
    "id": "nether_landing_2",
@@ -3904,17 +3938,14 @@
    "front": "base",
    "status": "paused",
    "when": "day",
-   "bots": 1,
-   "names": [
-    "Kanade"
-   ],
+   "bots": 2,
    "shiftMin": 20,
    "site": [
     -326,
     69,
     -518
    ],
-   "plan": "zone portal (docs/WORLD.md): STAGE 2 step 2 — THE HUB. A walled, roofed, lit 9x9 room (7x7 of floor = 8 bots) around the far gate at the_nether -37,98,-76, with a chest and a crafting table CARRIED OVER and registered under settings.nether only (the overworld depot must not see them). ONE round trip per slice: cross, 6 min of work inside the room box, come home. Blueprint nether_hub.",
+   "plan": "zone portal (docs/WORLD.md): THE HUB at the_nether -37,98,-76 — walled, roofed, lit 9x9 room (7x7 floor = 8 bots) with the chest and crafting table carried over, registered under settings.nether only. This pass adds the FENCE GATE in the door (13:07:42Z a mob walked in through the open gap and killed a bot standing at the portal; the pathfinder opens a gate, a mob does not, and a door would lock the army out).",
    "params": {
     "blueprint": "nether_portal",
     "origin": [
@@ -3935,12 +3966,12 @@
      -76
     ],
     "door": "x+",
-    "minutes": 6,
-    "cobble": 256,
-    "crossS": 45,
-    "maxDeaths": 2
+    "minutes": 5,
+    "cobble": 192,
+    "crossS": 45
    },
-   "rev": 1
+   "rev": 2,
+   "note": "auto-paused: the gate is lit and the round trip is done (bump rev to send another expedition)"
   },
   {
    "id": "west_terrace_cut_2",
@@ -3975,7 +4006,7 @@
      "h": 22
     }
    },
-   "rev": 2
+   "rev": 4
   },
   {
    "id": "nether_road_xp",
@@ -4079,6 +4110,130 @@
     ]
    },
    "note": "auto-paused: build complete"
+  },
+  {
+   "id": "base_mine_pad",
+   "type": "build",
+   "priority": 96,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 10,
+   "site": [
+    -330,
+    69,
+    -500
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone mine x -338..-322 / z -508..-492 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. mine head: hut, haul chests and light AROUND the stair mouth (zone centre); the stairwell itself is dug and owned by the miners",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -330,
+     68,
+     -500
+    ],
+    "args": {
+     "w": 15,
+     "d": 17
+    }
+   },
+   "rev": 12,
+   "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -329,66,-494",
+   "stuckBy": {
+    "key": "rev12",
+    "bots": [
+     "Erika"
+    ]
+   }
+  },
+  {
+   "id": "fill_road9_trench",
+   "type": "build",
+   "priority": 86,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 4,
+   "site": [
+    -286,
+    69,
+    -477
+   ],
+   "plan": {
+    "zone": "the road-9 corridor x -289..-283 / z -488..-466",
+    "why": "REPAIR of the trench base_road_9 dug into itself 12:09-13:19Z (build_pass done:120 eighteen times with left stuck at 2: the unlid rule took the paving off, the paving cell then measured its column as open below and filled one block LOWER, over and over, because the exact paving material was 0 in the depot and it could never go back on). MEASURED 13:3xZ by probe: 47 of 161 columns of the corridor are below grade, deepest 9. Fill SOLID from the natural ground up to y67 - the paving layer y68 is base_road_9's own work and is NOT part of this job"
+   },
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -286,
+     67,
+     -477
+    ],
+    "order": "near",
+    "args": {
+     "box": [
+      -289,
+      -488,
+      -283,
+      -466
+     ],
+     "depth": 10,
+     "fill": "dirt",
+     "mats": [
+      "dirt",
+      "cobblestone",
+      "cobbled_deepslate",
+      "stone",
+      "andesite",
+      "diorite",
+      "granite",
+      "tuff",
+      "deepslate",
+      "gravel"
+     ]
+    }
+   }
+  },
+  {
+   "id": "nether_fortress",
+   "type": "portal",
+   "priority": 96,
+   "front": "base",
+   "status": "active",
+   "when": "day",
+   "bots": 12,
+   "shiftMin": 20,
+   "site": [
+    -326,
+    69,
+    -518
+   ],
+   "plan": "zone portal (docs/WORLD.md): FIND THE FORTRESS. 12 bots = 4 squads of 3, one per bearing (+x/-x/+z/-z by roster index) from the hub at the_nether -32,98,-76, 300 blocks out in 50-block legs on the NATURAL terrain with the ordinary read-only pathfinder. A gap the pathfinder cannot cross gets a floor of at most 4 carried stone - a bridge is a road everybody reuses, never a tunnel. Every leg reports nether_scout {pos,biome,sight}; the first nether brick goes into settings.nether.sightings and pulls the rest to it. Ghasts: keep moving, do not stand in the open. Piglins: never attacked. Death is an accepted cost; the job stops itself only at 6 deaths in 30 min.",
+   "params": {
+    "blueprint": "nether_portal",
+    "origin": [
+     -326,
+     68,
+     -518
+    ],
+    "args": {
+     "axis": "x"
+    },
+    "buildJob": "base_portal",
+    "go": true,
+    "landing": true,
+    "work": "fortress",
+    "range": 300,
+    "step": 50,
+    "minutes": 7,
+    "cobble": 128,
+    "crossS": 45,
+    "maxDeaths": 6
+   }
   }
  ]
 }

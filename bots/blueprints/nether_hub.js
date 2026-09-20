@@ -10,7 +10,7 @@
 //
 // origin = the centre column of the far gate; y = the level of the gate's LOWEST portal cell (the floor you walk on is y-1).
 // params: w=9, d=9 (OUTER size, odd, walls included -> 7x7 of floor for 8 bots), h=3 (interior height), door='x+'|'x-'|'z+'|'z-'.
-// Cells: block 'stone' = any stone sort the squad carries · 'air' = must be clear · 'torch' · 'chest' · 'crafting_table'.
+// Cells: block 'stone' = any stone sort the squad carries · 'air' = must be clear · 'torch' · 'chest' · 'crafting_table' · 'fence_gate'.
 const DIRS = { 'x+': [1, 0], 'x-': [-1, 0], 'z+': [0, 1], 'z-': [0, -1] }
 const size = (p = {}) => ({ w: Math.max(7, (p.w || 9) | 1), d: Math.max(7, (p.d || 9) | 1), h: Math.max(3, p.h || 3), door: DIRS[p.door] ? String(p.door) : 'x+' })
 module.exports = (o, p = {}) => {
@@ -27,9 +27,13 @@ module.exports = (o, p = {}) => {
     }
   }
   // ONE door, 1 wide and 2 high, in the middle of a wall — a sealed box is a trap, and the road starts here
+  // A FENCE GATE, NOT A HOLE (measured 13:07:42Z: Erika was killed by a mob that walked in through the open gap and found her
+  // standing at the portal). The army's standing rule: gates are FENCE GATES — the pathfinder opens a gate and a mob does not,
+  // while a door would lock the army out. The cell above it stays clear so a bot walks through at full height.
   const [dx, dz] = DIRS[door]
   const door0 = [dx * hx, dz * hz]
-  for (let k = 0; k < 2; k++) put(door0[0], o.y + k, door0[1], 'air')
+  put(door0[0], o.y, door0[1], 'fence_gate', { axis: dx ? 'z' : 'x' })
+  put(door0[0], o.y + 1, door0[1], 'air')
   // light (nothing spawns on a lit floor) and the furniture, both off the gate's own plane
   for (const [x, z] of [[-hx + 1, -hz + 1], [hx - 1, hz - 1], [-hx + 1, hz - 1], [hx - 1, -hz + 1]]) put(x, o.y, z, 'torch', { needs: 'below' })
   put(0, o.y, -hz + 1, 'chest')
