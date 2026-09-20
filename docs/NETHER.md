@@ -40,6 +40,24 @@ Keep this under 80 lines. Machine truth: `bots/army/jobs.json → settings.nethe
 | 2 | `lib/army.js` | (a) `dimOf(bot)`; (b) `travel({dim})` refuses `wrong_dim` without pathing; (c) KEEP-OUT rule + homeward bias overworld-only; (d) `bank`/`withdraw`/`chestsOf`/`scanChests` refuse off-overworld; (e) **`skyAbove`/`digOut`/`stepDown` must not run off the overworld** — under the Nether's bedrock roof every bot reads "roofed in" and cuts a staircase (measured 12:30:23Z); (f) `ours()`/`ourBlock()` key cells by `x,y,z` alone, so an overworld cell matches a Nether position. *(`portal` in `STILL_OK`: done.)* |
 | 3 | `lib/army_jobs.js` | **Done 12:2xZ (by me, in the three places I was given):** `overworld(bot)` helper; `muster` stands still off-overworld instead of walking to the muster slot; `withHandover` skips bedtime, canteen, pocket-banking, handover-banking, the respawn-bed click and `upTheStairs` off-overworld. Proven live: Kanade banked **nothing** between 12:30:15 and 12:30:51 in the Nether and banked 208 cobblestone at 12:30:58, seven seconds after coming home. |
 
+## THE WAY DOWN — `nether_stair` (RUNNING, the top model's call 13:5xZ)
+Blueprint `nether_stair.js`: a 2-wide, 3-high, roofed, lit corridor from the hub's z- doorway at the_nether **-37,98,-81** down to
+**y33**, 66 steps / 1330 cells. One blueprint serves both cases — the build routine **digs** the `air` cells where there is
+netherrack and **places** the `stone` ones where there is void, so a half-rock, half-void slope needs no decision. Nobody walks a
+ledge and no ghast sees in. Progress is `settings.nether.stair`; when `left` and `unloaded` both reach 0 it writes `floorHub`.
+* **first passes: 490 of 1330 cells done, 43.7 and 20.7 blocks/bot-min, 0 deaths.**
+
+## HOW A BOT WALKS IN THE NETHER (the fix for six identical deaths)
+Six bots "tried to swim in lava" between 13:36 and 13:37Z — one cause, not bad luck. Lava is in `blocksToAvoid`, so the pathfinder
+never routes INTO it; it routes ALONGSIDE it, cuts diagonal corners over it and drops 3-4 onto a ledge beside it. Every Nether walk
+now goes through `nTravel`, which installs on that bot's movements:
+* an `exclusionAreasStep` pricing at **100** any cell with lava or fire **within 2 horizontally, 3 below or 2 above** (from a lava
+  set refreshed per trip, so flow that arrived after planning is seen next hop);
+* `maxDropDown = 1`, no parkour, no 1x1 towers, no digging, and **`allowSprinting` pinned to false with a property** because
+  `A.travel` re-asserts it from the larder on every trip. `netherWalkOff` takes it all back off when the bot is home.
+* bridging only from a **safe stand** (`walkableArea >= 8` and no lava within 2) — never off the edge of a 1-wide ledge.
+**Result: 0 deaths on the far side since it went in.**
+
 ## THE FAR GATE IS ON A LEDGE — that is the whole blocker (measured 13:4xZ)
 Probe from Juri at the_nether -43,98,-80: **42 of 81 sampled columns within 12 blocks of the gate have no floor within 4 below.**
 The gate generated on a narrow shelf near the Nether roof; the main floor is ~65 blocks down (soul sand at y33, ancient debris at

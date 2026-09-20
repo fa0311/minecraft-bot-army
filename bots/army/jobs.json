@@ -772,13 +772,13 @@
    ],
    "axis": "x",
    "lit": 1789910808319,
-   "by": "Yui",
+   "by": "Kotori",
    "portal": [
-    -44,
-    98,
+    -43,
+    100,
     -80
    ],
-   "through": 1789911888141,
+   "through": 1789911920260,
    "scoutRev": 0,
    "hub": {
     "room": [
@@ -890,8 +890,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789911888339,
-   "back": 1789911908292,
+   "landingAt": 1789911920444,
+   "back": 1789911965726,
    "lastDeath": 1789911678325,
    "lastDeathBy": "Hotaru",
    "roads": {
@@ -939,7 +939,7 @@
     ],
     "left": 840,
     "unloaded": 0,
-    "at": 1789911907573,
+    "at": 1789911991808,
     "done": false
    }
   }
@@ -1882,7 +1882,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789911997073
+   "restUntil": 1789912205736
   },
   {
    "id": "fill_ring_field2",
@@ -2192,7 +2192,7 @@
    "front": "pens",
    "status": "active",
    "when": "any",
-   "bots": 3,
+   "bots": 1,
    "site": [
     -376,
     69,
@@ -2220,7 +2220,7 @@
     "radius": 250
    },
    "shiftMin": 20,
-   "rev": 18,
+   "rev": 19,
    "restUntil": 1789910987400,
    "note": "09-20 05:40Z top model: 82 sheep stand OUTSIDE pen 1 (escaped 03:42-05:30Z over step blocks an escape routine left on the pen floor - removed, pen_litter rule live). want 30 + 4 herders until the flock is back; then want 10-24 / minBots 1 again",
    "desc": "OPERATORS: do NOT pause - since 09-20 02:00Z the herd job itself SHEARS the woolly sheep and CULLS the adults beyond want inside the pen (event pen_harvest); a full pen is its work, not a dead end (BUGS 105 fixed)",
@@ -2228,7 +2228,7 @@
     "wool"
    ],
    "minBots": 1,
-   "maxBots": 4
+   "maxBots": 3
   },
   {
    "id": "herd_cows",
@@ -2311,7 +2311,7 @@
    },
    "shiftMin": 20,
    "rev": 9,
-   "restUntil": 1789911857049,
+   "restUntil": 1789912217458,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "feather"
@@ -3076,7 +3076,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 3,
+   "bots": 2,
    "site": [
     -311,
     69,
@@ -3307,7 +3307,7 @@
     },
     "order": "near"
    },
-   "rev": 23,
+   "rev": 24,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check.",
    "note": "top model 13:3xZ: the first stair was swallowed by the fill itself (ramp columns are filled on up to grade) and the front became a 9-high cliff again = no way in, bots dropped in and pillared out (foreman paused it: \"roofing, not filling\"). NEW: a switchback stair from the finished front at z -471 (lane x -300 south 67->61, lane x -301 north 60->54) with  boxes that hold the air above every step open. Fill the stair itself last",
    "restUntil": 1789906650052
@@ -4408,7 +4408,7 @@
    "type": "portal",
    "priority": 96,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 4,
    "shiftMin": 20,
@@ -4439,7 +4439,8 @@
     "cobble": 256,
     "crossS": 45,
     "maxDeaths": 6
-   }
+   },
+   "note": "auto-paused: the gate is lit and the round trip is done (bump rev to send another expedition)"
   },
   {
    "id": "west_terrace_cut_3",
@@ -4448,7 +4449,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 24,
+   "bots": 8,
    "minBots": 6,
    "maxBots": 24,
    "site": [
@@ -4473,7 +4474,8 @@
      "d": 41,
      "h": 32
     }
-   }
+   },
+   "rev": 1
   }
  ]
 }
