@@ -3050,14 +3050,21 @@ async function build (bot, job, api, ctx) {
   // ONE TRIP, NOT SIX (top model 11:3xZ; MEASURED 11:0xZ: a withdrawal takes 24 s of which 23.9 s is WALKING - the trip is the cost, never the transaction). A fill
   // builder took 192 blocks = 3 stacks per trip and was back at the depot every few minutes. It now takes what its free pockets hold, minus 8 slots for what it digs
   // up on the way (capped at 1024 = 16 stacks), and the bank keep-list below keeps that filler out of the chests again.
-  const fillBatch = () => Math.max(192, Math.min(1024, (U.freeSlots(bot) - 8) * 64))
+  // ...but a big load must not be ONE builder emptying the depot for the other nineteen (11:43Z, the first minute with 20 builders on fill_ravine_s: `build_blocked no
+  // filler` x11 and `the depot index promised 64 cobblestone, the chests gave 0` - the first trips had taken the lot). A builder takes its share: the pile divided by
+  // the crew, never less than 64, never more than the pockets hold.
+  const crewN = () => { if (Date.now() - (st.crewT || 0) > 60000) { st.crewT = Date.now(); st.crewN = crewOf(job, bot.username).n } return st.crewN || 1 }
+  const fillBatch = mat => {
+    const pockets = Math.max(192, Math.min(1024, (U.freeSlots(bot) - 8) * 64))
+    return Math.max(64, mat ? Math.min(pockets, Math.ceil(A.stockOf(mat) / crewN())) : pockets)
+  }
   // A FILL'S SUBSTITUTES ARE WITHDRAWN, NEVER CRAFTED (foreman 11:25Z, measured: `obtain_failed {"item":"diorite","n":192,"why":"got 0/192 missing {cobblestone:192,
   // quartz:192}"}` from Riko 11:17:20, the same for granite and andesite - A.obtain falls through to the recipe solver, so a `mats` list of raw stone types sent
   // builders off to CRAFT diorite out of quartz nobody owns). The filler is whatever the depot has MOST of, taken straight out of the chest index (A.withdraw); with
   // nothing in the depot the job says `build_blocked no filler` once and the builder goes back to the board.
   const bestOfMats = list => { const m = A.stockMap(); return list.filter(q => (m[q] || 0) > 0).sort((a, b) => (m[b] || 0) - (m[a] || 0))[0] || null }
   const bestMat = () => f0 ? bestOfMats(matsOf(f0)) : null
-  const restock = async () => { const n = bestMat(); if (!n) return false; task(bot, 'build: getting ' + n); await A.withdraw(bot, n, fillBatch(), { stop: api.stop }); task(bot, 'build ' + P.blueprint); await A.travel(bot, { x: o.x, y: null, z: o.z }, { range: 14, ms: 120000, stop: api.stop }); return fillMats() > 0 }
+  const restock = async () => { const n = bestMat(); if (!n) return false; task(bot, 'build: getting ' + n); await A.withdraw(bot, n, fillBatch(n), { stop: api.stop }); task(bot, 'build ' + P.blueprint); await A.travel(bot, { x: o.x, y: null, z: o.z }, { range: 14, ms: 120000, stop: api.stop }); return fillMats() > 0 }
   const climbOut = async () => {
     const from = bot.entity.position.floored(); task(bot, 'build: climbing out of the fill (blocks low)')
     try { const { goals } = require('mineflayer-pathfinder'); for (const [x, z] of (bx.z2 - bx.z1 <= bx.x2 - bx.x1 ? [[from.x, bx.z1 - 2], [from.x, bx.z2 + 2]] : [[bx.x1 - 2, from.z], [bx.x2 + 2, from.z]])) { const r = bot.pathfinder.getPathTo(bot.pathfinder.movements, new goals.GoalNear(x, fillG + 1, z, 2), 500); if (r && r.status === 'success') return 'walk' } } catch (e_) { swallow('army_jobs:climbPath', e_) }
@@ -3094,7 +3101,7 @@ async function build (bot, job, api, ctx) {
     const { dig, put } = todo()
     if (!dig.length && !put.length) break
     if (streak >= 2 && Date.now() - (st.poleT || 0) > 60000) { st.poleT = Date.now(); if (await offThePole(bot, job)) { streak = 0; continue } }
-    if (f0) { const d = depthNow(); if (d > 2 && fillMats() <= d + 2) { await climbOut(); if (!await restock()) { A.result(bot, { ev: 'build_blocked', job: job.id, why: 'no filler carried or in stock (' + matsOf(f0).slice(0, 4).join('/') + ' ...)' }); return muster(bot, job, api, ctx, 'build: no filler') } continue } else if (d <= 2 && fillMats() < 256 && !(st.restockAt > Date.now() - 120000) && matsOf(f0).some(m => A.stockOf(m) > 0)) { st.restockAt = Date.now(); await restock() } }
+    if (f0) { const d = depthNow(); if (d > 2 && fillMats() <= d + 2) { await climbOut(); if (!await restock()) { A.result(bot, { ev: 'build_blocked', job: job.id, why: 'no filler carried or in stock (' + matsOf(f0).slice(0, 4).join('/') + ' ...)' }); A.decline(bot, job, 180000, 'build: no filler in the depot'); return muster(bot, job, api, ctx, 'build: no filler') } continue } else if (d <= 2 && fillMats() < 256 && !(st.restockAt > Date.now() - 120000) && matsOf(f0).some(m => A.stockOf(m) > 0)) { st.restockAt = Date.now(); await restock() } }
     if (f0 && depthNow() > 0 && A.walkableArea(bot, 12) <= 3) { // entombed by the mates' floor: out first, work afterwards
       const okUp = await rideUp(); st.rideN = okUp ? 0 : (st.rideN || 0) + 1
       if (st.rideN >= 3) { A.askHelp(bot, 'entombed', 'boxed in below grade inside ' + job.id + ' at ' + K(bot.entity.position.floored()) + ' (walkableArea ' + A.walkableArea(bot, 12) + ')'); return muster(bot, job, api, ctx, 'build: boxed in inside the fill') }
@@ -3136,9 +3143,9 @@ async function build (bot, job, api, ctx) {
       // a SOLID fill cell never goes through obtain(): the biggest pile in the depot is withdrawn in one big load (see bestMat/fillBatch above), nothing is crafted
       if (!item && c.solid) {
         const pick = bestOfMats(matsOf(c))
-        if (!pick) { A.result(bot, { ev: 'build_blocked', job: job.id, why: 'no filler in the depot (' + matsOf(c).slice(0, 4).join('/') + ' ...)' }); return muster(bot, job, api, ctx, 'build: no filler') }
-        task(bot, 'build: getting ' + pick); await A.withdraw(bot, pick, fillBatch(), { stop: api.stop }); task(bot, 'build ' + P.blueprint)
-        if (!A.count(bot, pick)) { if (api.stop()) return 'build: interrupted while fetching ' + pick; A.result(bot, { ev: 'build_blocked', job: job.id, why: 'the depot index promised ' + pick + ' and the chests gave none' }); return muster(bot, job, api, ctx, 'build: no filler') }
+        if (!pick) { A.result(bot, { ev: 'build_blocked', job: job.id, why: 'no filler in the depot (' + matsOf(c).slice(0, 4).join('/') + ' ...)' }); A.decline(bot, job, 180000, 'build: no filler in the depot'); return muster(bot, job, api, ctx, 'build: no filler') }
+        task(bot, 'build: getting ' + pick); await A.withdraw(bot, pick, fillBatch(pick), { stop: api.stop }); task(bot, 'build ' + P.blueprint)
+        if (!A.count(bot, pick)) { if (api.stop()) return 'build: interrupted while fetching ' + pick; A.result(bot, { ev: 'build_blocked', job: job.id, why: 'the depot index promised ' + pick + ' and the chests gave none' }); A.decline(bot, job, 180000, 'build: the chests gave no filler'); return muster(bot, job, api, ctx, 'build: no filler') }
         if (!await A.travel(bot, { x: o.x, y: null, z: o.z }, { range: 14, ms: 120000, stop: api.stop })) return 'build: cannot get back'
         item = pick; c = Object.assign({}, c, { block: pick })
       }

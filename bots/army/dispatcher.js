@@ -148,7 +148,7 @@ let last = {} // bot -> job id
 let lastWrite = {} // bot -> ms
 const over = {} // bot -> job id it OVERFLOWED into (see OVERFLOW below): a standing assignment, not a per-tick lottery
 const declSeen = {} // "job|bot|until" -> ms we first saw that decline note (a note is unique per bot+job+expiry) = the REST rule's 10-min window
-const restedAt = {} // job id -> ms of the last rest the dispatcher ordered (never re-rest inside the rest itself)
+const restedAt = {} // job id -> {t, why, ms} of the last rest the dispatcher ordered (the same reason again doubles the rest)
 const since = {} // bot -> ms when it got its current job (shifts). Survives a dispatcher restart through assign/<bot>.json
 if (!DRY) for (const f of fs.readdirSync(P.assign)) { const a = f.endsWith('.json') && readJSON(path.join(P.assign, f), null); if (a && a.bot && a.job && a.job.id && Date.now() - a.t < 120000) { last[a.bot] = a.job.id; since[a.bot] = a.since || a.t } }
 
@@ -342,16 +342,20 @@ function tick () {
   // Urgent jobs (>= 96) and producing jobs are never rested, so this can never eject somebody who IS producing.
   for (const job of jobs) {
     if ((job.priority || 0) >= 96 || job.status !== 'active') continue
-    if ((job.restUntil || 0) > tNow || tNow - (restedAt[job.id] || 0) < 600000) continue
+    if ((job.restUntil || 0) > tNow) continue
     const w = declWhy[job.id]; if (!w) continue
     const worst = Object.entries(w).sort((a, b) => b[1].size - a[1].size)[0]
     if (!worst || worst[1].size < 3) continue
     // …but never rest a job that is actually PRODUCING (resting ejects its holders too). Measured output, not "somebody has not declined yet":
     // a job refilled every minute always has one fresh bot without a note, which kept base_portal/base_dorm_pad cycling bots all morning.
     if ((outAt[job.id] || []).some(x => x >= tNow - 300000)) continue
-    restedAt[job.id] = tNow; job.restUntil = tNow + 600000
-    log('REST', job.id, worst[1].size + ' bots declined "' + worst[0] + '" in 10 min -> rests 10 min')
-    if (!DRY) boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (j) j.restUntil = Date.now() + 600000 })
+    // BACKOFF: a fixed 10-min rest turned the sponge into a metronome (11:37-11:47: `muster -> tidy_spawn x17` the moment the rest ran out,
+    // although the audit work list it waits for is only rebuilt every ~30 min). Each rest for the SAME reason doubles, capped at an hour.
+    const r = restedAt[job.id]; const same = r && r.why === worst[0] && tNow - r.t < r.ms + 900000
+    const ms = Math.min(3600000, same ? r.ms * 2 : 600000)
+    restedAt[job.id] = { t: tNow, why: worst[0], ms }; job.restUntil = tNow + ms
+    log('REST', job.id, worst[1].size + ' bots declined "' + worst[0] + '" in 10 min -> rests ' + Math.round(ms / 60000) + ' min')
+    if (!DRY) boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (j) j.restUntil = Date.now() + ms })
   }
   // TENURE THAT HOLDS (09-20: the soft tenure above changed nothing - the SECOND pass ignored it altogether, and `last[n] !== S.fallback` made every
   // bot sitting in the sponge free game, which is how tidy_spawn <-> muster became the top two flows). A bot younger than tenureMin in a job that
@@ -416,11 +420,13 @@ function tick () {
     return producing(job.id) && held < 2 * Math.max(1, headOf(job)) // handlers that report no cell count (lumber, light, tidy): never more than double
   }
   const overFit = (job, n) => !!job && job.status === 'active' && SQUAD.test(job.type) && !(job.names && job.names.length) && !((job.restUntil || 0) > Date.now()) &&
-    !saturated(job) && ((job.bots || 0) >= 3 || (job.maxBots || 0) >= 3) && !(D[job.id] && D[job.id].deficit <= 0) && roomFor(job) && !(job.front && !fronts.has(job.front) && fronts.size >= maxFronts) &&
+    !saturated(job) && ((job.bots || 0) >= 3 || (job.maxBots || 0) >= 3) && !(D[job.id] && D[job.id].deficit <= 0) && !(job.front && !fronts.has(job.front) && fronts.size >= maxFronts) &&
     !(job.exclude && job.exclude.includes(n)) && eligible(job, hbs[n], phase, last[n] === job.id) && !declined(job, n) &&
     !(yieldCap[job.id] && yieldCap[job.id].until > Date.now() && (staffed[job.id] || []).length >= yieldCap[job.id].cap) // a squad the YIELD THROTTLE cut is the last place for another bot
+  // roomFor gates only a NEW overflow, never a standing one: it counts the bots placed THIS tick, so testing it again next tick made
+  // fill_ravine_s and fill_ravine_m swap bots 11x in 10 min (11:47). A hold ends when the job ends, rests, saturates or declines the bot.
   const pickOverflow = n => {
-    const c = jobs.filter(j => overFit(j, n)).map(j => { const head = Math.max(1, headOf(j)); return { j, t: producing(j.id) ? 1 : 0, s: (head - (staffed[j.id] || []).length) / head, d: dist(hbs[n], j.site) } })
+    const c = jobs.filter(j => overFit(j, n) && roomFor(j)).map(j => { const head = Math.max(1, headOf(j)); return { j, t: producing(j.id) ? 1 : 0, s: (head - (staffed[j.id] || []).length) / head, d: dist(hbs[n], j.site) } })
     c.sort((a, b) => (b.t - a.t) || (Math.round(b.s * 4) - Math.round(a.s * 4)) || (a.d - b.d))
     return c.length ? c[0].j : null
   }

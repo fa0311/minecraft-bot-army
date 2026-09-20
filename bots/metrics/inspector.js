@@ -787,9 +787,21 @@ async function probeShards () {
   S.shardsDownList = [...new Set(down)].sort()
 }
 
+// OFF-SITE COPY, PROACTIVELY (owner 09-20: "github への push は積極的に行うべき"): every 30 min, when every production file loads (`ops/check.sh`), `ops/git.sh publish`
+// commits what changed and pushes it (the wrapper refuses staged tokens / passwords / addresses; the token comes from this process's environment). No new daemon:
+// one child process from this loop, never awaited, one at a time.
+let _pubT = Date.now() - 20 * 60000; let _pubBusy = false
+function publishTick () {
+  if (_pubBusy || Date.now() - _pubT < 30 * 60000 || !process.env.GITHUB_TOKEN) return
+  _pubT = Date.now(); _pubBusy = true
+  const { execFile } = require('child_process')
+  execFile('/bin/bash', ['-c', 'cd ' + WS + ' && ops/check.sh >/dev/null 2>&1 && ops/git.sh publish "auto: $(date -u +%F\\ %H:%MZ)" 2>&1 | tail -2'], { timeout: 180000 }, (err, out) => { _pubBusy = false; log('publish: ' + (err ? 'FAILED ' + String(err.message).slice(0, 120) : 'ok') + ' ' + String(out || '').replace(/ghp_[A-Za-z0-9]+/g, '***').trim().slice(0, 200)) })
+}
+
 let tick = 0
 async function loop () {
   try {
+    publishTick()
     gembaTick() // fire-and-forget: a 60 s field watch every 10 min, never awaited
     await probeShards()
     const snap = await sample(tick % 2 === 0)
