@@ -34,7 +34,7 @@
 //   node armyctl.js base [set x,y,z [--wood x1,z1,x2,z2] [--move]]   show / freeze THE base (from `sites`, or picked from the air: ops/skyshot.js). y = GROUND
 //                                      level of the whole base. Writes settings.base + settings.muster (the yard) and takes the bootstrap jobs along:
 //                                      4-bot detail survey, wood_site clears the footprint, hunt/forage/sponge at the base. Never moved by accident: --move
-//   node armyctl.js base keepout add <id> x1,z1,x2,z2 <why…> | base keepout rm <id>   land the plan leaves alone (settings.keepOut: a ravine, a pond): no zone,
+//   node armyctl.js base keepout add <id> x1,z1,x2,z2 <why…> | base keepout rm <id> | base keepout exit <id> x,y,z   land the plan leaves alone (settings.keepOut: a ravine, a pond): no zone,
 //                                      no road within 3; the sponge stops tidying there at once; `plan-base` lays the lattice AROUND it. `base` lists them
 //   node armyctl.js plan-base [--at x,y,z] [--survey <skyshot.json>] [--force-zone <id>,…] [--move-zone <id>,…] [--put]   the base as ZONES on one level (core,
 //                                      yard, dorm, fields 27x27, tree farm 48x48, pens, mine head, roads, torch grid, wall) on a lattice of 32x32 slots around
@@ -773,11 +773,16 @@ async function main () {
     // KEEP-OUTS: land the base plan must leave alone (a ravine, a pond, a village) - no zone, no road within 3 of it; `plan-base` lays the lattice around
     // it, the sponge (`tidy`) stops groundskeeping there at once. A keep-out is a decision about the WORLD: it outlives every re-plan.
     const [, , , , op, id, boxArg, ...why] = process.argv; const usage = 'usage: base keepout add <id> x1,z1,x2,z2 <why…> | base keepout rm <id>   (list: `base`)'
+    if (op === 'exit') { // the hole's WALKABLE way out (A.travel sends a bot inside the box there first): `base keepout exit <id> x,y,z`; it must be re-set when the way out changes (a fill buries a natural ramp)
+      const c = String(boxArg || '').split(',').map(Number); if (c.length !== 3 || !c.every(Number.isInteger)) return console.log('usage: base keepout exit <id> x,y,z')
+      try { console.log(withBoardLock(b => { const k = ((b.settings || {}).keepOut || []).find(q => q.id === id); if (!k) throw new Error('no keep-out ' + id); k.exit = c; return 'keep-out ' + id + ': exit ' + c.join(',') })) } catch (e) { console.log('REFUSED: ' + e.message) }
+      return
+    }
     if (!['add', 'rm'].includes(op) || !/^[a-z0-9_]+$/i.test(id || '')) return console.log(usage)
     let box = null; if (op === 'add') { const c = String(boxArg || '').split(',').map(Number); if (c.length !== 4 || !c.every(Number.isInteger) || !why.join(' ').trim()) return console.log(usage); box = [Math.min(c[0], c[2]), Math.min(c[1], c[3]), Math.max(c[0], c[2]), Math.max(c[1], c[3])] }
     let r; try { r = withBoardLock(b => {
       const S = b.settings = b.settings || {}; const old = (S.keepOut || []).find(k => k.id === id); if (op === 'rm' && !old) throw new Error('no keep-out ' + id)
-      S.keepOut = (S.keepOut || []).filter(k => k.id !== id); if (box) S.keepOut.push({ id, box, why: why.join(' ') }); if (!S.keepOut.length) delete S.keepOut
+      S.keepOut = (S.keepOut || []).filter(k => k.id !== id); if (box) S.keepOut.push(Object.assign({ id, box, why: why.join(' ') }, old && old.exit ? { exit: old.exit } : {})); if (!S.keepOut.length) delete S.keepOut
       const errs = validateSettings(S).filter(e => /keepOut/.test(e)); if (errs.length) throw new Error(errs.join('; '))
       const same = (p, q) => JSON.stringify(p) === JSON.stringify(q); const tidied = []
       for (const j of b.jobs || []) { // the sponge leaves it alone from the next slice on (params.exclude of `tidy`): nobody tends the rim of a ravine

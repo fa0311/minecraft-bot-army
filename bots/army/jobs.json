@@ -597,9 +597,9 @@
     ],
     "why": "ravine + two day-one quarry pits: BEING FILLED SOLID by owner order 09-20 (jobs fill_ravine_s/m/n) - not a quarry any more; nothing else is built here until the fill is complete, then this keep-out is removed",
     "exit": [
-     -325,
+     -311,
      69,
-     -409
+     -415
     ]
    }
   ],
@@ -1182,7 +1182,7 @@
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 26,
-   "rev": 21
+   "rev": 24
   },
   {
    "id": "base_dorm",
@@ -1714,7 +1714,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789895712081
+   "restUntil": 1789896882840
   },
   {
    "id": "guard_muster",
@@ -2083,8 +2083,8 @@
     -534
    ],
    "requires": {
-    "minHp": 14,
-    "minFood": 10
+    "minHp": 10,
+    "minFood": 6
    },
    "plan": "BASE PLAN zone pen_1 (x -402..-376 / z -540..-528, built by base_pen_1): roadmap P3 - sheep are LURED in with wheat and bred to >=10 (wool for 50 beds); no world change, only the gate is opened and shut",
    "params": {
@@ -2104,8 +2104,8 @@
     "radius": 250
    },
    "shiftMin": 20,
-   "rev": 11,
-   "restUntil": 1789895594101,
+   "rev": 12,
+   "restUntil": 1789896787799,
    "note": "09-20 05:40Z top model: 82 sheep stand OUTSIDE pen 1 (escaped 03:42-05:30Z over step blocks an escape routine left on the pen floor - removed, pen_litter rule live). want 30 + 4 herders until the flock is back; then want 10-24 / minBots 1 again",
    "desc": "OPERATORS: do NOT pause - since 09-20 02:00Z the herd job itself SHEARS the woolly sheep and CULLS the adults beyond want inside the pen (event pen_harvest); a full pen is its work, not a dead end (BUGS 105 fixed)",
    "produces": [
@@ -2150,7 +2150,7 @@
    },
    "shiftMin": 20,
    "rev": 5,
-   "restUntil": 1789895898708,
+   "restUntil": 1789896913129,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "leather"
@@ -2195,7 +2195,7 @@
    },
    "shiftMin": 20,
    "rev": 4,
-   "restUntil": 1789895806380,
+   "restUntil": 1789896796813,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "feather"
@@ -2209,7 +2209,7 @@
    "type": "herd",
    "priority": 85,
    "front": "pens",
-   "status": "paused",
+   "status": "active",
    "when": "day",
    "bots": 3,
    "site": [
@@ -2996,7 +2996,7 @@
    "type": "build",
    "priority": 88,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 8,
    "site": [
@@ -3023,7 +3023,7 @@
    },
    "rev": 7,
    "after": "fill_ne_valley",
-   "note": "waits for fill_ne_valley (stone sub-base): this tile needed ~3000 dirt we do not have"
+   "note": "auto-paused: build complete - BUT 12 columns are a deck over air (void_under_pad): -254,65,-373 | -253,65,-375 | -253,65,-374 | -253,65,-373 | -251,65,-375 | -251,65,-374"
   },
   {
    "id": "base_infill_n247_n401",
@@ -3056,7 +3056,7 @@
    },
    "after": "fill_ne_valley",
    "rev": 10,
-   "note": "waits for fill_ne_valley (stone sub-base)"
+   "note": "needs: dirt (366 cells wait; every cell whose material exists is done or in work)"
   },
   {
    "id": "base_infill_n231_n403",
@@ -3168,7 +3168,7 @@
    "type": "build",
    "priority": 70,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 4,
    "site": [
@@ -3222,7 +3222,7 @@
    "type": "build",
    "priority": 70,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 4,
    "site": [
@@ -3268,8 +3268,9 @@
      ]
     }
    },
-   "rev": 6,
-   "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check."
+   "rev": 7,
+   "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check.",
+   "note": "top model 09:4xZ: m stands 4 above n (a cliff between the segments = the island the bots were marooned on). Resumes when fill_ravine_n has risen to y60; re-activate then"
   },
   {
    "id": "fill_ravine_n",
@@ -3278,7 +3279,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 12,
    "site": [
     -311,
     69,
@@ -3319,11 +3320,53 @@
       "granite",
       "dirt",
       "gravel"
+     ],
+     "ramp": [
+      [
+       -330,
+       -415,
+       56
+      ],
+      [
+       -329,
+       -415,
+       57
+      ],
+      [
+       -328,
+       -415,
+       58
+      ],
+      [
+       -327,
+       -415,
+       59
+      ],
+      [
+       -326,
+       -415,
+       60
+      ],
+      [
+       -325,
+       -415,
+       61
+      ],
+      [
+       -324,
+       -415,
+       62
+      ],
+      [
+       -323,
+       -415,
+       63
+      ]
      ]
     }
    },
-   "rev": 5,
-   "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check."
+   "rev": 6,
+   "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check. | 09-20 09:4x: WALK-IN STAIR first (ramp z=-415, x -330..-323 joins the floor y55 to the natural slope y64->68 at the north end): the hole had NO walkable exit, 12 bots no_route"
   },
   {
    "id": "base_field_7",
@@ -3483,7 +3526,7 @@
    "type": "build",
    "priority": 64,
    "front": "works",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 3,
    "site": [
@@ -3521,13 +3564,14 @@
      ]
     }
    },
-   "note": "tail: 76 cells around the pond (put:occupied) - 3 bots are enough",
+   "note": "auto-paused: 20 cells nobody could do: -235,65,-393 | -238,66,-396 | -238,66,-397 | -237,66,-397 | -236,66,-395 | -235,66,-395",
    "rev": 1,
    "stuckBy": {
     "key": "rev1",
     "bots": [
      "Sakura",
-     "Mashiro"
+     "Mashiro",
+     "Yukina"
     ]
    }
   },
@@ -3641,6 +3685,193 @@
    },
    "rev": 2,
    "note": "auto-paused: build complete - BUT 35 columns are a deck over air (void_under_pad): -311,68,-522 | -314,65,-511 | -314,66,-510 | -313,66,-510 | -313,66,-509 | -312,65,-522"
+  },
+  {
+   "id": "fill_void_n314_n516",
+   "type": "build",
+   "priority": 84,
+   "front": "works",
+   "status": "paused",
+   "when": "day",
+   "bots": 4,
+   "site": [
+    -312,
+    68,
+    -516
+   ],
+   "plan": "base_infill_n314_n527 pad: 35 air cells under the finished pad (void audit); fill solid up to grade 68",
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -312,
+     68,
+     -516
+    ],
+    "args": {
+     "box": [
+      -315,
+      -523,
+      -310,
+      -509
+     ],
+     "depth": 10,
+     "fill": "cobblestone",
+     "mats": [
+      "cobbled_deepslate",
+      "stone",
+      "dirt"
+     ]
+    }
+   }
+  },
+  {
+   "id": "base_field_2_pad",
+   "type": "build",
+   "priority": 90,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 13,
+   "site": [
+    -288,
+    69,
+    -507
+   ],
+   "requires": {
+    "minHp": 6
+   },
+   "plan": "BASE PLAN zone field_2 x -303..-273 / z -522..-492 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. field block 27x27 in a 29x29 slot (its torch ring): nine 9x9 plots, water cells BUILT by the blueprint",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -288,
+     68,
+     -507
+    ],
+    "args": {
+     "w": 31,
+     "d": 31
+    }
+   },
+   "rev": 4,
+   "note": "auto-paused: build complete - BUT 90 columns are a deck over air (void_under_pad): -303,65,-505 | -303,65,-502 | -303,65,-501 | -303,65,-500 | -302,66,-504 | -302,65,-503"
+  },
+  {
+   "id": "fill_field2_void",
+   "type": "build",
+   "priority": 84,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 6,
+   "site": [
+    -288,
+    68,
+    -507
+   ],
+   "plan": "BASE zone field_2 x -303..-273 / z -522..-492: fill the 90 air cells under the finished pad (void_under_pad) solid, from below the deck",
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -288,
+     68,
+     -507
+    ],
+    "args": {
+     "box": [
+      -304,
+      -523,
+      -272,
+      -491
+     ],
+     "depth": 5,
+     "fill": "cobblestone",
+     "unlid": true
+    }
+   },
+   "note": "auto-paused: build complete - BUT 267 air cells stay sealed under it (void_under_pad): -304,64,-505 | -304,64,-502 | -303,64,-505 | -303,65,-505 | -303,64,-502 | -303,65,-502"
+  },
+  {
+   "id": "base_dorm_pad",
+   "type": "build",
+   "priority": 93,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 6,
+   "site": [
+    -355,
+    69,
+    -536
+   ],
+   "requires": {
+    "minHp": 6
+   },
+   "plan": "BASE PLAN zone dorm x -370..-340 / z -545..-527 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. dorm: 1 hall(s) with 50 bed slots for 50 bots, 1 bed now (the sleeper's) - raise `beds` + rev as wool arrives; beds register as respawnBeds",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -355,
+     68,
+     -536
+    ],
+    "args": {
+     "w": 31,
+     "d": 19
+    }
+   },
+   "rev": 5,
+   "note": "auto-paused: build complete - BUT 2 cells are left that 3 builders could not do (build_leftover): -346,68,-544 | -349,68,-544",
+   "stuckBy": {
+    "key": "rev5",
+    "bots": [
+     "Noa",
+     "Yukina",
+     "Aoi"
+    ]
+   }
+  },
+  {
+   "id": "fill_void_infill_n278",
+   "type": "build",
+   "priority": 84,
+   "front": "works",
+   "status": "paused",
+   "when": "day",
+   "bots": 3,
+   "site": [
+    -254,
+    65,
+    -374
+   ],
+   "plan": "base pad n278_n401: 12 air cells under finished pad, fill solid",
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -254,
+     65,
+     -374
+    ],
+    "args": {
+     "box": [
+      -256,
+      -376,
+      -252,
+      -372
+     ],
+     "depth": 4,
+     "fill": "cobblestone"
+    }
+   },
+   "stuckBy": {
+    "key": "rev0",
+    "bots": [
+     "Karin",
+     "Mio",
+     "Nozomi"
+    ]
+   },
+   "note": "auto-paused: 4 cells nobody could do: -253,65,-375 | -254,65,-373 | -253,65,-374 | -253,65,-373"
   }
  ]
 }
