@@ -574,7 +574,8 @@
    "feather": 64,
    "wool": 150,
    "stone_shovel": 40,
-   "stone_axe": 20
+   "stone_axe": 20,
+   "dirt": 768
   },
   "base": {
    "x": -320,
@@ -1274,7 +1275,7 @@
    "type": "build",
    "priority": 68,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 1,
    "site": [
@@ -1730,7 +1731,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789899386234
+   "restUntil": 1789900178208
   },
   {
    "id": "guard_muster",
@@ -2166,7 +2167,7 @@
    },
    "shiftMin": 20,
    "rev": 5,
-   "restUntil": 1789899506550,
+   "restUntil": 1789899984631,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "leather"
@@ -2211,7 +2212,7 @@
    },
    "shiftMin": 20,
    "rev": 5,
-   "restUntil": 1789899244128,
+   "restUntil": 1789900280276,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "feather"
@@ -2569,7 +2570,7 @@
    },
    "bots": 2,
    "rev": 8,
-   "restUntil": 1789899661352,
+   "restUntil": 1789900585659,
    "note": "auto-activated: `after` base_cane finished (auto-paused: build complete)"
   },
   {
@@ -2723,7 +2724,7 @@
    "type": "guard",
    "priority": 95,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 4,
    "site": [
@@ -2996,9 +2997,9 @@
    "type": "build",
    "priority": 88,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 10,
    "site": [
     -242,
     69,
@@ -3021,7 +3022,8 @@
      "clear": 14
     }
    },
-   "rev": 3
+   "rev": 4,
+   "note": "top model 11:0xZ: re-activated WITH the escort guard_treefarm (post on the hill): no witch death for 45 min; this cut is the army's DIRT source (depot 36, every level cap and the ravine top layer need dirt)"
   },
   {
    "id": "base_infill_n278_n401",
@@ -3132,7 +3134,7 @@
    "type": "build",
    "priority": 88,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 2,
    "site": [
@@ -3156,7 +3158,8 @@
      "d": 31
     }
    },
-   "rev": 2
+   "rev": 4,
+   "note": "needs: dirt (1 cells wait; every cell whose material exists is done or in work)"
   },
   {
    "id": "cane_lake",
@@ -3202,7 +3205,7 @@
    "desc": "starts by itself when base_cane (blueprint cane_block) is built. Pauses itself when cane_farm holds 260 plants. The depot also holds cane (626 at 05:30Z): cane_farm plants from stock first.",
    "rev": 1,
    "note": "auto-activated: `after` base_cane finished (auto-paused: build complete)",
-   "restUntil": 1789899963024
+   "restUntil": 1789901175039
   },
   {
    "id": "fill_ravine_s",
@@ -3320,7 +3323,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 10,
    "site": [
     -311,
     69,
@@ -3406,7 +3409,7 @@
      ]
     }
    },
-   "rev": 11,
+   "rev": 13,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check. | 09-20 09:4x: WALK-IN STAIR first (ramp z=-415, x -330..-323 joins the floor y55 to the natural slope y64->68 at the north end): the hole had NO walkable exit, 12 bots no_route"
   },
   {
@@ -3851,17 +3854,18 @@
     ],
     "args": {
      "w": 31,
-     "d": 19
+     "d": 19,
+     "fill": "cobbled_deepslate"
     }
    },
-   "rev": 5,
+   "rev": 7,
    "note": "auto-paused: build complete - BUT 2 cells are left that 3 builders could not do (build_leftover): -346,68,-544 | -349,68,-544",
    "stuckBy": {
-    "key": "rev5",
+    "key": "rev7",
     "bots": [
-     "Noa",
-     "Yukina",
-     "Aoi"
+     "Sumire",
+     "Rena",
+     "Sayaka"
     ]
    }
   },
@@ -3872,7 +3876,7 @@
    "front": "works",
    "status": "paused",
    "when": "day",
-   "bots": 3,
+   "bots": 6,
    "site": [
     -254,
     65,
@@ -3887,59 +3891,19 @@
      -374
     ],
     "args": {
-     "box": [
-      -256,
-      -376,
-      -252,
-      -372
-     ],
-     "depth": 4,
-     "fill": "cobblestone"
+     "fill": "cobbled_deepslate"
     }
    },
    "stuckBy": {
-    "key": "rev0",
+    "key": "rev2",
     "bots": [
-     "Karin",
-     "Mio",
-     "Nozomi"
+     "Kaede",
+     "Tsumugi",
+     "Rena"
     ]
    },
-   "note": "auto-paused: 4 cells nobody could do: -253,65,-375 | -254,65,-373 | -253,65,-374 | -253,65,-373"
-  },
-  {
-   "id": "fill_void_infill_n247",
-   "type": "build",
-   "priority": 84,
-   "front": "works",
-   "status": "paused",
-   "when": "day",
-   "bots": 3,
-   "site": [
-    -245,
-    68,
-    -374
-   ],
-   "plan": "base pad n247_n401: 35 air cells under finished pad at y66, fill solid",
-   "params": {
-    "blueprint": "fill_void",
-    "origin": [
-     -245,
-     68,
-     -374
-    ],
-    "args": {
-     "box": [
-      -249,
-      -378,
-      -241,
-      -370
-     ],
-     "depth": 4,
-     "fill": "cobblestone"
-    }
-   },
-   "note": "auto-paused: build complete - BUT 23 air cells stay sealed under it (void_under_pad): -246,66,-373 | -246,65,-370 | -246,66,-370 | -245,66,-374 | -245,66,-373 | -245,65,-370"
+   "note": "auto-paused: 4 cells nobody could do: -253,65,-375 | -253,65,-374 | -254,65,-373 | -253,65,-373",
+   "rev": 2
   },
   {
    "id": "base_field_1",

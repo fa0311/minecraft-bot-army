@@ -82,6 +82,7 @@ World 2 starts from NOTHING: no chests, no tools, no board coordinates. Order ma
 10. **Waiting is waste, idling is a planning failure.** Sponge jobs with big head-counts, shifts for long commutes, plans that free their bot when done — nobody waits for an LLM.
 
 ## Log (newest first) — `date | bottleneck | change | result`
+- 09-20 11:0xZ | sticks: obtain_failed x74/30 min with 2821 logs (stale index entries counted but never visited) · dirt 36 in the depot, no producer | withdraw falls back to stale chests · `targets dirt 768`, hill cut n252_n558 + escort re-activated | stick craft verified; dirt: watch `stock dirt`
 - 09-20 10:5xZ | Chika trapped 16 deep (no escape ran) · fill_ravine_n `done:0` x393 | walkableArea = surface water only + digOut climbs deep open pits flight by flight · fillCell pulls flowers, `occupied` rests 5 min | Chika out and hunting; ravine 0 -> 70 cells/3 min
 - 09-20 10:1xZ | warning storm: 38x no_route from ONE hunter in a low river 150 blocks W | verb `drop`, 3 supply runs from the rim, stairwell job | NOT solved (canopy catches the items; A* stops at 45 nodes) - bug filed, bot parked in `chika_hold`; 7 idle bots -> tidy 22
 - 09-20 09:5xZ | 12 bots no_route on the ravine floor (no walkable exit, segments at different heights) · iron squad on exhausted levels | walk-in stair as `ramp` of fill_ravine_n + `base keepout exit`, m paused until level · `mine level 32` | route foot->rim verified; mine: watch `stairs_done`/hub on y32

@@ -1452,7 +1452,11 @@ async function withdraw (bot, name, n, opts = {}) {
   const item = bot.registry.itemsByName[name]
   if (!item) return 0
   const d = index()
-  const cands = Object.entries(d).filter(([, v]) => v.items && v.items[name] > 0 && Date.now() - v.t < 30 * 60000)
+  // FRESH entries first; when none holds the item, the STALE ones are visited (10:5xZ: `obtain_failed stick ... #planks` x74/30 min by 34 bots with 2821 logs in stock -
+  // the only sticks stood in two tool chests nobody had opened for 6 h: stockMap() counted them, C.solve said "have 20, nothing to craft", this filter hid them, nothing
+  // arrived and nothing was crafted). A visit re-indexes the chest, so a wrong entry corrects itself after one walk.
+  const holds = Object.entries(d).filter(([, v]) => v.items && v.items[name] > 0); const fresh = holds.filter(([, v]) => Date.now() - v.t < 30 * 60000)
+  const cands = (fresh.length ? fresh : holds)
     .sort((a, b) => b[1].items[name] - a[1].items[name])
     .map(([k]) => { const [x, y, z] = k.split(',').map(Number); return new Vec3(x, y, z) })
   // NEAR FIRST (camps 150-400 blocks out are in the same index): containers within 64 blocks (fullest first); only when none of them holds the
