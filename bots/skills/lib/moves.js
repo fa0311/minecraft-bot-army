@@ -129,15 +129,20 @@ async function bridgeTo (bot, toArr, opts = {}) {
   const outside = b => (b.position.x < x1 || b.position.x > x2 || b.position.z < z1 || b.position.z > z2 || b.position.y < ty - 2 || b.position.y > ty + 2) ? 1000 : 0
   const mv = new Movements(bot); mv.canDig = false; mv.allow1by1towers = false; mv.allowParkour = false; mv.allowSprinting = false; mv.maxDropDown = 1; mv.dontCreateFlow = true
   mv.scafoldingBlocks = names.map(n => bot.registry.itemsByName[n].id); mv.exclusionAreasStep = [outside]; mv.exclusionAreasPlace = [outside]
+  // the army's terrain guard re-applies read-only movements every 2 s and on every setMovements (first live test: the plan came back EMPTY in 43 ms and
+  // pathfinder's goto RESOLVES on an empty path): a bridge is construction, so it takes the guard's own, time-boxed, reasoned opt-out for exactly this call
+  const TG = (() => { try { return require('./terrain_guard') } catch { return null } })(); const okBefore = bot.state && bot.state.terrainEditOK
+  if (TG) { TG.allowTerrainEdit(bot, 'moves.bridgeTo ' + p0.x + ',' + p0.z + ' -> ' + tx + ',' + tz, (opts.ms || 120000) + 2000); if (bot.__tg) bot.__tg.mode = TG.modeOf(bot) } // the guard caches its mode between its 2 s ticks (second live test: still an empty plan in 22 ms)
   const old = bot.pathfinder.movements; bot.__moveBusy = 'bridge'; const sneak = () => { try { bot.setControlState('sneak', true) } catch {} }; bot.on('physicsTick', sneak)
   try {
     bot.pathfinder.setMovements(mv)
     const done = bot.pathfinder.goto(new goals.GoalBlock(tx, ty, tz)); let timer; const limit = new Promise((resolve, reject) => { timer = setTimeout(() => reject(new Error('timeout')), opts.ms || 120000) })
     const stopper = opts.stop ? setInterval(() => { if (opts.stop()) { try { bot.pathfinder.setGoal(null) } catch {} } }, 250) : null
-    let err = null; try { await Promise.race([done, limit]) } catch (e) { err = e } finally { clearTimeout(timer); if (stopper) clearInterval(stopper); try { bot.pathfinder.setGoal(null) } catch {} }
+    let empty = false; const onPU = r => { if (r && r.path && r.path.length === 0 && r.status !== 'success') empty = true }; bot.on('path_update', onPU)
+    let err = null; try { await Promise.race([done, limit]) } catch (e) { err = e } finally { clearTimeout(timer); if (stopper) clearInterval(stopper); bot.removeListener('path_update', onPU); try { bot.pathfinder.setGoal(null) } catch {} }
     const at = bot.entity.position.floored(); const under = bot.blockAt(at.offset(0, -1, 0)); const arrived = Math.abs(at.x - tx) <= 1 && Math.abs(at.z - tz) <= 1 && Math.abs(at.y - ty) <= 1
-    return { ok: arrived && solid(under), how: 'bridge', placed: have0 - count(), at: [at.x, at.y, at.z], tookMs: Date.now() - t0, why: arrived ? undefined : String((err && err.message) || 'stopped short') }
-  } catch (e) { return fail('error: ' + (e && e.message)) } finally { bot.removeListener('physicsTick', sneak); try { bot.setControlState('sneak', false) } catch {} try { bot.pathfinder.setMovements(old) } catch {} bot.__moveBusy = null }
+    return { ok: arrived && solid(under), how: 'bridge', placed: have0 - count(), at: [at.x, at.y, at.z], tookMs: Date.now() - t0, why: arrived ? undefined : String((err && err.message) || (empty ? 'the pathfinder found no bridge path (guard mode / corridor / blocks?)' : 'stopped short')) }
+  } catch (e) { return fail('error: ' + (e && e.message)) } finally { bot.removeListener('physicsTick', sneak); try { bot.setControlState('sneak', false) } catch {} if (TG) { TG.revokeTerrainEdit(bot); if (okBefore && bot.state) bot.state.terrainEditOK = okBefore; if (bot.__tg) bot.__tg.mode = TG.modeOf(bot) } try { bot.pathfinder.setMovements(old) } catch {} bot.__moveBusy = null }
 }
 
 // REFLEX (owner: "落下死しそうだったらアルゴリズム的に水を置くことは出来ないのか？"): installed once per bot. A fall that was NOT planned (knock-back off a

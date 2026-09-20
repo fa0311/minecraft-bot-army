@@ -1238,11 +1238,6 @@
   "legacyChests": {
    "found": [
     [
-     -358,
-     70,
-     -521
-    ],
-    [
      -359,
      69,
      -521
@@ -1280,11 +1275,6 @@
     [
      -362,
      70,
-     -521
-    ],
-    [
-     -363,
-     69,
      -521
     ],
     [
@@ -1625,73 +1615,73 @@
     73,
     27
    ],
-   "surveyed": 1789923708873,
+   "surveyed": 1789923915477,
    "villagers": 9,
    "professions": {
-    "farmer": 2,
-    "weaponsmith": 1,
-    "toolsmith": 1,
     "leatherworker": 4,
+    "weaponsmith": 1,
+    "farmer": 2,
+    "toolsmith": 1,
     "unknown": 1
    },
-   "beds": 12,
+   "beds": 10,
    "stations": {
-    "composter": 2,
-    "smithing_table": 1,
     "grindstone": 1,
-    "blast_furnace": 2,
     "loom": 1,
-    "smoker": 1,
+    "barrel": 1,
+    "smithing_table": 1,
     "lectern": 1,
-    "barrel": 1
+    "blast_furnace": 2,
+    "smoker": 1,
+    "composter": 2
    },
    "golems": 2,
    "bounds": [
     -766,
-    10,
-    -703,
+    11,
+    -710,
     57
    ],
    "nearest": [
+    [
+     -739,
+     71,
+     39
+    ],
+    [
+     -741,
+     71,
+     38
+    ],
+    [
+     -742,
+     71,
+     38
+    ],
+    [
+     -740,
+     71,
+     33
+    ],
     [
      -731,
      75,
      37
     ],
     [
-     -723,
-     69,
-     12
-    ],
-    [
-     -739,
-     70,
-     33
-    ],
-    [
-     -740,
-     70,
-     28
+     -745,
+     72,
+     41
     ],
     [
      -737,
-     71,
-     39
+     70,
+     26
     ],
     [
-     -742,
-     72,
-     39
-    ],
-    [
-     -741,
-     72,
-     42
-    ],
-    [
-     -744,
-     72,
-     41
+     -736,
+     85,
+     58
     ]
    ],
    "post": {
@@ -1740,17 +1730,17 @@
     "t": 1789920643887
    },
    "absorb": {
-    "carrot": 1008,
-    "wheat": 1457,
-    "pumpkin": 324,
-    "melon": 204,
-    "coal": 720,
-    "iron_ingot": 96,
-    "flint": 888,
+    "carrot": 336,
+    "wheat": 304,
+    "pumpkin": 120,
+    "melon": 72,
+    "beetroot": 224,
+    "coal": 480,
     "leather": 288,
-    "beetroot": 480
+    "flint": 600,
+    "iron_ingot": 48
    },
-   "absorbT": 1789923334538
+   "absorbT": 1789923894369
   },
   "enchantTable": [
    -344,
@@ -2415,7 +2405,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789923714257
+   "restUntil": 1789924003247
   },
   {
    "id": "fill_ring_field2",
@@ -3260,14 +3250,14 @@
    "note": "top model 15:1xZ: 655 OPEN cells (left 3216 minus waiting 2561) - do not lower; ladderWay (fill_wayin) needs builders standing on the RIM to hang the way in",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Hotaru",
-    "t": 1789922999783,
+    "by": "Rin",
+    "t": 1789923846044,
     "at": [
-     -307,
-     65,
-     -461
+     -294,
+     58,
+     -480
     ],
-    "drop": 4
+    "drop": 11
    }
   },
   {
@@ -4873,7 +4863,7 @@
     },
     "order": "near"
    },
-   "rev": 10,
+   "rev": 11,
    "note": "needs: dirt (17 cells wait; every cell whose material exists is done or in work)",
    "restUntil": 1789922783977
   },
@@ -5812,7 +5802,7 @@
     69,
     -518
    ],
-   "plan": "zone portal (docs/WORLD.md): PAIR THE GATES EXACTLY. Home is -327,68,-518, so its Nether partner is floor(-327/8), floor(-518/8) = -41,-65. The gate we have sits at -44,-80 - 15 Nether blocks off = 124 overworld blocks from home, just inside Paper's 128-block search, so every return was a coin toss between our gate and a freshly generated one (that is why gates kept multiplying). This job probes the column at -41,-65, walks there read-only, builds the 7x9 platform first, then the frame with an inner column exactly on -41,-65, and lights it. Obsidian 25 in the depot from the spare gate.",
+   "plan": "zone portal (docs/WORLD.md): PAIR THE GATES - ON SOLID ROCK, NOT OVER THE VOID. The ideal partner of home -327,68,-518 is the_nether -41,-65, but that column is open air from y100 down to the lava sea at y23: the causeway towards it killed Aoi at 16:53:11Z (fell 74 blocks). Paper searches 16 blocks on the Nether side, and the shelf carries solid rock to z-73, so the frame goes at -41,98,-75 - 10 blocks from the ideal point (inside 16), and its return target -328,-600 is 82 blocks from the home gate (inside 128). No bridge: the 15x15 platform is laid ONLY where the rock carries it, the boundary gets a 2-high rail, and every builder sneaks.",
    "params": {
     "blueprint": "nether_portal",
     "origin": [
@@ -5830,19 +5820,19 @@
     "at": [
      -41,
      null,
-     -65
+     -75
     ],
     "minutes": 9,
     "cobble": 256,
     "crossS": 30,
-    "maxDeaths": 6,
+    "maxDeaths": 2,
     "obsidian": 14
    },
    "names": [
-    "Aoi"
+    "Mio"
    ],
-   "rev": 6,
-   "note": "CODE OWNER IS DRIVING THIS (15:5xZ, do not touch until 17:00Z): ONE pinned scout proves the crossing and builds the partner gate at the_nether -41,-65. OPERATORS: do NOT rescue this bot (a `stranded` line from the far gate is EXPECTED - the arrival pocket is 8 cells wide; the last rescue killed a fully kitted scout in the Nether at 15:51:49 and cost 14 obsidian), do NOT pause the job, do NOT add bots.",
+   "rev": 7,
+   "note": "auto-paused: 2 deaths in 30 min on the far side ([-44,98,-80]). Fix the cause you can see, clear settings.nether.deathLog, re-activate - do not wait",
    "desc": "OWNER-LOCKED top model 16:3xZ, nether front: the causeway and the 15x15 partner platform at the_nether -41,-65. Deaths in this window were operator rescues, not the Nether. Do not pause, do not rescue its bot, do not add bots - the arrival is still the old 8-cell pocket until the platform stands."
   },
   {
@@ -6444,44 +6434,6 @@
    },
    "restUntil": 1789923943046,
    "rev": 1
-  },
-  {
-   "id": "test_bridge",
-   "type": "steps",
-   "priority": 99,
-   "status": "active",
-   "when": "any",
-   "bots": 1,
-   "names": [
-    "Hotaru"
-   ],
-   "requires": {
-    "minHp": 18
-   },
-   "plan": "no zone: TEST of lib/moves.js bridgeTo (pathfinder scaffolding + sneak) over a 2-wide, 9-deep gap at the ravine rim -302..-299,69,-477; the two test blocks are dug out again (no deck stays)",
-   "params": {
-    "steps": [
-     {
-      "do": "withdraw",
-      "item": "cobblestone",
-      "n": 16,
-      "atLeast": 8
-     },
-     {
-      "do": "goto",
-      "to": [
-       -302,
-       69,
-       -477
-      ],
-      "range": 0
-     },
-     {
-      "do": "wait",
-      "s": 900
-     }
-    ]
-   }
   }
  ]
 }

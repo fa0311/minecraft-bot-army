@@ -92,7 +92,10 @@ function simulate (sc, opts = {}) {
   const gone = []
   const placedCells = new Set()
   const errs = []
-  const err = (kind, msg) => { if (errs.length < 12) errs.push(kind + ': ' + msg) }
+  // ONE line per kind: a hundred repeats of the same complaint used to fill the list and hide the
+  // `unfinished` line at the end of the run — the one line that says whether the job is done
+  const seenErr = new Set()
+  const err = (kind, msg) => { if (seenErr.has(kind)) return; seenErr.add(kind); errs.push(kind + ': ' + msg) }
   let t = 0
   let peak = 0
   let entryFirst = null

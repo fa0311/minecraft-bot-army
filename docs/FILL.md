@@ -10,6 +10,8 @@
 7. Cells nobody can stand beside are classified ONCE: a **1x1 well** (found up front) is filled by dropping a gravity block down it from any height — which also breaks the flower at the bottom; a cell **under a roof** is not work at all and is reported as `roofed` (take the lid off first — the live blueprint's `unlid` — then the same planner fills it with no special case); anything else is written off only with evidence (a builder stood within 8 blocks of it, eight times over a minute) and takes the open cells above it with it (`abandoned` → `void_under_pad`). Lava is never sealed over: it is quenched first, and no builder ever stands touching it.
 8. Crew size **emerges**: `capacity = ceil(open cells / K)`, `K = 8`. Surplus builders get `leave` and are spent elsewhere; nobody is assigned, nobody is released.
 
+**Status:** (a) (b) (d) (f) (g) pass; (c) and (e) are open and named below — do not integrate until they do.
+
 **Invariants** (the simulator checks them every tick): no builder entombed (walkable area ≥ 4, for more than 20 s); no block with air beneath it (only `stair`/`ladder` entries hang, by design); no cell dug after the fill placed it; two builders never touch the same or a face-adjacent cell in one tick; it TERMINATES with every reachable cell at grade; the crew ends on top.
 **Proof sketch of "every unfilled cell stays reachable, every builder keeps a route out":** by rule 3 the top surface is 1-Lipschitz over the 4-neighbour graph, so any two surface cells are connected by steps of ≤1 (walkable both ways); by rule 2 a builder always stands on that surface; by rule 6 the entry is the last thing filled in its own column and the work retreats away from it. Cells that break the premise — under a roof, inside a 1x1 well, beside lava — are exactly the three classes rule 7 removes from the work set before anybody walks anywhere.
 **Complexity:** `workMap` is O(cells) once (sky flood + roof scan + well scan). `firstOpen` is memoised and monotone, so a lane's state is O(9) per tick; `plan` is O(crew x (lane + a capped flood)); the only BFS over the box (≤4000 nodes) runs when a builder has nothing in reach and needs to walk. No allocation per cell, no board I/O, no `blockAt` storm.
@@ -31,7 +33,7 @@
 | b | the live trench 7x21x15, 12 builders | 2277 | 7 | 10.9 | 83 | `drop` entry, 22 falls, 0 deaths |
 | c | overhangs + three 1x1 shafts 12 deep | 1720 | 8 | — | — | **OPEN**: 7.8 min with `entry:'ladder'`, stalls with the default `drop` (311 cells) — the roofed pocket and the drop entry interact |
 | d | pit with a 4x4 lava pool | 1536 | 8 | 3.8 | 68 | quenched first, nobody stands touching lava |
-| e | the whole ravine 46x79, 10-28 deep, 30 builders | 69055 | 30 | **35.2** | 64 | 0 abandoned, 0 falls, 68 restock trips — the twelve-hour job |
+| e | the whole ravine 46x79, 10-28 deep, 30 builders | 69055 | 30 | 35.2 | 64 | **OPEN**: 46k of 69k cells (67 %) in 35 simulated minutes, then it stalls with 22 899 left and 2662 dead walks. The rate is right (a human does ~60 cells/min); the last third is a connectivity bug in the big box, not a throughput one |
 | f | 150-cell tail, 25 builders | 150 | 10 | 0.9 | 68 | 39 `leave`s: the surplus is spent elsewhere |
 | g | the same trench while builders join and vanish | 2277 | 5 | 26.4 | 84 | a vanished owner's lane is reclaimed by timeout |
 `K` is the one throughput knob (measured on (b), 12 builders available): K 40 → 1 builder, 27.6 min · K 9 → 5, 16.5 · **K 8 → 6, 12.8** · K 6 → 7, 10.1 · K 4 → 10, 10.8 (crowded, each slower).

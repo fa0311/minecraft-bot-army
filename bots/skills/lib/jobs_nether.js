@@ -912,11 +912,26 @@ module.exports = ctx => {
     // them), and seven clear cells in front of AND behind the frame — both faces are exits, and a squad of 20 arriving inside a
     // few seconds has to spread without anyone being shoved back into the portal or over the edge.
     const R = 7
+    // WE DO NOT BUILD OVER OPEN AIR ANY MORE (16:53:11Z: Aoi walked off the head of a causeway at y98 and fell 74 blocks into the
+    // lava sea). A platform cell is laid only where the world can carry it — solid ground within 3 below — and the cells beyond
+    // that are DROPPED from the plan and counted as `overVoid`; the boundary of what stands gets the rail. A 15x15 that is 15x10
+    // of real rock with a railed edge is a safe arrival; a 15x15 half of which hangs over a lava sea is a funeral.
+    const support = (x, z) => { for (let dy = -1; dy >= -3; dy--) { const b = bot.blockAt(new Vec3(x, y0 - 1 + dy + 1, z)); if (b && b.boundingBox === 'block' && !/lava/.test(b.name)) return true } return false }
+    const live = new Set()
+    try {
+      const pid = bot.registry.blocksByName.nether_portal && bot.registry.blocksByName.nether_portal.id
+      if (pid != null) for (const q of bot.findBlocks({ matching: [pid], maxDistance: 32, count: 300 })) for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) live.add((q.x + dx) + ',' + (q.y + dy) + ',' + (q.z + dz))
+    } catch (e_) { swallow('jobs_nether:platLive', e_) }
+    let overVoid = 0
+    const carried = (a2, t) => support(tx + a2, tz + t)
     for (let a2 = -R; a2 <= R; a2++) for (let t = -R; t <= R; t++) {
-      plat.push({ x: tx + a2, y: y0 - 1, z: tz + t, block: 'stone' })
-      const rim = Math.abs(a2) === R || Math.abs(t) === R
-      if (rim) { plat.push({ x: tx + a2, y: y0, z: tz + t, block: 'stone' }); continue } // the rail: nobody is pushed off the edge
-      for (let k = 0; k < 3; k++) if (!(t === 0 && a2 >= -1 && a2 <= 0)) plat.push({ x: tx + a2, y: y0 + k, z: tz + t, block: 'air' })
+      if (!carried(a2, t)) { overVoid++; continue }
+      const rim = Math.abs(a2) === R || Math.abs(t) === R ||
+        !carried(a2 + 1, t) || !carried(a2 - 1, t) || !carried(a2, t + 1) || !carried(a2, t - 1) // the edge of what the rock carries
+      const push = c => { if (!live.has(c.x + ',' + c.y + ',' + c.z)) plat.push(c) } // never a cell that holds a burning portal
+      push({ x: tx + a2, y: y0 - 1, z: tz + t, block: 'stone' })
+      if (rim) { push({ x: tx + a2, y: y0, z: tz + t, block: 'stone' }); push({ x: tx + a2, y: y0 + 1, z: tz + t, block: 'stone' }); continue } // 2 high at the edge: knock-back
+      for (let k = 0; k < 3; k++) if (!(t === 0 && a2 >= -1 && a2 <= 0)) push({ x: tx + a2, y: y0 + k, z: tz + t, block: 'air' })
     }
     const box = [tx - R - 1, tz - R - 1, tx + R + 1, tz + R + 1]
     const rp = await buildCells(bot, job, api, plat, box, Math.min(until, Date.now() + 150000), 'pair-platform')
@@ -929,7 +944,7 @@ module.exports = ctx => {
     let lit2 = litCells(bot, G2.inner).length
     if (!gaps && lit2 < G2.inner.length) { if (A.count(bot, 'flint_and_steel') || await A.obtain(bot, 'flint_and_steel', 1, { stop: api.stop }).catch(() => false)) { await strike(bot, job, api, G2); lit2 = litCells(bot, G2.inner).length } }
     if (!gaps && lit2 >= G2.inner.length) netherEdit({ portal: [tx, y0 + 1, tz], paired: true, pairAt: Date.now(), pairY: y0, oldPortal: netherOf().portal || null })
-    A.result(bot, { ev: 'pair_built', job: job.id, at: [tx, y0, tz], platform: rp.placed, platformLeft: rp.left, frameGaps: gaps, lit: lit2 + '/' + G2.inner.length, obsidian: A.count(bot, 'obsidian') })
+    A.result(bot, { ev: 'pair_built', job: job.id, at: [tx, y0, tz], platform: rp.placed, platformLeft: rp.left, overVoid, frameGaps: gaps, lit: lit2 + '/' + G2.inner.length, obsidian: A.count(bot, 'obsidian') })
     return { work: 'pair', at: [tx, y0, tz], groundY, reached: true, platform: rp.placed, platformLeft: rp.left, frameGaps: gaps, lit: lit2 }
   }
   // ---------------------------------------------------------------- STAGE 2: the work a squad does on the far side, then home
