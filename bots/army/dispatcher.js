@@ -157,6 +157,7 @@ const over = {} // bot -> job id it OVERFLOWED into (see OVERFLOW below): a stan
 const declSeen = {} // "job|bot|until" -> ms we first saw that decline note (a note is unique per bot+job+expiry) = the REST rule's 10-min window
 const restedAt = {} // job id -> {t, why, ms} of the last rest the dispatcher ordered (the same reason again doubles the rest)
 const frontCut = {} // job id -> ms: last time we said out loud that maxFronts left this job unstaffed
+const declHist = {} // "job|bot" -> [ms] when that bot declined that job (30 min): 3 refusals and the pairing is parked for 20 min
 const dimHold = {} // bot -> ms: last time we said we are holding a bot that stands in another dimension
 const since = {} // bot -> ms when it got its current job (shifts). Survives a dispatcher restart through assign/<bot>.json
 if (!DRY) for (const f of fs.readdirSync(P.assign)) { const a = f.endsWith('.json') && readJSON(path.join(P.assign, f), null); if (a && a.bot && a.job && a.job.id && Date.now() - a.t < 120000) { last[a.bot] = a.job.id; since[a.bot] = a.since || a.t } }
@@ -337,7 +338,7 @@ function tick () {
       if (!j || !e || !(e.until > tNow) || (e.rev || 0) !== (j.rev || 0)) continue
       declineCount[id] = (declineCount[id] || 0) + 1
       const key = id + '|' + n + '|' + e.until
-      if (!declSeen[key]) declSeen[key] = tNow
+      if (!declSeen[key]) { declSeen[key] = tNow; const h = declHist[id + '|' + n] = (declHist[id + '|' + n] || []).filter(x => tNow - x < 1800000); h.push(tNow) }
       if (tNow - declSeen[key] > 600000) continue
       const why = String(e.why || '').replace(/\d+/g, '#').slice(0, 40) // "sheep 67/60 … nobody ready to breed" and "sheep 60/60 …" are ONE reason
       const w = declWhy[id] = declWhy[id] || {}
@@ -346,6 +347,11 @@ function tick () {
   }
   for (const k of Object.keys(declSeen)) if (tNow - declSeen[k] > 1800000) delete declSeen[k]
   const saturated = job => (declineCount[job.id] || 0) >= 3
+  // A BOT THAT KEPT SAYING NO IS NOT ASKED AGAIN FOR 20 MIN (12:55: fill_ravine_s -> tidy_spawn x33 against tidy_spawn -> fill_ravine_s x31 in ten
+  // minutes - the handler's "boxed in inside the fill" note is short, so every bot walked back the second it expired, got boxed in again and left
+  // again. The job itself cannot rest, because the builders who are NOT stuck keep producing.) 3 notes in half an hour = this pairing does not work.
+  const refuses = (job, n) => { if (declined(job, n)) return true; const h = declHist[job.id + '|' + n]; return !!(h && h.length >= 3 && tNow - h[h.length - 1] < 1200000) }
+  for (const k of Object.keys(declHist)) { declHist[k] = declHist[k].filter(x => tNow - x < 1800000); if (!declHist[k].length) delete declHist[k] }
   const headOf = j => j.names ? j.names.length : D[j.id] ? D[j.id].want : (j.bots == null ? 1 : j.bots)
   const crew = {} // active job id -> the ONLINE bots that held it when this tick started (who a job may be drained of, and who still works it)
   for (const n of Object.keys(hbs)) if (last[n] && activeIds.has(last[n])) (crew[last[n]] = crew[last[n]] || []).push(n)
@@ -394,7 +400,7 @@ function tick () {
     const yc = yieldCap[job.id]; if (yc && yc.until > Date.now()) head = Math.min(head, yc.cap) // YIELD THROTTLE: a squad without output is cut by itself
     const want = head - (staffed[job.id] || []).length
     if (want <= 0) return
-    const pool = [...free].filter(n => !(saturated(job) && last[n] !== job.id) && !(tenurePass && (job.priority || 0) < 96 && young(n, job)) && !(!floor && holdFast(n, job)) && drainable(n, job) && (!job.names || job.names.includes(n)) && (!job.exclude || !job.exclude.includes(n)) && eligible(job, hbs[n], phase, last[n] === job.id) && !declined(job, n) && (!floor || ((hbs[n].hp == null || hbs[n].hp >= 10) && (hbs[n].food == null || hbs[n].food >= 7))))
+    const pool = [...free].filter(n => !(saturated(job) && last[n] !== job.id) && !(tenurePass && (job.priority || 0) < 96 && young(n, job)) && !(!floor && holdFast(n, job)) && drainable(n, job) && (!job.names || job.names.includes(n)) && (!job.exclude || !job.exclude.includes(n)) && eligible(job, hbs[n], phase, last[n] === job.id) && !refuses(job, n) && (!floor || ((hbs[n].hp == null || hbs[n].hp >= 10) && (hbs[n].food == null || hbs[n].food >= 7))))
     // WHERE A JOB TAKES ITS BOTS FROM (09-20): sticky first, then the bots nobody is using - muster, the fallback sponge, an overflow hold - and only
     // then somebody else's squad: the LOWEST priority one holding the MOST bots. Within each source the bot NEAREST to the site (heartbeat pos).
     const R = job.requires || {}
@@ -442,7 +448,7 @@ function tick () {
   // and 25 fill_ravine_s <-> muster in 10 min). Same rule the priority loop has always used for sticky bots.
   const overFit = (job, n) => !!job && job.status === 'active' && SQUAD.test(job.type) && !(job.names && job.names.length) && !((job.restUntil || 0) > Date.now()) &&
     !(saturated(job) && last[n] !== job.id) && ((job.bots || 0) >= 3 || (job.maxBots || 0) >= 3) && headOf(job) > 0 && !(D[job.id] && D[job.id].deficit <= 0) &&
-    !(job.front && !fronts.has(job.front) && fronts.size >= maxFronts) && !(job.exclude && job.exclude.includes(n)) && eligible(job, hbs[n], phase, last[n] === job.id) && !declined(job, n)
+    !(job.front && !fronts.has(job.front) && fronts.size >= maxFronts) && !(job.exclude && job.exclude.includes(n)) && eligible(job, hbs[n], phase, last[n] === job.id) && !refuses(job, n)
   // roomFor gates only a NEW overflow, never a standing one: it counts the bots placed THIS tick, so testing it again next tick made
   // fill_ravine_s and fill_ravine_m swap bots 11x in 10 min (11:47). A hold ends when the job ends, rests, saturates or declines the bot.
   const pickOverflow = n => {
@@ -481,7 +487,7 @@ function tick () {
     if (!out[n] && fitWork) {
       const hold = over[n] === last[n] ? jobs.find(j => j.id === over[n]) : null
       const j = hold && overFit(hold, n) ? hold : pickOverflow(n)
-      if (j) { over[n] = j.id; join(n, j) } else if (fb && fitFb && (staffed[fb.id] || []).length < fbHead && !((fb.restUntil || 0) > Date.now()) && !declined(fb, n)) { out[n] = fb; (staffed[fb.id] = staffed[fb.id] || []).push(n) }
+      if (j) { over[n] = j.id; join(n, j) } else if (fb && fitFb && (staffed[fb.id] || []).length < fbHead && !((fb.restUntil || 0) > Date.now()) && !refuses(fb, n)) { out[n] = fb; (staffed[fb.id] = staffed[fb.id] || []).push(n) }
     }
     const job = out[n] || muster
     if (over[n] && over[n] !== job.id) delete over[n]

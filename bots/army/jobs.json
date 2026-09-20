@@ -774,17 +774,47 @@
    "lit": 1789905050111,
    "by": "Kanade",
    "portal": [
-    -37,
+    -38,
     98,
     -76
    ],
-   "through": 1789908393960,
-   "scoutRev": 2,
-   "hub": [
-    -37,
-    98,
-    -76
-   ],
+   "through": 1789908918547,
+   "scoutRev": 1,
+   "hub": {
+    "room": [
+     -41,
+     -80,
+     -33,
+     -72
+    ],
+    "y": 98,
+    "h": 3,
+    "door": [
+     -33,
+     98,
+     -76
+    ],
+    "outside": [
+     -32,
+     98,
+     -76
+    ],
+    "bearing": "x+",
+    "chest": [
+     -37,
+     98,
+     -79
+    ],
+    "table": [
+     -37,
+     98,
+     -73
+    ],
+    "built": true,
+    "chestStands": true,
+    "tableStands": true,
+    "at": 1789908944723
+   },
    "shell": [
     -39,
     -78,
@@ -793,7 +823,7 @@
    ],
    "shellY": 98,
    "returnJob": "nether_return",
-   "deaths": 0,
+   "deaths": 1,
    "deathsResetAt": 1789907290056,
    "deathsResetWhy": "stage 1b: ONE trip with the travel-free landing (top model 12:3xZ)",
    "landing": [
@@ -803,9 +833,11 @@
     -74
    ],
    "landingY": 98,
-   "landingSafe": false,
-   "landingAt": 1789908398350,
-   "back": 1789908405930
+   "landingSafe": true,
+   "landingAt": 1789908918869,
+   "back": 1789908593612,
+   "lastDeath": 1789908969244,
+   "lastDeathBy": "Kanade"
   }
  },
  "enlisted": [
@@ -1112,7 +1144,7 @@
    },
    "rev": 50,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
-   "restUntil": 1789904824738
+   "restUntil": 1789909537319
   },
   {
    "id": "farm_1",
@@ -1236,7 +1268,7 @@
     "cobblestone"
    ],
    "minBots": 2,
-   "maxBots": 16,
+   "maxBots": 6,
    "requires": {
     "minHp": 14,
     "minFood": 14
@@ -1251,12 +1283,12 @@
       "z": -500,
       "facing": "north"
      },
-     "level": 32
+     "level": -32
     }
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 14,
-   "rev": 26
+   "rev": 28
   },
   {
    "id": "base_dorm",
@@ -1744,7 +1776,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789908634076
+   "restUntil": 1789909037660
   },
   {
    "id": "fill_ring_field2",
@@ -2082,14 +2114,14 @@
     "radius": 250
    },
    "shiftMin": 20,
-   "rev": 16,
+   "rev": 17,
    "restUntil": 1789901815970,
    "note": "09-20 05:40Z top model: 82 sheep stand OUTSIDE pen 1 (escaped 03:42-05:30Z over step blocks an escape routine left on the pen floor - removed, pen_litter rule live). want 30 + 4 herders until the flock is back; then want 10-24 / minBots 1 again",
    "desc": "OPERATORS: do NOT pause - since 09-20 02:00Z the herd job itself SHEARS the woolly sheep and CULLS the adults beyond want inside the pen (event pen_harvest); a full pen is its work, not a dead end (BUGS 105 fixed)",
    "produces": [
     "wool"
    ],
-   "minBots": 0,
+   "minBots": 1,
    "maxBots": 3
   },
   {
@@ -2106,7 +2138,7 @@
    ],
    "requires": {
     "minHp": 14,
-    "minFood": 10
+    "minFood": 6
    },
    "plan": "BASE PLAN zone pen_3 (x -337..-311 / z -401..-389, built by base_pen_3): roadmap P3 - cows are LURED in with wheat and bred to >=10 (beef, leather). Pen 3 not 2: the only cow herds stand EAST (-176,-421 / -130,-373), 160 blocks from this gate, 240 from pen 2; no world change",
    "params": {
@@ -2127,7 +2159,7 @@
     "max": 20
    },
    "shiftMin": 20,
-   "rev": 6,
+   "rev": 7,
    "restUntil": 1789905134064,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
@@ -2151,7 +2183,7 @@
    ],
    "requires": {
     "minHp": 14,
-    "minFood": 10
+    "minFood": 6
    },
    "plan": "BASE PLAN zone pen_4 (x -337..-311 / z -386..-374, built by base_pen_4): roadmap P3 - chickens are LURED in with seeds and bred to >=10 (meat, feathers, eggs); no world change",
    "params": {
@@ -2172,13 +2204,13 @@
     "max": 20
    },
    "shiftMin": 20,
-   "rev": 6,
-   "restUntil": 1789905066959,
+   "rev": 9,
+   "restUntil": 1789909286238,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "feather"
    ],
-   "minBots": 0,
+   "minBots": 1,
    "maxBots": 2,
    "bots": 2
   },
@@ -2938,7 +2970,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 12,
+   "bots": 14,
    "site": [
     -311,
     69,
@@ -3135,7 +3167,7 @@
     },
     "order": "near"
    },
-   "rev": 14,
+   "rev": 16,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check.",
    "note": "top model 12:4xZ (gemba: 32 bots, not one cell in 10 min, no_los 229 / unreachable 129): the rest is a trench 14-16 deep with sheer walls and the new rule never drops into a pit - it had NO way in. WALK-IN STAIR first: ramp x -301/-300, z -461..-475 from the finished middle segment (y68) down to the floor y53. 12 bots: the trench is 7 wide",
    "restUntil": 1789906650052
@@ -3337,7 +3369,7 @@
     ]
    },
    "note": "top model 11:4xZ: re-activated after the above-grade sweep went in (fill_flush): the two leftover cells -328,68,-426 / -318,68,-420 were unreachable because one of the y69 filler lines stood ON them",
-   "restUntil": 1789908810076
+   "restUntil": 1789910026932
   },
   {
    "id": "fill_void_n343_n461",
@@ -3674,7 +3706,7 @@
    "type": "build",
    "priority": 70,
    "front": "works",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 2,
    "site": [
@@ -3719,9 +3751,12 @@
    "stuckBy": {
     "key": "rev3",
     "bots": [
-     "Mei"
+     "Mei",
+     "Rena",
+     "Botan"
     ]
-   }
+   },
+   "note": "auto-paused: 16 cells nobody could do: -236,65,-373 | -236,65,-374 | -237,65,-373 | -237,65,-374"
   },
   {
    "id": "base_road_9",
@@ -3758,7 +3793,8 @@
    "stuckBy": {
     "key": "rev4",
     "bots": [
-     "Akari"
+     "Akari",
+     "Hazuki"
     ]
    }
   },
@@ -3785,7 +3821,7 @@
    "type": "portal",
    "priority": 96,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 1,
    "names": [
@@ -3825,7 +3861,7 @@
    "type": "build",
    "priority": 80,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 3,
    "site": [
@@ -3851,7 +3887,15 @@
     }
    },
    "rev": 8,
-   "note": "top model 12:5xZ: restored + re-opened after the fix - a trunk standing in a fillOnly ground cell no longer counts as filled (level_skipped 12:37Z measured an oak_log at grade y68 on col -232,-377 over a 4-deep hole)"
+   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -232,65,-377",
+   "stuckBy": {
+    "key": "rev8",
+    "bots": [
+     "Nanami",
+     "Misaki",
+     "Riko"
+    ]
+   }
   },
   {
    "id": "base_infill_edge_n259",
@@ -3878,6 +3922,85 @@
      "w": 21,
      "d": 3,
      "clear": 14
+    }
+   }
+  },
+  {
+   "id": "nether_hub",
+   "type": "portal",
+   "priority": 95,
+   "front": "base",
+   "status": "active",
+   "when": "day",
+   "bots": 1,
+   "names": [
+    "Kanade"
+   ],
+   "shiftMin": 20,
+   "site": [
+    -326,
+    69,
+    -518
+   ],
+   "plan": "zone portal (docs/WORLD.md): STAGE 2 step 2 — THE HUB. A walled, roofed, lit 9x9 room (7x7 of floor = 8 bots) around the far gate at the_nether -37,98,-76, with a chest and a crafting table CARRIED OVER and registered under settings.nether only (the overworld depot must not see them). ONE round trip per slice: cross, 6 min of work inside the room box, come home. Blueprint nether_hub.",
+   "params": {
+    "blueprint": "nether_portal",
+    "origin": [
+     -326,
+     68,
+     -518
+    ],
+    "args": {
+     "axis": "x"
+    },
+    "buildJob": "base_portal",
+    "go": true,
+    "landing": true,
+    "work": "hub",
+    "at": [
+     -37,
+     98,
+     -76
+    ],
+    "door": "x+",
+    "minutes": 6,
+    "cobble": 256,
+    "crossS": 45,
+    "maxDeaths": 2
+   },
+   "rev": 1
+  },
+  {
+   "id": "west_terrace_cut_2",
+   "type": "build",
+   "priority": 66,
+   "front": "works",
+   "status": "active",
+   "when": "any",
+   "bots": 24,
+   "minBots": 6,
+   "maxBots": 24,
+   "site": [
+    -504,
+    74,
+    -480
+   ],
+   "plan": "zone WEST TERRACE (docs/WORLD.md), second bay: the mountain flank x -512..-496 / z -500..-460 (tops y86-93, surveyed from the air 13:0xZ) is cut down to the terrace level y73 that bay 1 (x -492..-476) already has = the army source of COBBLESTONE (target 6144, depot ~200) and DIRT (target 2048, depot ~0; every cap over the filled ravine and the cut tiles waits for it). A terrace, never a pit; whole trees are felled",
+   "produces": [
+    "dirt",
+    "cobblestone"
+   ],
+   "params": {
+    "blueprint": "clear_area",
+    "origin": [
+     -504,
+     73,
+     -480
+    ],
+    "args": {
+     "w": 17,
+     "d": 41,
+     "h": 22
     }
    }
   }

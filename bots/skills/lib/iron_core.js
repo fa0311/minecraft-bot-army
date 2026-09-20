@@ -1396,8 +1396,12 @@ async function openCell (bot, x, y, z, opts = {}) {
     if (r === 'liquid') return 'liquid'
     if (r !== 'ok' && r !== 'air') return (r === 'notool' || r === 'needpick') ? r : 'fail'
   }
+  // A FENCE / WALL / RAIL / WEB IN THE FLOOR counts as solid to the block API but is 1.5 high: nobody can step onto it. 09-20 12:4xZ: branch 56:1 of
+  // level 0 drove into an abandoned MINESHAFT (oak fences in its floor); stepTo failed five times, mineBranch returned `stuck`, and the miner re-claimed
+  // its own branch every 20 s - six miners, half an hour, 0 output. walkLine has always taken such a block out and floored the cell; so does this now.
+  let fl = blk(bot, x, y - 1, z)
+  if (tallBlock(fl) || clutter(fl)) { await digCell(bot, fl.position, { hand: true, soft: true }); fl = blk(bot, x, y - 1, z) }
   // lava anywhere around the new cell that we could not see before? (diagonals / floor)
-  const fl = blk(bot, x, y - 1, z)
   if (!isSolid(fl)) {
     const it = fillItem(bot)
     if (!it || !await placeAt(bot, it, new Vec3(x, y - 1, z))) return isLiquid(fl) ? 'liquid' : 'fail'
@@ -1879,6 +1883,8 @@ async function mineBranch (bot, M, br, gen, opts = {}) {
       const hz = await clearHot(bot, face, d, y, hotSt, gen)
       if (hz === 'plugged') continue // the plugs in the line are opened below by openCell/digCell with the full liquid protocol
       if (hz === 'lava') { why = 'lava'; await saveBranch(M, br.key, Object.assign({ len, ore: (br.ore || 0) + ore }, lavaAhead(bot, M, br, len))); await markHazard(bot, M.E, M.level, br.key, { kind: hotSt.kind || 'lava', at: hotSt.at, close: true, walled: hotSt.walled, len: len - 3 }); return { why, ore, len } }
+      const lo = blk(bot, nx, y - 1, nz) // a MINESHAFT corridor reads as "our own gallery" (a fence floor is `solid`): take it out and floor the cell (openCell)
+      if (tallBlock(lo) || clutter(lo)) { await digCell(bot, lo.position, { hand: true, soft: true }); if (!isSolid(blk(bot, nx, y - 1, nz))) { const it = fillItem(bot); if (it) await placeAt(bot, it, new Vec3(nx, y - 1, nz)) } }
       if (!await stepTo(bot, nx, nz, { ms: 3000, gen })) { if (++fails > 4) { why = 'stuck'; break } continue }
       fails = 0; len++; bump(bot, 'relearned')
       if (len % 8 === 0) { await saveBranch(M, br.key, { len }); hb(bot, { phase: 'relearn', branch: br.key, len, stats: bot.__ironStats }) }
@@ -1932,6 +1938,13 @@ async function mineBranch (bot, M, br, gen, opts = {}) {
     if (len % 4 === 0) { await sweep(bot, 500, 2.5); await saveBranch(M, br.key, { len, ore: (br.ore || 0) + ore, need: 0 }); hb(bot, { phase: 'branch', branch: br.key, len, stats: bot.__ironStats }) } // need: 0 = the hard face is behind us
   }
   refresh(M)
+  // A FACE THIS MINER CANNOT ENTER is handed back AT ONCE and not taken again for 10 min (else claimBranch gives the bot its own branch back every 20 s:
+  // 12:3xZ gemba "USELESS 10 min: 9x mine_iron, Aoi iron:to-face 56:1 standing 27 min"). The SECOND miner that sticks at it closes the branch for good.
+  if (why === 'stuck') {
+    await update(M.E, dd => { const b = lvState(dd, M.level).branches[br.key]; if (!b) return; b.len = len; b.ore = (br.ore || 0) + ore; b.stuck = (b.stuck || 0) + 1; b.owner = null; b.t = 0; if (b.stuck >= 2) { b.done = true; b.why = 'stuck' } })
+    ;(bot.__ironSkip = bot.__ironSkip || {})[M.level + '/' + br.key] = Date.now() + 10 * 60000
+    return { why, ore, len }
+  }
   await saveBranch(M, br.key, Object.assign({ len, ore: (br.ore || 0) + ore, done: len >= branchLen(M) }, len > br.len ? { need: 0 } : {}))
   return { why, ore, len }
 }

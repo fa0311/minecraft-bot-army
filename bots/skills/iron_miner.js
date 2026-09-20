@@ -79,16 +79,19 @@ async function pickLevel (bot, M, args, rank) {
 async function growLevel (bot, M, args, rank) {
   const board = Number.isFinite(args.level) ? Math.floor(args.level) : M.level
   const bg = M.G.levels[board]
-  if (!bg || M.st.dug < bg.g || !I.exhausted(I.lvState(M.st, board))) return null // the board's level is still being dug / still has work (a diamond level at y-54)
+  if (!bg || M.st.dug < bg.g || I.branchOutlook(bot, M, 4, board).free > 0) return null // the board's level is still being dug / still has a branch to give out (a diamond level at y-54)
   const iron = ironWanted(bot)
   const band = iron ? BAND : [board, board]
   const dug = M.levels.filter(lv => lv >= band[0] && lv <= band[1] && M.G.levels[lv] && M.st.dug >= M.G.levels[lv].g)
-  if (!dug.length || !dug.every(lv => I.exhausted(I.lvState(M.st, lv)))) return null
+  // FREE, not merely un-exhausted: a level whose last six branches are all CLAIMED has nothing for the miner standing here either (12:3xZ gemba: y32 at
+  // the cap, y0 with 6 claimed branches 200 blocks out -> `mine_level_fallback 32 -> -32`, an iron-poor level 300 blocks from the hub). `free` counts
+  // the level's own growth (branchOutlook), so free = 0 everywhere in the band means exactly "no free branch and none that can grow".
+  if (!dug.length || dug.some(lv => I.branchOutlook(bot, M, 4, lv).free > 0)) return null
   const y = I.nextLanding(M, rank >= 3 || I.stoneWanted() ? -48 : BAND[0], BAND[1], iron ? I.LEVEL_Y : board)
   if (y == null || !await I.claimGrowth(M.E, y)) return null // nothing left to open (noBranch says `mine_exhausted`) / somebody opened a level within the hour
   const M2 = await I.mine(bot, Object.assign(args, { level: y })) // args.level: this bot works the new level from here on; the cache's levelY follows it (armyctl `mine`)
   if (!M2 || M2.level !== y) return null // refused after all (`mine_level_refused`): the hour's stamp stays and the caller falls back as before
-  const why = 'every dug level of y' + band[0] + '..' + band[1] + ' (' + dug.join(', ') + ') is at its limit: ' + 2 * I.K_MAX + ' branches x ' + I.MAX_BRANCH + ' blocks, none open'
+  const why = 'no free branch on any dug level of y' + band[0] + '..' + band[1] + ' (' + dug.join(', ') + '): every mouth of ' + 2 * I.K_MAX + ' is taken or claimed and nothing can grow (' + I.MAX_BRANCH + ' blocks)'
   let onBoard = false // the ORDER moves too, not just this bot: params.args.level + rev (the rev ends the squad's slices, so every miner re-reads the level within seconds)
   ARMY.boardEdit(b => { const j = (b.jobs || []).find(x => x.id === jobRef(bot).id); if (!j) return; j.params = j.params || {}; j.params.args = Object.assign({}, j.params.args, { level: y }); j.rev = (j.rev || 0) + 1; j.note = 'mine growth ' + new Date().toISOString().slice(11, 16) + 'Z: level y' + y + ' opened by ' + bot.username + ' (' + why + ')'; onBoard = true })
   ARMY.result(bot, { ev: 'mine_level_opened', job: jobRef(bot).id, level: y, from: board, why, board: onBoard, note: 'the miners opened this landing themselves (at most one per hour): one takes the stair lease, the rest work what branches are left. Wrong level? `armyctl.js mine level <y>` overrules it' })
