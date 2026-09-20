@@ -2748,10 +2748,10 @@
    "note": "top model 15:1xZ: 655 OPEN cells (left 3216 minus waiting 2561) - do not lower; ladderWay (fill_wayin) needs builders standing on the RIM to hang the way in",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Kurumi",
-    "t": 1789916330153,
+    "by": "Mei",
+    "t": 1789916965434,
     "at": [
-     -302,
+     -322,
      42,
      -475
     ]
@@ -3877,7 +3877,7 @@
      "Akari"
     ]
    },
-   "restUntil": 1789917002994
+   "restUntil": 1789917611855
   },
   {
    "id": "stray_furnace_344",
@@ -4284,7 +4284,7 @@
    "type": "build",
    "priority": 55,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 3,
    "site": [
@@ -4317,9 +4317,11 @@
     "key": "rev2",
     "bots": [
      "Karin",
-     "Chika"
+     "Chika",
+     "Honoka"
     ]
-   }
+   },
+   "note": "auto-paused: 42 cells nobody could do: -358,71,-518 | -359,71,-518 | -358,71,-521 | -360,71,-518 | -359,71,-521 | -360,71,-521"
   },
   {
    "id": "cap_north_tiles",

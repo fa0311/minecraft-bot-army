@@ -351,7 +351,10 @@ function countOpen (map, world, now) {
 function canStand (map, world, x, y, z, mates, blocked) {
   if (!isSolid(world, x, y - 1, z, blocked)) return false
   if (isSolid(world, x, y, z, blocked) || isSolid(world, x, y + 1, z, blocked)) return false
-  if (lavaWithin(map, world, x, y, z, 2)) return false // nobody works within 2 of lava until it is quenched
+  // Lava: never IN it, never touching it (the 3x3x3 around the builder). Two blocks away at the same
+  // level is where a player stands to throw a block into a pool, and it has to be allowed — with the
+  // 2-block rule the core of a 4x4 pool had no legal stand at all and the whole box waited for it.
+  if (lavaWithin(map, world, x, y, z, 1) || lavaWithin(map, world, x, y + 1, z, 1)) return false
   if (mates) for (const m of mates) if (m.x === x && m.z === z && Math.abs(m.y - y) <= 1) return false
   return true
 }
@@ -679,7 +682,7 @@ function plan (world, box, grade, crew, opts = {}) {
       let reachCols = null
       if (Math.floor(bot.pos.y) <= grade) {
         reachCols = new Set()
-        for (const k of reachSet(map, world, flr(bot.pos), null, 1200)) { const p = k.split(','); reachCols.add(p[0] + ',' + p[2]) }
+        for (const k of reachSet(map, world, flr(bot.pos), null, 4000)) { const p = k.split(','); reachCols.add(p[0] + ',' + p[2]) }
       }
       const t = openTiles(world, box, grade, { map, claims, now, from: bot.pos, botId: bot.id, limit: 1, avoid: map.avoid.get(bot.id), reachCols })[0]
       if (!t) {
