@@ -1615,19 +1615,13 @@
     "t": 1789924913245
    },
    "absorb": {
-    "carrot": 704,
-    "wheat": 640,
-    "pumpkin": 144,
-    "melon": 96,
+    "leather": 96,
     "coal": 480,
     "iron_ingot": 144,
-    "flint": 600,
-    "diamond": 12,
-    "white_wool": 288,
-    "black_wool": 288,
-    "leather": 192
+    "flint": 288,
+    "diamond": 12
    },
-   "absorbT": 1789935874775
+   "absorbT": 1789937976250
   },
   "enchantTable": [
    -344,
@@ -2045,9 +2039,9 @@
     }
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
-   "bots": 20,
-   "rev": 59,
-   "restUntil": 1789936435436
+   "bots": 8,
+   "rev": 60,
+   "restUntil": 1789938033428
   },
   {
    "id": "base_dorm",
@@ -2322,7 +2316,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789936383560
+   "restUntil": 1789938025613
   },
   {
    "id": "fill_ring_field2",
@@ -2929,9 +2923,9 @@
    "type": "build",
    "priority": 70,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 1,
+   "bots": 2,
    "site": [
     -311,
     69,
@@ -3162,19 +3156,19 @@
     },
     "order": "near"
    },
-   "rev": 61,
+   "rev": 65,
    "desc": "MEASURED 16:3xZ by probe: 44 columns (444 cells) still open to the sky = this job (narrow deep shafts: step off / water drop in, pillar out = the column is filled); 3172 air cells lie UNDER the crust below grade = NOT reachable from above, they belong to the cavity job (owner algorithm: shaft down, fill riding up). `left` counts both - do not judge this job by `left`, and do not raise the crew over the number of open shafts",
    "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -333,58,-483",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Noa",
-    "t": 1789928882266,
+    "by": "Yui",
+    "t": 1789936807296,
     "at": [
-     -294,
-     62,
-     -479
+     -300,
+     65,
+     -478
     ],
-    "drop": 7
+    "drop": 4
    }
   },
   {
@@ -3688,7 +3682,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789936638073
+   "restUntil": 1789938466729
   },
   {
    "id": "nether_landing_2",
@@ -5986,7 +5980,7 @@
     "carry": 320
    },
    "rev": 14,
-   "restUntil": 1789937109212
+   "restUntil": 1789939213388
   },
   {
    "id": "fill_buckets",
@@ -6248,7 +6242,7 @@
    "priority": 88,
    "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 2,
    "front": "industry",
    "site": [
     -345,
@@ -6287,13 +6281,13 @@
      {
       "do": "withdraw",
       "item": "wheat",
-      "n": 192,
-      "atLeast": 48
+      "n": 60,
+      "atLeast": 30
      },
      {
       "do": "craft",
       "item": "bread",
-      "n": 64,
+      "n": 10,
       "s": 600
      },
      {
@@ -6302,7 +6296,7 @@
      }
     ]
    },
-   "rev": 3,
+   "rev": 4,
    "restUntil": 0
   },
   {
@@ -6340,8 +6334,8 @@
     "radius": 150,
     "bankAt": 48
    },
-   "restUntil": 1789929114582,
-   "rev": 1
+   "restUntil": 1789939014321,
+   "rev": 4
   },
   {
    "id": "craft_gold_boots",
@@ -6521,7 +6515,7 @@
    "type": "build",
    "priority": 88,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 13,
    "site": [
@@ -6545,20 +6539,19 @@
      "d": 35
     }
    },
-   "rev": 4,
-   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -345,67,-515",
-   "stuckBy": {
-    "key": "rev4",
-    "bots": [
-     "Akari",
-     "Botan",
-     "Chika"
-    ]
-   },
+   "rev": 5,
+   "note": "auto-reactivated: 3 columns below pad level (pad_uneven): -369,66,-497 | -365,66,-512 | -345,66,-515",
    "cap": {
     "id": "cap_base_core_pad",
     "cols": 1225,
     "t": 1789926449257
+   },
+   "stuckBy": {
+    "key": "rev5",
+    "bots": [
+     "Aoi",
+     "Chika"
+    ]
    }
   },
   {
@@ -6918,6 +6911,175 @@
      }
     }
    }
+  },
+  {
+   "id": "base_infill_n337_n555",
+   "type": "build",
+   "priority": 62,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 8,
+   "site": [
+    -326,
+    69,
+    -540
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone infill x -337..-315 / z -555..-525 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): INFILL between the zones: the whole base is ONE level - cut what stands above y68, fill dents from the natural ground up, 4 headroom; nothing is built on it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -326,
+     68,
+     -540
+    ],
+    "args": {
+     "w": 23,
+     "d": 31,
+     "clear": 7
+    }
+   },
+   "rev": 3,
+   "after": "void_fix_base_infill_n337_n555",
+   "voidFix": {
+    "n": 1,
+    "id": "void_fix_base_infill_n337_n555",
+    "cols": 2,
+    "t": 1789937469550
+   },
+   "cap": {
+    "id": "cap_base_infill_n337_n555",
+    "cols": 713,
+    "t": 1789937469584
+   }
+  },
+  {
+   "id": "void_fix_base_infill_n337_n555",
+   "type": "build",
+   "priority": 70,
+   "front": "works",
+   "status": "active",
+   "when": "any",
+   "bots": 1,
+   "site": [
+    -315,
+    68,
+    -525
+   ],
+   "plan": "void under the finished pad base_infill_n337_n555: 2 columns of x -316..-315 / z -525..-525 are a deck over air (void_under_pad) - fill SOLID from the natural ground up to grade y68, never deck a hole; base_infill_n337_n555 is `after` this job and re-checks the columns when it is done",
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -315,
+     68,
+     -525
+    ],
+    "unlid": 2,
+    "args": {
+     "box": [
+      -316,
+      -525,
+      -315,
+      -525
+     ],
+     "depth": 4,
+     "fill": "cobblestone",
+     "mats": [
+      "cobbled_deepslate",
+      "cobblestone",
+      "stone",
+      "deepslate",
+      "tuff",
+      "andesite",
+      "diorite",
+      "granite",
+      "dirt",
+      "gravel"
+     ]
+    }
+   },
+   "rev": 1,
+   "stuckBy": {
+    "key": "rev1",
+    "bots": [
+     "Hazuki"
+    ]
+   }
+  },
+  {
+   "id": "cap_base_infill_n337_n555",
+   "type": "build",
+   "priority": 30,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -326,
+    69,
+    -540
+   ],
+   "after": "void_fix_base_infill_n337_n555",
+   "plan": "the finished level of base_infill_n337_n555 is bare stone: cap the grade layer y68 of x -337..-315 / z -555..-525 with DIRT (grass spreads by itself). Only where bare stone, gravel or air stands - never paving, a field, a crop or another blueprint of ours - and only out of the dirt SURPLUS over targets.dirt 128",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -326,
+     68,
+     -540
+    ],
+    "args": {
+     "w": 23,
+     "d": 31,
+     "cap": true,
+     "fill": "dirt"
+    },
+    "needStock": {
+     "dirt": 128
+    },
+    "order": "near"
+   }
+  },
+  {
+   "id": "base_field_2",
+   "type": "build",
+   "priority": 70,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 4,
+   "site": [
+    -288,
+    69,
+    -507
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone field_2 x -301..-275 / z -520..-494 on the base level y68: field block 27x27 in a 29x29 slot (its torch ring): nine 9x9 plots, water cells BUILT by the blueprint",
+   "params": {
+    "blueprint": "field_block",
+    "origin": [
+     -301,
+     68,
+     -520
+    ],
+    "args": {},
+    "waterFrom": [
+     -441,
+     62,
+     -422
+    ]
+   },
+   "note": "auto-paused: build complete",
+   "water": {
+    "key": "rev1",
+    "cells": {}
+   },
+   "rev": 2
   }
  ]
 }
