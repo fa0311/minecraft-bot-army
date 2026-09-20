@@ -1131,7 +1131,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 24,
+   "bots": 8,
    "site": [
     -367,
     69,
@@ -1161,7 +1161,7 @@
      ]
     ]
    },
-   "rev": 58,
+   "rev": 59,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789909537319
   },
@@ -1580,7 +1580,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789912881981
+   "restUntil": 1789913131704
   },
   {
    "id": "fill_ring_field2",
@@ -2572,11 +2572,9 @@
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check.",
    "note": "top model 14:0xZ: re-activated with the head-count its OPEN columns can use (base audit 13:59Z audit_fill). Pinholes are now CLOSED by the builder (dig the cap, gravity drop, place from the rim) and a tail nobody can reach ENDS after 3 rounds instead of declining for ever",
    "stuckBy": {
-    "key": "rev18",
+    "key": "rev19",
     "bots": [
-     "Chino",
-     "Aika",
-     "Himari"
+     "Chika"
     ]
    }
   },
@@ -2852,7 +2850,7 @@
    "type": "build",
    "priority": 84,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 2,
    "site": [
@@ -2882,14 +2880,22 @@
     }
    },
    "rev": 2,
-   "note": "top model 14:0xZ: re-activated with the head-count its OPEN columns can use (base audit 13:59Z audit_fill). Pinholes are now CLOSED by the builder (dig the cap, gravity drop, place from the rim) and a tail nobody can reach ENDS after 3 rounds instead of declining for ever"
+   "note": "auto-paused: 4 cells nobody could do: -231,65,-382",
+   "stuckBy": {
+    "key": "rev2",
+    "bots": [
+     "Madoka",
+     "Wakana",
+     "Noa"
+    ]
+   }
   },
   {
    "id": "base_yard_pad",
    "type": "build",
    "priority": 85,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 2,
    "site": [
@@ -2913,9 +2919,20 @@
      "d": 15
     }
    },
-   "note": "needs: dirt (32 cells wait; every cell whose material exists is done or in work)",
    "rev": 14,
-   "restUntil": 1789912916108
+   "restUntil": 1789912916108,
+   "after": "void_fix_base_yard_pad",
+   "voidFix": {
+    "n": 1,
+    "id": "void_fix_base_yard_pad",
+    "cols": 33,
+    "t": 1789912974941
+   },
+   "cap": {
+    "id": "cap_base_yard_pad",
+    "cols": 465,
+    "t": 1789912978111
+   }
   },
   {
    "id": "base_portal_go",
@@ -3006,11 +3023,9 @@
    },
    "restUntil": 1789906645060,
    "stuckBy": {
-    "key": "rev0",
+    "key": "rev1",
     "bots": [
-     "Himari",
-     "Chika",
-     "Ichika"
+     "Juri"
     ]
    },
    "note": "top model 14:0xZ: re-activated with the head-count its OPEN columns can use (base audit 13:59Z audit_fill). Pinholes are now CLOSED by the builder (dig the cap, gravity drop, place from the rim) and a tail nobody can reach ENDS after 3 rounds instead of declining for ever",
@@ -3894,6 +3909,91 @@
     "args": {
      "w": 7,
      "d": 7,
+     "cap": true,
+     "fill": "dirt"
+    },
+    "needStock": {
+     "dirt": 128
+    },
+    "order": "near"
+   }
+  },
+  {
+   "id": "void_fix_base_yard_pad",
+   "type": "build",
+   "priority": 70,
+   "front": "works",
+   "status": "active",
+   "when": "any",
+   "bots": 6,
+   "site": [
+    -354,
+    68,
+    -483
+   ],
+   "plan": "void under the finished pad base_yard_pad: 33 columns of x -369..-340 / z -490..-477 are a deck over air (void_under_pad) - fill SOLID from the natural ground up to grade y68, never deck a hole; base_yard_pad is `after` this job and re-checks the columns when it is done",
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -354,
+     68,
+     -483
+    ],
+    "unlid": 3,
+    "args": {
+     "box": [
+      -369,
+      -490,
+      -340,
+      -477
+     ],
+     "depth": 5,
+     "fill": "cobblestone",
+     "mats": [
+      "cobbled_deepslate",
+      "cobblestone",
+      "stone",
+      "deepslate",
+      "tuff",
+      "andesite",
+      "diorite",
+      "granite",
+      "dirt",
+      "gravel"
+     ]
+    }
+   },
+   "stuckBy": {
+    "key": "rev0",
+    "bots": [
+     "Erika"
+    ]
+   }
+  },
+  {
+   "id": "cap_base_yard_pad",
+   "type": "build",
+   "priority": 38,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -355,
+    69,
+    -483
+   ],
+   "plan": "the finished level of base_yard_pad is bare stone: cap the grade layer y68 of x -370..-340 / z -490..-476 with DIRT (grass spreads by itself). Only where bare stone, gravel or air stands - never paving, a field, a crop or another blueprint of ours - and only out of the dirt SURPLUS over targets.dirt 128",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -355,
+     68,
+     -483
+    ],
+    "args": {
+     "w": 31,
+     "d": 15,
      "cap": true,
      "fill": "dirt"
     },

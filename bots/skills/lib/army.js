@@ -1184,6 +1184,11 @@ async function bank (bot, keep = {}, opts = {}) {
   // STONE GLUT, same rule as the seeds (op 09-20 01:30Z: build chests FULL of cobbled_deepslate - 22069 stone against a target of 1728 - so planks could not
   // be banked): once the stock holds 3x the target (min 4096) junk stone never enters a chest, it is dropped before the visit.
   if (byCat.build) {
+    // BUILDING MATERIAL IS DROPPED ONLY WHEN THERE IS NO ROOM LEFT FOR IT (owner 09-20 "本当にそれで足りるのか？": any fixed number is a guess - the Nether roads, the perimeter
+    // wall, the plaza and the giant builds he wants will eat tens of thousands; what is finite is CHEST SPACE, and that is what we measure): the `build` chests must be
+    // >= 92 % full (stacks used / 54 per indexed chest) AND the stock over the board's target before stone, dirt, gravel or sand count as junk. More room = more chests.
+    const roomLeft = (() => { try { const d = index(); let used = 0; let n = 0; for (const c of chestsOf('build')) { const e = d[c.x + ',' + c.y + ',' + c.z]; if (!e) continue; n++; for (const v of Object.values(e.items || {})) used += Math.ceil(v / 64) } return n ? 1 - used / (n * 54) : 1 } catch (e_) { return 1 } })()
+    if (roomLeft > 0.08) { /* room in the build chests: nothing of the building kind is junk */ } else {
     const tgt = (settings().targets || {}).cobblestone || 0; const stone = stockOf('cobblestone') + stockOf('cobbled_deepslate')
     if (stone >= Math.max(3 * tgt, 16384)) for (const name of Object.keys(byCat.build)) { // 16384, not 4096: the fills alone eat tens of thousands (09-20)
       if (!/^(cobblestone|cobbled_deepslate|granite|diorite|andesite|tuff|deepslate|stone)$/.test(name)) continue
@@ -1198,6 +1203,7 @@ async function bank (bot, keep = {}, opts = {}) {
       const want = Math.max(4096, (settings().targets || {})[name] || 0)
       if (!(byCat.build[name] > 0) || stockOf(name) < want) continue
       junk[name] = byCat.build[name]; delete byCat.build[name]
+    }
     }
     if (byCat.build && !Object.keys(byCat.build).length) delete byCat.build
   }
