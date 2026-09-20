@@ -3062,7 +3062,16 @@ async function build (bot, job, api, ctx) {
   // quartz:192}"}` from Riko 11:17:20, the same for granite and andesite - A.obtain falls through to the recipe solver, so a `mats` list of raw stone types sent
   // builders off to CRAFT diorite out of quartz nobody owns). The filler is whatever the depot has MOST of, taken straight out of the chest index (A.withdraw); with
   // nothing in the depot the job says `build_blocked no filler` once and the builder goes back to the board.
-  const bestOfMats = list => { const m = A.stockMap(); return list.filter(q => (m[q] || 0) > 0).sort((a, b) => (m[b] || 0) - (m[a] || 0))[0] || null }
+  // ...AND A FILL NEVER EATS A RESERVE (11:47Z, measured: depot dirt 1151 -> 0 and cobblestone 578 -> 54 in 15 minutes, because `dirt` stands in the ravine jobs' `mats`
+  // list and was the biggest pile - `base_yard_pad` and every other `level` job then reported "no dirt carried or in stock", and the dirt CAP a finished fill wants had
+  // nothing left to lay). A fill takes its OWN declared fill/top block freely (that is what the surplus stone of the mine is for), but a SUBSTITUTE only out of the
+  // surplus over settings.targets, and soil (dirt/gravel/sand/clay) only when no stone-family filler has any: soil is the skin of the base, rubble is not.
+  const SOIL_RE = /^(dirt|coarse_dirt|rooted_dirt|grass_block|podzol|mud|gravel|sand|red_sand|clay)$/
+  const bestOfMats = list => {
+    const m = A.stockMap(); const T = A.settings().targets || {}; const own = new Set([list[0], (P.args || {}).fill, (P.args || {}).top].filter(Boolean))
+    const free = q => (m[q] || 0) - (own.has(q) ? 0 : (T[q] || 0))
+    return list.filter(q => free(q) > 0).sort((a, b) => (SOIL_RE.test(a) ? 1 : 0) - (SOIL_RE.test(b) ? 1 : 0) || free(b) - free(a))[0] || null
+  }
   const bestMat = () => f0 ? bestOfMats(matsOf(f0)) : null
   const restock = async () => { const n = bestMat(); if (!n) return false; task(bot, 'build: getting ' + n); await A.withdraw(bot, n, fillBatch(n), { stop: api.stop }); task(bot, 'build ' + P.blueprint); await A.travel(bot, { x: o.x, y: null, z: o.z }, { range: 14, ms: 120000, stop: api.stop }); return fillMats() > 0 }
   const climbOut = async () => {

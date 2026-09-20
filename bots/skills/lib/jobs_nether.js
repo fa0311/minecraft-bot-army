@@ -7,10 +7,10 @@
 //   origin:[x,y,z]   the origin of the `nether_portal` BUILD job (the gate's geometry comes from that blueprint's geom(), so the
 //                    lighting can never drift from what stands in the world)   args:{axis}   blueprint:'nether_portal'
 //   buildJob:'<id>'  the build job that owns the frame — re-activated (= the repair) when a frame cell is missing
-//   go:true          ONE pinned bot (job.names length 1) crosses: 128 cobblestone + food + sword, walks in, waits for the
+//   go:true          ONE pinned bot (job.names length 1) crosses: 128 blocks of ANY stone + food + sword, walks in, waits for the
 //                    dimension change, looks, shells the far portal if the far side is unsafe, walks back. Bump `rev` to send
 //                    another expedition (settings.nether.scoutRev remembers which rev already went).
-//   cobble:128 · crossS:90 (seconds to stand in the portal) · stayS:300 (seconds on the far side before the way back)
+//   cobble:128 (blocks of stone to carry, any sort) · crossS:90 (seconds to stand in the portal, both ways)
 // EVENTS (all verified): portal_frame_incomplete · flint_knapped · portal_lit · portal_light_failed · portal_through ·
 //   nether_look · nether_shell · portal_back · portal_scout_died · portal_scout_missing
 // BOARD: settings.nether = {gate:[x,y,z] overworld, lit, portal:[x,y,z] NETHER coords, hub:[x,y,z], through, back, scoutRev}
@@ -32,6 +32,12 @@ module.exports = ctx => {
   const dimOf = bot => String((bot.game && bot.game.dimension) || 'unknown')
   // what may stand in a frame CORNER (vanilla leaves them empty; ours carry any stone sort, see the blueprint)
   const STONE_RE = /^(cobblestone|cobbled_deepslate|stone|andesite|diorite|granite|tuff|deepslate|stone_bricks|blackstone|basalt|smooth_stone|netherrack)$/
+  // THE SHELL IS BUILT FROM WHATEVER STONE WE HAVE, not from one name (11:53Z: the scout refused to cross with `cobblestone 0/32`
+  // while the depot held 299 diorite — the ravine fill drains cobblestone faster than the mine banks it). Order = what a depot
+  // usually has most of; `stoneItem` re-reads the pockets for every block placed, so a pile running out costs nothing.
+  const SHELL_STONE = ['cobblestone', 'cobbled_deepslate', 'diorite', 'andesite', 'granite', 'stone', 'tuff', 'deepslate', 'blackstone', 'dirt']
+  const stoneCarried = bot => SHELL_STONE.reduce((n, k) => n + A.count(bot, k), 0)
+  const stoneItem = bot => SHELL_STONE.filter(k => A.count(bot, k) > 0).sort((a, b) => A.count(bot, b) - A.count(bot, a))[0] || null
 
   // ---------------------------------------------------------------- the gate's geometry comes from the BLUEPRINT, never from here
   let _bpM = 0
@@ -157,9 +163,9 @@ module.exports = ctx => {
       if (b.name === 'obsidian' || b.name === 'nether_portal') continue
       if (b.boundingBox === 'block') continue
       if (b.name === 'lava') lava++
-      if (!A.count(bot, 'cobblestone')) break
+      const item = stoneItem(bot); if (!item) break
       task(bot, 'portal: walling the far gate in (' + placed + ')')
-      const r = await A.placeHard(bot, c, 'cobblestone', { stop: api.stop, noRest: true }).catch(e => ({ ok: false, reason: String(e && e.message) }))
+      const r = await A.placeHard(bot, c, item, { stop: api.stop, noRest: true }).catch(e => ({ ok: false, reason: String(e && e.message) }))
       const nb = bot.blockAt(c)
       if ((r && r.ok) || (nb && nb.boundingBox === 'block')) placed++
     }
@@ -196,9 +202,9 @@ module.exports = ctx => {
       A.result(bot, { ev: 'nether_look', job: job.id, at: xyz(far.position), lava, mobs: mobs.slice(0, 8), drop, hp: bot.health, unsafe: st.unsafe })
     }
     // SHELL: only when it is needed, only with what we carried in
-    if (st.unsafe && !st.shelled && A.count(bot, 'cobblestone') >= 16) {
+    if (st.unsafe && !st.shelled && stoneCarried(bot) >= 16) {
       st.shelled = true
-      const r = await shell(bot, job, api, body, Math.min(A.count(bot, 'cobblestone'), 160))
+      const r = await shell(bot, job, api, body, Math.min(stoneCarried(bot), 160))
       A.result(bot, Object.assign({ ev: 'nether_shell', job: job.id }, r))
       if (r.placed) netherEdit({ hub: [r.box[0] + 2, r.y, r.box[1] + 2], shell: r.box, shellY: r.y })
     }
@@ -287,12 +293,17 @@ module.exports = ctx => {
     if (!st.kitted) {
       task(bot, 'portal: kitting up for the crossing')
       await A.kitUp(bot, { risk: true, force: true, why: job.id, stop: api.stop }).catch(e_ => swallow('jobs_nether:kitUp', e_))
-      const want = { cobblestone: Math.max(32, P.cobble || 128), torch: 32 }
-      for (const [item, n] of Object.entries(want)) if (A.count(bot, item) < n) await A.obtain(bot, item, n, { stop: api.stop }).catch(e_ => swallow('jobs_nether:obtain', e_))
+      const want = Math.max(32, P.cobble || 128)
+      for (const k of SHELL_STONE.slice().sort((a, b) => A.stockOf(b) - A.stockOf(a))) {
+        if (stoneCarried(bot) >= want || api.stop()) break
+        if (A.stockOf(k) < 16) continue
+        await A.obtain(bot, k, Math.min(A.count(bot, k) + (want - stoneCarried(bot)), 256), { stop: api.stop }).catch(e_ => swallow('jobs_nether:obtain', e_))
+      }
+      if (A.count(bot, 'torch') < 16) await A.obtain(bot, 'torch', 32, { stop: api.stop }).catch(e_ => swallow('jobs_nether:torch', e_))
       if (!bot.registry.foodsByName || !bot.inventory.items().some(i => bot.registry.foodsByName[i.name])) await A.obtain(bot, 'bread', 16, { stop: api.stop }).catch(e_ => swallow('jobs_nether:food', e_))
       await A.equipBest(bot, 'sword').catch(e_ => swallow('jobs_nether:sword', e_))
       const short = []
-      if (A.count(bot, 'cobblestone') < 32) short.push('cobblestone ' + A.count(bot, 'cobblestone') + '/32')
+      if (stoneCarried(bot) < 32) short.push('stone to build with ' + stoneCarried(bot) + '/32 (depot: ' + SHELL_STONE.map(k => k + ' ' + A.stockOf(k)).join(', ') + ')')
       if (!A.bestOf(bot, 'sword')) short.push('no sword')
       if (!bot.inventory.items().some(i => bot.registry.foodsByName[i.name])) short.push('no food')
       if (short.length) { A.decline(bot, job, 10 * 60000, 'kit short: ' + short.join(', ')); return muster(bot, job, api, ctx2, 'portal: not going through under-equipped (' + short.join(', ') + ')') }

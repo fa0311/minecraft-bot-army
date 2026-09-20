@@ -561,22 +561,25 @@
   "targets": {
    "food": 448,
    "log": 1024,
-   "planks": 224,
-   "cobblestone": 1728,
+   "planks": 512,
+   "cobblestone": 6144,
    "fuel": 224,
    "iron": 224,
    "iron_ingot": 224,
-   "torch": 224,
+   "torch": 512,
    "wheat_seeds": 224,
    "string": 40,
-   "stick": 128,
+   "stick": 256,
    "leather": 64,
    "feather": 64,
    "wool": 150,
    "stone_shovel": 40,
    "stone_axe": 20,
-   "dirt": 768,
-   "stone_pickaxe": 16
+   "dirt": 2048,
+   "stone_pickaxe": 16,
+   "book": 48,
+   "bookshelf": 15,
+   "sugar_cane": 512
   },
   "base": {
    "x": -320,
@@ -722,21 +725,35 @@
   },
   "dump": {
    "at": [
-    -333,
-    69,
-    -480
+    -452,
+    58,
+    -494
    ],
    "aim": [
-    -329,
-    64,
-    -480
+    -456,
+    47,
+    -494
    ],
-   "why": "NW rim of the ravine keep-out (quarry_sw terraces below): junk is thrown in here, never dropped in the base"
+   "spread": [
+    0,
+    1
+   ],
+   "why": "natural gully 40 blocks W of the wall line (floor y45, nobody walks there): junk is thrown in here. The old dump on the ravine rim became FLAT GROUND when the ravine was filled - the seed pile then wandered from bot to bot at the depot door (foreman 09-20 11:53Z)"
   },
   "core": {
    "enabled": [
     "combat"
    ]
+  },
+  "nether": {
+   "gate": [
+    -327,
+    68,
+    -518
+   ],
+   "axis": "x",
+   "lit": 1789905050111,
+   "by": "Sayaka"
   }
  },
  "enlisted": [
@@ -871,8 +888,8 @@
    "produces": [
     "food"
    ],
-   "minBots": 2,
-   "maxBots": 6,
+   "minBots": 0,
+   "maxBots": 4,
    "site": [
     -367,
     69,
@@ -890,12 +907,12 @@
      "cow",
      "chicken"
     ],
-    "leave": 0,
+    "leave": 2,
     "haul": 24,
     "maxDist": 160
    },
-   "rev": 13,
-   "bots": 3
+   "rev": 16,
+   "bots": 2
   },
   {
    "id": "forage_spawn",
@@ -1031,7 +1048,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 17,
+   "bots": 10,
    "site": [
     -367,
     69,
@@ -1061,7 +1078,7 @@
      ]
     ]
    },
-   "rev": 47,
+   "rev": 48,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789904824738
   },
@@ -1082,7 +1099,7 @@
     "food",
     "wheat_seeds"
    ],
-   "minBots": 1,
+   "minBots": 0,
    "maxBots": 1,
    "plan": "BASE PLAN zone field_1: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
    "params": {
@@ -1097,7 +1114,7 @@
     "forage": true,
     "bankAt": 64
    },
-   "rev": 5,
+   "rev": 7,
    "bots": 1
   },
   {
@@ -1187,7 +1204,7 @@
     "cobblestone"
    ],
    "minBots": 2,
-   "maxBots": 14,
+   "maxBots": 16,
    "requires": {
     "minHp": 14,
     "minFood": 14
@@ -1206,8 +1223,8 @@
     }
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
-   "bots": 26,
-   "rev": 25
+   "bots": 14,
+   "rev": 26
   },
   {
    "id": "base_dorm",
@@ -1260,7 +1277,7 @@
     "food",
     "wheat_seeds"
    ],
-   "minBots": 1,
+   "minBots": 0,
    "maxBots": 1,
    "plan": "BASE PLAN zone field_2: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
    "params": {
@@ -1275,7 +1292,7 @@
     "forage": true,
     "bankAt": 64
    },
-   "rev": 4,
+   "rev": 5,
    "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)"
   },
   {
@@ -1341,7 +1358,7 @@
     "food",
     "wheat_seeds"
    ],
-   "minBots": 1,
+   "minBots": 0,
    "maxBots": 1,
    "plan": "BASE PLAN zone field_3: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
    "params": {
@@ -1356,9 +1373,9 @@
     "forage": true,
     "bankAt": 64
    },
-   "rev": 5,
+   "rev": 7,
    "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)",
-   "bots": 2
+   "bots": 1
   },
   {
    "id": "farm_4",
@@ -1377,7 +1394,7 @@
     "food",
     "wheat_seeds"
    ],
-   "minBots": 1,
+   "minBots": 0,
    "maxBots": 1,
    "plan": "BASE PLAN zone field_4: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
    "params": {
@@ -1392,7 +1409,7 @@
     "forage": true,
     "bankAt": 64
    },
-   "rev": 4,
+   "rev": 5,
    "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)"
   },
   {
@@ -1412,7 +1429,7 @@
     "food",
     "wheat_seeds"
    ],
-   "minBots": 1,
+   "minBots": 0,
    "maxBots": 6,
    "plan": "BASE PLAN zone field_5: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
    "params": {
@@ -1427,7 +1444,7 @@
     "forage": true,
     "bankAt": 64
    },
-   "rev": 5,
+   "rev": 6,
    "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)"
   },
   {
@@ -1447,7 +1464,7 @@
     "food",
     "wheat_seeds"
    ],
-   "minBots": 1,
+   "minBots": 0,
    "maxBots": 1,
    "plan": "BASE PLAN zone field_6: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
    "params": {
@@ -1462,7 +1479,7 @@
     "forage": true,
     "bankAt": 64
    },
-   "rev": 4,
+   "rev": 6,
    "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)",
    "bots": 1
   },
@@ -1483,7 +1500,7 @@
     "food",
     "wheat_seeds"
    ],
-   "minBots": 1,
+   "minBots": 0,
    "maxBots": 6,
    "plan": "BASE PLAN zone field_7: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
    "params": {
@@ -1498,7 +1515,7 @@
     "forage": true,
     "bankAt": 64
    },
-   "rev": 4,
+   "rev": 5,
    "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)"
   },
   {
@@ -1617,7 +1634,7 @@
     "food",
     "wheat_seeds"
    ],
-   "minBots": 1,
+   "minBots": 0,
    "maxBots": 1,
    "site": [
     -441,
@@ -1643,7 +1660,7 @@
     "forage": true,
     "bankAt": 48
    },
-   "rev": 6,
+   "rev": 7,
    "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)"
   },
   {
@@ -1692,7 +1709,7 @@
    "produces": [
     "food"
    ],
-   "minBots": 1,
+   "minBots": 0,
    "maxBots": 8,
    "site": [
     -441,
@@ -1715,7 +1732,7 @@
     "night": true
    },
    "bots": 8,
-   "rev": 1
+   "rev": 2
   },
   {
    "id": "quartermaster",
@@ -1741,7 +1758,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789905000769
+   "restUntil": 1789905416489
   },
   {
    "id": "guard_muster",
@@ -1913,7 +1930,7 @@
    "id": "bake_bread",
    "type": "steps",
    "priority": 96,
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 2,
    "requires": {
@@ -2103,7 +2120,7 @@
    "front": "pens",
    "status": "active",
    "when": "any",
-   "bots": 3,
+   "bots": 2,
    "site": [
     -376,
     69,
@@ -2131,14 +2148,14 @@
     "radius": 250
    },
    "shiftMin": 20,
-   "rev": 14,
+   "rev": 16,
    "restUntil": 1789901815970,
    "note": "09-20 05:40Z top model: 82 sheep stand OUTSIDE pen 1 (escaped 03:42-05:30Z over step blocks an escape routine left on the pen floor - removed, pen_litter rule live). want 30 + 4 herders until the flock is back; then want 10-24 / minBots 1 again",
    "desc": "OPERATORS: do NOT pause - since 09-20 02:00Z the herd job itself SHEARS the woolly sheep and CULLS the adults beyond want inside the pen (event pen_harvest); a full pen is its work, not a dead end (BUGS 105 fixed)",
    "produces": [
     "wool"
    ],
-   "minBots": 1,
+   "minBots": 0,
    "maxBots": 3
   },
   {
@@ -2176,13 +2193,13 @@
     "max": 20
    },
    "shiftMin": 20,
-   "rev": 5,
+   "rev": 6,
    "restUntil": 1789905134064,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "leather"
    ],
-   "minBots": 1,
+   "minBots": 0,
    "maxBots": 4,
    "bots": 2
   },
@@ -2221,13 +2238,13 @@
     "max": 20
    },
    "shiftMin": 20,
-   "rev": 5,
+   "rev": 6,
    "restUntil": 1789905066959,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "feather"
    ],
-   "minBots": 1,
+   "minBots": 0,
    "maxBots": 2,
    "bots": 2
   },
@@ -2550,7 +2567,7 @@
    "type": "cane",
    "priority": 84,
    "front": "cane",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "site": [
     -272,
@@ -2561,7 +2578,7 @@
    "produces": [
     "sugar_cane"
    ],
-   "minBots": 1,
+   "minBots": 0,
    "maxBots": 2,
    "requires": {
     "minHp": 12,
@@ -2579,7 +2596,7 @@
     "bankAt": 48
    },
    "bots": 2,
-   "rev": 8,
+   "rev": 10,
    "restUntil": 1789904576289,
    "note": "auto-activated: `after` base_cane finished (auto-paused: build complete)"
   },
@@ -3104,14 +3121,13 @@
      "d": 31
     }
    },
-   "after": "fill_ne_valley",
-   "rev": 10,
-   "note": "auto-paused: build complete - BUT 35 columns are a deck over air (void_under_pad): -246,66,-373 | -245,66,-374 | -245,66,-373 | -244,66,-374 | -244,66,-373 | -244,66,-372",
-   "stuckBy": {
-    "key": "rev10",
-    "bots": [
-     "Ichika"
-    ]
+   "after": "void_fix_base_infill_n247_n401",
+   "rev": 11,
+   "voidFix": {
+    "n": 1,
+    "id": "void_fix_base_infill_n247_n401",
+    "cols": 35,
+    "t": 1789905222766
    }
   },
   {
@@ -3174,15 +3190,21 @@
      "d": 31
     }
    },
-   "rev": 4,
-   "note": "auto-paused: build complete - BUT 6 columns are a deck over air (void_under_pad): -232,66,-392 | -232,66,-391 | -232,66,-379 | -232,65,-378 | -232,65,-376 | -232,66,-375"
+   "rev": 5,
+   "after": "void_fix_base_infill_n232_n400",
+   "voidFix": {
+    "n": 1,
+    "id": "void_fix_base_infill_n232_n400",
+    "cols": 6,
+    "t": 1789905222611
+   }
   },
   {
    "id": "cane_lake",
    "type": "cane",
    "priority": 83,
    "front": "cane",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 2,
    "site": [
@@ -3219,8 +3241,8 @@
     "until": 260
    },
    "desc": "starts by itself when base_cane (blueprint cane_block) is built. Pauses itself when cane_farm holds 260 plants. The depot also holds cane (626 at 05:30Z): cane_farm plants from stock first.",
-   "rev": 1,
-   "note": "auto-activated: `after` base_cane finished (auto-paused: build complete)",
+   "rev": 2,
+   "note": "09-20 12:0xZ review: paused - sugar_cane 2750 in the depot, the wild stands at -438/-470,-425/-410 are 100-180 blocks out in unticked chunks (cane_wild_empty x3, travel_fail). Re-activate only when the book/bookshelf targets have eaten the depot cane.",
    "restUntil": 1789905926741
   },
   {
@@ -3230,7 +3252,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 20,
+   "bots": 12,
    "site": [
     -311,
     69,
@@ -3274,7 +3296,7 @@
     },
     "order": "near"
    },
-   "rev": 9,
+   "rev": 11,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check.",
    "note": "top model 11:4xZ: 0.2 -> 25 cells/min/bot after the new pit ordering (own layer first, never a wall beside a bot) - 17 bots stood at muster, so the crew goes 10 -> 20. Watch build_tail/fill_flush"
   },
@@ -3283,7 +3305,7 @@
    "type": "build",
    "priority": 70,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 6,
    "site": [
@@ -3363,12 +3385,13 @@
    },
    "rev": 18,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check.",
-   "note": "foreman 11:2xZ: bots 6->2 (=below the dispatcher OVERFLOW threshold of 3): 24 bots were dumped here by overflow while build_pass read done:0 left:153 waiting:114 and depot cobblestone was 0 (3298 carried). Raise again once `stock cobble` shows depot > 1000.",
+   "note": "auto-paused: 69 cells nobody could do: -324,68,-437 | -305,52,-449 | -307,51,-446 | -306,53,-444 | -308,52,-441",
    "stuckBy": {
     "key": "rev18",
     "bots": [
      "Chino",
-     "Aika"
+     "Aika",
+     "Himari"
     ]
    }
   },
@@ -3473,7 +3496,8 @@
      "Fuuka"
     ]
    },
-   "note": "top model 11:4xZ: re-activated after the above-grade sweep went in (fill_flush): the two leftover cells -328,68,-426 / -318,68,-420 were unreachable because one of the y69 filler lines stood ON them"
+   "note": "top model 11:4xZ: re-activated after the above-grade sweep went in (fill_flush): the two leftover cells -328,68,-426 / -318,68,-420 were unreachable because one of the y69 filler lines stood ON them",
+   "restUntil": 1789905738875
   },
   {
    "id": "base_field_7",
@@ -4360,7 +4384,8 @@
     }
    },
    "note": "needs: dirt (14 cells wait; every cell whose material exists is done or in work)",
-   "rev": 8
+   "rev": 8,
+   "restUntil": 1789905738870
   },
   {
    "id": "base_portal",
@@ -4706,6 +4731,278 @@
     ]
    },
    "note": "auto-paused: plan failed"
+  },
+  {
+   "id": "base_portal_go",
+   "type": "portal",
+   "priority": 90,
+   "front": "base",
+   "status": "active",
+   "when": "day",
+   "bots": 1,
+   "shiftMin": 30,
+   "site": [
+    -326,
+    69,
+    -518
+   ],
+   "plan": "zone portal (docs/WORLD.md): P5 stage 1 — light THE Nether gate at -326,68,-518 (frame -328..-325,68..72,-518, built by base_portal) and keep it lit. The only world change is the ignition cell; the frame itself stays the build job's.",
+   "params": {
+    "blueprint": "nether_portal",
+    "origin": [
+     -326,
+     68,
+     -518
+    ],
+    "args": {
+     "axis": "x"
+    },
+    "buildJob": "base_portal",
+    "go": true,
+    "cobble": 128,
+    "crossS": 90
+   },
+   "note": "auto-paused: the gate is lit",
+   "rev": 2,
+   "names": [
+    "Chino"
+   ]
+  },
+  {
+   "id": "armoury_diamond_tools",
+   "type": "steps",
+   "priority": 96,
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "requires": {
+    "minHp": 10,
+    "minFood": 8
+   },
+   "plan": "no world change: the DAY-ONE TOOL SHELF is empty while 398 diamonds lie idle (review 09-20: depot stone_pickaxe 0, iron_pickaxe 0, axes 0, only 14 stone_shovel; kitUp hands out the plainest tool the depot HAS, so bots that lose a pick get nothing). 16 diamond pickaxes (also the only pick that mines the portal's obsidian) + 16 diamond shovels for the 8000-cell ravine fill, 2 per craft step (craft n>2 of an unstackable stops at 2), banked into the tools chests.",
+   "params": {
+    "onFail": "continue",
+    "steps": [
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       69,
+       -523
+      ],
+      "range": 3
+     },
+     {
+      "do": "withdraw",
+      "item": "oak_log",
+      "n": 24,
+      "atLeast": 8
+     },
+     {
+      "do": "craft",
+      "item": "oak_planks",
+      "n": 16
+     },
+     {
+      "do": "craft",
+      "item": "stick",
+      "n": 16
+     },
+     {
+      "do": "withdraw",
+      "item": "diamond",
+      "n": 24,
+      "atLeast": 8
+     },
+     {
+      "do": "craft",
+      "item": "diamond_shovel",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_shovel",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_shovel",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_shovel",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_shovel",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_shovel",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_axe",
+      "n": 2
+     },
+     {
+      "do": "craft",
+      "item": "diamond_axe",
+      "n": 2
+     },
+     {
+      "do": "bank"
+     }
+    ]
+   },
+   "rev": 1,
+   "note": "auto-paused: plan failed"
+  },
+  {
+   "id": "fill_yard_sw",
+   "type": "build",
+   "priority": 55,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -398,
+    69,
+    -370
+   ],
+   "plan": {
+    "zone": "yard, SW corner x -401..-396 / z -373..-367",
+    "why": "base audit 11:37Z: `-398,-370 -9 x26 (yard)` - a pit 8-10 blocks deep in the middle of the finished yard that belongs to NO build job (probe 11:5xZ, ground per column: the '#' cluster at x -400..-397 / z -372..-368; the slope south of z -368 is the natural hillside down to the river and is NOT filled). Never deck a hole: fill it solid from the natural ground up to the base level y68"
+   },
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -398,
+     68,
+     -370
+    ],
+    "unlid": 2,
+    "order": "near",
+    "args": {
+     "box": [
+      -401,
+      -373,
+      -396,
+      -367
+     ],
+     "depth": 12,
+     "fill": "cobblestone",
+     "mats": [
+      "cobbled_deepslate",
+      "cobblestone",
+      "stone",
+      "deepslate",
+      "tuff",
+      "andesite",
+      "diorite",
+      "granite",
+      "gravel"
+     ]
+    }
+   }
+  },
+  {
+   "id": "void_fix_base_infill_n232_n400",
+   "type": "build",
+   "priority": 70,
+   "front": "works",
+   "status": "active",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -232,
+    68,
+    -383
+   ],
+   "plan": "void under the finished pad base_infill_n232_n400: 6 columns of x -232..-232 / z -392..-375 are a deck over air (void_under_pad) - fill SOLID from the natural ground up to grade y68, never deck a hole; base_infill_n232_n400 is `after` this job and re-checks the columns when it is done",
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -232,
+     68,
+     -383
+    ],
+    "unlid": 3,
+    "args": {
+     "box": [
+      -232,
+      -392,
+      -232,
+      -375
+     ],
+     "depth": 5,
+     "fill": "cobblestone",
+     "mats": [
+      "cobbled_deepslate",
+      "cobblestone",
+      "stone",
+      "deepslate",
+      "tuff",
+      "andesite",
+      "diorite",
+      "granite",
+      "dirt",
+      "gravel"
+     ]
+    }
+   }
+  },
+  {
+   "id": "void_fix_base_infill_n247_n401",
+   "type": "build",
+   "priority": 70,
+   "front": "works",
+   "status": "active",
+   "when": "any",
+   "bots": 6,
+   "site": [
+    -240,
+    68,
+    -381
+   ],
+   "plan": "void under the finished pad base_infill_n247_n401: 35 columns of x -246..-235 / z -391..-371 are a deck over air (void_under_pad) - fill SOLID from the natural ground up to grade y68, never deck a hole; base_infill_n247_n401 is `after` this job and re-checks the columns when it is done",
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -240,
+     68,
+     -381
+    ],
+    "unlid": 3,
+    "args": {
+     "box": [
+      -246,
+      -391,
+      -235,
+      -371
+     ],
+     "depth": 5,
+     "fill": "cobblestone",
+     "mats": [
+      "cobbled_deepslate",
+      "cobblestone",
+      "stone",
+      "deepslate",
+      "tuff",
+      "andesite",
+      "diorite",
+      "granite",
+      "dirt",
+      "gravel"
+     ]
+    }
+   },
+   "rev": 1
   }
  ]
 }

@@ -25,6 +25,7 @@ scoreboard objectives add prank_sk dummy
 scoreboard objectives add prank_hd dummy
 scoreboard objectives add prank_age dummy
 scoreboard objectives add tp trigger
+scoreboard objectives add nether trigger
 scoreboard objectives add pid dummy
 execute unless score #next pid matches 100.. run scoreboard players set #next pid 100
 scoreboard players set #20 prank_cd 20
@@ -44,6 +45,7 @@ s+='gamemode spectator @a['+H+',tag=!free,gamemode=!spectator]\ngamemode surviva
 // everybody else gets the next free number from 101 on first sight. trigger tp = clickable list of ALL online players, trigger tp set 1000+id = jump.
 s+='scoreboard players enable @a['+H+'] tp\n'
 s+='execute as @a[team=!guests,scores={pid=100..,goto=1..}] run function modes:goto_go\nscoreboard players set @a[scores={goto=1..}] goto 0\n'
+s+='scoreboard players enable @a['+H+'] nether\nexecute as @a[team=!guests,scores={pid=100..,nether=1..}] at @s run function modes:nether_go\nscoreboard players set @a[scores={nether=1..}] nether 0\n'
 s+='execute as @a[team=!guests,scores={pid=100..,tp=1..999}] run function modes:tp_menu\nexecute as @a[team=!guests,scores={pid=100..,tp=1000..}] run function modes:tp_go\nscoreboard players set @a[scores={tp=1..}] tp 0\n'
 let L=require('fs').readFileSync('$F/load.mcfunction','utf8');r.forEach((n,i)=>{L+='scoreboard players set '+n+' pid '+(i+1)+'\n'});require('fs').writeFileSync('$F/load.mcfunction',L)
 s+='scoreboard players remove @a[scores={prank_sk=1..}] prank_sk 1\nscoreboard players remove @a[scores={prank_hd=1..}] prank_hd 1\nscoreboard players add @e[tag=prank] prank_age 1\nexecute as @e[tag=prank,scores={prank_age=3600..}] at @s run tp @s ~ -400 ~\n'
@@ -165,6 +167,31 @@ cat > $F/guest_kill.mcfunction <<'P'
 advancement revoke @s only modes:guest_touch
 execute if entity @s[team=guests] run tellraw @a [{"text":"HANDS OFF ","color":"red","bold":true},{"selector":"@s"},{"text":" touched the army's stores and paid for it","color":"gray","bold":false}]
 execute if entity @s[team=guests] run kill @s
+P
+# /trigger nether (owner 09-20: "スペクテイターがネザー行けるコマンド作って"): a spectator toggles between the overworld and the Nether at the MATCHING spot (x,z / 8 going down,
+# x 8 coming back - where a portal built here would lead), y 90 in the Nether / y 120 in the overworld; a spectator flies through rock, so any landing is fine. From the End: to the overworld spawn.
+cat > $F/nether_go.mcfunction <<'P'
+execute if dimension minecraft:overworld run return run function modes:nether_down
+execute if dimension minecraft:the_nether run return run function modes:nether_up
+execute in minecraft:overworld run tp @s 0 120 0
+P
+cat > $F/nether_down.mcfunction <<'P'
+execute store result storage modes:tmp x int 1 run data get entity @s Pos[0] 0.125
+execute store result storage modes:tmp z int 1 run data get entity @s Pos[2] 0.125
+data modify storage modes:tmp y set value 90
+data modify storage modes:tmp dim set value "minecraft:the_nether"
+function modes:dim_tp with storage modes:tmp
+tellraw @s {"text":"Nether (x,z / 8). /trigger nether again = back to the overworld; /trigger tp jumps to any player in any dimension","color":"gray"}
+P
+cat > $F/nether_up.mcfunction <<'P'
+execute store result storage modes:tmp x int 1 run data get entity @s Pos[0] 8
+execute store result storage modes:tmp z int 1 run data get entity @s Pos[2] 8
+data modify storage modes:tmp y set value 120
+data modify storage modes:tmp dim set value "minecraft:overworld"
+function modes:dim_tp with storage modes:tmp
+P
+cat > $F/dim_tp.mcfunction <<'P'
+$execute in $(dim) run tp @s $(x) $(y) $(z)
 P
 node $W/bots/rcon.js "reload" >/dev/null; sleep 2
 # ORDER MATTERS: the reloaded tick function recognises bots by their pid score; only THEN may the bots leave the old `army` team - with the old
