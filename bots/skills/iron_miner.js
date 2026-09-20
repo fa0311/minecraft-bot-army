@@ -49,7 +49,10 @@ async function pickLevel (bot, M, args, rank) {
   const deepOk = rank >= 3 || I.stoneWanted()
   const iron = ironWanted(bot)
   const skip = bot.__ironLvSkip = bot.__ironLvSkip || {} // a level that just refused us (claimBranch null although the outlook said free): not again for a minute
-  const order = M.levels.slice().sort((a, b) => iron ? (Math.abs(a - 16) - Math.abs(b - 16)) : (((b === board) - (a === board)) || (rank >= 3 ? a - b : b - a)))
+  // THE BOARD'S LEVEL FIRST WHEN IT IS IRON-RICH ITSELF (09-20 09:4xZ: levels 16/0/-16 at the cap of 160 branches x 256, the operator opened y32 - and the tie |32-16| = |0-16|
+  // sent every miner back to the 6 last branches of level 0, 220 blocks from the hub): a fresh landing in the iron band (y -8..40) beats an old level's far ends.
+  const rich = lv => lv >= -8 && lv <= 40
+  const order = M.levels.slice().sort((a, b) => iron ? ((((b === board && rich(b)) ? 1 : 0) - ((a === board && rich(a)) ? 1 : 0)) || (Math.abs(a - 16) - Math.abs(b - 16))) : (((b === board) - (a === board)) || (rank >= 3 ? a - b : b - a)))
   for (const lv of order) {
     if ((lv < -32 && !deepOk) || (skip[lv] || 0) > Date.now() || !M.G.levels[lv] || M.st.dug < M.G.levels[lv].g || !I.branchOutlook(bot, M, rank, lv).free) continue
     if (lv === M.level) return M

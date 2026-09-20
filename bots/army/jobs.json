@@ -1177,12 +1177,12 @@
       "z": -500,
       "facing": "north"
      },
-     "level": 16
+     "level": 32
     }
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 26,
-   "rev": 24
+   "rev": 25
   },
   {
    "id": "base_dorm",
@@ -1714,7 +1714,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789896882840
+   "restUntil": 1789897101845
   },
   {
    "id": "guard_muster",
@@ -2105,7 +2105,7 @@
    },
    "shiftMin": 20,
    "rev": 12,
-   "restUntil": 1789896787799,
+   "restUntil": 1789897150960,
    "note": "09-20 05:40Z top model: 82 sheep stand OUTSIDE pen 1 (escaped 03:42-05:30Z over step blocks an escape routine left on the pen floor - removed, pen_litter rule live). want 30 + 4 herders until the flock is back; then want 10-24 / minBots 1 again",
    "desc": "OPERATORS: do NOT pause - since 09-20 02:00Z the herd job itself SHEARS the woolly sheep and CULLS the adults beyond want inside the pen (event pen_harvest); a full pen is its work, not a dead end (BUGS 105 fixed)",
    "produces": [
@@ -2150,7 +2150,7 @@
    },
    "shiftMin": 20,
    "rev": 5,
-   "restUntil": 1789896913129,
+   "restUntil": 1789897219225,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "leather"
@@ -2195,7 +2195,7 @@
    },
    "shiftMin": 20,
    "rev": 4,
-   "restUntil": 1789896796813,
+   "restUntil": 1789897262796,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "feather"
@@ -2706,7 +2706,7 @@
    "type": "guard",
    "priority": 95,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 4,
    "site": [
@@ -2792,7 +2792,24 @@
    "note": "needs: water (no bucket carried, in stock or craftable (3 iron_ingot)) (45 cells wait; every cell whose material exists is done or in work)",
    "water": {
     "key": "rev3",
-    "cells": {}
+    "cells": {
+     "-273,68,-481": {
+      "by": "Kanade",
+      "t": 1789896881365
+     },
+     "-270,68,-485": {
+      "by": "Mei",
+      "t": 1789896962857
+     },
+     "-275,68,-480": {
+      "by": "Yotsuba",
+      "t": 1789897014294
+     },
+     "-271,68,-482": {
+      "by": "Shiori",
+      "t": 1789897022668
+     }
+    }
    }
   },
   {
