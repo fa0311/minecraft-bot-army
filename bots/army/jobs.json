@@ -753,7 +753,14 @@
    ],
    "axis": "x",
    "lit": 1789905050111,
-   "by": "Sayaka"
+   "by": "Chino",
+   "portal": [
+    -38,
+    98,
+    -76
+   ],
+   "through": 1789905419271,
+   "scoutRev": 2
   }
  },
  "enlisted": [
@@ -1758,7 +1765,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789905416489
+   "restUntil": 1789905605527
   },
   {
    "id": "guard_muster",
@@ -2567,7 +2574,7 @@
    "type": "cane",
    "priority": 84,
    "front": "cane",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "site": [
     -272,
@@ -2595,8 +2602,8 @@
     "y": 68,
     "bankAt": 48
    },
-   "bots": 2,
-   "rev": 10,
+   "bots": 6,
+   "rev": 11,
    "restUntil": 1789904576289,
    "note": "auto-activated: `after` base_cane finished (auto-paused: build complete)"
   },
@@ -3204,7 +3211,7 @@
    "type": "cane",
    "priority": 83,
    "front": "cane",
-   "status": "paused",
+   "status": "active",
    "when": "day",
    "bots": 2,
    "site": [
@@ -4964,7 +4971,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 6,
+   "bots": 8,
    "site": [
     -240,
     68,
@@ -5002,7 +5009,7 @@
      ]
     }
    },
-   "rev": 1
+   "rev": 2
   }
  ]
 }

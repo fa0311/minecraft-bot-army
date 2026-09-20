@@ -120,7 +120,7 @@ function lineText (bot, r) {
     default: return null
   }
 }
-// humans are spectators without op: the modes datapack maps `/trigger goto set <n>` to "tp to bot n" for spectators
+// humans are spectators without op: the modes datapack maps `/trigger tp set <1000+n>` to "jump to player n" for spectators (ONE trigger since 09-20: `/trigger tp` alone = the menu)
 let _roster = null
 function botNumber (name) {
   try { if (!_roster) _roster = Object.keys(JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'assignments.json'), 'utf8'))) } catch (e) { _roster = [] }
@@ -142,9 +142,9 @@ function speak (bot, rec) {
   // colour by severity (owner's idea): player chat cannot carry colours, so the line is shown with the server's `tellraw` (display only —
   // nothing in the world changes). Falls back to plain chat if rcon is not reachable.
   const sev = line.startsWith('[警告]') ? (/(stranded|death|error|hung)/.test(rec.ev) ? 'red' : 'gold') : line.startsWith('[成果]') ? 'green' : 'gray'
-  // the name is clickable: a spectator who clicks it is taken to that bot (`/trigger goto`, no op needed; 1.21.5+ snake_case events)
+  // the name is clickable: a spectator who clicks it is taken to that bot (`/trigger tp set 1000+n`, no op needed; 1.21.5+ snake_case events)
   const p0 = bot.entity.position
-  const msg = JSON.stringify([{ text: '<' + bot.username + '> ', color: 'white', click_event: { action: 'run_command', command: '/trigger goto set ' + botNumber(bot.username) }, hover_event: { action: 'show_text', value: 'クリックで ' + bot.username + ' へ（スペクテイター中のみ・op不要） ' + Math.round(p0.x) + ',' + Math.round(p0.y) + ',' + Math.round(p0.z) } }, { text: line.slice(0, 110), color: sev }])
+  const msg = JSON.stringify([{ text: '<' + bot.username + '> ', color: 'white', click_event: { action: 'run_command', command: '/trigger tp set ' + (1000 + botNumber(bot.username)) }, hover_event: { action: 'show_text', value: 'クリックで ' + bot.username + ' へ（スペクテイター中のみ・op不要） ' + Math.round(p0.x) + ',' + Math.round(p0.y) + ',' + Math.round(p0.z) } }, { text: line.slice(0, 110), color: sev }])
   try {
     require('child_process').execFile('node', [path.join(DIR, '..', 'rcon.js'), 'tellraw @a ' + msg], { timeout: 5000 }, (err) => { if (err) { try { bot.chat(line.slice(0, 100)) } catch (e_) { swallow('army:118', e_) } } })
   } catch { try { bot.chat(line.slice(0, 100)) } catch (e_) { swallow('army:119', e_) } }
