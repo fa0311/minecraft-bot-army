@@ -1277,10 +1277,10 @@
    "by": "Sakura",
    "portal": [
     -43,
-    98,
+    100,
     -80
    ],
-   "through": 1789941595014,
+   "through": 1789942329909,
    "scoutRev": 1,
    "hub": {
     "room": [
@@ -1393,7 +1393,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789933377630,
-   "back": 1789941668340,
+   "back": 1789942404020,
    "lastDeath": 1789924669079,
    "lastDeathBy": "Fuuka",
    "roads": {
@@ -1615,19 +1615,10 @@
     "t": 1789924913245
    },
    "absorb": {
-    "coal": 480,
-    "iron_ingot": 144,
-    "flint": 600,
-    "diamond": 12,
-    "leather": 192,
-    "white_wool": 288,
-    "black_wool": 288,
-    "carrot": 704,
-    "wheat": 640,
-    "pumpkin": 144,
-    "melon": 96
+    "iron_ingot": 96,
+    "coal": 240
    },
-   "absorbT": 1789941665686
+   "absorbT": 1789943511186
   },
   "enchantTable": [
    -344,
@@ -1798,7 +1789,7 @@
     "food"
    ],
    "minBots": 0,
-   "maxBots": 2,
+   "maxBots": 4,
    "site": [
     -367,
     69,
@@ -1818,7 +1809,7 @@
     "maxDist": 220,
     "first": "sheep"
    },
-   "rev": 25,
+   "rev": 26,
    "bots": 2,
    "note": "owner 09-20: sheep are culled actively (wool 10 328 / 150, TPS). ONLY sheep: the hunt handler has NO pen exclusion - with kinds sheep/pig/cow/chicken and leave 0 the hunters emptied pen 1 (69 sheep) within the hour; cows, chickens and pigs are left alone until the handler spares penned animals (BUGS)"
   },
@@ -1922,7 +1913,7 @@
     "wheat_seeds"
    ],
    "minBots": 0,
-   "maxBots": 1,
+   "maxBots": 7,
    "plan": "BASE PLAN zone field_1: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
    "params": {
     "box": [
@@ -1936,7 +1927,7 @@
     "forage": true,
     "bankAt": 64
    },
-   "rev": 7,
+   "rev": 9,
    "bots": 1
   },
   {
@@ -2029,7 +2020,7 @@
    "maxBots": 8,
    "requires": {
     "minHp": 14,
-    "minFood": 14
+    "minFood": 10
    },
    "plan": "BASE PLAN zone mine: ONE squad on the iron/coal level y16 under the mine head (PLAN §5); the diamond level comes with `mine level -54` when iron picks exist",
    "params": {
@@ -2046,8 +2037,8 @@
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 14,
-   "rev": 62,
-   "restUntil": 1789941231331
+   "rev": 63,
+   "restUntil": 1789943418025
   },
   {
    "id": "base_dorm",
@@ -2137,7 +2128,7 @@
     "wheat_seeds"
    ],
    "minBots": 0,
-   "maxBots": 1,
+   "maxBots": 7,
    "plan": "BASE PLAN zone field_6: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
    "params": {
     "box": [
@@ -2151,7 +2142,7 @@
     "forage": true,
     "bankAt": 64
    },
-   "rev": 6,
+   "rev": 8,
    "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)",
    "bots": 1
   },
@@ -2233,9 +2224,9 @@
     "radius": 150,
     "bankAt": 32
    },
-   "rev": 13,
+   "rev": 15,
    "bots": 1,
-   "restUntil": 1789942045137
+   "restUntil": 1789943981141
   },
   {
    "id": "sleeper",
@@ -2322,7 +2313,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789941682738
+   "restUntil": 1789943421752
   },
   {
    "id": "fill_ring_field2",
@@ -3688,7 +3679,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789942310944
+   "restUntil": 1789944216793
   },
   {
    "id": "nether_landing_2",
@@ -5948,7 +5939,7 @@
    "priority": 73,
    "status": "active",
    "when": "any",
-   "bots": 8,
+   "bots": 1,
    "site": [
     -311,
     68,
@@ -5985,7 +5976,7 @@
     ],
     "carry": 320
    },
-   "rev": 14,
+   "rev": 15,
    "restUntil": 1789943188975
   },
   {
@@ -6303,7 +6294,7 @@
     ]
    },
    "rev": 7,
-   "restUntil": 0
+   "restUntil": 1789943794280
   },
   {
    "id": "mine_sweep",
@@ -6341,7 +6332,7 @@
     "bankAt": 48
    },
    "restUntil": 1789941632661,
-   "rev": 6
+   "rev": 8
   },
   {
    "id": "craft_gold_boots",
@@ -7056,7 +7047,8 @@
    "stuckBy": {
     "key": "rev2",
     "bots": [
-     "Ayame"
+     "Ayame",
+     "Kaede"
     ]
    }
   },
