@@ -380,22 +380,62 @@ module.exports = ctx => {
   // a road along four bearings is three roads too many. Every 50 blocks the bot says where it is and what it can see. The first
   // nether brick stops its finder and pulls everybody else towards it (`settings.nether.sightings` is the rendezvous).
   const BEARINGS = [[1, 0, 'x+'], [-1, 0, 'x-'], [0, 1, 'z+'], [0, -1, 'z-']]
+  // THE WAY OUT IS PART OF THE JOB (measured 13:32Z: twelve scouts left the gate, reported `routed:false` and `walked 4-21` — our
+  // own hub is a 9x9 box with ONE door, and the door was still a wall because the hub job had 38 cells left. A squad that cannot
+  // leave the room it built is the same planning failure as a bot idling at muster). Before the first leg the scout opens the
+  // door itself: anything solid in the two door cells comes out, and the fence gate goes in if one is carried.
+  async function openDoor (bot, api, N0) {
+    try {
+      const d = N0.hub && Array.isArray(N0.hub.door) ? N0.hub.door : null; if (!d) return false
+      let opened = 0
+      for (const dy of [0, 1]) {
+        const c = new Vec3(d[0], d[1] + dy, d[2]); const b = bot.blockAt(c)
+        if (!b || b.boundingBox !== 'block' || /_fence_gate$/.test(b.name)) continue
+        if (eyeOf(bot).distanceTo(c.offset(0.5, 0.5, 0.5)) > 4.5 && !await A.travel(bot, c.offset(0, 0, 0), { range: 2, ms: 20000, stop: api.stop, quiet: true, anyDepth: true })) continue
+        const r = await BL().digBlock(bot, c, { collect: true, requireHarvest: false, allowProtected: true, own: true }).catch(() => ({ ok: false }))
+        if (r && r.ok) opened++
+      }
+      const gate = bot.inventory.items().find(i => /_fence_gate$/.test(i.name))
+      const gc = new Vec3(d[0], d[1], d[2]); const gb = bot.blockAt(gc)
+      if (gate && gb && gb.boundingBox !== 'block' && !/_fence_gate$/.test(gb.name) && hasRef(bot, gc)) { if ((await placeStill(bot, api, gc, gate.name)).ok) opened++ }
+      if (opened) A.result(bot, { ev: 'nether_door', at: d, opened, gate: /_fence_gate$/.test((bot.blockAt(gc) || {}).name || '') })
+      return opened > 0
+    } catch (e_) { swallow('jobs_nether:openDoor', e_); return false }
+  }
   async function explore (bot, job, api, P, until) {
     const N0 = netherOf()
+    await openDoor(bot, api, N0)
     const hub = (N0.hub && Array.isArray(N0.hub.outside)) ? N0.hub.outside : (Array.isArray(N0.portal) ? N0.portal : xyz(bot.entity.position))
     const roster = A.settings().roster || []
     const idx = Math.max(0, roster.indexOf(bot.username))
     const b = BEARINGS[(P.bearing && BEARINGS.findIndex(q => q[2] === P.bearing) >= 0 ? BEARINGS.findIndex(q => q[2] === P.bearing) : idx) % 4]
     const step = Math.max(25, P.step || 50); const max = Math.min(P.range || 300, 512)
     let walked = 0; let bridged = 0; let legs = 0; let found = null
+    // SHORT HOPS (measured 13:34Z: twelve scouts with a 50-block goal all came back `routed:false, walked 5-19` — over broken
+    // Nether terrain A* gives up on a far goal, and the code base's own rule is hops <= 40 blocks). Each leg is walked in hops of
+    // `hop`, each hop is allowed to fail, and a leg counts as routed when the bot actually got most of the way.
+    const hop = Math.max(8, Math.min(P.hop || 16, 32))
     for (let d = step; d <= max && Date.now() < until && !api.stop(); d += step) {
+      // THE GATE SENDS YOU HOME IF YOU WALK INTO IT (13:34Z: Mei's leg crossed the portal cells, she arrived in the overworld and
+      // went on "exploring" on overworld coordinates, 563 blocks, and filed a DUNGEON spawner as a Nether sighting)
+      if (!isNether(bot)) break
       const conv = (netherOf().sightings || []).filter(e => e && e.kind === 'fortress' && Array.isArray(e.at))
       const tgt = conv.length ? v(conv[conv.length - 1].at) : new Vec3(hub[0] + b[0] * d, hub[1], hub[2] + b[1] * d)
       task(bot, 'nether scout ' + b[2] + ' ' + d + '/' + max)
       const p0 = bot.entity.position.clone()
-      let ok = await A.travel(bot, tgt, { range: conv.length ? 8 : 6, ms: 100000, stop: api.stop, anyDepth: true, quiet: true })
-      if (!ok) { const nb = await bridgeAhead(bot, api, tgt); bridged += nb; if (nb) ok = await A.travel(bot, tgt, { range: 8, ms: 60000, stop: api.stop, anyDepth: true, quiet: true }) }
+      let ok = false
+      for (let h = 0; h < Math.ceil(step / hop) + 2 && Date.now() < until && !api.stop() && isNether(bot); h++) {
+        const me = bot.entity.position; const dv = tgt.minus(me); const len = Math.hypot(dv.x, dv.z)
+        if (len < 8) { ok = true; break }
+        const k = Math.min(hop, len) / len
+        const sub = new Vec3(Math.round(me.x + dv.x * k), tgt.y, Math.round(me.z + dv.z * k))
+        const q0 = me.clone()
+        let got = await A.travel(bot, sub, { range: 3, ms: 30000, stop: api.stop, anyDepth: true, quiet: true })
+        if (!got) { const nb = await bridgeAhead(bot, api, sub); bridged += nb; if (nb) got = await A.travel(bot, sub, { range: 3, ms: 20000, stop: api.stop, anyDepth: true, quiet: true }) }
+        if (!got && bot.entity.position.distanceTo(q0) < 2) break // this hop is closed even to a bridge
+      }
       walked += Math.round(p0.distanceTo(bot.entity.position)); legs++
+      if (!isNether(bot)) break
       const s2 = sightNear(bot, 96)
       A.result(bot, { ev: 'nether_scout', job: job.id, pos: xyz(bot.entity.position), bearing: b[2], d, walked, bridged, biome: biomeOf(bot), routed: ok, sight: s2.map(e => e.kind + ' x' + e.n + ' @' + (e.at || []).join(',')) })
       const f = s2.find(e => e.kind === 'fortress') || s2.find(e => e.kind === 'spawner')

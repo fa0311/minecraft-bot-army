@@ -158,6 +158,7 @@ const declSeen = {} // "job|bot|until" -> ms we first saw that decline note (a n
 const restedAt = {} // job id -> {t, why, ms} of the last rest the dispatcher ordered (the same reason again doubles the rest)
 const frontCut = {} // job id -> ms: last time we said out loud that maxFronts left this job unstaffed
 const declHist = {} // "job|bot" -> [ms] when that bot declined that job (30 min): 3 refusals and the pairing is parked for 20 min
+const headFall = {} // job id -> {head, at}: the last head-count we staffed it to, so a shrinking one drains at one bot per minute
 const dimHold = {} // bot -> ms: last time we said we are holding a bot that stands in another dimension
 const since = {} // bot -> ms when it got its current job (shifts). Survives a dispatcher restart through assign/<bot>.json
 if (!DRY) for (const f of fs.readdirSync(P.assign)) { const a = f.endsWith('.json') && readJSON(path.join(P.assign, f), null); if (a && a.bot && a.job && a.job.id && Date.now() - a.t < 120000) { last[a.bot] = a.job.id; since[a.bot] = a.since || a.t } }
@@ -413,6 +414,15 @@ function tick () {
     if (front && !fronts.has(front) && fronts.size >= maxFronts) { if (Date.now() - (frontCut[job.id] || 0) > 600000) { frontCut[job.id] = Date.now(); log('FRONT CUT', job.id, 'front', front, 'gets 0 bots:', fronts.size, 'of', maxFronts, 'fronts are staffed (' + [...fronts].join(',') + ') - raise settings.maxFronts or pause a front') } return }
     if (head <= 0) return
     const yc = yieldCap[job.id]; if (yc && yc.until > Date.now()) head = Math.min(head, yc.cap) // YIELD THROTTLE: a squad without output is cut by itself
+    // ONE BOT PER MINUTE OFF A JOB (owner 13:28Z "待機多すぎない？ありえない": 11 bots stood at muster while west_terrace_cut_2 held 7 of 24. The squad
+    // had dug dirt from 644 to 6403 against a target of 2048, so its DEMAND fell from 24 to its floor of 6 in one tick and 18 bots were thrown to
+    // muster - where they stopped digging, the stock fell back and they were called in again: 85 terrace->muster and 71 back in an hour. Whatever
+    // moves a head-count down (demand, the yield throttle, a board edit), it now moves down one bot a minute, so a squad drains instead of bursting.
+    if (!floor) {
+      const hf = headFall[job.id]
+      if (hf && head < hf.head) { const drop = Math.floor((Date.now() - hf.at) / 60000); head = drop < 1 ? hf.head : Math.max(head, hf.head - drop) }
+      if (!hf || hf.head !== head) headFall[job.id] = { head, at: Date.now() }
+    }
     const want = head - (staffed[job.id] || []).length
     if (want <= 0) return
     const pool = [...free].filter(n => !(saturated(job) && last[n] !== job.id) && !(tenurePass && (job.priority || 0) < 96 && young(n, job)) && !(!floor && holdFast(n, job)) && drainable(n, job) && (!job.names || job.names.includes(n)) && (!job.exclude || !job.exclude.includes(n)) && eligible(job, hbs[n], phase, last[n] === job.id) && !refuses(job, n) && (!floor || ((hbs[n].hp == null || hbs[n].hp >= 10) && (hbs[n].food == null || hbs[n].food >= 7))))
@@ -465,7 +475,11 @@ function tick () {
   // too, so the moment 3 of 25 bots held a decline note the whole overflow squad was evicted to muster and walked back next tick - 50 tidy -> muster
   // and 25 fill_ravine_s <-> muster in 10 min). Same rule the priority loop has always used for sticky bots.
   const overFit = (job, n) => !!job && job.status === 'active' && SQUAD.test(job.type) && !(job.names && job.names.length) && !((job.restUntil || 0) > Date.now()) &&
-    !(saturated(job) && last[n] !== job.id) && ((job.bots || 0) >= 3 || (job.maxBots || 0) >= 3) && headOf(job) > 0 && !(D[job.id] && D[job.id].deficit <= 0) &&
+    // NO `deficit <= 0` GATE HERE any more: the jobs that must not get extra hands on a full larder (farm, herd, cane, hunt, fish) are already
+    // excluded by SQUAD; what was left in the gate was TERRAIN work whose `produces` is a by-product of digging - west_terrace_cut_2 dug dirt past
+    // its target and was thereby declared "does not need hands" while 11 bots stood at muster and 11 000 cells waited (owner 13:28Z). A digging
+    // squad is bounded by its OPEN CELLS (roomFor) and by the yield throttle, never by how full the dirt chest happens to be.
+    !(saturated(job) && last[n] !== job.id) && ((job.bots || 0) >= 3 || (job.maxBots || 0) >= 3) && headOf(job) > 0 &&
     !(job.front && !fronts.has(job.front) && fronts.size >= maxFronts) && !(job.exclude && job.exclude.includes(n)) && eligible(job, hbs[n], phase, last[n] === job.id) && !refuses(job, n)
   // roomFor gates only a NEW overflow, never a standing one: it counts the bots placed THIS tick, so testing it again next tick made
   // fill_ravine_s and fill_ravine_m swap bots 11x in 10 min (11:47). A hold ends when the job ends, rests, saturates or declines the bot.
@@ -541,7 +555,7 @@ function report (ctx) {
   }
   const ch = churnStat() // CHURN: one number that shows whether the army works or walks (see above)
   Object.assign(status, ch)
-  if (Date.now() - churnLog > 600000) { churnLog = Date.now(); log('CHURN', ch.assignsPerHour + '/h ' + ch.assigns10min + '/10min |', ch.churnFlows.join(' · ') || 'no moves') }
+  if (Date.now() - churnLog > 600000) { churnLog = Date.now(); log('CHURN', ch.assignsPerHour + '/h ' + ch.assigns10min + '/10min | top flows of the HOUR:', ch.churnFlows.join(' · ') || 'no moves') }
   writeJSON(P.status, status, true)
   const lines = ['# ARMY BOARD  ' + status.t + '  time ' + ctx.t + ' (' + ctx.phase + ')  enlisted ' + status.enlisted + ' online ' + status.online + '  deaths/1h ' + status.deaths1h + '  assigns/h ' + ch.assignsPerHour, '']
   lines.push(stockLine(ctx), '')
