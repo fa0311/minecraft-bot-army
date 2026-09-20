@@ -753,14 +753,14 @@
    ],
    "axis": "x",
    "lit": 1789905050111,
-   "by": "Chino",
+   "by": "Hotaru",
    "portal": [
     -38,
     98,
     -76
    ],
-   "through": 1789905419271,
-   "scoutRev": 2,
+   "through": 1789905730362,
+   "scoutRev": 3,
    "hub": [
     -37,
     98,
@@ -3386,7 +3386,7 @@
     ]
    },
    "note": "top model 11:4xZ: re-activated after the above-grade sweep went in (fill_flush): the two leftover cells -328,68,-426 / -318,68,-420 were unreachable because one of the y69 filler lines stood ON them",
-   "restUntil": 1789905738875
+   "restUntil": 1789906359429
   },
   {
    "id": "base_field_7",
