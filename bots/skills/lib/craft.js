@@ -155,47 +155,73 @@ function invOf (w) { const m = {}; for (const i of w.items()) if (i.slot >= w.in
 
 // Crafting-table crafting done by hand (window clicks) instead of bot.craft(): on Paper bot.craft() silently produces NOTHING for some
 // shaped recipes (measured in world 1: stone_pickaxe, stone_hoe — the grid was right, the server showed the result, but mineflayer's blind
-// "take result" click was rejected and the ingredients came back). Here we wait for the SERVER's result slot and take it with a normal
-// click. One recipe run per call; the run is CHOSEN from what the open window really holds. true only if the item count really went up.
-async function craftOnTable (bot, name, tbl) {
+// "take result" click was rejected and the ingredients came back). Here we wait for the SERVER's result slot and take it with a normal click.
+// ONE WINDOW FOR THE WHOLE BATCH (review row 10 / BUGS 11:3xZ, measured 09-20 12:45Z: 206 short-batch reports in 3 h — `toolsmith_picks 0/2
+// crafted (ingredients ran out?)` x13 and `2/32` while the bot carried 90 cobblestone + 28 sticks, `armoury_diamond_tools 0/2` x11 with diamonds
+// and sticks in the pockets). Every run used to re-open the table, and the window that comes back is EMPTY for a moment: `choose()` then saw no
+// ingredients and reported "ingredients ran out" with full pockets. Now the table is opened once, each run waits for the window to show the
+// ingredients, the result is counted as a TOTAL over all inventory slots (32 pickaxes are 32 slots, not one stack) and the run is only counted
+// when the server confirmed it. Every give-up writes its reason to `armyctl.js errors` (craft:*). -> number of runs that really produced the item.
+async function craftOnTable (bot, name, tbl, times = 1) {
   const reg = bot.registry
   const w = await U.withTimeout(bot.openBlock(tbl), 8000, 'openTable')
+  let made = 0
   try {
-    const run = choose(reg, name, invOf(w))
-    if (!run) return false
-    const resId = reg.itemsByName[run.item].id
-    const cnt = () => w.items().filter(i => i.type === resId).reduce((a, i) => a + i.count, 0)
-    const before = cnt()
-    const cells = {} // ingredient id -> [grid slots]
-    for (const f of run.fill) { const id = reg.itemsByName[f.name].id; (cells[id] = cells[id] || []).push(1 + f.x + 3 * f.y) }
-    for (const [id, slots] of Object.entries(cells)) {
-      // an ingredient may be spread over several small stacks (8 planks for a chest as 3+5): keep drawing stacks until every cell is filled
-      const todo = slots.slice()
-      while (todo.length) {
-        const src = w.items().find(i => i.type === +id && i.slot >= w.inventoryStart)
-        if (!src) return false
-        const srcSlot = src.slot
-        await bot.clickWindow(srcSlot, 0, 0) // pick the stack up
-        while (todo.length && w.selectedItem) await bot.clickWindow(todo.shift(), 1, 0) // right click = put ONE down
-        if (w.selectedItem) await bot.clickWindow(srcSlot, 0, 0) // put the rest back where it came from
+    for (let k = 0; k < times; k++) {
+      if (U.cancelled(bot)) break
+      try { // a run that throws (the bot was walked away, the server closed the window) ends the batch but keeps what was made
+      // the OPEN WINDOW is the truth while it is open (bot.inventory lags): wait for it to list the ingredients before giving up on them
+      let run = null
+      for (let i = 0; i < 10 && !(run = choose(reg, name, invOf(w))); i++) await U.sleep(200)
+      if (!run) { swallow('craft:nothing to make ' + name, new Error('window lists no ingredients')); break }
+      const resId = reg.itemsByName[run.item].id
+      const cnt = () => w.items().filter(i => i.type === resId).reduce((a, i) => a + i.count, 0) // TOTAL over the slots, not one stack
+      const before = cnt()
+      // AN UNSTACKABLE RESULT NEEDS A SLOT OF ITS OWN: with a full inventory the result stays on the cursor and the run is lost
+      const stackSize = (reg.itemsByName[run.item] || {}).stackSize || 64
+      if (stackSize <= 1 && w.firstEmptySlotRange(w.inventoryStart, w.inventoryEnd) == null) { swallow('craft:no free slot for ' + name, new Error('inventory full')); break }
+      const cells = {} // ingredient id -> [grid slots]
+      for (const f of run.fill) { const id = reg.itemsByName[f.name].id; (cells[id] = cells[id] || []).push(1 + f.x + 3 * f.y) }
+      let short = null
+      for (const [id, slots] of Object.entries(cells)) {
+        // an ingredient may be spread over several small stacks (8 planks for a chest as 3+5): keep drawing stacks until every cell is filled
+        const todo = slots.slice()
+        while (todo.length) {
+          const src = w.items().find(i => i.type === +id && i.slot >= w.inventoryStart)
+          if (!src) { short = (reg.items[id] || {}).name || id; break }
+          const srcSlot = src.slot
+          await bot.clickWindow(srcSlot, 0, 0) // pick the stack up
+          while (todo.length && w.selectedItem) await bot.clickWindow(todo.shift(), 1, 0) // right click = put ONE down
+          if (w.selectedItem) await bot.clickWindow(srcSlot, 0, 0) // put the rest back where it came from
+        }
+        if (short) break
       }
+      if (short) { swallow('craft:ingredient gone ' + short, new Error('the window lost ' + short + ' while filling the grid')); break }
+      for (let i = 0; i < 15 && !(w.slots[0] && w.slots[0].type === resId); i++) await U.sleep(100)
+      if (!(w.slots[0] && w.slots[0].type === resId)) { swallow('craft:no result slot ' + name, new Error('the server sent no result')); break }
+      await bot.clickWindow(0, 0, 0) // take the result onto the cursor …
+      // … and put it onto an existing stack with room, else into a free slot (world 1: every run took a NEW slot, so 32 torch runs stopped after 3
+      // when the pockets were full of 4-torch stacks; the result stayed on the cursor and counted as "nothing crafted")
+      const held = w.selectedItem; const need = held ? held.count : run.count
+      const stack = w.items().find(i => i.type === resId && i.slot >= w.inventoryStart && i.count + need <= (i.stackSize || 64))
+      const free = stack ? stack.slot : w.firstEmptySlotRange(w.inventoryStart, w.inventoryEnd)
+      if (free == null) { swallow('craft:nowhere to put ' + name, new Error('no free slot for the result')); break }
+      await bot.clickWindow(free, 0, 0)
+      // WAIT FOR THE SERVER between runs (the next run reads this window again): a run counts only when the item really arrived
+      let ok = false
+      for (let i = 0; i < 20 && !(ok = cnt() > before); i++) await U.sleep(100)
+      if (!ok) { swallow('craft:result not confirmed ' + name, new Error('count did not rise')); break }
+      made++
+      } catch (e_) { swallow('craft:run ' + name, e_); break }
     }
-    for (let i = 0; i < 15 && !(w.slots[0] && w.slots[0].type === resId); i++) await U.sleep(100)
-    if (!(w.slots[0] && w.slots[0].type === resId)) return false
-    await bot.clickWindow(0, 0, 0) // take the result onto the cursor …
-    // … and put it onto an existing stack with room, else into a free slot (world 1: every run took a NEW slot, so 32 torch runs stopped after 3
-    // when the pockets were full of 4-torch stacks; the result stayed on the cursor and counted as "nothing crafted")
-    const held = w.selectedItem; const need = held ? held.count : run.count
-    const stack = w.items().find(i => i.type === resId && i.slot >= w.inventoryStart && i.count + need <= (i.stackSize || 64))
-    const free = stack ? stack.slot : w.firstEmptySlotRange(w.inventoryStart, w.inventoryEnd)
-    if (free != null) await bot.clickWindow(free, 0, 0)
-    await U.sleep(150)
-    return cnt() > before
   } finally {
+    // give back what is on the cursor and clear the grid, whatever happened
+    try { if (w.selectedItem) { const f = w.firstEmptySlotRange(w.inventoryStart, w.inventoryEnd); if (f != null) await bot.clickWindow(f, 0, 0) } } catch (e_) { swallow('craft:cursorBack', e_) }
     try { for (let sl = 1; sl <= 9; sl++) if (w.slots[sl]) { await bot.clickWindow(sl, 0, 0); const f = w.firstEmptySlotRange(w.inventoryStart, w.inventoryEnd); if (f != null) await bot.clickWindow(f, 0, 0) } } catch (e_) { swallow('craft:gridBack', e_) }
     try { w.close() } catch (e_) { swallow('craft:close', e_) }
     await U.sleep(200)
   }
+  return made
 }
 
 // craft `times` runs of `name` (a concrete or GENERIC item) from the POCKETS. With a table (given, or within 6 blocks): the table window, always
@@ -211,15 +237,13 @@ async function craft (bot, name, times = 1, table = null) {
   if (!tbl) { try { tbl = bot.findBlock({ matching: reg.blocksByName.crafting_table.id, maxDistance: 6 }) } catch (e_) { swallow('craft:findTable', e_) } }
   if (tbl) {
     try {
-      let made = 0
-      // one retry per run: right after the previous run's window closed, the freshly opened table window may not list the inventory yet
-      // (world 1: diamond_pickaxe 1/5, torches 3/32 "ingredients ran out?" with every ingredient in the pockets)
-      for (let k = 0; k < times; k++) {
-        U.ck(bot)
-        let ok = await U.withTimeout(craftOnTable(bot, name, tbl), 20000, 'craftOnTable:' + name)
-        if (!ok) { await U.sleep(900); ok = await U.withTimeout(craftOnTable(bot, name, tbl), 20000, 'craftOnTable:' + name) }
-        if (ok) made++; else break
-        await U.sleep(250)
+      U.ck(bot)
+      // the WHOLE batch in one window; one retry for the rest (a table window that came back empty used to cost the whole batch)
+      const budget = n => Math.min(240000, 20000 + 8000 * n)
+      let made = await U.withTimeout(craftOnTable(bot, name, tbl, times), budget(times), 'craftOnTable:' + name)
+      if (made < times && !U.cancelled(bot)) {
+        await U.sleep(900)
+        made += await U.withTimeout(craftOnTable(bot, name, tbl, times - made), budget(times - made), 'craftOnTable:' + name)
       }
       return made > 0
     } catch (e) { U.note(bot, 'warn', 'craftOnTable ' + name + ': ' + String(e.message || e).slice(0, 80)); swallow('craft:onTable', e); try { if (bot.currentWindow) bot.closeWindow(bot.currentWindow) } catch (e_) { swallow('craft:closeAfter', e_) } return false }

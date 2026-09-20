@@ -417,6 +417,22 @@ function stale (bot, gen) { return !bot.entity || (bot.state && bot.state.cancel
 // NEVER into the walkway of the stairwell / a trunk / a branch mouth (world 1, 09-19 11:58Z: a "side wall" block at a stair corner was the next
 // step's headroom - cobblestone at -24,-28,13 closed the only stair in both directions; mob walls did the same in the trunk). opts.temp = the
 // caller digs the cell out again at once (plugging a liquid source that sits in a cell we are opening).
+// THE HAND IS SHARED (foreman 12:3xZ: `iron_core:placeAt | Server refused to place diamond_sword at (N, N, N): the block is still air` 7/h, and
+// `must be holding an item to place`): since every bot carries a sword, army.js' melee reflex equips it the moment a mob is near - between OUR equip and
+// mineflayer's click. mineflayer names `bot.heldItem` AT THE THROW, so what was clicked really was the sword. Nothing here is ever placed with "whatever
+// is in the hand": the block is equipped and VERIFIED right before every click, with one 150 ms retry for the reflex to let go of the hand.
+// false = we do not carry that block at all (the caller reports no_filler) or the hand stayed taken - never a click with a tool or a weapon in it.
+async function inHand (bot, item) {
+  for (let i = 0; i < 2; i++) {
+    if (bot.heldItem && bot.heldItem.name === item) return true
+    if (U.count(bot, item) <= 0) return false
+    await U.equip(bot, item, 'hand')
+    if (bot.heldItem && bot.heldItem.name === item) return true
+    await sleep(150)
+  }
+  bump(bot, 'handBusy')
+  return false
+}
 async function placeAt (bot, item, pos, opts = {}) {
   const cur = bot.blockAt(pos)
   if (isSolid(cur)) return true
@@ -425,10 +441,11 @@ async function placeAt (bot, item, pos, opts = {}) {
   if (eyeDist(bot, pos) > 4.6) return false
   const f = feet(bot)
   if ((pos.x === f.x && pos.z === f.z) && (pos.y === f.y || pos.y === f.y + 1)) return false // would entomb ourselves
-  if (!await U.equip(bot, item, 'hand')) return false
+  if (!await inHand(bot, item)) return false
   for (const d of FACES) {
     const ref = bot.blockAt(pos.offset(-d[0], -d[1], -d[2]))
     if (!isSolid(ref)) continue
+    if (!await inHand(bot, item)) return false // the reflex may take the hand between two faces
     try {
       await U.withTimeout(bot.placeBlock(ref, new Vec3(d[0], d[1], d[2])), 2500, 'place')
     } catch (e_) { swallow('iron_core:placeAt', e_) } // judged on the block below, not on the promise
@@ -692,7 +709,7 @@ async function placeTorch (bot, c) {
   if (U.count(bot, 'torch') <= 0 || !c.wall || eyeDist(bot, c) > 4.5) return false
   const cell = blk(bot, c.x, c.y, c.z); const wall = blk(bot, c.wall[0], c.wall[1], c.wall[2])
   if (!cell || !isOpen(cell) || /torch/.test(cell.name) || !isSolid(wall)) return false
-  if (!await U.equip(bot, 'torch', 'hand')) return false
+  if (!await inHand(bot, 'torch')) return false
   try { await U.withTimeout(bot.placeBlock(wall, new Vec3(c.x - c.wall[0], 0, c.z - c.wall[2])), 2500, 'stairTorch') } catch (e_) { swallow('iron_core:stairTorch', e_) }
   await sleep(60)
   const nb = blk(bot, c.x, c.y, c.z)
@@ -836,11 +853,12 @@ async function placeTread (bot, pos, dir) {
   const it = stairItem(bot); let ref = blk(bot, pos.x, pos.y - 1, pos.z); let face = new Vec3(0, 1, 0)
   if (!isSolid(ref)) { ref = null; for (const d of DIRS) { const q = blk(bot, pos.x - d[0], pos.y, pos.z - d[1]); if (isSolid(q) && eyeDist(bot, q.position) <= 4.6) { ref = q; face = new Vec3(d[0], 0, d[1]); break } } }
   if (!it || !ref) return false
-  try { await U.withTimeout(bot.equip(it, 'hand'), 4000, 'equipTread') } catch (e_) { swallow('iron_core:treadEquip', e_); return false }
+  if (!await inHand(bot, it.name)) return false
   const d = DIRS[dir]; const e = eye(bot)
   const pitch = Math.atan2(pos.y - e.y, Math.hypot(pos.x + 0.5 - e.x, pos.z + 0.5 - e.z))
   try { await bot.look(Math.atan2(-d[0], -d[1]), pitch, true) } catch (e_) { swallow('iron_core:treadLook', e_) }
   await sleep(200)
+  if (!await inHand(bot, it.name)) return false // a tread is laid with the stair block, never with what the reflex put in the hand
   try { await U.withTimeout(bot._placeBlockWithOptions(ref, face, { forceLook: 'ignore', half: 'bottom', swingArm: 'right' }), 2500, 'tread') } catch (e_) { swallow('iron_core:treadPlace', e_) } // judged on the block, not on the promise
   await sleep(120)
   return true
@@ -991,11 +1009,11 @@ async function pillarOne (bot, gen) {
   const ref = blk(bot, f.x, f.y - 1, f.z)
   if (!isSolid(ref)) return 'no_floor'
   await stepTo(bot, f.x, f.z, { ms: 1200, gen, tol: 0.22 })
-  if (!await U.equip(bot, it, 'hand')) return 'equip'
+  if (!await inHand(bot, it)) return 'equip'
   bot.setControlState('jump', true)
   const t0 = Date.now()
   while (Date.now() - t0 < 900 && bot.entity.position.y < f.y + 1.0) await sleep(20)
-  try { await U.withTimeout(bot.placeBlock(ref, new Vec3(0, 1, 0)), 1500, 'pillar') } catch (e_) { swallow('iron_core:q11', e_) }
+  if (await inHand(bot, it)) { try { await U.withTimeout(bot.placeBlock(ref, new Vec3(0, 1, 0)), 1500, 'pillar') } catch (e_) { swallow('iron_core:q11', e_) } } // the jump window is a whole second for the reflex to take the hand
   bot.setControlState('jump', false)
   await settle(bot, 900)
   if (feet(bot).y > f.y) { bump(bot, 'pillared'); return 'ok' }
@@ -1413,7 +1431,7 @@ async function torchNear (bot, x, y, z, dirIdx) {
     const wall = blk(bot, x + s[0], y + 1, z + s[1])
     const cell = blk(bot, x, y + 1, z)
     if (isSolid(wall) && cell && (cell.name === 'air' || cell.name === 'cave_air')) {
-      if (!await U.equip(bot, 'torch', 'hand')) return false
+      if (!await inHand(bot, 'torch')) return false
       try { await U.withTimeout(bot.placeBlock(wall, new Vec3(-s[0], 0, -s[1])), 2500, 'torch') } catch (e_) { swallow('iron_core:q14', e_) }
       await sleep(60)
       const nb = blk(bot, x, y + 1, z)

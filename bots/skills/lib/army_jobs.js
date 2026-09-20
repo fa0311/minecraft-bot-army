@@ -2571,6 +2571,8 @@ function builtCols (selfId) {
 const TERRAIN_JOB = /^(level|clear_area|road|road_path|field_block|platform)$/ // blueprints whose air cells cut natural trees: a trunk in the cut is felled whole
 const WEED_RE = /^(short_grass|tall_grass|fern|large_fern|dead_bush|bush|firefly_bush|leaf_litter|wildflowers|pink_petals|dandelion|poppy|blue_orchid|allium|azure_bluet|oxeye_daisy|cornflower|lily_of_the_valley|sunflower|lilac|rose_bush|peony|.*_tulip|sweet_berry_bush|short_dry_grass|tall_dry_grass)$/ // = WEED in ops/base-audit.js
 const NATURAL_RE = /^(dirt|grass_block|coarse_dirt|rooted_dirt|podzol|mycelium|mud|clay|stone|granite|diorite|andesite|tuff|calcite|deepslate|gravel|sand|red_sand|sandstone|terracotta|moss_block|snow|snow_block|powder_snow|short_grass|tall_grass|fern|large_fern|dead_bush|.*_ore)$/ // what a `natural:true` air cell may take away
+// A TREE IS NOT GROUND: what may stand in a `fillOnly` ground cell and still let it count as filled excludes everything that GREW there (see todo()'s fillOnly rule)
+const GROUND_TREE_RE = /_log$|_wood$|_stem$|_hyphae$|_leaves$|_mushroom_block$|^mushroom_stem$|^bamboo|_sapling$|^cactus$|^sugar_cane$/
 function blueprintCells (P) {
   const key = JSON.stringify([P.blueprint, P.origin, P.args, P.pad, P.padFill])
   if (_bpCache.key !== key) {
@@ -2820,7 +2822,12 @@ async function build (bot, job, api, ctx) {
       // `natural:true` air (a road's terraced shoulder, 09-20): only NATURAL ground is cut - the hall, fence or field beside the road is not terrain - and never the block something stands on (a torch, a chest, a fence, a TREE: a trunk left hanging over a terrace is tidy work we made ourselves)
       if (c.block === 'air' && c.natural && (!NATURAL_RE.test(b.name) || built().has(c.x + ',' + c.z) || (solid(b) && !/^(air|cave_air)$/.test((at(c.x, c.y + 1, c.z) || { name: 'air' }).name) && !NATURAL_RE.test((at(c.x, c.y + 1, c.z) || {}).name)))) continue
       if (c.block === 'air') { if (!foreign && b.name !== 'air' && b.name !== 'cave_air' && !(/_leaves$/.test(b.name) && c.y > o.y + 3) && !/^(water|lava|wheat|carrots|potatoes|beetroots|sweet_berry_bush|sugar_cane)$/.test(b.name) && !U.protectedBlock(b) && (bot.blockAt(new Vec3(c.x, c.y - 1, c.z)) || {}).name !== 'water') dig.push(c) } else if (b.name !== c.block) {
-        if (c.fillOnly && solid(b)) continue
+        // A TREE IS NOT GROUND (MEASURED 12:37Z by the `level_skipped` line this very pass prints: base_infill_n232_n400 col -232,-377 reads 4 BELOW grade for the
+        // camera while the block standing AT grade is an `oak_log` - a trunk growing out of the hole made the fillOnly ground cell look "already solid", so the tile
+        // declared itself complete over a 4-deep pit with a tree in it and the dispatcher went on walking bots there, travel_fail x57/30 min). A trunk, stem, leaves,
+        // mushroom block, cane or sapling in a ground cell is WORK: it is dug (a `level` job is a TERRAIN_JOB, so the main loop fells the whole tree) and the column
+        // is filled from the natural ground up on the next pass.
+        if (c.fillOnly && solid(b) && !GROUND_TREE_RE.test(b.name)) continue
         if (c.mats && c.mats.includes(b.name) && !exact(c)) continue // an accepted substitute stands there (never on a VISIBLE face: see EXACT)
         if (b.name === 'water' && waterKeys.size) { put.push(c); continue } // a blueprint that OWNS its water: water anywhere else in it is a leak (a side a creeper opened) - the block goes back in
         // THE OTHER HALF OF THE REPAVE/REPLANT LOOP (foreman 10:20Z): a crop standing where OUR OWN blueprint wants a hard block (the field's path line, the post under a water
@@ -3402,6 +3409,34 @@ async function build (bot, job, api, ctx) {
     if (armed) { A.result(bot, { ev: 'void_fix', job: job.id, fill: fixId, cols: pts.length, round: armed, cells: voids.slice(0, 4).join(' | ') }); A.result(bot, { ev: 'build_done', job: job.id, blueprint: P.blueprint, voids: pts.length, fix: fixId }); return muster(bot, job, api, ctx, 'build: complete - ' + pts.length + ' void columns handed to ' + fixId) }
   }
   // the void fix worked (or its job was pruned after its own done report): the pad drops the `after` link again - a dangling `after` makes the CLI refuse every patch of this job
+  // A TERRAIN JOB NEVER SAYS "COMPLETE" WITHOUT SHOWING THE CAMERA'S OWN LIST FOR ITS BOX (foreman 12:3xZ + docs/BUGS.md 12:2xZ: base_infill_n232_n400 and
+  // base_infill_n252_n558 declared complete in one pass while the base audit named them as the worst hole / bump clusters, so the dispatcher kept walking bots there -
+  // `travel_fail x57/30 min`). MEASURED ON THE SPOT before this was written: an eval probe on Yotsuba @-262,69,-558 read groundTop **y68** for -243,-556 / -244,-556 /
+  // -243,-555 / -242,-556 / -245,-557, and `ops/skyshot.js -243 -550 20` - the SAME spectator camera the audit flies - reads 68 for the whole tile while the +13 bump
+  // stands at x -263..-255, twelve to twenty blocks WEST of the tile's own box (x -252..-232). base_infill_n232_n400 likewise: 68 along the whole 1-wide strip x -232,
+  // the 4-deep holes at x -228 and east. Both jobs really are finished; the audit names the NEAREST job for a cluster that lies OUTSIDE its footprint. So the handler
+  // proves it rather than arguing: at completion it re-reads the audit's work list, keeps the columns INSIDE its own box, and reports `level_skipped` for each one it
+  // did not turn into work (max 5) - or once with `none:true`, which is the evidence an operator needs to stop re-opening the job and to put the tile where the ground is.
+  if (!n && !st.lvlSaid && A.TERRAIN_BP.test(String(P.blueprint))) {
+    st.lvlSaid = true
+    try {
+      let x1 = Infinity; let z1 = Infinity; let x2 = -Infinity; let z2 = -Infinity
+      for (const c of cells) { if (c.x < x1) x1 = c.x; if (c.x > x2) x2 = c.x; if (c.z < z1) z1 = c.z; if (c.z > z2) z2 = c.z }
+      const a = auditWork(); const inBox = []
+      if (a && Number.isFinite(x1)) for (const u of a.work || []) for (const q of u.cols || []) if (q[0] >= x1 && q[0] <= x2 && q[1] >= z1 && q[1] <= z2) inBox.push(q)
+      if (a && !inBox.length) A.result(bot, { ev: 'level_skipped', job: job.id, none: true, box: [x1, z1, x2, z2], why: 'complete, and the camera lists NO off-level column inside this box - a cluster the audit blames on this job lies OUTSIDE its footprint (put a tile where the ground is, do not re-open this one)' })
+      for (const q of inBox.slice(0, 5)) {
+        const mineCells = cells.filter(c => c.x === q[0] && c.z === q[1])
+        const gb = at(q[0], o.y, q[1])
+        const why = !mineCells.length ? 'no cell of this blueprint stands in that column'
+          : !gb ? 'blockAt is null there: the chunk is not loaded for me (I judged it unseen)'
+            : mineCells.some(c => c.block !== 'air' && !solid(at(c.x, c.y, c.z))) ? 'a ground cell is open but rested (bad/lock/colSkip) - re-run with a new rev'
+              : U.protectedBlock(gb) || A.ourBlock(gb.position, gb.name) ? 'the block at grade belongs to another blueprint of ours (' + gb.name + ')'
+                : 'the world reads ' + gb.name + ' at grade y' + o.y + ' - the camera and I disagree about this column'
+        A.result(bot, { ev: 'level_skipped', job: job.id, col: [q[0], q[1]], d: q[2], why })
+      }
+    } catch (e_) { swallow('army_jobs:levelSkipped', e_) }
+  }
   if (!n) { A.boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (j && j.status === 'active') { j.status = 'paused'; j.note = 'auto-paused: build complete' + voidNote; if (j.voidFix) { const gone = !(b.jobs || []).some(q => q.id === j.voidFix.id); if (!voids.length || gone) { if (j.after === j.voidFix.id) delete j.after; if (!voids.length) delete j.voidFix } } } }); A.result(bot, { ev: 'build_done', job: job.id, blueprint: P.blueprint }); putCap(); return muster(bot, job, api, ctx, 'build: complete') }
   return 'build'
 }

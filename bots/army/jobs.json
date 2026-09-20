@@ -775,11 +775,11 @@
    "by": "Kanade",
    "portal": [
     -37,
-    100,
+    98,
     -76
    ],
-   "through": 1789907415118,
-   "scoutRev": 6,
+   "through": 1789908114167,
+   "scoutRev": 0,
    "hub": [
     -37,
     98,
@@ -804,8 +804,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789907418647,
-   "back": 1789907451214
+   "landingAt": 1789908134191,
+   "back": 1789908139532
   }
  },
  "enlisted": [
@@ -1328,52 +1328,6 @@
    "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)"
   },
   {
-   "id": "base_field_3",
-   "type": "build",
-   "priority": 68,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 1,
-   "site": [
-    -390,
-    69,
-    -475
-   ],
-   "requires": {
-    "minHp": 10
-   },
-   "plan": "BASE PLAN zone field_3 x -403..-377 / z -488..-462 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): field block 27x27 in a 29x29 slot (its torch ring): nine 9x9 plots, water cells BUILT by the blueprint",
-   "params": {
-    "blueprint": "field_block",
-    "origin": [
-     -403,
-     68,
-     -488
-    ],
-    "args": {},
-    "waterFrom": [
-     -441,
-     62,
-     -422
-    ]
-   },
-   "after": "base_field_3_pad",
-   "rev": 11,
-   "note": "auto-paused: build complete",
-   "water": {
-    "key": "rev8",
-    "cells": {}
-   },
-   "stuckBy": {
-    "key": "rev6",
-    "bots": [
-     "Nanami",
-     "Ume"
-    ]
-   }
-  },
-  {
    "id": "farm_3",
    "type": "farm",
    "priority": 80,
@@ -1790,7 +1744,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789907802987
+   "restUntil": 1789908229791
   },
   {
    "id": "fill_ring_field2",
@@ -2727,53 +2681,6 @@
    }
   },
   {
-   "id": "base_cane",
-   "type": "build",
-   "priority": 45,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 4,
-   "site": [
-    -272,
-    69,
-    -479
-   ],
-   "requires": {
-    "minHp": 10
-   },
-   "plan": "BASE PLAN zone cane x -282..-262 / z -489..-469 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): sugar cane block 21x21 INSIDE the base (crops grow only in ticked chunks): plus-tiling of isolated water cells BUILT by the blueprint (one bucket each from settings/params waterFrom), ~270 cane cells, paved ring, lit",
-   "params": {
-    "blueprint": "cane_block",
-    "origin": [
-     -282,
-     68,
-     -489
-    ],
-    "args": {
-     "w": 21,
-     "d": 21
-    },
-    "waterFrom": [
-     -441,
-     62,
-     -422
-    ]
-   },
-   "after": "base_cane_pad",
-   "rev": 3,
-   "note": "auto-paused: build complete",
-   "water": {
-    "key": "rev3",
-    "cells": {
-     "-273,68,-481": {
-      "fail": 1,
-      "why": "no water_bucket"
-     }
-    }
-   }
-  },
-  {
    "id": "base_infill_n404_n556",
    "type": "build",
    "priority": 62,
@@ -2948,110 +2855,6 @@
    "note": "auto-activated: `after` base_infill_n233_n492 finished (auto-paused: build complete - BUT 1 cells are left that 3 bu)"
   },
   {
-   "id": "base_infill_n252_n558",
-   "type": "build",
-   "priority": 66,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 8,
-   "site": [
-    -242,
-    69,
-    -543
-   ],
-   "requires": {
-    "minHp": 10
-   },
-   "plan": "BASE PLAN zone infill x -252..-232 / z -558..-528 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): INFILL between the zones: the whole base is ONE level - cut what stands above y68, fill dents from the natural ground up, 4 headroom; nothing is built on it",
-   "params": {
-    "blueprint": "level",
-    "origin": [
-     -242,
-     68,
-     -543
-    ],
-    "args": {
-     "w": 21,
-     "d": 31,
-     "clear": 14
-    }
-   },
-   "rev": 9,
-   "note": "auto-paused: build complete"
-  },
-  {
-   "id": "base_infill_n278_n401",
-   "type": "build",
-   "priority": 88,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 8,
-   "site": [
-    -263,
-    69,
-    -386
-   ],
-   "requires": {
-    "minHp": 10
-   },
-   "plan": "BASE PLAN zone infill x -278..-248 / z -401..-371 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): INFILL between the zones: the whole base is ONE level - cut what stands above y68, fill dents from the natural ground up, 4 headroom; nothing is built on it",
-   "params": {
-    "blueprint": "level",
-    "origin": [
-     -263,
-     68,
-     -386
-    ],
-    "args": {
-     "w": 31,
-     "d": 31,
-     "clear": 6
-    }
-   },
-   "rev": 15,
-   "note": "auto-paused: build complete"
-  },
-  {
-   "id": "base_infill_n247_n401",
-   "type": "build",
-   "priority": 62,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 6,
-   "site": [
-    -241,
-    69,
-    -386
-   ],
-   "requires": {
-    "minHp": 10
-   },
-   "plan": "BASE PLAN zone infill x -247..-235 / z -401..-371 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): INFILL between the zones: the whole base is ONE level - cut what stands above y68, fill dents from the natural ground up, 4 headroom; nothing is built on it",
-   "params": {
-    "blueprint": "level",
-    "origin": [
-     -241,
-     68,
-     -386
-    ],
-    "args": {
-     "w": 13,
-     "d": 31
-    }
-   },
-   "after": "void_fix_base_infill_n247_n401",
-   "rev": 11,
-   "voidFix": {
-    "n": 1,
-    "id": "void_fix_base_infill_n247_n401",
-    "cols": 35,
-    "t": 1789905222766
-   }
-  },
-  {
    "id": "base_infill_n231_n403",
    "type": "build",
    "priority": 88,
@@ -3081,39 +2884,6 @@
     }
    },
    "rev": 2
-  },
-  {
-   "id": "base_infill_n232_n400",
-   "type": "build",
-   "priority": 88,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 3,
-   "site": [
-    -232,
-    69,
-    -385
-   ],
-   "requires": {
-    "minHp": 10
-   },
-   "plan": "BASE PLAN zone infill x -232..-232 / z -400..-370 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): INFILL between the zones: the whole base is ONE level - cut what stands above y68, fill dents from the natural ground up, 4 headroom; nothing is built on it",
-   "params": {
-    "blueprint": "level",
-    "origin": [
-     -232,
-     68,
-     -385
-    ],
-    "args": {
-     "w": 1,
-     "d": 31,
-     "depth": 8
-    }
-   },
-   "rev": 7,
-   "note": "auto-paused: build complete"
   },
   {
    "id": "cane_lake",
@@ -3168,7 +2938,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 9,
+   "bots": 12,
    "site": [
     -311,
     69,
@@ -3209,13 +2979,165 @@
       "sandstone",
       "dirt",
       "gravel"
+     ],
+     "ramp": [
+      [
+       -301,
+       -461,
+       67
+      ],
+      [
+       -300,
+       -461,
+       67
+      ],
+      [
+       -301,
+       -462,
+       66
+      ],
+      [
+       -300,
+       -462,
+       66
+      ],
+      [
+       -301,
+       -463,
+       65
+      ],
+      [
+       -300,
+       -463,
+       65
+      ],
+      [
+       -301,
+       -464,
+       64
+      ],
+      [
+       -300,
+       -464,
+       64
+      ],
+      [
+       -301,
+       -465,
+       63
+      ],
+      [
+       -300,
+       -465,
+       63
+      ],
+      [
+       -301,
+       -466,
+       62
+      ],
+      [
+       -300,
+       -466,
+       62
+      ],
+      [
+       -301,
+       -467,
+       61
+      ],
+      [
+       -300,
+       -467,
+       61
+      ],
+      [
+       -301,
+       -468,
+       60
+      ],
+      [
+       -300,
+       -468,
+       60
+      ],
+      [
+       -301,
+       -469,
+       59
+      ],
+      [
+       -300,
+       -469,
+       59
+      ],
+      [
+       -301,
+       -470,
+       58
+      ],
+      [
+       -300,
+       -470,
+       58
+      ],
+      [
+       -301,
+       -471,
+       57
+      ],
+      [
+       -300,
+       -471,
+       57
+      ],
+      [
+       -301,
+       -472,
+       56
+      ],
+      [
+       -300,
+       -472,
+       56
+      ],
+      [
+       -301,
+       -473,
+       55
+      ],
+      [
+       -300,
+       -473,
+       55
+      ],
+      [
+       -301,
+       -474,
+       54
+      ],
+      [
+       -300,
+       -474,
+       54
+      ],
+      [
+       -301,
+       -475,
+       53
+      ],
+      [
+       -300,
+       -475,
+       53
+      ]
      ]
     },
     "order": "near"
    },
-   "rev": 13,
+   "rev": 14,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check.",
-   "note": "foreman 12:2xZ: 25 bots held, declined x60 build: no filler and build_pass waiting 4730 of 5675 - a strict bottom-up fill has a small frontier, so the crew goes 17->9; sandstone added to mats because the depot holds 3116 sandstone and 0 granite/dirt/gravel",
+   "note": "top model 12:4xZ (gemba: 32 bots, not one cell in 10 min, no_los 229 / unreachable 129): the rest is a trench 14-16 deep with sheer walls and the new rule never drops into a pit - it had NO way in. WALK-IN STAIR first: ramp x -301/-300, z -461..-475 from the finished middle segment (y68) down to the floor y53. 12 bots: the trench is 7 wide",
    "restUntil": 1789906650052
   },
   {
@@ -3415,41 +3337,7 @@
     ]
    },
    "note": "top model 11:4xZ: re-activated after the above-grade sweep went in (fill_flush): the two leftover cells -328,68,-426 / -318,68,-420 were unreachable because one of the y69 filler lines stood ON them",
-   "restUntil": 1789908191265
-  },
-  {
-   "id": "base_field_7",
-   "type": "build",
-   "priority": 60,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 5,
-   "site": [
-    -355,
-    69,
-    -387
-   ],
-   "requires": {
-    "minHp": 6
-   },
-   "plan": "BASE PLAN zone field_7 x -368..-342 / z -400..-374 on the base level y68: field block 27x27 in a 29x29 slot (its torch ring): nine 9x9 plots, water cells BUILT by the blueprint. foreman 05:48Z REPAIR: base audit measures 9 cells MISSING of 747 with no job on it (holes in a field block let the sheet dry out).",
-   "params": {
-    "blueprint": "field_block",
-    "origin": [
-     -368,
-     68,
-     -400
-    ],
-    "args": {},
-    "waterFrom": [
-     -441,
-     62,
-     -422
-    ]
-   },
-   "note": "auto-paused: build complete",
-   "rev": 3
+   "restUntil": 1789908810076
   },
   {
    "id": "fill_void_n343_n461",
@@ -3577,110 +3465,6 @@
    }
   },
   {
-   "id": "base_mine_pad",
-   "type": "build",
-   "priority": 96,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 10,
-   "site": [
-    -330,
-    69,
-    -500
-   ],
-   "requires": {
-    "minHp": 10
-   },
-   "plan": "BASE PLAN zone mine x -338..-322 / z -508..-492 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. mine head: hut, haul chests and light AROUND the stair mouth (zone centre); the stairwell itself is dug and owned by the miners",
-   "params": {
-    "blueprint": "level",
-    "origin": [
-     -330,
-     68,
-     -500
-    ],
-    "args": {
-     "w": 15,
-     "d": 17
-    }
-   },
-   "rev": 11,
-   "note": "auto-paused: build complete - BUT 31 columns are a deck over air (void_under_pad): -337,66,-503 | -336,65,-501 | -333,65,-506 | -333,65,-501 | -333,66,-500 | -332,66,-506"
-  },
-  {
-   "id": "fill_void_mine_pad",
-   "type": "build",
-   "priority": 72,
-   "front": "works",
-   "status": "paused",
-   "when": "day",
-   "bots": 4,
-   "site": [
-    -334,
-    68,
-    -502
-   ],
-   "plan": "base: 32 air cells under the finished mine pad (-337..-331,65..66,-506..-500): fill solid, never deck a hole",
-   "params": {
-    "blueprint": "fill_void",
-    "origin": [
-     -334,
-     68,
-     -503
-    ],
-    "args": {
-     "box": [
-      -338,
-      -507,
-      -330,
-      -499
-     ],
-     "depth": 6,
-     "fill": "cobbled_deepslate",
-     "mats": [
-      "cobblestone",
-      "cobbled_deepslate",
-      "dirt"
-     ]
-    }
-   },
-   "note": "auto-paused: build complete - BUT 50 air cells stay sealed under it (void_under_pad): -338,64,-507 | -338,65,-507 | -338,66,-507 | -338,67,-507 | -338,63,-506 | -338,64,-506",
-   "rev": 1
-  },
-  {
-   "id": "base_infill_n314_n527",
-   "type": "build",
-   "priority": 62,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 5,
-   "site": [
-    -310,
-    69,
-    -512
-   ],
-   "requires": {
-    "minHp": 10
-   },
-   "plan": "BASE PLAN zone infill x -314..-306 / z -527..-497 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): INFILL between the zones: the whole base is ONE level - cut what stands above y68, fill dents from the natural ground up, 4 headroom; nothing is built on it",
-   "params": {
-    "blueprint": "level",
-    "origin": [
-     -310,
-     68,
-     -512
-    ],
-    "args": {
-     "w": 9,
-     "d": 31
-    }
-   },
-   "rev": 2,
-   "note": "auto-paused: build complete - BUT 35 columns are a deck over air (void_under_pad): -311,68,-522 | -314,65,-511 | -314,66,-510 | -313,66,-510 | -313,66,-509 | -312,65,-522"
-  },
-  {
    "id": "fill_void_n314_n516",
    "type": "build",
    "priority": 84,
@@ -3719,258 +3503,6 @@
    }
   },
   {
-   "id": "base_field_2_pad",
-   "type": "build",
-   "priority": 90,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 13,
-   "site": [
-    -288,
-    69,
-    -507
-   ],
-   "requires": {
-    "minHp": 6
-   },
-   "plan": "BASE PLAN zone field_2 x -303..-273 / z -522..-492 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. field block 27x27 in a 29x29 slot (its torch ring): nine 9x9 plots, water cells BUILT by the blueprint",
-   "params": {
-    "blueprint": "level",
-    "origin": [
-     -288,
-     68,
-     -507
-    ],
-    "args": {
-     "w": 31,
-     "d": 31
-    }
-   },
-   "rev": 4,
-   "note": "auto-paused: build complete - BUT 90 columns are a deck over air (void_under_pad): -303,65,-505 | -303,65,-502 | -303,65,-501 | -303,65,-500 | -302,66,-504 | -302,65,-503"
-  },
-  {
-   "id": "fill_field2_void",
-   "type": "build",
-   "priority": 84,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 6,
-   "site": [
-    -288,
-    68,
-    -507
-   ],
-   "plan": "BASE zone field_2 x -303..-273 / z -522..-492: fill the 90 air cells under the finished pad (void_under_pad) solid, from below the deck",
-   "params": {
-    "blueprint": "fill_void",
-    "origin": [
-     -288,
-     68,
-     -507
-    ],
-    "args": {
-     "box": [
-      -304,
-      -523,
-      -272,
-      -491
-     ],
-     "depth": 5,
-     "fill": "cobblestone",
-     "unlid": true
-    }
-   },
-   "note": "auto-paused: build complete - BUT 267 air cells stay sealed under it (void_under_pad): -304,64,-505 | -304,64,-502 | -303,64,-505 | -303,65,-505 | -303,64,-502 | -303,65,-502"
-  },
-  {
-   "id": "base_dorm_pad",
-   "type": "build",
-   "priority": 93,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 6,
-   "site": [
-    -355,
-    69,
-    -536
-   ],
-   "requires": {
-    "minHp": 6
-   },
-   "plan": "BASE PLAN zone dorm x -370..-340 / z -545..-527 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. dorm: 1 hall(s) with 50 bed slots for 50 bots, 1 bed now (the sleeper's) - raise `beds` + rev as wool arrives; beds register as respawnBeds",
-   "params": {
-    "blueprint": "level",
-    "origin": [
-     -355,
-     68,
-     -536
-    ],
-    "args": {
-     "w": 31,
-     "d": 19,
-     "fill": "cobbled_deepslate"
-    }
-   },
-   "rev": 8,
-   "note": "needs: cobbled_deepslate (2 cells wait; every cell whose material exists is done or in work)",
-   "stuckBy": {
-    "key": "rev8",
-    "bots": [
-     "Sakura"
-    ]
-   }
-  },
-  {
-   "id": "fill_void_infill_n278",
-   "type": "build",
-   "priority": 84,
-   "front": "works",
-   "status": "paused",
-   "when": "day",
-   "bots": 3,
-   "site": [
-    -254,
-    65,
-    -374
-   ],
-   "plan": "base pad n278_n401: 12 air cells under finished pad, fill solid",
-   "params": {
-    "blueprint": "fill_void",
-    "origin": [
-     -254,
-     65,
-     -374
-    ],
-    "args": {
-     "fill": "cobbled_deepslate"
-    }
-   },
-   "stuckBy": {
-    "key": "rev3",
-    "bots": [
-     "Kotori"
-    ]
-   },
-   "note": "auto-paused: build complete",
-   "rev": 3
-  },
-  {
-   "id": "base_field_1",
-   "type": "build",
-   "priority": 89,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 1,
-   "site": [
-    -346,
-    69,
-    -432
-   ],
-   "requires": {
-    "minHp": 10
-   },
-   "plan": "BASE PLAN zone field_1 x -359..-333 / z -445..-419 on the base level y68 (moved 10 W off the ravine rim): field block 27x27 in a 29x29 slot (its torch ring): nine 9x9 plots, water cells BUILT by the blueprint",
-   "params": {
-    "blueprint": "field_block",
-    "origin": [
-     -359,
-     68,
-     -445
-    ],
-    "args": {},
-    "waterFrom": [
-     -441,
-     62,
-     -422
-    ]
-   },
-   "note": "foreman 09:55: BASE AUDIT - 4 cobblestone path cells are wheat (-350,68,-436 / -350,68,-435 / -349,68,-428) while NO job owned this structure. Restored from archive = the repair.",
-   "rev": 3
-  },
-  {
-   "id": "base_field_6",
-   "type": "build",
-   "priority": 62,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "site": [
-    -390,
-    69,
-    -405
-   ],
-   "requires": {
-    "minHp": 10
-   },
-   "plan": "BASE PLAN zone field_6 x -403..-377 / z -418..-392 on the base level y68: field block 27x27 in a 29x29 slot (its torch ring): nine 9x9 plots, water cells BUILT by the blueprint.",
-   "params": {
-    "blueprint": "field_block",
-    "origin": [
-     -403,
-     68,
-     -418
-    ],
-    "args": {},
-    "waterFrom": [
-     -441,
-     62,
-     -422
-    ]
-   },
-   "note": "auto-paused: build complete",
-   "rev": 3,
-   "bots": 4,
-   "stuckBy": {
-    "key": "rev3",
-    "bots": [
-     "Honoka"
-    ]
-   }
-  },
-  {
-   "id": "base_field_2",
-   "type": "build",
-   "priority": 70,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 4,
-   "site": [
-    -288,
-    69,
-    -507
-   ],
-   "requires": {
-    "minHp": 10
-   },
-   "plan": "BASE PLAN zone field_2 x -301..-275 / z -520..-494 on the base level y68: field block 27x27 in a 29x29 slot (its torch ring): nine 9x9 plots, water cells BUILT by the blueprint",
-   "params": {
-    "blueprint": "field_block",
-    "origin": [
-     -301,
-     68,
-     -520
-    ],
-    "args": {},
-    "waterFrom": [
-     -441,
-     62,
-     -422
-    ]
-   },
-   "note": "auto-paused: build complete",
-   "water": {
-    "key": "rev1",
-    "cells": {}
-   },
-   "rev": 1
-  },
-  {
    "id": "fill_void_n232_strip",
    "type": "build",
    "priority": 84,
@@ -4007,221 +3539,6 @@
    "rev": 1
   },
   {
-   "id": "base_pen_1_pad",
-   "type": "build",
-   "priority": 90,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 13,
-   "site": [
-    -389,
-    69,
-    -534
-   ],
-   "requires": {
-    "minHp": 6
-   },
-   "plan": "BASE PLAN zone pen_1 x -403..-375 / z -541..-527 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. animal pen 27x13: fence ring, ONE gate onto the road beside it",
-   "params": {
-    "blueprint": "level",
-    "origin": [
-     -389,
-     68,
-     -534
-    ],
-    "args": {
-     "w": 29,
-     "d": 15
-    }
-   },
-   "rev": 4,
-   "note": "auto-paused: build complete - BUT 4 cells are left that 3 builders could not do (build_leftover): -381,68,-541 | -382,68,-541 | -384,68,-541 | -395,67,-541",
-   "stuckBy": {
-    "key": "rev4",
-    "bots": [
-     "Nagisa",
-     "Tsumugi",
-     "Rin"
-    ]
-   }
-  },
-  {
-   "id": "west_terrace_cut",
-   "type": "build",
-   "priority": 66,
-   "front": "works",
-   "status": "paused",
-   "when": "any",
-   "bots": 20,
-   "minBots": 8,
-   "maxBots": 30,
-   "site": [
-    -484,
-    74,
-    -480
-   ],
-   "plan": "zone WEST TERRACE (docs/WORLD.md): cut the grass hill x -492..-476 / z -502..-458 (tops y76-86, 80 blocks W of the wall) down to a flat terrace at y73 = the army DIRT + stone source (depot dirt 1; every level cap, tidy hole and field needs dirt). No pit: a hill becomes a terrace; whole trees are felled",
-   "produces": [
-    "dirt"
-   ],
-   "params": {
-    "blueprint": "clear_area",
-    "origin": [
-     -484,
-     73,
-     -480
-    ],
-    "args": {
-     "w": 17,
-     "d": 45,
-     "h": 14
-    }
-   },
-   "rev": 2,
-   "stuckBy": {
-    "key": "rev2",
-    "bots": [
-     "Fuuka",
-     "Nozomi"
-    ]
-   },
-   "note": "auto-paused: build complete"
-  },
-  {
-   "id": "void_fix_base_infill_n252_n558",
-   "type": "build",
-   "priority": 70,
-   "front": "works",
-   "status": "paused",
-   "when": "any",
-   "bots": 3,
-   "site": [
-    -235,
-    68,
-    -538
-   ],
-   "plan": "void under the finished pad base_infill_n252_n558: 16 columns of x -239..-232 / z -540..-536 are a deck over air (void_under_pad) - fill SOLID from the natural ground up to grade y68, never deck a hole; base_infill_n252_n558 is `after` this job and re-checks the columns when it is done",
-   "params": {
-    "blueprint": "fill_void",
-    "origin": [
-     -235,
-     68,
-     -538
-    ],
-    "unlid": 3,
-    "args": {
-     "box": [
-      -239,
-      -540,
-      -232,
-      -536
-     ],
-     "depth": 5,
-     "fill": "cobblestone",
-     "mats": [
-      "cobbled_deepslate",
-      "cobblestone",
-      "stone",
-      "deepslate",
-      "tuff",
-      "andesite",
-      "diorite",
-      "granite",
-      "dirt",
-      "gravel"
-     ]
-    }
-   },
-   "stuckBy": {
-    "key": "rev0",
-    "bots": [
-     "Mashiro",
-     "Nagisa"
-    ]
-   },
-   "note": "auto-paused: build complete - BUT 1 air cells stay sealed under it (void_under_pad): -233,64,-540"
-  },
-  {
-   "id": "chest_food2",
-   "type": "steps",
-   "priority": 80,
-   "status": "paused",
-   "when": "any",
-   "bots": 1,
-   "requires": {
-    "minHp": 10
-   },
-   "plan": "no zone: 2 storage chests south of the depot food row",
-   "params": {
-    "steps": [
-     {
-      "do": "withdraw",
-      "item": "chest",
-      "n": 2
-     },
-     {
-      "do": "goto",
-      "to": [
-       -369,
-       69,
-       -517
-      ],
-      "range": 3
-     },
-     {
-      "do": "place",
-      "block": "chest",
-      "at": [
-       -371,
-       69,
-       -515
-      ]
-     },
-     {
-      "do": "place",
-      "block": "chest",
-      "at": [
-       -367,
-       69,
-       -515
-      ]
-     }
-    ]
-   },
-   "note": "auto-paused: plan finished"
-  },
-  {
-   "id": "light_ravine",
-   "type": "light",
-   "priority": 74,
-   "front": "base",
-   "status": "paused",
-   "when": "day",
-   "bots": 2,
-   "site": [
-    -311,
-    69,
-    -447
-   ],
-   "requires": {
-    "minHp": 14,
-    "minFood": 10
-   },
-   "plan": "no world change beyond torches: light the ravine keep-out x -334..-289 / z -486..-408 so the fill_void crews stop being killed on their own site (11:18:11 three deaths by zombie at -290,58,-472; 9 skeleton deaths in 30 min). Torches go on the ground of each column, rim or floor.",
-   "params": {
-    "box": [
-     -334,
-     -486,
-     -289,
-     -408
-    ],
-    "step": 7,
-    "y": 68
-   },
-   "note": "auto-paused: grid complete"
-  },
-  {
    "id": "base_yard_pad",
    "type": "build",
    "priority": 85,
@@ -4252,352 +3569,7 @@
    },
    "note": "needs: dirt (32 cells wait; every cell whose material exists is done or in work)",
    "rev": 9,
-   "restUntil": 1789907532824
-  },
-  {
-   "id": "base_portal",
-   "type": "build",
-   "priority": 88,
-   "front": "base",
-   "status": "paused",
-   "when": "day",
-   "bots": 3,
-   "site": [
-    -326,
-    68,
-    -518
-   ],
-   "plan": "zone portal (docs/WORLD.md): THE Nether gate of the base — 4x5 obsidian frame on a 2-deep stone plinth with a paved, lit apron (3 clear cells in front and behind). x -330..-323 / z -522..-514, probed flat grass y68 on 2026-09-20 (armyctl ground), 18 blocks N of the mine head, clear of every zone, road and keep-out.",
-   "params": {
-    "blueprint": "nether_portal",
-    "origin": [
-     -326,
-     68,
-     -518
-    ],
-    "pad": false,
-    "args": {
-     "axis": "x"
-    }
-   },
-   "stuckBy": {
-    "key": "rev1",
-    "bots": [
-     "Aika",
-     "Chino",
-     "Kaede"
-    ]
-   },
-   "note": "auto-paused: build complete",
-   "rev": 3
-  },
-  {
-   "id": "toolsmith_picks",
-   "type": "steps",
-   "priority": 96,
-   "status": "paused",
-   "when": "any",
-   "bots": 1,
-   "plan": "no world change: pickaxes for the 15 bots without one (owner 09-20): 16 stone + 10 diamond, crafted 2 at a time (craft n>2 of an unstackable tool stops at 2 - bug filed)",
-   "params": {
-    "onFail": "continue",
-    "steps": [
-     {
-      "do": "withdraw",
-      "item": "cobblestone",
-      "n": 64
-     },
-     {
-      "do": "withdraw",
-      "item": "stick",
-      "n": 40
-     },
-     {
-      "do": "goto",
-      "to": [
-       -345,
-       69,
-       -523
-      ],
-      "range": 3
-     },
-     {
-      "do": "craft",
-      "item": "stone_pickaxe",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "stone_pickaxe",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "stone_pickaxe",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "stone_pickaxe",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "stone_pickaxe",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "stone_pickaxe",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "stone_pickaxe",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "stone_pickaxe",
-      "n": 2
-     },
-     {
-      "do": "bank"
-     },
-     {
-      "do": "withdraw",
-      "item": "diamond",
-      "n": 30
-     },
-     {
-      "do": "withdraw",
-      "item": "stick",
-      "n": 20
-     },
-     {
-      "do": "goto",
-      "to": [
-       -345,
-       69,
-       -523
-      ],
-      "range": 3
-     },
-     {
-      "do": "craft",
-      "item": "diamond_pickaxe",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_pickaxe",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_pickaxe",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_pickaxe",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_pickaxe",
-      "n": 2
-     },
-     {
-      "do": "bank"
-     }
-    ]
-   },
-   "note": "auto-paused: plan failed"
-  },
-  {
-   "id": "armoury_swords",
-   "type": "steps",
-   "priority": 96,
-   "status": "paused",
-   "when": "any",
-   "bots": 1,
-   "plan": "no world change: owner 09-20 - EVERY bot is armed (30 of 50 carried no sword, 398 diamonds lay idle): 34 diamond swords, 2 per craft step, banked; the kit rule hands them out",
-   "params": {
-    "onFail": "continue",
-    "steps": [
-     {
-      "do": "withdraw",
-      "item": "diamond",
-      "n": 68
-     },
-     {
-      "do": "withdraw",
-      "item": "stick",
-      "n": 34
-     },
-     {
-      "do": "goto",
-      "to": [
-       -345,
-       69,
-       -523
-      ],
-      "range": 3
-     },
-     {
-      "do": "craft",
-      "item": "diamond_sword",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_sword",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_sword",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_sword",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_sword",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_sword",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_sword",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_sword",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_sword",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_sword",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_sword",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_sword",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_sword",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_sword",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_sword",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_sword",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_sword",
-      "n": 2
-     },
-     {
-      "do": "bank"
-     }
-    ]
-   },
-   "note": "auto-paused: plan failed"
-  },
-  {
-   "id": "armoury_leather",
-   "type": "steps",
-   "priority": 96,
-   "status": "paused",
-   "when": "any",
-   "bots": 1,
-   "plan": "no world change: owner 09-20 - EVERY bot wears armour (9 of 50 wore nothing, 303 leather lay idle): leather chestplates/leggings/helmets/boots, 2 per craft step, banked; the kit rule hands them out",
-   "params": {
-    "onFail": "continue",
-    "steps": [
-     {
-      "do": "withdraw",
-      "item": "leather",
-      "n": 256
-     },
-     {
-      "do": "goto",
-      "to": [
-       -345,
-       69,
-       -523
-      ],
-      "range": 3
-     },
-     {
-      "do": "craft",
-      "item": "leather_chestplate",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "leather_chestplate",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "leather_chestplate",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "leather_chestplate",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "leather_chestplate",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "leather_chestplate",
-      "n": 2
-     },
-     {
-      "do": "bank"
-     }
-    ]
-   },
-   "note": "auto-paused: plan failed"
+   "restUntil": 1789908774993
   },
   {
    "id": "base_portal_go",
@@ -4637,100 +3609,6 @@
    "names": [
     "Kanade"
    ]
-  },
-  {
-   "id": "armoury_diamond_tools",
-   "type": "steps",
-   "priority": 96,
-   "status": "paused",
-   "when": "any",
-   "bots": 2,
-   "requires": {
-    "minHp": 10,
-    "minFood": 8
-   },
-   "plan": "no world change: the DAY-ONE TOOL SHELF is empty while 398 diamonds lie idle (review 09-20: depot stone_pickaxe 0, iron_pickaxe 0, axes 0, only 14 stone_shovel; kitUp hands out the plainest tool the depot HAS, so bots that lose a pick get nothing). 16 diamond pickaxes (also the only pick that mines the portal's obsidian) + 16 diamond shovels for the 8000-cell ravine fill, 2 per craft step (craft n>2 of an unstackable stops at 2), banked into the tools chests.",
-   "params": {
-    "onFail": "continue",
-    "steps": [
-     {
-      "do": "goto",
-      "to": [
-       -345,
-       69,
-       -523
-      ],
-      "range": 3
-     },
-     {
-      "do": "withdraw",
-      "item": "oak_log",
-      "n": 24,
-      "atLeast": 8
-     },
-     {
-      "do": "craft",
-      "item": "oak_planks",
-      "n": 16
-     },
-     {
-      "do": "craft",
-      "item": "stick",
-      "n": 16
-     },
-     {
-      "do": "withdraw",
-      "item": "diamond",
-      "n": 24,
-      "atLeast": 8
-     },
-     {
-      "do": "craft",
-      "item": "diamond_shovel",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_shovel",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_shovel",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_shovel",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_shovel",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_shovel",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_axe",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "diamond_axe",
-      "n": 2
-     },
-     {
-      "do": "bank"
-     }
-    ]
-   },
-   "rev": 1,
-   "note": "auto-paused: plan failed"
   },
   {
    "id": "fill_yard_sw",
@@ -4792,60 +3670,13 @@
    "note": "auto-paused: 8 cells nobody could do: -396,65,-370 | -396,65,-371"
   },
   {
-   "id": "void_fix_base_infill_n232_n400",
-   "type": "build",
-   "priority": 70,
-   "front": "works",
-   "status": "paused",
-   "when": "any",
-   "bots": 2,
-   "site": [
-    -232,
-    68,
-    -383
-   ],
-   "plan": "void under the finished pad base_infill_n232_n400: 6 columns of x -232..-232 / z -392..-375 are a deck over air (void_under_pad) - fill SOLID from the natural ground up to grade y68, never deck a hole; base_infill_n232_n400 is `after` this job and re-checks the columns when it is done",
-   "params": {
-    "blueprint": "fill_void",
-    "origin": [
-     -232,
-     68,
-     -383
-    ],
-    "unlid": 3,
-    "args": {
-     "box": [
-      -232,
-      -392,
-      -232,
-      -375
-     ],
-     "depth": 5,
-     "fill": "cobblestone",
-     "mats": [
-      "cobbled_deepslate",
-      "cobblestone",
-      "stone",
-      "deepslate",
-      "tuff",
-      "andesite",
-      "diorite",
-      "granite",
-      "dirt",
-      "gravel"
-     ]
-    }
-   },
-   "note": "auto-paused: build complete"
-  },
-  {
    "id": "void_fix_base_infill_n247_n401",
    "type": "build",
    "priority": 70,
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 8,
+   "bots": 2,
    "site": [
     -240,
     68,
@@ -4883,53 +3714,12 @@
      ]
     }
    },
-   "rev": 2,
+   "rev": 3,
    "restUntil": 1789908221342,
    "stuckBy": {
     "key": "rev2",
     "bots": [
      "Akari"
-    ]
-   }
-  },
-  {
-   "id": "base_road_12",
-   "type": "build",
-   "priority": 58,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 5,
-   "site": [
-    -305,
-    69,
-    -403
-   ],
-   "requires": {
-    "minHp": 10
-   },
-   "plan": "BASE PLAN zone road 12 x -375..-235 / z -404..-402 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): 3-wide road east-west, paved at ground level",
-   "params": {
-    "blueprint": "road",
-    "origin": [
-     -375,
-     68,
-     -403
-    ],
-    "args": {
-     "toX": -235,
-     "toZ": -403,
-     "width": 3
-    }
-   },
-   "rev": 5,
-   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -279,67,-404",
-   "stuckBy": {
-    "key": "rev5",
-    "bots": [
-     "Kanade",
-     "Kokoro",
-     "Himari"
     ]
    }
   },
@@ -4964,7 +3754,13 @@
     }
    },
    "rev": 4,
-   "note": "needs: dirt (2 cells wait; every cell whose material exists is done or in work)"
+   "note": "needs: dirt (2 cells wait; every cell whose material exists is done or in work)",
+   "stuckBy": {
+    "key": "rev4",
+    "bots": [
+     "Akari"
+    ]
+   }
   },
   {
    "id": "nether_return",
@@ -4983,6 +3779,46 @@
    },
    "rev": 1,
    "restUntil": 1789907800362
+  },
+  {
+   "id": "nether_landing_2",
+   "type": "portal",
+   "priority": 96,
+   "front": "base",
+   "status": "active",
+   "when": "day",
+   "bots": 1,
+   "names": [
+    "Kanade"
+   ],
+   "shiftMin": 20,
+   "site": [
+    -326,
+    69,
+    -518
+   ],
+   "plan": "zone portal (docs/WORLD.md): STAGE 2 step 1 — finish the far landing at the_nether -39..-35 / -78..-74, y97-99 until it reads safe:true (2 floor holes left, one out of arm's reach from the arrival). ONE round trip per slice: cross, work 5 min inside the landing box only, come home. No walking outside the box.",
+   "params": {
+    "blueprint": "nether_portal",
+    "origin": [
+     -326,
+     68,
+     -518
+    ],
+    "args": {
+     "axis": "x"
+    },
+    "buildJob": "base_portal",
+    "go": true,
+    "landing": true,
+    "work": "landing",
+    "minutes": 5,
+    "cobble": 208,
+    "crossS": 45,
+    "maxDeaths": 2
+   },
+   "note": "auto-paused: the gate is lit and the round trip is done (bump rev to send another expedition)",
+   "rev": 1
   }
  ]
 }

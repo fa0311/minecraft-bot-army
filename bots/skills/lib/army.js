@@ -548,7 +548,11 @@ const DROP = { surface: 2, normal: 3, homeward: 4 }
 function surfaceFloor (bot) { return overworldBot(bot) ? SEA_LEVEL - SURFACE_DEPTH : null } // no sea level in the Nether/End: the surface rule is overworld-only
 function musterPos () { const m = settings().muster; return !m ? null : Array.isArray(m) ? { x: m[0], y: m[1], z: m[2] } : m } // CONTRACT form [x,y,z]; the old {x,y,z,cols} still reads
 let _larder = { t: 0, ok: true }
-function larderFull () { if (Date.now() - _larder.t > 120000) { _larder.t = Date.now(); try { _larder.ok = require('../../army/stock.js').have('food') >= 256 } catch (e_) { _larder.ok = true } } return _larder.ok } // stock.js reads 50 heartbeat files: once per 2 min, not per trip
+// SPRINT WHILE THE LARDER HOLDS HALF THE FOOD TARGET (review row 12: the gate was a flat 256 bread-equivalents - a day-one fortune, always true
+// today at 8710/448, but the day the stock dips under 256 the WHOLE army silently stops sprinting: 3.96 -> 5.6 m/s on every trip of 50 bots).
+// Half the target is the honest line ("we are still fine"), never more than the old 256 and never less than 64.
+function larderGate () { const t = (settings().targets || {}).food; return Math.max(64, Math.min(256, t > 0 ? t / 2 : 256)) }
+function larderFull () { if (Date.now() - _larder.t > 120000) { _larder.t = Date.now(); try { _larder.ok = require('../../army/stock.js').have('food') >= larderGate() } catch (e_) { _larder.ok = true } } return _larder.ok } // stock.js reads 50 heartbeat files: once per 2 min, not per trip
 function strictMovements (bot) {
   const mv = new Movements(bot)
   // RUN (owner 09-20: "効率を上げるための作業は惜しみなくやるべき … 走る"): sprinting was banned in world 1 to save food (1 hunger point per ~40 m);
@@ -751,6 +755,7 @@ function digHazard (bot, q) {
   return null
 }
 async function stairUp (bot, targetY, ms = 300000, done = null) {
+  if (!overworldBot(bot)) return offWorld(bot, 'stairs') // no "up to the surface" in the Nether/End (see digOut)
   const end = Date.now() + ms
   let di = bot.__stairDir == null ? 0 : bot.__stairDir
   let fails = 0
@@ -856,10 +861,14 @@ async function pitExit (bot, own) {
 async function digOut (bot, pit) {
   const from = bot.entity.position.floored()
   // SHUT IN A BUILDING OF OURS IS NOT BOXED IN (dorm, hall, pen): the way out is the gate, which the pathfinder opens. No edit, one report per 10 min.
+  // NO ESCAPE DIGGING OFF THE OVERWORLD (nether engineer, measured 09-20 12:30:23Z: `off_world dig_out_roof` + `stranded` at walkableArea 120 - under the bedrock
+  // roof skyAbove() can NEVER be true, so every bot in the Nether reads "roofed in" and starts cutting a staircase towards y127; the pit rules are written for
+  // overworld ground as well). A bot in trouble in another world stands still and says so once; getting it home is the return job's business.
+  if (!overworldBot(bot)) {
+    if (Date.now() - (bot.__armyStrandedT || 0) > 600000) { bot.__armyStrandedT = Date.now(); result(bot, { ev: 'stranded', at: [from.x, from.y, from.z], area: walkableArea(bot), dim: dimOf(bot) }) }
+    return
+  }
   const own = insideOurs(bot); const zy = zoneAt(from.x, from.z, bot)
-  // NO "UP TO THE SURFACE" WHERE THERE IS NONE: in the Nether the roof is bedrock, so skyAbove() is false everywhere and the roofed-in escape would
-  // dig a bot up to y127 (measured 09-20 12:1xZ, Koharu). Off the overworld only the pit/shaft escapes run.
-  const roofEscape = overworldBot(bot); if (!roofEscape) offWorld(bot, 'dig_out_roof')
   if ((own || (zy != null && from.y <= zy - 1)) && await pitExit(bot, own || 'zone')) { strictMovements(bot); return }
   if (own) { if (Date.now() - (bot.__armyShutInT || 0) > 600000) { bot.__armyShutInT = Date.now(); result(bot, { ev: 'shut_in', at: [from.x, from.y, from.z], inside: own, area: walkableArea(bot) }) } strictMovements(bot); return }
   const life = bot.__armyDeaths || 0; const gone = () => (bot.__armyDeaths || 0) !== life || !!bot.__armyDied || !bot.entity || bot.health <= 0
@@ -876,7 +885,7 @@ async function digOut (bot, pit) {
   }
   // ROOFED IN (cave, tunnel) with filler blocks in the pockets: the classic player escape — dig the two blocks overhead, jump, place under the
   // feet, repeat until the sky is open. The shaft is filled by the pillar itself, so nothing is left open behind (hand-dug stone: ~15 s per level).
-  if (!pit && roofEscape && !skyAbove(bot)) {
+  if (!pit && !skyAbove(bot)) {
     const BL = require('./blocks'); let up = 0
     const fillers = () => FILLERS.reduce((n, f) => n + count(bot, f), 0)
     const falling = () => { const p0 = bot.entity.position.floored(); for (let dy = 2; dy <= 4; dy++) { const b = bot.blockAt(p0.offset(0, dy, 0)); if (b && /^(gravel|sand|red_sand|.*concrete_powder|water|lava)$/.test(b.name)) return b.name } return null }
@@ -891,7 +900,7 @@ async function digOut (bot, pit) {
     // A DEEP PIT UNDER THE SKY (10:3xZ Chika: a closed pond 16 below the forest floor - ONE flight of +4 ended at y53, `dug_out` from == to, `no_route` again for ever):
     // flight after flight until the bot can walk again, at most 8 flights (32 levels); a flight that gains no height ends it.
     if (pit) for (let i = 0; i < 8 && !gone() && !U.cancelled(bot) && (i === 0 || walkableArea(bot) < 60); i++) { const y0 = Math.floor(bot.entity.position.y); await U.withTimeout(stairUp(bot, y0 + 4, 90000, () => skyAbove(bot) && walkableArea(bot) >= 60), 90000 + 115000, 'stairUp'); if (Math.floor(bot.entity.position.y) <= y0) break }
-    for (let i = 0; i < 12 && roofEscape && !skyAbove(bot) && !U.cancelled(bot) && !gone() && !insideOurs(bot); i++) await U.withTimeout(stairUp(bot, Math.floor(bot.entity.position.y) + 3, 60000, () => skyAbove(bot) && walkableArea(bot) >= 60), 60000 + 115000, 'stairUp')
+    for (let i = 0; i < 12 && !skyAbove(bot) && !U.cancelled(bot) && !gone() && !insideOurs(bot); i++) await U.withTimeout(stairUp(bot, Math.floor(bot.entity.position.y) + 3, 60000, () => skyAbove(bot) && walkableArea(bot) >= 60), 60000 + 115000, 'stairUp')
   } catch (e_) { swallow('army:373', e_) }
   if (gone()) { result(bot, { ev: 'escape_aborted', from: [from.x, from.y, from.z], why: 'the bot died during the escape' }); bot.__stairPlaced = []; strictMovements(bot); return }
   const to = bot.entity.position.floored()
@@ -964,7 +973,7 @@ async function travel (bot, target, opts = {}) {
   if (surfaceTrip && mv0) { mv0.maxDropDown = DROP.surface; mv0.infiniteLiquidDropdownDistance = false }
   const dropRule = () => { try { const m = bot.pathfinder.movements; if (m) { m.exclusionAreasStep = m.exclusionAreasStep.filter(f => f !== floorRule && f !== keepRule); m.maxDropDown = DROP.normal } } catch (e_) { swallow('army:dropRule', e_) } }
   // boxed in right now and the target is elsewhere: don't burn the whole time budget on path attempts that cannot succeed — escape first
-  if (!opts.quiet && dist2(bot, target.x, target.z) > 6 && Date.now() - (bot.__armyEscT || 0) > 120000) {
+  if (!opts.quiet && overworldBot(bot) && dist2(bot, target.x, target.z) > 6 && Date.now() - (bot.__armyEscT || 0) > 120000) { // escapes edit the world: overworld only (digOut says why)
     const rev = walkableArea(bot, 150, 1) // what the bot can walk AND walk back from
     if (rev < 150 && onColumn(bot)) { bot.__armyEscT = Date.now(); await stepDown(bot) } else if (rev < 150 && walkableArea(bot) < 60) { bot.__armyEscT = Date.now(); dug = true; await digOut(bot, skyAbove(bot)) } else if (rev < 150 && surfaceTrip && skyAbove(bot) && Date.now() - (bot.__armyMaroonT || 0) > 600000) {
       bot.__armyMaroonT = Date.now(); const p1 = bot.entity.position.floored(); const u1 = bot.blockAt(p1.offset(0, -1, 0))
@@ -1849,7 +1858,7 @@ async function pickup (bot, r = 6, ms = 6000) { try { await U.pickupNear(bot, ms
 
 module.exports = {
   DIR, F, sleep, readJSON, writeJSON, boardEdit, decline, result, settings, inv, count, bestOf, equipBest, heartbeat, assignment,
-  strictMovements, larderFull, escapeMovements, skyAbove, digOut, fillShaft, inShaft, walkableArea, debt, travel, dist2, categoryOf, chestsOf, index, record, openChest, closeWin, bank, withdraw,
+  strictMovements, larderFull, larderGate, escapeMovements, skyAbove, digOut, fillShaft, inShaft, walkableArea, debt, travel, dist2, categoryOf, chestsOf, index, record, openChest, closeWin, bank, withdraw,
   scanChests, stockOf, stockMap, dumpJunk, askHelp, helpAnswer, placeHard, fillInside, gravityDrop, obtain, craftSpot, stash, unstash, siteInfo, siteSet, hostiles, startGuard, stopGuard, kill, pickup, HOSTILE, CATS,
   kitUp, kitPlan, wear, riskJob, carried, liveBots, musterPos, surfaceFloor, SEA_LEVEL, DROP, stairUp, furnaces, registerFurnaces, openAt, pickFuel, smelt, blueprintCellsOf, buildJobs, ours, ourBlock, penAt, insideOurs, zoneAt, TERRAIN_BP,
   dimOf, offload, surplusOf
