@@ -145,6 +145,7 @@ blueprint `level`), then build/plant on it; never deck a hole (`fill_void`); tea
 | job board | `bots/army/jobs.json` (edit through `armyctl.js`) — `BOARD.md`, `status.json`, `assign/`, `hb/` are generated, never edit |
 | seeds / throw-away server | `ops/seed-gacha.js` (score seeds) · `ops/seed-look.js <seed>` (aerial PNG) — `server-gacha/` on :25599; cheats allowed only there |
 | world 1 (coordinates, log, bugs, blueprints, stale state) | `attic/world1/README.md` (local only, reference only) · save `server/backups/world-0919-1628/` · army state `bots/army/archive-0919-1628/` |
+| the code's off-site copy | PUBLIC repo github.com/fa0311/minecraft-bot-army — `ops/git.sh publish "msg"` (add + commit + push; refuses staged tokens/passwords/IPs). Never commit `attic/`, `server/plugins/`, `server/guests.json`, player names or addresses |
 
 ## 5. New world bootstrap (only when the owner orders a reset HERE)
 1. Seed: `node ops/seed-gacha.js [n=6]` tries n random seeds on a throw-away server and scores the land around spawn (temperate, river,

@@ -1108,6 +1108,9 @@ async function main () {
       const b = rj(BOARD)
       const hb = allHb().filter(h => Date.now() - h.t < 120000)
       const cond = (key, text) => { if (Date.now() - (cur.seen[key] || 0) > 600000) { cur.seen[key] = Date.now(); out.push(text) } }
+      { // OUTCOME, not mechanism (main 09-20: 8 of 50 bots at food <= 10 with bread IN THE POCKET and nobody saw it - "weak" was read as "no food"): a hungry bot that carries food = the eat rule is not running
+        const EAT = /bread|cooked_|baked_potato|^apple$|golden_carrot|^carrot$|pumpkin_pie|cookie/; const fed = hb.filter(h => h.food != null && h.food <= 8 && Object.keys(h.inv || {}).some(k => EAT.test(k))).map(h => h.bot + '(f' + h.food + ')')
+        if (fed.length >= 4) cond('starving_fed', 'HUNGRY WITH FOOD IN THE POCKET: ' + fed.length + ' bots — ' + fed.slice(0, 10).join(' ') + ' -> the eat rule is not running (army.js mealReflex / feed.js): CODE bug, one line in docs/BUGS.md') }
       if (st.phase === 'day') { const idle = hb.filter(h => h.job === 'muster' && h.hp >= 12 && h.food >= 10).map(h => h.bot); if (idle.length >= 4) cond('idle', 'IDLE by day (fit): ' + idle.length + ' bots — ' + idle.slice(0, 12).join(' ') + ' -> staff a squad job (raise bots / new job)') }
       for (const j of b.jobs) if (j.status === 'active' && !(j.restUntil > Date.now()) && mine(j.id) && !(st.staffed || {})[j.id] && (j.when || 'any') !== (st.phase === 'day' ? 'night' : 'day')) cond('unstaffed:' + j.id, 'UNSTAFFED active job ' + j.id + ' (requires ' + JSON.stringify(j.requires || {}) + ', names ' + JSON.stringify(j.names || j.bots || (j.minBots || 0) + '-' + j.maxBots) + ')')
       const idx = (() => { try { return rj(path.join(DIR, 'chests.json')) } catch { return {} } })(); const stock = re => Object.values(idx).reduce((n, v) => n + Object.entries(v.items || {}).filter(([k]) => re.test(k)).reduce((a, [, c]) => a + c, 0), 0)

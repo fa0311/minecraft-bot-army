@@ -2503,6 +2503,7 @@ function builtCols (selfId) {
   return cols
 }
 const TERRAIN_JOB = /^(level|clear_area|road|road_path|field_block|platform)$/ // blueprints whose air cells cut natural trees: a trunk in the cut is felled whole
+const WEED_RE = /^(short_grass|tall_grass|fern|large_fern|dead_bush|bush|firefly_bush|leaf_litter|wildflowers|pink_petals|dandelion|poppy|blue_orchid|allium|azure_bluet|oxeye_daisy|cornflower|lily_of_the_valley|sunflower|lilac|rose_bush|peony|.*_tulip|sweet_berry_bush|short_dry_grass|tall_dry_grass)$/ // = WEED in ops/base-audit.js
 const NATURAL_RE = /^(dirt|grass_block|coarse_dirt|rooted_dirt|podzol|mycelium|mud|clay|stone|granite|diorite|andesite|tuff|calcite|deepslate|gravel|sand|red_sand|sandstone|terracotta|moss_block|snow|snow_block|powder_snow|short_grass|tall_grass|fern|large_fern|dead_bush|.*_ore)$/ // what a `natural:true` air cell may take away
 function blueprintCells (P) {
   const key = JSON.stringify([P.blueprint, P.origin, P.args, P.pad, P.padFill])
@@ -3131,11 +3132,13 @@ async function tidyAudit (bot, job, api, ctx, env) {
   const ruledOut = (x, z) => excluded(x, z) || hardExcluded(x, z) || keepOut.some(q => inB(q, x, z)) || busy.some(q => inB(q, x, z)) || stairs0.has(x + ',' + z) || !!A.penAt(x, 1e9, z)
   for (const u0 of a.work) { if (!u0 || !Array.isArray(u0.cols)) continue; const cols = u0.cols.filter(c => Math.abs(c[2]) <= 6 && !ruledOut(c[0], c[1])); if (!cols.length) continue; const u = Object.assign({}, u0, { cols, x: Math.round(cols.reduce((n, c) => n + c[0], 0) / cols.length), z: Math.round(cols.reduce((n, c) => n + c[1], 0) / cols.length) }); units.push({ key: u.s + ':' + (u0.cols[0][0] >> 3) + ':' + (u0.cols[0][1] >> 3), kind: u.s > 0 ? 'bump' : 'hole', x: u.x, z: u.z, area: u.area ? 1 : 0, cols: u.cols, lock: new Vec3(u0.cols[0][0] >> 3, -9000 - (u.s > 0 ? 1 : 0), u0.cols[0][1] >> 3) }) }
   { const m = new Map(); for (const q of a.strays || []) { const k = '2:' + (q[0] >> 3) + ':' + (q[2] >> 3); if (hardExcluded(q[0], q[2]) || keepOut.some(b => inB(b, q[0], q[2]))) continue; let u = m.get(k); if (!u) { u = { key: k, kind: 'stray', x: q[0], z: q[2], area: 0, cols: [], lock: new Vec3(q[0] >> 3, -9002, q[2] >> 3) }; m.set(k, u); units.push(u) } u.cols.push(q) } }
+  // WEEDS (audit_weeds; owner 09-20: "花の除去が出来てない"): flowers / grass tufts on the base ground, one unit per 8x8 tile, [x,y,z] of each plant's foot
+  { const m = new Map(); for (const q of a.weeds || []) { const k = '4:' + (q[0] >> 3) + ':' + (q[2] >> 3); if (hardExcluded(q[0], q[2]) || keepOut.some(b => inB(b, q[0], q[2])) || A.penAt(q[0], 1e9, q[2])) continue; let u = m.get(k); if (!u) { u = { key: k, kind: 'weed', x: q[0], z: q[2], area: 0, cols: [], lock: new Vec3(q[0] >> 3, -9004, q[2] >> 3) }; m.set(k, u); units.push(u) } u.cols.push(q) } }
   // FLOATING TREE REMAINS (audit_floating): one unit per cluster; over a field too (farm boxes are no keep-out for what hangs ABOVE them), never in keep-outs / the tree farm (the audit leaves those out)
   for (const fl of a.floats || []) { if (!fl || !Array.isArray(fl.cols) || !fl.cols.length || keepOut.some(b => inB(b, fl.x, fl.z))) continue; units.push({ key: '3:' + fl.x + ':' + fl.z, kind: 'float', x: fl.x, z: fl.z, area: 0, cols: fl.cols, lock: new Vec3(fl.x, -9003, fl.z) }) }
   const fillers = () => ['dirt', 'cobbled_deepslate', 'cobblestone', 'coarse_dirt'].reduce((n, q) => n + A.count(bot, q), 0)
   const open = units.filter(u => _tidyClosed.get(u.key) !== a.t && inB(box, u.x, u.z) && !keepOut.some(b => inB(b, u.x, u.z)) && (u.kind === 'float' || !busy.some(b => inB(b, u.x, u.z))) && (!P.kinds || new RegExp(P.kinds).test(u.kind))) // params.kinds:'float|stray' = an operator sends the sponge after one kind
-  for (const u of open) u.d = Math.hypot(u.x - me.x, u.z - me.z) + (u.area ? 120 : 0) + (u.kind === 'float' ? -60 : 0) + (u.key === bot.__tidyUnit ? -1000 : 0) // what the owner SEES first (a crown hanging over a field) comes before a dip in the yard
+  for (const u of open) u.d = Math.hypot(u.x - me.x, u.z - me.z) + (u.area ? 120 : 0) + (u.kind === 'float' ? -60 : u.kind === 'weed' ? -40 : 0) + (u.key === bot.__tidyUnit ? -1000 : 0) // what the owner SEES first (a crown hanging over a field) comes before a dip in the yard
   open.sort((p, q) => p.d - q.d)
   let unit = null
   for (const u of open.slice(0, 60)) { if (BL.acquire(bot, u.lock, 12 * 60000)) { unit = u; break } }
@@ -3147,7 +3150,7 @@ async function tidyAudit (bot, job, api, ctx, env) {
   if (unit.kind === 'hole' && unit.cols.some(c => c[2] <= -4) && !['gravel', 'sand', 'red_sand'].some(q => A.count(bot, q)) && A.stockOf('gravel') > 0) await A.obtain(bot, 'gravel', 16, { stop: api.stop }) // a slot deeper than the arm is long takes a gravity block first (army.js gravityDrop)
   if (unit.kind === 'float' && ['cobblestone', 'dirt', 'cobbled_deepslate'].reduce((n, q) => n + A.count(bot, q), 0) < 8) { await A.obtain(bot, 'cobbled_deepslate', 16, { stop: api.stop }); if (!A.count(bot, 'cobbled_deepslate')) await A.obtain(bot, 'dirt', 16, { stop: api.stop }) } // the short pillar under a high crown (first live pass: `skip {"no filler":7}`)
   if (unit.kind === 'hole' && !fillers()) { BL.release(bot, unit.lock); bot.__tidyUnit = null; _tidyClosed.set(unit.key, a.t); return { none: 'no dirt / filler carried or in stock' } }
-  if (unit.kind === 'float' ? !A.bestOf(bot, 'axe') : (unit.kind !== 'hole' && !A.bestOf(bot, 'shovel'))) await getTool(bot, unit.kind === 'float' ? 'axe' : 'shovel', api)
+  if (unit.kind === 'float' ? !A.bestOf(bot, 'axe') : (unit.kind !== 'hole' && unit.kind !== 'weed' && !A.bestOf(bot, 'shovel'))) await getTool(bot, unit.kind === 'float' ? 'axe' : 'shovel', api)
   if (api.stop()) return { ran: true }
   if (!await A.travel(bot, { x: unit.x, y: null, z: unit.z }, { range: 5, ms: 240000, stop: api.stop })) { if (!api.stop()) { close(); A.result(bot, { ev: 'tidy_fix', job: job.id, kind: unit.kind, at: [unit.x, unit.z], n: 0, of: unit.cols.length, why: 'cannot reach the unit' }) } return { ran: true } }
   if (unit.kind === 'float') { const r = await tidyFloat(bot, job, api, unit); if (r.closed) close(); return { ran: true, fixed: r.fixed } }
@@ -3158,10 +3161,18 @@ async function tidyAudit (bot, job, api, ctx, env) {
   const stand = (b, up) => !b || U.protectedBlock(b) || A.ourBlock(b.position, b.name) || (up && up.name !== 'air' && up.name !== 'cave_air' && (U.protectedBlock(up) || A.ourBlock(up.position, up.name) || /sapling|_log$|torch|_sign$|rail$|_bed$/.test(up.name)))
   let fixed = 0; let blocks = 0; let failed = 0; let firstFail = null; let already = 0; const t0 = Date.now(); let left = 0; const how = {}
   const fail = (k, r) => { failed++; if (!firstFail) firstFail = k + ': ' + String(r && r.reason || '?').slice(0, 40) }
-  const order = unit.cols.slice().sort((p, q) => Math.hypot(p[0] - me.x, (unit.kind === 'stray' ? p[2] : p[1]) - me.z) - Math.hypot(q[0] - me.x, (unit.kind === 'stray' ? q[2] : q[1]) - me.z))
+  const xyz = unit.kind === 'stray' || unit.kind === 'weed' // cols of these kinds are [x,y,z], the others [x,z,dy]
+  const order = unit.cols.slice().sort((p, q) => Math.hypot(p[0] - me.x, (xyz ? p[2] : p[1]) - me.z) - Math.hypot(q[0] - me.x, (xyz ? q[2] : q[1]) - me.z))
   for (const c of order) {
     if (api.stop() || failed > 8 || Date.now() - t0 > 8 * 60000) { left++; continue }
     BL.acquire(bot, unit.lock, 12 * 60000)
+    if (unit.kind === 'weed') { // by hand, nothing collected (a pocket full of tulips is the next mess); never a crop, never what a blueprint of ours planted
+      const [x, y, z] = c; const b = at(x, y, z); if (!b || !WEED_RE.test(b.name)) { already++; continue }
+      if (A.ours().cells.has(x + ',' + y + ',' + z) || U.protectedBlock(b)) { why('kept:' + b.name); continue }
+      const r = await BL.digBlock(bot, new Vec3(x, y, z), { collect: false, requireHarvest: false }).catch(e => ({ ok: false, reason: String(e && e.message) }))
+      const b2 = at(x, y, z); if (r && r.ok && !(b2 && WEED_RE.test(b2.name))) { fixed++; blocks++ } else fail(x + ',' + y + ',' + z, r)
+      continue
+    }
     if (unit.kind === 'stray') {
       const [x, y, z] = c; const b = at(x, y, z); if (!b || !solid(b)) { already++; continue }
       if (hardExcluded(x, z) || keepOut.some(q => inB(q, x, z))) { why('excluded'); continue }
@@ -3273,7 +3284,7 @@ async function tidy (bot, job, api, ctx) {
   // 5 min for ever and no tile ever counted as clean); the reason of the first failure travels with the pass event
   const badCells = (A.readJSON(SF, {}) || {}).__bad || {}
   for (let i = fixes.length - 1; i >= 0; i--) { const p0 = fixes[i].dig || fixes[i].put; if ((badCells[p0.x + ',' + p0.y + ',' + p0.z] || 0) >= 2) fixes.splice(i, 1) }
-  fixes.sort((a, b) => (a.dig || a.put).distanceTo(bot.entity.position) - (b.dig || b.put).distanceTo(bot.entity.position) || ((b.dig ? b.dig.y : -a.put.y) - (a.dig ? a.dig.y : -b.put.y)))
+  fixes.sort((a, b) => (a.dig || a.put).distanceTo(bot.entity.position) - (b.dig || b.put).distanceTo(bot.entity.position) || ((a.dig ? -a.dig.y : a.put.y) - (b.dig ? -b.dig.y : b.put.y))) // tie: digs top-down, puts bottom-up (a mixed dig/put pair threw on `undefined.y`, 09-20)
   // holes bottom-up, pillars top-down
   const holes = fixes.filter(f => f.kind === 'hole').sort((a, b) => a.put.y - b.put.y); const digs = fixes.filter(f => f.kind !== 'hole').sort((a, b) => b.dig.y - a.dig.y)
   for (const f of digs.concat(holes)) {

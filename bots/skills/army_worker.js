@@ -118,7 +118,7 @@ module.exports = async (bot, args = {}, ctx) => {
         const api = {
           stop: () => {
             if (stale() || cancelled() || bot.__armyDied || CORE.pending(bot) || Date.now() - t0 > 15 * 60000) return true
-            if (Date.now() - hbT > 15000) { hbT = Date.now(); A.heartbeat(bot, { job: job.id, gen }) }
+            if (Date.now() - hbT > 15000) { hbT = Date.now(); (libs().A || A).heartbeat(bot, { job: job.id, gen }) } // the NEWEST lib: what heartbeat() installs (sensors, guard, meal reflex) must reach a bot INSIDE a 15-min slice too (09-20: half the army ran without the new reflex)
             if (Date.now() - lastCheck > 4000) {
               lastCheck = Date.now()
               const b = A.assignment(bot)

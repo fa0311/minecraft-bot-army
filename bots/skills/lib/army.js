@@ -455,6 +455,7 @@ function heartbeat (bot, extra) {
   // the melee reflex is an interval started once by the worker: re-arm it with THIS (newer) copy of the lib, or hot fixes to hostiles()/the
   // reflex never reach a running bot
   if (bot.__armyGuard && (bot.__armyGuardT || 0) < LOADED_AT) { bot.__armyGuardT = LOADED_AT; startGuard(bot) }
+  mealReflex(bot)
   try { spotAnimals(bot) } catch (e_) { swallow('army:243', e_) }
   wear(bot).catch(e_ => swallow('army:wearTick', e_))
   try { watchdog(bot, extra) } catch (e_) { swallow('army:245', e_) }
@@ -1590,6 +1591,24 @@ function gateCloser (bot) {
     const st = bot.__armyGateStat = bot.__armyGateStat || { n: 0, t: 0 }; st.n++
     if (Date.now() - st.t > 300000) { st.t = Date.now(); result(bot, { ev: 'gate_closed', at: [g.pos.x, g.pos.y, g.pos.z], n: st.n }) }
   }).catch(e_ => swallow('army:gateClose', e_)).finally(() => { bot.__armyGateBusy = false })
+}
+// THE MEAL REFLEX (main 09-20 08:5xZ: 7 of 50 bots at food <= 10 WITH bread in the pocket, a miner at food 6 carrying 21 - the worker eats only BETWEEN slices, and a
+// 15-min mine / build slice is long enough to starve; a bot below 18 never regenerates, below 7 it cannot sprint). Every 4 s: hungry (<= 12, or hurt and <= 17), food
+// carried, hands free (not digging, no chest open, nobody else eating) -> feed.js eat rule, then the tool that was in the hand goes back. Re-armed by every hot reload.
+function mealReflex (bot) {
+  if (bot.__armyMealT === LOADED_AT) return
+  bot.__armyMealT = LOADED_AT; if (bot.__armyMeal) clearInterval(bot.__armyMeal)
+  const timer = bot.__armyMeal = setInterval(() => {
+    try {
+      if (!bot.entity || bot.health <= 0 || bot.__armyEating || bot.food == null) return
+      if (!(bot.food <= 12 || (bot.health < 20 && bot.food <= 17)) || bot.targetDigBlock || bot.currentWindow) return
+      const FEED = require('./feed'); if (!FEED.edibleCount(bot)) return
+      bot.__armyEating = true; const held = bot.heldItem
+      FEED.eat(bot, {}).then(async n => { if (n && held && !bot.targetDigBlock && !bot.currentWindow) { const it = bot.inventory.items().find(i => i.type === held.type); if (it) await bot.equip(it, 'hand') } })
+        .catch(e_ => swallow('army:mealReflex', e_)).finally(() => { bot.__armyEating = false })
+    } catch (e_) { swallow('army:mealTick', e_) }
+  }, 4000)
+  bot.once('end', () => clearInterval(timer))
 }
 function startGuard (bot) {
   stopGuard(bot)

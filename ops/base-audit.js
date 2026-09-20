@@ -32,6 +32,9 @@ const distBox = (b, x, z) => Math.hypot(Math.max(b[0] - x, 0, x - b[2]), Math.ma
 const TERRAIN = /^(level|clear_area|fill_void|quarry)$/; const OPEN_PIT = /^(mine_head|stairwell|quarry)$/
 const GROUNDISH = /^(grass_block|dirt|coarse_dirt|rooted_dirt|podzol|mycelium|farmland|dirt_path|stone|andesite|diorite|granite|gravel|sand|red_sand|sandstone|clay|mud|deepslate|tuff|calcite|snow_block|moss_block|.*_ore)$/
 const TREE = /_log$|_wood$|_leaves$|^bamboo|^vine$|mushroom_block|mushroom_stem/
+// WEEDS (owner 09-20: "花の除去が出来てない" - the base lies in a flower forest; `level` clears its own cells ONCE, nothing looked at what stands on the ground afterwards):
+// small plants on the base's ground that nobody planted. Crops, saplings, cane and torches are not in here; fields and pens are left out below.
+const WEED = /^(short_grass|tall_grass|fern|large_fern|dead_bush|bush|firefly_bush|leaf_litter|wildflowers|pink_petals|dandelion|poppy|blue_orchid|allium|azure_bluet|oxeye_daisy|cornflower|lily_of_the_valley|sunflower|lilac|rose_bush|peony|.*_tulip|sweet_berry_bush|cactus_flower|short_dry_grass|tall_dry_grass)$/
 const FURN = /_bed$|^(chest|trapped_chest|barrel|furnace|smoker|blast_furnace|crafting_table|enchanting_table|bookshelf|anvil|campfire|lantern)$/
 const CROPS = { wheat: 7, carrots: 7, potatoes: 7, beetroots: 3 }; const HERD = /^(sheep|cow|pig|chicken|mooshroom|goat|horse|donkey|llama|rabbit)$/
 const SOILS = /^(dirt|grass_block|farmland|podzol|dirt_path|coarse_dirt|rooted_dirt|mycelium)$/; const STORE = /^(chest|trapped_chest|barrel)$/
@@ -168,7 +171,7 @@ async function main () {
   }
   const pit = new Uint8Array(bw * bdp) // stairwells / quarries: their spoil and steps are theirs up to one above the level
   for (const b of P.builds) if (OPEN_PIT.test(b.blueprint)) for (let z = b.bbox[1]; z <= b.bbox[3]; z++) for (let x = b.bbox[0]; x <= b.bbox[2]; x++) if (inBox(box, x, z)) { cls[(z - box[1]) * bw + x - box[0]] = 2; pit[(z - box[1]) * bw + x - box[0]] = 1 }
-  const stray = []; const structs = new Map(P.builds.filter(b => !b.terrain).map(b => [b.id, { job: b.id, status: b.status, blueprint: b.blueprint, of: 0, seen: 0, missing: 0, wrong: 0, examples: [], marks: [] }]))
+  const weeds = []; const stray = []; const structs = new Map(P.builds.filter(b => !b.terrain).map(b => [b.id, { job: b.id, status: b.status, blueprint: b.blueprint, of: 0, seen: 0, missing: 0, wrong: 0, examples: [], marks: [] }]))
   const furnMissing = []; let furnSeen = 0; const crops = {}; for (const f of P.farms) crops[f.id] = { w: f.box[2] - f.box[0] + 1, map: new Array((f.box[2] - f.box[0] + 1) * (f.box[3] - f.box[1] + 1)).fill('?') }
   const gates = []; let Block = null
   const regions = [pic].concat(P.farms.map(f => f.box), P.pens.map(p => grow(p.box, 96)))
@@ -185,12 +188,13 @@ async function main () {
           const id = R.sid(x, y, z); if (id == null || air(id)) continue; const b = R.block(id); if (top == null) { top = y; topY[pi] = y; topN[pi] = ix(b.name) }
           if (!inside) break
           if (/_log$|_wood$|_leaves$/.test(b.name)) { if (trN[bi] < 255) trN[bi]++; if (!trHi[bi]) trHi[bi] = y; trLo[bi] = y }
+          if (WEED.test(b.name) && judged) { const w0 = weeds[weeds.length - 1]; if (w0 && w0[0] === x && w0[2] === z) { w0[1] = y } else weeds.push([x, y, z, b.name]) } // the LOWEST cell of a plant (a lilac is 2 high: its foot takes both)
           if (TREE.test(b.name) || b.boundingBox !== 'block') continue
           const key = x + ',' + y + ',' + z; if (P.planned.has(key) || (FURN.test(b.name) && P.furnAt.has(key))) continue
           if (GROUNDISH.test(b.name)) { if (judged && bump == null) bump = y } else if (!pit[bi] || y > level + 1) stray.push([x, y, z, b.name])
         }
         let g = null; let wet = false
-        for (let y = level; y >= level - 16; y--) { const id = R.sid(x, y, z); if (id == null || air(id)) continue; const b = R.block(id); if (top == null) { top = y; topY[pi] = y; topN[pi] = ix(b.name) } if (!inside) break; if (b.name === 'water') { wet = true; continue } if (TREE.test(b.name) || b.boundingBox !== 'block') continue; g = y; break }
+        for (let y = level; y >= level - 16; y--) { const id = R.sid(x, y, z); if (id == null || air(id)) continue; const b = R.block(id); if (top == null) { top = y; topY[pi] = y; topN[pi] = ix(b.name) } if (!inside) break; if (b.name === 'water') { wet = true; continue } if (WEED.test(b.name) && judged && !(weeds.length && weeds[weeds.length - 1][0] === x && weeds[weeds.length - 1][2] === z)) weeds.push([x, y, z, b.name]); if (TREE.test(b.name) || b.boundingBox !== 'block') continue; g = y; break }
         if (!inside) continue
         cls[bi] |= 16; lvlN[bi] = ix(R.name(x, level, z) || '?'); upN[bi] = ix(R.name(x, level + 1, z) || '?')
         if (trN[bi]) { const gt = bump != null ? bump : g; trRoot[bi] = gt != null && /_log$|_wood$/.test(R.name(x, gt + 1, z) || '') ? 1 : 0 } // a trunk standing on the ground of this column
@@ -268,6 +272,13 @@ async function main () {
   say({ ev: 'audit_rough', key: '', alert: rough >= 40 || fresh.filter(c => c[2] >= 3).length > 0, columns: rough, onPads, of: count.padSeen + count.yardSeen, holes: holes.length, bumps: bumps.length, was: prev && prev.rough ? prev.rough.columns : null, newClusters: fresh.slice(0, 6).map(c => ({ x: c[0], z: c[1], n: c[2], dy: c[3] })), clusters: defects.slice(0, 12).map(c => ({ x: c[0], z: c[1], n: c[2], dy: c[3], where: whereOf(P, c[0], c[1]) })), unlevelled: { columns: wildCols, areas: terrain.slice(0, 6).map(c => ({ x: c[0], z: c[1], n: c[2], dy: c[3] })) },
     text: 'BASE NOT FLAT (one site = ONE height, y' + level + '): ' + rough + ' columns in ' + holes.length + ' hole + ' + bumps.length + ' bump clusters are off the level (' + onPads + ' of them ON finished pads/roads/footprints' + (prev && prev.rough ? '; ' + prev.rough.columns + ' at the last audit' : '') + '); worst: ' + defects.slice(0, 6).map(cl).join(' · ') + (fresh.length ? ' | NEW since the last audit: ' + fresh.slice(0, 4).map(cl).join(' · ') : '') +
       ' -> the tidy sponge fills/cuts these (is it staffed, does it decline?); a crater that returns = find who digs (`look`); a big one = `template build` blueprint level / fill_void' + (wildCols ? ' | NEVER LEVELLED inside the yard: ' + wildCols + ' columns in ' + terrain.length + ' areas (' + terrain.slice(0, 4).map(cl).join(' · ') + ') -> a `level` pad job per area before anything is built there' : '') })
+
+  // ---------- a2. WEEDS: flowers / grass on the base's ground (above the level; fields, pens and the tree farm keep theirs) ----------
+  { const skip = (x, z) => P.farms.some(f => inBox(f.box, x, z)) || P.pens.some(q => inBox(q.box, x, z)) || /^(field|farm|pen|tree|cane)/.test(String(whereOf(P, x, z)))
+    for (let i = weeds.length - 1; i >= 0; i--) if (skip(weeds[i][0], weeds[i][2])) weeds.splice(i, 1)
+    const wk = {}; const wz = {}; for (const w of weeds) { wk[w[3]] = (wk[w[3]] || 0) + 1; const z0 = whereOf(P, w[0], w[2]); wz[z0] = (wz[z0] || 0) + 1 }
+    say({ ev: 'audit_weeds', key: '', alert: false, n: weeds.length, was: prev && prev.weedN != null ? prev.weedN : null, kinds: Object.fromEntries(Object.entries(wk).sort((a, b) => b[1] - a[1]).slice(0, 6)), where: Object.fromEntries(Object.entries(wz).sort((a, b) => b[1] - a[1]).slice(0, 6)),
+      text: 'WEEDS: ' + weeds.length + ' flowers / grass tufts stand on the base ground' + (prev && prev.weedN != null ? ' (' + prev.weedN + ' at the last audit)' : '') + ': ' + Object.entries(wz).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, n]) => k + ' ' + n).join(', ') + ' -> the tidy sponge pulls them (kind `weed`); a number that does not fall = tidy is unstaffed or declines' }) }
 
   // ---------- b. STRAY BLOCKS ----------
   const kinds = {}; const byZone = {}; for (const s of stray) { kinds[s[3]] = (kinds[s[3]] || 0) + 1; const w = whereOf(P, s[0], s[2]); (byZone[w] = byZone[w] || []).push(s) }
@@ -405,7 +416,7 @@ async function main () {
 
   // ---------- out ----------
   const alerts = findings.filter(f => f.alert); const took = Math.round((Date.now() - T0) / 1000); const partial = flown.hovers.filter(h => !h.ok).length
-  const state = { t: T0, took, level, box, png: OUT, legend, hovers: flown.hovers.length, partial, unseen: count.unseen, findings, rough: { columns: rough, onPads, unlevelled: wildCols }, clustersAll: defects.slice(0, 400).map(c => c.slice(0, 4)), work, floats, floatN: floats.length, strays: stray.slice(0, 400), strayN: stray.length, pens: pensOut, growth: growthState,
+  const state = { t: T0, took, level, box, png: OUT, legend, hovers: flown.hovers.length, partial, unseen: count.unseen, findings, rough: { columns: rough, onPads, unlevelled: wildCols }, clustersAll: defects.slice(0, 400).map(c => c.slice(0, 4)), work, weeds: weeds.slice(0, 6000).map(w => w.slice(0, 3)), weedN: weeds.length, floats, floatN: floats.length, strays: stray.slice(0, 400), strayN: stray.length, pens: pensOut, growth: growthState,
     prev: prev ? { t: prev.t, rough: prev.rough, strayN: prev.strayN, floatN: prev.floatN, pens: prev.pens, findings: (prev.findings || []).map(f => ({ ev: f.ev, key: f.key, alert: f.alert, text: f.text })) } : null }
   if (!DRY) {
     const tmp = STATE + '.tmp' + process.pid; fs.writeFileSync(tmp, JSON.stringify(state)); fs.renameSync(tmp, STATE)

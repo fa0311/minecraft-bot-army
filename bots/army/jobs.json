@@ -1258,7 +1258,7 @@
    "type": "build",
    "priority": 68,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "site": [
@@ -1479,7 +1479,7 @@
    "type": "build",
    "priority": 52,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 8,
    "site": [
@@ -1512,7 +1512,8 @@
     "bots": [
      "Noa",
      "Honoka",
-     "Nanami"
+     "Nanami",
+     "Erika"
     ]
    }
   },
@@ -1713,7 +1714,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789894187527
+   "restUntil": 1789894971003
   },
   {
    "id": "guard_muster",
@@ -2104,7 +2105,7 @@
    },
    "shiftMin": 20,
    "rev": 11,
-   "restUntil": 1789893030101,
+   "restUntil": 1789894627803,
    "note": "09-20 05:40Z top model: 82 sheep stand OUTSIDE pen 1 (escaped 03:42-05:30Z over step blocks an escape routine left on the pen floor - removed, pen_litter rule live). want 30 + 4 herders until the flock is back; then want 10-24 / minBots 1 again",
    "desc": "OPERATORS: do NOT pause - since 09-20 02:00Z the herd job itself SHEARS the woolly sheep and CULLS the adults beyond want inside the pen (event pen_harvest); a full pen is its work, not a dead end (BUGS 105 fixed)",
    "produces": [
@@ -2149,7 +2150,7 @@
    },
    "shiftMin": 20,
    "rev": 5,
-   "restUntil": 1789894060151,
+   "restUntil": 1789894986366,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "leather"
@@ -2194,7 +2195,7 @@
    },
    "shiftMin": 20,
    "rev": 4,
-   "restUntil": 1789894135702,
+   "restUntil": 1789894891959,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "feather"
@@ -2963,7 +2964,7 @@
    "type": "build",
    "priority": 88,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 2,
    "site": [
@@ -2995,9 +2996,9 @@
    "type": "build",
    "priority": 88,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
-   "bots": 6,
+   "bots": 8,
    "site": [
     -263,
     69,
@@ -3020,16 +3021,18 @@
      "clear": 6
     }
    },
-   "rev": 5
+   "rev": 7,
+   "after": "fill_ne_valley",
+   "note": "waits for fill_ne_valley (stone sub-base): this tile needed ~3000 dirt we do not have"
   },
   {
    "id": "base_infill_n247_n401",
    "type": "build",
    "priority": 62,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
-   "bots": 3,
+   "bots": 6,
    "site": [
     -241,
     69,
@@ -3051,9 +3054,9 @@
      "d": 31
     }
    },
-   "after": "base_infill_n370_n371",
-   "rev": 8,
-   "note": "auto-activated: `after` base_infill_n370_n371 finished (auto-paused: build complete)"
+   "after": "fill_ne_valley",
+   "rev": 10,
+   "note": "waits for fill_ne_valley (stone sub-base)"
   },
   {
    "id": "base_infill_n231_n403",
@@ -3221,7 +3224,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 4,
    "site": [
     -311,
     69,
@@ -3265,7 +3268,7 @@
      ]
     }
    },
-   "rev": 5,
+   "rev": 6,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check."
   },
   {
@@ -3319,7 +3322,7 @@
      ]
     }
    },
-   "rev": 3,
+   "rev": 5,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check."
   },
   {
@@ -3327,7 +3330,7 @@
    "type": "build",
    "priority": 60,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 5,
    "site": [
@@ -3397,7 +3400,7 @@
    "type": "build",
    "priority": 70,
    "front": "works",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 2,
    "site": [
@@ -3473,6 +3476,50 @@
      "creeper",
      "witch"
     ]
+   }
+  },
+  {
+   "id": "fill_ne_valley",
+   "type": "build",
+   "priority": 64,
+   "front": "works",
+   "status": "active",
+   "when": "day",
+   "bots": 14,
+   "site": [
+    -257,
+    67,
+    -386
+   ],
+   "plan": "NE valley (x -278..-235, z -401..-371) lies 3-6 below the pad: raise it SOLID with stone from the depot to y67, then the two level jobs cap it with dirt at y68 (zone: base infill tiles n278_n401 + n247_n401)",
+   "desc": "sub-base for base_infill_n278_n401 / n247_n401 - stone filler, NOT dirt",
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -257,
+     67,
+     -386
+    ],
+    "args": {
+     "box": [
+      -278,
+      -401,
+      -235,
+      -371
+     ],
+     "depth": 8,
+     "fill": "cobbled_deepslate",
+     "mats": [
+      "cobbled_deepslate",
+      "andesite",
+      "diorite",
+      "granite",
+      "tuff",
+      "cobblestone",
+      "stone",
+      "deepslate"
+     ]
+    }
    }
   }
  ]
