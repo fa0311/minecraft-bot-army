@@ -173,6 +173,7 @@ function simulate (sc, opts = {}) {
     peak,
     left: bots.reduce((n, b) => n + b.leaves, 0) + gone.length,
     drops: map.dropCols.size,
+    abandoned: map.abandoned.size,
     sealed: end.sealed - start.sealed,
     falls: bots.concat(gone).reduce((n, b) => n + b.falls, 0),
     noRoute,
@@ -411,10 +412,10 @@ function main () {
   const pad = (s, n) => String(s).padEnd(n)
   const num = (v, n, d = 1) => String(typeof v === 'number' ? v.toFixed(d) : v).padStart(n)
   console.log('')
-  console.log(pad('scenario', 40) + num('cells', 7) + num('crew', 5) + num('peak', 5) + num('quit', 6) + num('min', 7) + num('c/min/bot', 10) + num('trips', 6) + num('drops', 6) + num('falls', 6) + '  result')
+  console.log(pad('scenario', 40) + num('cells', 7) + num('crew', 5) + num('peak', 5) + num('quit', 6) + num('min', 7) + num('c/min/bot', 10) + num('trips', 6) + num('drops', 6) + num('gaveUp', 7) + num('falls', 6) + '  result')
   console.log('-'.repeat(103))
   for (const r of rows) {
-    console.log(pad(r.name, 40) + num(r.cells, 7, 0) + num(r.peak, 5, 0) + num(r.left, 6, 0) + num(r.minutes, 7) + num(r.perBotMin, 10) + num(r.trips, 6, 0) + num(r.drops, 6, 0) + num(r.falls, 6, 0) + '  ' + (r.ok ? 'PASS' : 'FAIL'))
+    console.log(pad(r.name, 40) + num(r.cells, 7, 0) + num(r.peak, 5, 0) + num(r.left, 6, 0) + num(r.minutes, 7) + num(r.perBotMin, 10) + num(r.trips, 6, 0) + num(r.drops, 6, 0) + num(r.abandoned, 7, 0) + num(r.falls, 6, 0) + '  ' + (r.ok ? 'PASS' : 'FAIL'))
     if (!r.ok) for (const e of r.errs) console.log('      ! ' + e)
   }
   console.log('')

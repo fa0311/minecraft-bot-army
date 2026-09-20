@@ -40,6 +40,21 @@ Keep this under 80 lines. Machine truth: `bots/army/jobs.json → settings.nethe
 | 2 | `lib/army.js` | (a) `dimOf(bot)`; (b) `travel({dim})` refuses `wrong_dim` without pathing; (c) KEEP-OUT rule + homeward bias overworld-only; (d) `bank`/`withdraw`/`chestsOf`/`scanChests` refuse off-overworld; (e) **`skyAbove`/`digOut`/`stepDown` must not run off the overworld** — under the Nether's bedrock roof every bot reads "roofed in" and cuts a staircase (measured 12:30:23Z); (f) `ours()`/`ourBlock()` key cells by `x,y,z` alone, so an overworld cell matches a Nether position. *(`portal` in `STILL_OK`: done.)* |
 | 3 | `lib/army_jobs.js` | **Done 12:2xZ (by me, in the three places I was given):** `overworld(bot)` helper; `muster` stands still off-overworld instead of walking to the muster slot; `withHandover` skips bedtime, canteen, pocket-banking, handover-banking, the respawn-bed click and `upTheStairs` off-overworld. Proven live: Kanade banked **nothing** between 12:30:15 and 12:30:51 in the Nether and banked 208 cobblestone at 12:30:58, seven seconds after coming home. |
 
+## THIS IS PAPER, NOT VANILLA (owner 15:1xZ; `server/config/paper-world-defaults.yml` + `server/spigot.yml`, all at defaults, untouched)
+| setting | value | what it means for us |
+|---|---|---|
+| `portal-search-radius` / `portal-search-vanilla-dimension-scaling` | 128 / true | the search on the **Nether** side is 128/8 = **16 blocks**. A partner gate further than that from the computed spot, or unlit, and the game **creates a new one** — that is exactly how the spare gate at -284,84,-607 appeared while we were closing ours between trips. |
+| `portal-create-radius` | 16 | the second overworld gate must be **>= 320 overworld blocks** from -327,-518 (= 40 Nether blocks, well past 16+create margin) or the two will share one far side. |
+| `piglins-guard-chests` | true | opening or breaking a chest near piglins angers **every** piglin in sight — and the hub's chest is at `settings.nether.hub.chest`. `work:'barter'` refuses to trade within 24 of it; loot is banked at home. |
+| `entity-activation-range.monsters` | 32 | a piglin further than 32 from a bot barely ticks and will never finish examining the gold: the barter squad walks **into** the range instead of waiting outside it. |
+| `nether-ceiling-void-damage-height` | disabled | the bedrock roof is not lethal here — worth knowing, since our gate sits at y98 under it. |
+| `per-player-mob-spawns` / `mob-spawn-range` | true / 8 | spawning follows the squad, so a lit, roofed hub and a lit stair really do stop it. |
+
+**THE HOME GATE NOW STAYS LIT** (owner: "ゲートを空けたり閉めたりしてるから沢山ゲート生成されてるやん"). `closeGate` is opt-in
+(`params.closeGate:true`) and `nether_gate_out` is off the board; the piglin trickle is the lesser evil at MSPT 33-45. A bot in the
+Nether will not step into the far gate while `settings.nether.lit` is false — it waits and asks for a relight (`home_gate_out`)
+rather than make the game generate another gate.
+
 ## THE WAY DOWN — `nether_stair` (RUNNING, the top model's call 13:5xZ)
 Blueprint `nether_stair.js`: a 2-wide, 3-high, roofed, lit corridor from the hub's z- doorway at the_nether **-37,98,-81** down to
 **y33**, 66 steps / 1330 cells. One blueprint serves both cases — the build routine **digs** the `air` cells where there is

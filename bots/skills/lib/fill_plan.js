@@ -90,6 +90,8 @@ function workMap (world, box, grade, opts = {}) {
     lava: new Set(), // every lava cell of the box; it only ever shrinks (quenched), never grows
     floor: new Map(), // "x,z" -> the lowest open cell (monotonic: the fill only ever rises)
     state: new Map(), // tile id -> cached state
+    tries: new Map(), // cell -> how often a builder stood in front of it and could do nothing
+    abandoned: new Set(), // "x,z": a column with a cell nobody can fill — the rest of it would hang
     avoid: new Map(), // botId -> a lane it just handed back, so it does not take it straight back
     count: { n: 0, at: -1e9 }
   }
@@ -161,6 +163,7 @@ function placeable (map, world, x, y, z) {
 // Memoised: the floor only ever rises, so the scan resumes where it stopped last time.
 function firstOpen (map, world, x, z) {
   const k = K2(x, z)
+  if (map.abandoned.has(k)) return null
   let y = map.floor.has(k) ? map.floor.get(k) : map.box.y1
   if (y == null) return null
   for (; y <= map.grade; y++) {
@@ -189,12 +192,14 @@ function laneFloor (map, world, tile) {
 // LAYER = the lowest open cell of the whole lane; its targets are the cells of the lane at that height
 // that already have a solid block underneath. The layer is closed before it rises: no pinholes, ever.
 //
-// THE WATER LEVEL (measured, scenario (a), 09-20): lanes that rise independently build wells. A lane
-// that had run 5 layers ahead of its neighbours left them in a shaft nobody could walk into, and the
-// planner then wanted an entry ladder into a hole IT had made. So a lane may never stand more than ONE
-// block above a neighbouring lane's floor: the filled surface stays a 1-step staircase, walkable in
-// every direction, and the fill spreads like water — deepest basin first, then the level rises. It is
-// also what makes the crew size honest: only the lanes at the waterline are open work.
+// THE WATER LEVEL (measured, scenarios (a) and (b), 09-20): lanes that rise independently build wells.
+// A lane 5 layers ahead of its neighbours left them in a shaft nobody could walk into, and the planner
+// then wanted an entry ladder into a hole IT had made. So a lane may only work while its floor is at or
+// below every neighbouring lane's floor; once it has closed its layer it stands exactly 1 higher and
+// waits for them. The filled surface is therefore always a 1-step staircase — walkable in every
+// direction, no well, no wall a builder cannot step over — and the fill spreads like water: the deepest
+// basin first, then the level rises. It also makes the crew size honest: the lanes at the waterline ARE
+// the open work, and `capacity` counts nothing else.
 function tileState (map, world, tile, now, fresh) {
   const cached = map.state.get(tile.id)
   if (cached && !fresh && now - cached.t < 2000) return cached
@@ -211,7 +216,7 @@ function tileState (map, world, tile, now, fresh) {
   if (layerY != null) {
     for (const nid of neighbourIds(tile)) {
       const n = map.tiles.get(nid)
-      if (n && layerY > laneFloor(map, world, n) + 1) { blocked = true; break }
+      if (n && layerY > laneFloor(map, world, n)) { blocked = true; break }
     }
   }
   const targets = []
@@ -424,6 +429,14 @@ function entryColumn (map, world, tile) {
 function entryAction (map, world, bot, tile, o) {
   const col = entryColumn(map, world, tile)
   if (!col) return { type: 'wait', why: 'no wall face to hang an entry ladder on' }
+  // an entry is built from ABOVE. A builder already down in the pit never walks out for one — it waits
+  // for the floor, which is rising under it anyway (that is why the fill needs no exit).
+  if (Math.floor(bot.pos.y) <= map.grade && kindAt(world, Math.floor(bot.pos.x), Math.floor(bot.pos.y), Math.floor(bot.pos.z)) !== 'ladder') {
+    const up = reachSet(map, world, flr(bot.pos))
+    if (!up.has(K3(col.x + col.ox, map.grade + 1, col.z + col.oz))) {
+      return { type: 'wait', release: true, why: 'I am inside the pit and this lane is not reachable — another lane' }
+    }
+  }
   const floor = firstOpen(map, world, col.x, col.z)
   const feet = flr(bot.pos)
   const rim = { x: col.x + col.ox, y: map.grade + 1, z: col.z + col.oz }
@@ -500,7 +513,7 @@ function next (bot, tile, world, opts = {}) {
   // 6. a cell nobody can stand beside: classify it ONCE — a gravity block down its shaft…
   for (const c of safe) {
     const d = dropFor(map, world, c, o)
-    if (!d) continue
+    if (!d || d.place.y - c.y < 2) continue // a real shaft, not a cell whose stand is busy this second
     map.dropCols.add(K2(c.x, c.z))
     if (have(bot, o.gravityItem, o) < 1) return { type: 'restock', item: o.gravityItem, n: 64, why: 'a gravity block for the shaft at ' + K2(c.x, c.z) }
     if (same(feet, d.from)) return { type: 'place', cell: d.place, item: o.gravityItem, drop: true, lands: d.lands, why: 'gravity block down the shaft at ' + K2(c.x, c.z) }
@@ -510,11 +523,24 @@ function next (bot, tile, world, opts = {}) {
   // 7. no way in: the pit is deeper than a walkable step
   if (map.grade - st.layerY > o.maxDrop) return entryAction(map, world, bot, t, o)
 
-  // 8. …else it is sealed. Said once, and the layer order is never held up by it again.
-  for (const c of safe) map.sealed.add(K3(c.x, c.y, c.z))
-  map.floor.delete(K2(safe[0].x, safe[0].z))
+  // 8. …else nobody can fill it. A cell is only written off with EVIDENCE (a builder stood in front of
+  // it and could do nothing, five times over 20 s) — a busy second is not a verdict. And a written-off
+  // cell takes the rest of its column with it: a column over a hole we cannot close would hang in the
+  // air, and "never deck a hole" beats "the box is finished". The adapter reports these as void_under_pad.
+  const done = []
+  for (const c of safe) {
+    const k = K3(c.x, c.y, c.z)
+    const e = map.tries.get(k) || { n: 0, t0: now }
+    e.n++; map.tries.set(k, e)
+    if (e.n < 5 || now - e.t0 < 20000) continue
+    map.sealed.add(k)
+    map.abandoned.add(K2(c.x, c.z))
+    map.floor.delete(K2(c.x, c.z))
+    done.push(k)
+  }
   map.state.delete(t.id)
-  return { type: 'wait', why: 'classified ' + safe.length + ' cells of ' + t.id + ' as unreachable (sealed)' }
+  if (!done.length) return { type: 'wait', release: true, why: 'nothing of ' + t.id + ' is reachable from here this second — another lane first' }
+  return { type: 'wait', why: 'wrote off ' + done.join(' ') + ': no stand, no shaft — their columns are not work' }
 }
 
 function pick (list, feet) {
@@ -627,7 +653,7 @@ function assertDisjoint (actions) {
 function summary (map, world, now = 0) {
   let open = 0; let left = 0
   for (const t of map.tiles.values()) { const st = tileState(map, world, t, now, true); open += st.targets.length; left += st.remaining }
-  return { open, left, sealed: map.sealed.size, voidBelow: [...map.voidBelow], tiles: map.tiles.size, drops: map.dropCols.size }
+  return { open, left, sealed: map.sealed.size, voidBelow: [...map.voidBelow], abandoned: [...map.abandoned], tiles: map.tiles.size, drops: map.dropCols.size }
 }
 
 module.exports = {

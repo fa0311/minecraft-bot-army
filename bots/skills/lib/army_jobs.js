@@ -678,10 +678,13 @@ async function haul (bot, job, api, ctx) {
 // (review row 3, 09-20 12:0xZ: this table was born in the stone age and is the army's ONLY automatic tool producer - 19 of 50 bots were on a wooden/stone pickaxe or
 // none and the depot held 0 pickaxes of any kind, while 353 diamonds and 66 ingots lay in the same depot. Batches follow the x50 rule: torch 64->256, planks 64->256,
 // stick 32->128.) A key only becomes a candidate when `settings.targets` names it, so adding a row here costs nothing until the board wants the thing.
-const CRAFTED = { torch: 256, planks: 256, stick: 128, arrow: 32, book: 3, bookshelf: 3, enchanting_table: 1, stone_shovel: 8, stone_axe: 8, stone_pickaxe: 8, iron_pickaxe: 4, diamond_pickaxe: 4, diamond_shovel: 4, diamond_axe: 4, diamond_sword: 4, bucket: 2, shears: 4, bow: 2, shield: 2 } // target key -> batch per round; raw materials and smelted goods have their own jobs
+const CRAFTED = { torch: 256, planks: 256, stick: 128, arrow: 32, book: 3, bookshelf: 3, enchanting_table: 1, stone_shovel: 8, stone_axe: 8, stone_pickaxe: 8, iron_pickaxe: 4, diamond_pickaxe: 4, diamond_shovel: 4, diamond_axe: 4, diamond_sword: 4, diamond_chestplate: 2, diamond_leggings: 2, bucket: 2, shears: 4, bow: 2, shield: 2 } // target key -> batch per round; raw materials and smelted goods have their own jobs
 // A TOOL IS NEVER WORTH THE RESERVE IT EATS: a precious material is spent from its SURPLUS only - a diamond batch needs more than 64 diamond in the depot, anything
 // made of iron more than 32 iron_ingot (the mine, the buckets and the enchanting chain live on the rest). Below that the key is simply not a candidate this round.
-const CRAFT_FROM = { iron_pickaxe: 'iron_ingot', bucket: 'iron_ingot', shears: 'iron_ingot', shield: 'iron_ingot', diamond_pickaxe: 'diamond', diamond_shovel: 'diamond', diamond_axe: 'diamond', diamond_sword: 'diamond' }
+const CRAFT_FROM = { iron_pickaxe: 'iron_ingot', bucket: 'iron_ingot', shears: 'iron_ingot', shield: 'iron_ingot', diamond_pickaxe: 'diamond', diamond_shovel: 'diamond', diamond_axe: 'diamond', diamond_sword: 'diamond', diamond_chestplate: 'diamond', diamond_leggings: 'diamond' }
+// ARMOUR OUT OF THE IDLE DIAMONDS (owner 09-20 14:5xZ, measured: 105 armour pieces missing on 50 bots = 620 iron ingots at depot iron 24, while 267 diamonds lie idle;
+// 26 bots without a shield): a chestplate is 8 diamonds, leggings 7 - two of each per round out of the SURPLUS over the 64-diamond reserve, and kitPlan already ranks
+// a piece by armour tier, so the pieces go to the worst-armoured mate first exactly like the iron ones.
 const CRAFT_RESERVE = { diamond: 64, iron_ingot: 32 }
 // BOOKS (P4): paper <- 3 sugar cane, book <- 3 paper + leather, bookshelf <- 3 books + 6 planks, enchanting_table <- book + 2 diamonds + 4 obsidian: the recipe solver
 // walks the whole chain, so `targets bookshelf 15` + `enchanting_table 1` is all the quartermaster needs. Beds are NOT crafted here: the dorm's builders make each bed from the wool in stock when they place it (a second bed maker raced them for the wool, 02:17Z).

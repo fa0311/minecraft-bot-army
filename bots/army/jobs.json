@@ -200,6 +200,11 @@
      -359,
      69,
      -515
+    ],
+    [
+     -359,
+     70,
+     -515
     ]
    ],
    "salvage": [
@@ -1621,7 +1626,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789916062880
+   "restUntil": 1789916195016
   },
   {
    "id": "fill_ring_field2",
@@ -2536,11 +2541,11 @@
    "note": "top model 14:1xZ: OPERATORS - DO NOT LOWER. open cells = left 3616 minus waiting 2920 = 696, so ceil(696/8) = 87 builders could work it at once; 20 is the cap. It reads done:0 because the last trench (x -306..-298 / z -461..-482, floor y52-55) has sheer walls and NO walkable entry, so the switchback ramp (x -300/-301, z -472..-478) can never be started: a ramp column is a solid cell built bottom-up and nobody can stand on the floor. It needs a way in built FROM THE TOP (ladder run, or a gravity-block ramp - gravel depot is 0, so fetch gravel first).",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Akari",
-    "t": 1789915715025,
+    "by": "Kurumi",
+    "t": 1789916020411,
     "at": [
-     -325,
-     41,
+     -318,
+     42,
      -473
     ]
    }
@@ -2859,9 +2864,9 @@
    "note": "auto-paused: build complete - BUT 2 cells are left that 3 builders could not do (build_leftover): -277,67,-399 | -278,67,-399",
    "rev": 7,
    "stuckBy": {
-    "key": "rev6",
+    "key": "rev7",
     "bots": [
-     "Aoi"
+     "Akari"
     ]
    },
    "cap": {
@@ -3368,7 +3373,7 @@
    "type": "build",
    "priority": 96,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 3,
    "site": [
@@ -3393,7 +3398,18 @@
     }
    },
    "rev": 14,
-   "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -329,67,-495"
+   "after": "void_fix_base_mine_pad",
+   "voidFix": {
+    "n": 1,
+    "id": "void_fix_base_mine_pad",
+    "cols": 27,
+    "t": 1789916005451
+   },
+   "cap": {
+    "id": "cap_base_mine_pad",
+    "cols": 255,
+    "t": 1789916012506
+   }
   },
   {
    "id": "fill_road9_trench",
@@ -4312,6 +4328,86 @@
      84,
      -607
     ]
+   }
+  },
+  {
+   "id": "void_fix_base_mine_pad",
+   "type": "build",
+   "priority": 70,
+   "front": "works",
+   "status": "active",
+   "when": "any",
+   "bots": 5,
+   "site": [
+    -331,
+    68,
+    -500
+   ],
+   "plan": "void under the finished pad base_mine_pad: 27 columns of x -337..-326 / z -507..-493 are a deck over air (void_under_pad) - fill SOLID from the natural ground up to grade y68, never deck a hole; base_mine_pad is `after` this job and re-checks the columns when it is done",
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -331,
+     68,
+     -500
+    ],
+    "unlid": 3,
+    "args": {
+     "box": [
+      -337,
+      -507,
+      -326,
+      -493
+     ],
+     "depth": 5,
+     "fill": "cobblestone",
+     "mats": [
+      "cobbled_deepslate",
+      "cobblestone",
+      "stone",
+      "deepslate",
+      "tuff",
+      "andesite",
+      "diorite",
+      "granite",
+      "dirt",
+      "gravel"
+     ]
+    }
+   }
+  },
+  {
+   "id": "cap_base_mine_pad",
+   "type": "build",
+   "priority": 38,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -330,
+    69,
+    -500
+   ],
+   "after": "void_fix_base_mine_pad",
+   "plan": "the finished level of base_mine_pad is bare stone: cap the grade layer y68 of x -337..-323 / z -508..-492 with DIRT (grass spreads by itself). Only where bare stone, gravel or air stands - never paving, a field, a crop or another blueprint of ours - and only out of the dirt SURPLUS over targets.dirt 128",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -330,
+     68,
+     -500
+    ],
+    "args": {
+     "w": 15,
+     "d": 17,
+     "cap": true,
+     "fill": "dirt"
+    },
+    "needStock": {
+     "dirt": 128
+    },
+    "order": "near"
    }
   }
  ]

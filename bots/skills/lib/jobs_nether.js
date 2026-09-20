@@ -527,10 +527,22 @@ module.exports = ctx => {
     }
     const goldOn = [5, 6, 7, 8].map(q => bot.inventory.slots[q]).filter(Boolean).some(i => /^golden_/.test(i.name))
     if (!goldOn) return { work: 'barter', why: 'no gold armour piece to wear - every piglin in sight would turn hostile' }
+    // PAPER, NOT VANILLA (owner 15:1xZ). `server/spigot.yml entity-activation-range.monsters: 32`: a piglin further than 32 from a
+    // bot barely ticks, so it will never finish examining the gold — the squad must STAND among them, not shout from 60 blocks.
+    // `paper-world-defaults.yml piglins-guard-chests: true`: opening or breaking a chest near piglins angers every one of them,
+    // and the hub's chest is at settings.nether.hub.chest — so we never barter within 24 of it. Loot is banked at HOME.
+    const hubChest = (netherOf().hub || {}).chest
+    if (Array.isArray(hubChest) && bot.entity.position.distanceTo(v(hubChest)) < 24) return { work: 'barter', why: 'too near the hub chest at ' + hubChest.join(',') + ' - paper piglins-guard-chests:true would anger every piglin in sight' }
     const adults = () => Object.values(bot.entities).filter(e => e && e.name === 'piglin' && e.position && e.position.distanceTo(bot.entity.position) <= 8 && !(e.metadata && e.metadata[17] === true))
+    const nearby = r => Object.values(bot.entities).filter(e => e && e.name === 'piglin' && e.position && e.position.distanceTo(bot.entity.position) <= r).length
     let traded = 0; let got = 0; const t0 = Date.now()
     while (Date.now() < until && !api.stop() && A.count(bot, 'gold_ingot') > 0) {
-      const t = adults()[0]
+      let t = adults()[0]
+      if (!t) { // walk INTO the activation range (32) rather than wait outside it
+        const far2 = Object.values(bot.entities).filter(e => e && e.name === 'piglin' && e.position).sort((a, b) => a.position.distanceTo(bot.entity.position) - b.position.distanceTo(bot.entity.position))[0]
+        if (far2 && far2.position.distanceTo(bot.entity.position) < 40) await nTravel(bot, far2.position, { range: 5, ms: 30000, stop: api.stop })
+        t = adults()[0]
+      }
       if (!t) { await sleep(2000); if (Date.now() - t0 > 60000 && !traded) break; continue }
       const it = bot.inventory.items().find(i => i.name === 'gold_ingot'); if (!it) break
       task(bot, 'nether barter: ' + traded + ' ingots offered, ' + got + ' back')
@@ -542,7 +554,7 @@ module.exports = ctx => {
       got += Math.max(0, after - before)
     }
     const loot = {}; for (const [k, n] of Object.entries(A.inv(bot))) if (/pearl|potion|obsidian|glowstone|string|quartz|leather|soul_sand|crying/.test(k)) loot[k] = n
-    if (traded) A.result(bot, { ev: 'nether_barter', job: job.id, offered: traded, itemsBack: got, loot, at: xyz(bot.entity.position) })
+    if (traded) A.result(bot, { ev: 'nether_barter', job: job.id, offered: traded, itemsBack: got, loot, piglinsNear: nearby(32), at: xyz(bot.entity.position) })
     return { work: 'barter', offered: traded, itemsBack: got, loot, min: Math.round((Date.now() - t0) / 6000) / 10 }
   }
   // ---------------------------------------------------------------- STAGE 2: the work a squad does on the far side, then home
@@ -1023,7 +1035,10 @@ module.exports = ctx => {
     const to = await stepThrough(bot, api, G.inner.filter(q => q[1] === P.origin[1] + 1), P.crossS || 90, 'standing in the gate')
     if (!to) {
       st.deathsAtGo = null
-      A.result(bot, { ev: 'portal_light_failed', job: job.id, at: G.floor[0], cells: litCells(bot, G.inner).length + '/' + G.inner.length, why: 'stood in the gate for ' + (P.crossS || 90) + ' s and stayed in ' + dimOf(bot) })
+      // WHY did a lit gate not take us? (two bots, 45 s, 14:45Z). Paper has no portal-cooldown knob here, so record what we CAN
+      // see: the cell we actually stood in, whether a mate shared it (max-entity-collisions 8 / shoving), and the live cell states.
+      const me2 = bot.entity.position.floored(); const sharing = Object.values(bot.entities).filter(e => e && e.type === 'player' && e.position && e.position.floored().equals(me2)).length
+      A.result(bot, { ev: 'portal_light_failed', job: job.id, at: G.floor[0], cells: litCells(bot, G.inner).length + '/' + G.inner.length, stoodAt: [me2.x, me2.y, me2.z], inPortal: /nether_portal/.test(((bot.blockAt(me2) || {}).name) || ''), sharingCell: sharing, why: 'stood in the gate for ' + (P.crossS || 90) + ' s and stayed in ' + dimOf(bot) })
       return 'portal: stood in the gate, no dimension change (still ' + dimOf(bot) + ')'
     }
     return await netherSide(bot, job, api, ctx2, st, P)
