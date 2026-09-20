@@ -1,0 +1,3 @@
+op_terrain fill_,base_infill,base_road,base_yard,base_field,cap_,void_fix,west_terrace,tidy_
+op_nether nether_,base_portal,mine_obsidian
+op_mine mine_,ores_,smelt_

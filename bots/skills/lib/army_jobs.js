@@ -3422,7 +3422,7 @@ async function build (bot, job, api, ctx) {
   function putCap () { // a DECLARATION, hoisted: the leftover path above calls it (12:4xZ: `Cannot access 'putCap' before initialization`, Himari)
     try {
       if (!/^(fill_void|level)$/.test(String(P.blueprint)) || P.cap || (P.args || {}).cap) return
-      const tgt = (A.settings().targets || {}).dirt; if (!(tgt > 0) || A.stockOf('dirt') <= tgt + 64) return
+      const tgt = 128; if (A.stockOf('dirt') <= tgt + 64) return
       let x1 = Infinity; let z1 = Infinity; let x2 = -Infinity; let z2 = -Infinity
       for (const c of cells) { if (c.x < x1) x1 = c.x; if (c.x > x2) x2 = c.x; if (c.z < z1) z1 = c.z; if (c.z > z2) z2 = c.z }
       if (!Number.isFinite(x1)) return
@@ -3437,7 +3437,7 @@ async function build (bot, job, api, ctx) {
           const bs = A.settings().base || {}; const dBase = Number.isFinite(bs.x) ? Math.hypot(cx - bs.x, cz - bs.z) : 999
           b.jobs.push({ id: capId, type: 'build', priority: dBase <= 40 ? 45 : dBase <= 90 ? 38 : 30, front: job.front || 'base', status: 'active', when: 'any', bots: Math.max(2, Math.min(8, Math.round(cols / 300))), site: [cx, o.y + 1, cz],
             plan: 'the finished ' + P.blueprint + ' of ' + job.id + ' is bare stone: cap the grade layer y' + o.y + ' of x ' + x1 + '..' + (x1 + w - 1) + ' / z ' + z1 + '..' + (z1 + d - 1) + ' with DIRT (grass spreads by itself). Only where bare stone, gravel or air stands - never paving, a field, a crop or another blueprint of ours - and only out of the dirt SURPLUS over targets.dirt ' + tgt,
-            params: { blueprint: 'level', origin: [cx, o.y, cz], args: { w, d, cap: true, fill: 'dirt' }, needStock: { dirt: tgt }, order: 'near' } })
+            params: { blueprint: 'level', origin: [cx, o.y, cz], args: { w, d, cap: true, fill: 'dirt' }, needStock: { dirt: 128 } /* a small floor, NOT settings.targets.dirt: the target is what the army wants to OWN (20 000 on 09-20) - a cap that waits for it never starts */, order: 'near' } })
         }
         j.cap = { id: capId, cols, t: Date.now() }; armed = true
       })

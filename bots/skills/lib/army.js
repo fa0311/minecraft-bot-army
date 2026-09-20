@@ -1185,14 +1185,18 @@ async function bank (bot, keep = {}, opts = {}) {
   // be banked): once the stock holds 3x the target (min 4096) junk stone never enters a chest, it is dropped before the visit.
   if (byCat.build) {
     const tgt = (settings().targets || {}).cobblestone || 0; const stone = stockOf('cobblestone') + stockOf('cobbled_deepslate')
-    if (stone >= Math.max(3 * tgt, 4096)) for (const name of Object.keys(byCat.build)) {
+    if (stone >= Math.max(3 * tgt, 16384)) for (const name of Object.keys(byCat.build)) { // 16384, not 4096: the fills alone eat tens of thousands (09-20)
       if (!/^(cobblestone|cobbled_deepslate|granite|diorite|andesite|tuff|deepslate|stone)$/.test(name)) continue
       junk[name] = byCat.build[name]; delete byCat.build[name]
     }
     // DIRT/GRAVEL/SAND GLUT (foreman 09-20 03:00Z: full-pocket bots circle the depot, "[circling] 22 chest visits, nothing deposited", 5600 dirt carried
     // army-wide after the pads were levelled): over 1024 of it in stock, what a bot does not KEEP for its job is dropped, never queued at a full chest.
     if (byCat.build) for (const name of ['dirt', 'gravel', 'sand', 'coarse_dirt']) {
-      if (!(byCat.build[name] > 0) || stockOf(name) < 1024) continue
+      // ...BUT NEVER WHILE THE ARMY WANTS IT (owner 09-20 14:1xZ: "丸石と土を全てゴミとして捨てているの最悪すぎる" - measured: 15 633 dirt thrown into the dump in 3 h while
+      // every cap over the filled ravine waited for dirt and two hill cuts were running to GET dirt: the fixed 1024 dated from a base of 5 pads). The glut starts at the
+      // board's own target for the item (settings.targets, default 4096), and only when the chests of `build` are really full does anything get dropped.
+      const want = Math.max(4096, (settings().targets || {})[name] || 0)
+      if (!(byCat.build[name] > 0) || stockOf(name) < want) continue
       junk[name] = byCat.build[name]; delete byCat.build[name]
     }
     if (byCat.build && !Object.keys(byCat.build).length) delete byCat.build

@@ -22,7 +22,9 @@ up "army/run-dispatcher.sh" "dispatcher" $W/bots/army/run-dispatcher.sh
 up "run-manager.sh" "bot managers (roster/3 shards + router :3000)" $W/ops/run-manager.sh
 up "shard-watchdog.sh" "shard watchdog" $W/ops/shard-watchdog.sh
 up "metrics/run-inspector.sh" "inspector (REPORT.md)" $W/bots/metrics/run-inspector.sh
-up "ops/operator.sh" "field operator daemon (fresh capped sonnet sessions, only when a digest needs judgement)" $W/ops/operator.sh op
+up "ops/operator.sh op( |$)" "field operator daemon (fresh capped sonnet sessions, only when a digest needs judgement)" $W/ops/operator.sh op
+# topical SONNET operators (ops/operator.topics): one site lead per front, event-driven like the general one (zero tokens while nothing needs judgement)
+while read -r NAME TOPICS; do [ -n "$NAME" ] && up "ops/operator.sh $NAME " "operator $NAME ($TOPICS)" $W/ops/operator.sh "$NAME" "$TOPICS"; done < $W/ops/operator.topics
 up "ops/helpdesk.js" "help desk (LLM answers bots' failure tickets; remedies are cached by signature)" sh -c "node $W/ops/helpdesk.js >> $W/ops/helpdesk.log 2>&1"
 up "ops/foreman.sh" "foreman (strong model looks at rendered maps every 25 min, nags + fixes)" $W/ops/foreman.sh
 up "run-chatter.sh" "chatter (haiku answers PLAYERS in character; zero tokens while nobody speaks)" $W/ops/run-chatter.sh

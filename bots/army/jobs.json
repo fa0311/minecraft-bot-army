@@ -562,7 +562,7 @@
    "food": 448,
    "log": 1024,
    "planks": 512,
-   "cobblestone": 6144,
+   "cobblestone": 60000,
    "fuel": 224,
    "iron": 224,
    "iron_ingot": 224,
@@ -575,7 +575,7 @@
    "wool": 150,
    "stone_shovel": 40,
    "stone_axe": 20,
-   "dirt": 256,
+   "dirt": 20000,
    "stone_pickaxe": 16,
    "book": 48,
    "bookshelf": 15,
@@ -601,21 +601,6 @@
    -523
   ],
   "keepOut": [
-   {
-    "id": "ravine",
-    "box": [
-     -334,
-     -486,
-     -289,
-     -408
-    ],
-    "why": "ravine + two day-one quarry pits: BEING FILLED SOLID by owner order 09-20 (jobs fill_ravine_s/m/n) - not a quarry any more; nothing else is built here until the fill is complete, then this keep-out is removed",
-    "exit": [
-     -311,
-     69,
-     -415
-    ]
-   },
    {
     "id": "ravine_se",
     "box": [
@@ -775,7 +760,7 @@
    "by": "Kotori",
    "portal": [
     -43,
-    100,
+    98,
     -80
    ],
    "through": 1789911920260,
@@ -891,7 +876,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789911920444,
-   "back": 1789911965726,
+   "back": 1789912306490,
    "lastDeath": 1789911678325,
    "lastDeathBy": "Hotaru",
    "roads": {
@@ -1229,12 +1214,6 @@
     "y": 68,
     "exclude": [
      [
-      -337,
-      -489,
-      -286,
-      -405
-     ],
-     [
       -295,
       -407,
       -277,
@@ -1248,7 +1227,7 @@
      ]
     ]
    },
-   "rev": 57,
+   "rev": 58,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789909537319
   },
@@ -1393,8 +1372,8 @@
     }
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
-   "bots": 6,
-   "rev": 35
+   "bots": 18,
+   "rev": 36
   },
   {
    "id": "base_dorm",
@@ -1882,7 +1861,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789912205736
+   "restUntil": 1789912881981
   },
   {
    "id": "fill_ring_field2",
@@ -2266,7 +2245,7 @@
    },
    "shiftMin": 20,
    "rev": 8,
-   "restUntil": 1789912132197,
+   "restUntil": 1789913076883,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "leather"
@@ -2311,7 +2290,7 @@
    },
    "shiftMin": 20,
    "rev": 9,
-   "restUntil": 1789912217458,
+   "restUntil": 1789913082874,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "feather"
@@ -2759,7 +2738,8 @@
     }
    },
    "rev": 3,
-   "note": "03:10Z engineer: 40 obsidian banked (want reached) - paused. Re-activate with a higher params.args.want when more is needed; open spot on record: -54/29:-1 (37 cast obsidian left)"
+   "note": "03:10Z engineer: 40 obsidian banked (want reached) - paused. Re-activate with a higher params.args.want when more is needed; open spot on record: -54/29:-1 (37 cast obsidian left)",
+   "restUntil": 1789913016407
   },
   {
    "id": "craft_beds",
@@ -3307,7 +3287,7 @@
     },
     "order": "near"
    },
-   "rev": 24,
+   "rev": 27,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check.",
    "note": "top model 13:3xZ: the first stair was swallowed by the fill itself (ramp columns are filled on up to grade) and the front became a 9-high cliff again = no way in, bots dropped in and pillared out (foreman paused it: \"roofing, not filling\"). NEW: a switchback stair from the finished front at z -471 (lane x -300 south 67->61, lane x -301 north 60->54) with  boxes that hold the air above every step open. Fill the stair itself last",
    "restUntil": 1789906650052
@@ -3741,7 +3721,7 @@
    },
    "note": "needs: dirt (32 cells wait; every cell whose material exists is done or in work)",
    "rev": 14,
-   "restUntil": 1789908774993
+   "restUntil": 1789912916108
   },
   {
    "id": "base_portal_go",
@@ -3897,7 +3877,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789911975063
+   "restUntil": 1789912931144
   },
   {
    "id": "nether_landing_2",
@@ -4242,7 +4222,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 1,
    "site": [
     -286,
     69,
@@ -4283,7 +4263,7 @@
      ]
     }
    },
-   "rev": 2
+   "rev": 4
   },
   {
    "id": "nether_fortress",
@@ -4456,19 +4436,13 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 8,
-   "minBots": 6,
-   "maxBots": 24,
+   "bots": 16,
    "site": [
     -520,
     74,
     -480
    ],
    "plan": "zone WEST TERRACE (docs/WORLD.md), third bay: the mountain x -528..-513 / z -500..-460 (tops above y93, surveyed from the air 13:0xZ) cut down to the terrace level y73 = dirt for the caps over the filled ravine and the yard (~6000 needed), cobblestone for roads and fills. A terrace, never a pit; whole trees are felled. The always-doable squad job when bay 2 is done",
-   "produces": [
-    "dirt",
-    "cobblestone"
-   ],
    "params": {
     "blueprint": "clear_area",
     "origin": [
@@ -4482,7 +4456,78 @@
      "h": 32
     }
    },
-   "rev": 1
+   "rev": 6
+  },
+  {
+   "id": "cap_ravine_nm",
+   "type": "build",
+   "priority": 72,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 12,
+   "site": [
+    -311,
+    68,
+    -434
+   ],
+   "plan": "BASE PLAN zone ravine (filled): DIRT CAP over the finished north + middle fill x -334..-289 / z -460..-408 - the grade layer becomes dirt wherever bare stone or gravel stands (grass spreads by itself); paving, fields and other blueprints are not touched. Owner: the filled ravine is a grey slab in the middle of the base",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -311,
+     68,
+     -434
+    ],
+    "args": {
+     "w": 47,
+     "d": 53,
+     "cap": true,
+     "fill": "dirt"
+    },
+    "needStock": {
+     "dirt": 128
+    },
+    "order": "near"
+   },
+   "note": "auto-paused: build_runaway - 4 digs of the same cell in one slice (dig/place loop) at -324,68,-448"
+  },
+  {
+   "id": "stray_furnace_344",
+   "type": "steps",
+   "priority": 90,
+   "status": "active",
+   "when": "any",
+   "bots": 1,
+   "plan": "zone base yard: remove the STRAY furnace floating at -344,70,-460 (owner saw it 14:2xZ; not registered, air under it) and bank it",
+   "params": {
+    "steps": [
+     {
+      "do": "goto",
+      "to": [
+       -344,
+       null,
+       -458
+      ],
+      "range": 2
+     },
+     {
+      "do": "dig",
+      "at": [
+       -344,
+       70,
+       -460
+      ]
+     },
+     {
+      "do": "pickup",
+      "radius": 5
+     },
+     {
+      "do": "bank"
+     }
+    ]
+   }
   }
  ]
 }
