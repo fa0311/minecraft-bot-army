@@ -350,12 +350,43 @@ module.exports = ctx => {
   // THE ONLY WALKING ALLOWED OVER THERE (both deaths of stage 1 were steps onto ground nobody had checked): one cell at a time,
   // inside a box this squad has floored itself, onto a cell that is standable, has a solid non-magma block under it, and has no
   // lava or fire within 2. Anything else and the bot stays where it is and reports what it could not reach.
+  // NOBODY BRIDGES OVER A VOID WITHOUT SNEAKING (measured 16:53:11Z: Aoi "tried to swim in lava" at the_nether -39,24,-64 — she
+  // walked off the HEAD of the causeway at y98, fell 74 blocks into the lava sea and took 26 iron and 9 diamond with her. A
+  // sneaking player cannot walk off an edge; that is the Minecraft basic this code was missing).
+  const sneakOn = bot => { try { bot.setControlState('sneak', true) } catch (e_) { swallow('jobs_nether:sneakOn', e_) } }
+  const sneakOff = bot => { try { bot.setControlState('sneak', false) } catch (e_) { swallow('jobs_nether:sneakOff', e_) } }
+  // is this cell within one of a drop? (no solid block within 3 under any neighbour)
+  const edgeNear = (bot, c) => {
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
+      let solid = false
+      for (let dy = -1; dy >= -3; dy--) { const b = bot.blockAt(c.offset(dx, dy, dz)); if (b && b.boundingBox === 'block') { solid = true; break } }
+      if (!solid) return true
+    }
+    return false
+  }
+  // ONE CELL, BY HAND, SNEAKING. The pathfinder plans a route and cuts corners over air; at an edge the only safe move is a short
+  // control-state step with sneak held, and it is only taken when the block we are stepping onto READS solid (re-read, never the
+  // place result).
+  async function sneakStep (bot, api, c) {
+    try {
+      const u = bot.blockAt(c.offset(0, -1, 0)); if (!u || u.boundingBox !== 'block' || /lava|magma/.test(u.name)) return false
+      bot.pathfinder.setGoal(null); bot.clearControlStates(); sneakOn(bot)
+      await bot.lookAt(c.offset(0.5, 0.1, 0.5), true)
+      bot.setControlState('forward', true)
+      for (let t = 0; t < 14 && !api.stop(); t++) { await sleep(250); if (bot.entity.position.floored().equals(c)) break }
+      bot.setControlState('forward', false)
+      return bot.entity.position.distanceTo(c.offset(0.5, 0, 0.5)) < 1.2
+    } catch (e_) { swallow('jobs_nether:sneakStep', e_); try { bot.setControlState('forward', false) } catch (e2_) { swallow('jobs_nether:sneakStepClear', e2_) } return false }
+  }
   async function safeStep (bot, api, c, box) {
     try {
       if (!box || c.x < box[0] || c.x > box[2] || c.z < box[1] || c.z > box[3]) return false
       if (!BL().standable(bot, c)) return false
       const u = bot.blockAt(c.offset(0, -1, 0)); if (!u || u.boundingBox !== 'block' || /lava|magma/.test(u.name)) return false
       for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) for (let dz = -2; dz <= 2; dz++) { const b = bot.blockAt(c.offset(dx, dy, dz)); if (b && /^(lava|fire)$/.test(b.name)) return false }
+      // NEAR A DROP THE PATHFINDER IS NEVER ASKED: one cell, by hand, sneaking (16:53:11Z cost a bot and a kit)
+      if (edgeNear(bot, c) || bot.entity.position.distanceTo(c.offset(0.5, 0, 0.5)) < 2.6) return await sneakStep(bot, api, c)
+      sneakOn(bot)
       return !!await nTravel(bot, c, { range: 0, ms: 12000, stop: api.stop })
     } catch (e_) { swallow('jobs_nether:safeStep', e_); return false }
   }
@@ -364,6 +395,7 @@ module.exports = ctx => {
   // (`place:{noMove:true}`). Returns what was MEASURED, plus what is still left.
   async function buildCells (bot, job, api, cells, box, until, what) {
     let placed = 0; let dug = 0; let steps = 0
+    if (netherHere(bot)) sneakOn(bot) // held for the whole build: sneaking costs a little speed and saves a bot at every edge
     const done = new Set(); const tried = []; const why = {} // cells our own floor cannot reach: REPORTED with the reason, never chased round the box
     // WAIT FOR THE WORLD BEFORE DECIDING THERE IS NOTHING TO DO (measured 14:49Z: pass after pass came home `unloaded:1330 of
     // 1330` — the chunks of the stair had simply not arrived yet, ~14 s after the gate spat the bot out). Up to 20 s, then work.
@@ -376,7 +408,10 @@ module.exports = ctx => {
       const todo = cells.filter(c => !done.has(c.x + ',' + c.y + ',' + c.z) && loadedAt(bot, c) && !cellOK(bot, c))
       if (!todo.length) break
       const me = bot.entity.position
-      todo.sort((a, b) => v([a.x, a.y, a.z]).distanceTo(me) - v([b.x, b.y, b.z]).distanceTo(me))
+      // FLOOR, THEN BOTH RAILS OF THAT LEG, THEN FORWARD (the head is never more than one floor cell ahead of its rails — that is
+      // what a player does and what 16:53:11Z cost us). `seq` is the leg index, `rank` 0 = floor, 1 = rail, 2 = headroom.
+      const rank = q => q.rim ? 1 : q.block === 'air' ? 2 : 0
+      todo.sort((a, b) => ((a.seq == null ? 0 : a.seq) - (b.seq == null ? 0 : b.seq)) || (rank(a) - rank(b)) || (v([a.x, a.y, a.z]).distanceTo(me) - v([b.x, b.y, b.z]).distanceTo(me)))
       let prog = 0
       for (const c of todo) {
         if (Date.now() >= until || api.stop()) break
@@ -413,6 +448,7 @@ module.exports = ctx => {
       }
       if (!moved) { tried.push([t.x, t.y, t.z]); if (!why[t.x + ',' + t.y + ',' + t.z]) why[t.x + ',' + t.y + ',' + t.z] = 'no safe stand of ours within reach of it'; done.add(t.x + ',' + t.y + ',' + t.z); continue } // this one cannot be reached from our own floor: leave it, take the next
     }
+    sneakOff(bot)
     const left = cells.filter(c => loadedAt(bot, c) && !cellOK(bot, c))
     const unloaded = cells.filter(c => !loadedAt(bot, c)).length
     return { placed, dug, steps, left: left.length, unloaded, done: cells.length - left.length - unloaded, of: cells.length, leftAt: left.slice(0, 4).map(c => c.x + ',' + c.y + ',' + c.z + '=' + c.block + ' (' + (why[c.x + ',' + c.y + ',' + c.z] || '?') + ')'), unreachable: tried.length }
@@ -754,7 +790,8 @@ module.exports = ctx => {
   function causewayCells (from, to, y) {
     const cells = []; const seen = new Set(); const legCells = []
     let cur = null
-    const add = (x, yy, z, block, rim) => { const k = x + ',' + yy + ',' + z; if (seen.has(k)) return; seen.add(k); const c = { x, y: yy, z, block, rim: !!rim }; cells.push(c); if (cur) cur.push(c) }
+    let leg = 0
+    const add = (x, yy, z, block, rim) => { const k = x + ',' + yy + ',' + z; if (seen.has(k)) return; seen.add(k); const c = { x, y: yy, z, block, rim: !!rim, seq: leg }; cells.push(c); if (cur) cur.push(c) }
     const legs = []
     let cx = Math.floor(from[0]); let cz = Math.floor(from[2])
     while (cz !== Math.floor(to[2]) && legs.length < 96) { cz += Math.sign(Math.floor(to[2]) - cz); legs.push([cx, cz, 'z']) }
@@ -764,7 +801,7 @@ module.exports = ctx => {
     // both rims. A RAIL NEEDS SOMETHING TO STAND ON (16:15:09Z: rim cells over the void had no face to be placed against), so the
     // floor runs under the rails too.
     for (const [px, pz, axis] of legs) {
-      cur = []; legCells.push(cur)
+      cur = []; legCells.push(cur); leg++
       for (let o = -3; o <= 3; o++) {
         const x = axis === 'z' ? px + o : px; const z = axis === 'z' ? pz : pz + o
         add(x, y - 1, z, 'stone', Math.abs(o) === 3)
@@ -852,6 +889,15 @@ module.exports = ctx => {
       if (!rb) rb = { placed: 0, dug: 0, steps: 0, left: 0, unloaded: 0, of: 0, leftAt: [] }
       bridged = { len: cw.len, leg: head + 1, placed: rb.placed, dug: rb.dug, steps: rb.steps, left: rb.left, unloaded: rb.unloaded, of: rb.of, leftAt: rb.leftAt }
       A.result(bot, Object.assign({ ev: 'pair_bridge', job: job.id, from: from0, to: [tx, y0, tz] }, bridged))
+      // A PASS THAT LAYS NOTHING IS A BOT STANDING AT A LETHAL EDGE (16:40-16:53Z: thirteen `placed:0` passes, then a bot in the
+      // lava sea). Two of them and this trip goes home; three and the job pauses itself and says what it is waiting for.
+      const idle = (rb.placed + rb.dug) > 0 ? 0 : ((netherOf().pairIdle || 0) + 1)
+      netherEdit({ pairIdle: idle })
+      if (idle >= 2) {
+        A.result(bot, { ev: 'pair_idle', job: job.id, passes: idle, at: [tx, y0, tz], leftAt: rb.leftAt, why: 'two passes in a row laid nothing - the head is not workable from where our own floor reaches; going home rather than standing at the edge' })
+        if (idle >= 3) A.boardEdit(b2 => { const j = (b2.jobs || []).find(q => q.id === job.id); if (j && j.status === 'active') { j.status = 'paused'; j.note = 'auto-paused: three passes laid nothing at the head of the road (' + (rb.leftAt || []).join(' · ') + '). Re-site the work or change the design - do not send another bot to stand at that edge' } })
+        return { work: 'pair', at: [tx, y0, tz], groundY, reached: false, bridge: bridged, idlePasses: idle }
+      }
       reached = await walk()
     }
     if (!reached) {
@@ -1425,6 +1471,10 @@ module.exports = ctx => {
       // a shield is the difference between a ghast fireball and a death (top model 12:4xZ)
       if (!A.count(bot, 'shield') && !(bot.inventory.slots[45] || {}).name) await A.obtain(bot, 'shield', 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:shield', e_))
       if (!bot.registry.foodsByName || !bot.inventory.items().some(i => bot.registry.foodsByName[i.name])) await A.obtain(bot, 'bread', 16, { stop: api.stop }).catch(e_ => swallow('jobs_nether:food', e_))
+      // THE KIT IS FETCHED, NOT HOPED FOR (16:4xZ: Sakura came back from a death and declined her own job with 'no sword, no
+      // diamond pickaxe' while the depot held both). A sword is the difference between a piglin and a funeral.
+      if (!A.bestOf(bot, 'sword')) { for (const sw of ['diamond_sword', 'iron_sword', 'stone_sword']) { if (A.stockOf(sw) > 0 && await A.obtain(bot, sw, 1, { stop: api.stop }).catch(() => false)) break } }
+      if ((P.work === 'degate' || P.work === 'pair') && !/diamond|netherite/.test(String((A.bestOf(bot, 'pickaxe') || {}).name || ''))) await A.obtain(bot, 'diamond_pickaxe', 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:pick2', e_))
       await A.equipBest(bot, 'sword').catch(e_ => swallow('jobs_nether:sword', e_))
       // ONE OF EACH, AND NOTHING ELSE (recover engineer 16:2xZ: TWO Nether deaths were 54 % of all the iron the army lost in half
       // an hour, and no recovery run reaches another dimension inside the five minutes an item lives on the ground. Aoi was

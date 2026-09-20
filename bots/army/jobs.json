@@ -1239,11 +1239,6 @@
    "found": [
     [
      -358,
-     69,
-     -521
-    ],
-    [
-     -358,
      70,
      -521
     ],
@@ -1630,16 +1625,16 @@
     73,
     27
    ],
-   "surveyed": 1789923484625,
+   "surveyed": 1789923708873,
    "villagers": 9,
    "professions": {
-    "leatherworker": 4,
     "farmer": 2,
-    "toolsmith": 1,
     "weaponsmith": 1,
+    "toolsmith": 1,
+    "leatherworker": 4,
     "unknown": 1
    },
-   "beds": 10,
+   "beds": 12,
    "stations": {
     "composter": 2,
     "smithing_table": 1,
@@ -1659,44 +1654,44 @@
    ],
    "nearest": [
     [
-     -724,
-     68,
-     13
+     -731,
+     75,
+     37
     ],
     [
-     -729,
+     -723,
+     69,
+     12
+    ],
+    [
+     -739,
+     70,
+     33
+    ],
+    [
+     -740,
+     70,
+     28
+    ],
+    [
+     -737,
      71,
-     32
+     39
     ],
     [
-     -715,
+     -742,
      72,
-     36
+     39
     ],
     [
-     -712,
+     -741,
      72,
-     35
+     42
     ],
     [
-     -729,
+     -744,
      72,
-     33
-    ],
-    [
-     -714,
-     72,
-     36
-    ],
-    [
-     -713,
-     72,
-     36
-    ],
-    [
-     -730,
-     73,
-     33
+     41
     ]
    ],
    "post": {
@@ -2420,7 +2415,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789923454620
+   "restUntil": 1789923714257
   },
   {
    "id": "fill_ring_field2",
@@ -3260,7 +3255,7 @@
     },
     "order": "near"
    },
-   "rev": 55,
+   "rev": 56,
    "desc": "MEASURED 16:3xZ by probe: 44 columns (444 cells) still open to the sky = this job (narrow deep shafts: step off / water drop in, pillar out = the column is filled); 3172 air cells lie UNDER the crust below grade = NOT reachable from above, they belong to the cavity job (owner algorithm: shaft down, fill riding up). `left` counts both - do not judge this job by `left`, and do not raise the crew over the number of open shafts",
    "note": "top model 15:1xZ: 655 OPEN cells (left 3216 minus waiting 2561) - do not lower; ladderWay (fill_wayin) needs builders standing on the RIM to hang the way in",
    "restUntil": 1789906650052,
@@ -4853,7 +4848,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 6,
    "site": [
     -291,
     68,
@@ -4878,7 +4873,7 @@
     },
     "order": "near"
    },
-   "rev": 9,
+   "rev": 10,
    "note": "needs: dirt (17 cells wait; every cell whose material exists is done or in work)",
    "restUntil": 1789922783977
   },
@@ -6449,6 +6444,44 @@
    },
    "restUntil": 1789923943046,
    "rev": 1
+  },
+  {
+   "id": "test_bridge",
+   "type": "steps",
+   "priority": 99,
+   "status": "active",
+   "when": "any",
+   "bots": 1,
+   "names": [
+    "Hotaru"
+   ],
+   "requires": {
+    "minHp": 18
+   },
+   "plan": "no zone: TEST of lib/moves.js bridgeTo (pathfinder scaffolding + sneak) over a 2-wide, 9-deep gap at the ravine rim -302..-299,69,-477; the two test blocks are dug out again (no deck stays)",
+   "params": {
+    "steps": [
+     {
+      "do": "withdraw",
+      "item": "cobblestone",
+      "n": 16,
+      "atLeast": 8
+     },
+     {
+      "do": "goto",
+      "to": [
+       -302,
+       69,
+       -477
+      ],
+      "range": 0
+     },
+     {
+      "do": "wait",
+      "s": 900
+     }
+    ]
+   }
   }
  ]
 }

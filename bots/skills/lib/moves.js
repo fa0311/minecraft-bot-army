@@ -112,6 +112,34 @@ async function waterDrop (bot, landArr, opts = {}) {
   } catch (e) { return fail('error: ' + (e && e.message)) } finally { if (disarm) disarm(); bot.setControlState('forward', false); bot.__moveBusy = null }
 }
 
+// BRIDGE while walking (owner 09-20: "mineflyerに置きながら移動するのあるのでは？橋建設に利用できそう"): mineflayer-pathfinder can place scaffolding as it goes
+// (`Movements.scafoldingBlocks` + `moveToEdge`); the army switches that OFF for travel (movement is read-only) - a BRIDGE is construction, so this technique
+// switches it on for ONE goal, inside ONE corridor, and restores the bot's strict movements afterwards. Rules: never digs, no 1x1 towers, no parkour, no sprint,
+// blocks only from `opts.blocks` (default cobblestone/netherrack/cobbled_deepslate), steps and placements only inside the corridor (the straight line from the
+// start to `to`, `opts.half` cells to each side, default 0 = a 1-wide spine: the job widens and rails it from the safe spine afterwards), and SNEAK is held the
+// whole way (prismarine-physics stops a sneaking body at an edge; the pathfinder drops sneak after each placement, so it is re-asserted every tick).
+// -> { ok, how:'bridge', placed, at, tookMs, why }. `placed` is MEASURED (inventory difference), and the far end is re-read before ok is claimed.
+async function bridgeTo (bot, toArr, opts = {}) {
+  const t0 = Date.now(); const fail = (why, x = {}) => ({ ok: false, how: 'bridge', why, tookMs: Date.now() - t0, ...x })
+  if (bot.__moveBusy) return fail('another technique is running'); if (!bot.pathfinder) return fail('no pathfinder')
+  const { Movements, goals } = require('mineflayer-pathfinder'); const [tx, ty, tz] = toArr; const p0 = bot.entity.position.floored()
+  const names = (opts.blocks || ['cobblestone', 'cobbled_deepslate', 'netherrack']).filter(n => bot.registry.itemsByName[n]); const count = () => names.reduce((s, n) => s + bot.inventory.items().filter(i => i.name === n).reduce((a, i) => a + i.count, 0), 0)
+  const need = Math.abs(tx - p0.x) + Math.abs(tz - p0.z) + 2; const have0 = count(); if (have0 < need) return fail('carries ' + have0 + ' bridge blocks, the span may need ' + need)
+  const half = opts.half || 0; const x1 = Math.min(p0.x, tx) - half; const x2 = Math.max(p0.x, tx) + half; const z1 = Math.min(p0.z, tz) - half; const z2 = Math.max(p0.z, tz) + half
+  const outside = b => (b.position.x < x1 || b.position.x > x2 || b.position.z < z1 || b.position.z > z2 || b.position.y < ty - 2 || b.position.y > ty + 2) ? 1000 : 0
+  const mv = new Movements(bot); mv.canDig = false; mv.allow1by1towers = false; mv.allowParkour = false; mv.allowSprinting = false; mv.maxDropDown = 1; mv.dontCreateFlow = true
+  mv.scafoldingBlocks = names.map(n => bot.registry.itemsByName[n].id); mv.exclusionAreasStep = [outside]; mv.exclusionAreasPlace = [outside]
+  const old = bot.pathfinder.movements; bot.__moveBusy = 'bridge'; const sneak = () => { try { bot.setControlState('sneak', true) } catch {} }; bot.on('physicsTick', sneak)
+  try {
+    bot.pathfinder.setMovements(mv)
+    const done = bot.pathfinder.goto(new goals.GoalBlock(tx, ty, tz)); let timer; const limit = new Promise((resolve, reject) => { timer = setTimeout(() => reject(new Error('timeout')), opts.ms || 120000) })
+    const stopper = opts.stop ? setInterval(() => { if (opts.stop()) { try { bot.pathfinder.setGoal(null) } catch {} } }, 250) : null
+    let err = null; try { await Promise.race([done, limit]) } catch (e) { err = e } finally { clearTimeout(timer); if (stopper) clearInterval(stopper); try { bot.pathfinder.setGoal(null) } catch {} }
+    const at = bot.entity.position.floored(); const under = bot.blockAt(at.offset(0, -1, 0)); const arrived = Math.abs(at.x - tx) <= 1 && Math.abs(at.z - tz) <= 1 && Math.abs(at.y - ty) <= 1
+    return { ok: arrived && solid(under), how: 'bridge', placed: have0 - count(), at: [at.x, at.y, at.z], tookMs: Date.now() - t0, why: arrived ? undefined : String((err && err.message) || 'stopped short') }
+  } catch (e) { return fail('error: ' + (e && e.message)) } finally { bot.removeListener('physicsTick', sneak); try { bot.setControlState('sneak', false) } catch {} try { bot.pathfinder.setMovements(old) } catch {} bot.__moveBusy = null }
+}
+
 // REFLEX (owner: "落下死しそうだったらアルゴリズム的に水を置くことは出来ないのか？"): installed once per bot. A fall that was NOT planned (knock-back off a
 // rim, a floor dug away) and would cost >= `minDamage` hp gets the same landing, when a water_bucket is carried. Results are reported through `report`.
 const LOADED = Date.now() // a hot reload of this file re-installs the reflex once; repeated calls from the heartbeat are free
@@ -144,4 +172,4 @@ function fallGuard (bot, report = () => {}, opts = {}) {
   bot.__fallGuard = onTick; bot.on('physicsTick', onTick)
 }
 
-module.exports = { waterDrop, stepOff, fallGuard, groundBelow, scoop }
+module.exports = { waterDrop, stepOff, bridgeTo, fallGuard, groundBelow, scoop }
