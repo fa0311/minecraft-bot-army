@@ -3280,6 +3280,7 @@ async function build (bot, job, api, ctx) {
         // cell we walked to. The A* knows where it stands.
         const inCol = () => { const p = bot.entity.position; return Math.floor(p.x) === site.x && Math.floor(p.z) === site.z && Math.floor(p.y) <= fillG }
         try { if (!inCol()) await U.withTimeout(bot.pathfinder.goto(new G.GoalBlock(site.x, fillG, site.z)), 25000, 'wayEnter') } catch (e_) { swallow('army_jobs:wayEnter', e_) }
+        { const t2 = Date.now() + 4000; while (Date.now() < t2 && !inCol() && !api.stop()) await sleep(50) } // the goto ends the moment the bot steps off the rim: it is still FALLING the one block into the ladder (14:34:28Z Erika read -325,69,-476, one above her own ladder)
         bot.setControlState('sneak', true); await sleep(200)
         if (!inCol()) why = 'could not step into the ladder column from the rim (' + bot.entity.position.floored().toString() + ')'
         else for (let y = fillG - 1; y >= site.fy; y--) {
