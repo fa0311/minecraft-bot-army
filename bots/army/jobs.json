@@ -620,6 +620,16 @@
      -366
     ],
     "why": "natural river inlet at the SW base edge: water y62 under a 1-block cliff from y69 (look Ichika 16; base-audit -395,-370 -9 x7) - a fall trap, not a hole to fill: lattice, roads and the sponge go around it"
+   },
+   {
+    "id": "ravine_s",
+    "box": [
+     -334,
+     -486,
+     -289,
+     -461
+    ],
+    "why": "south ravine trench still being filled (fill_ravine_s): builders on its floor are IN THE HOLE, not in the mine - without this keep-out upTheStairs recalled them through the mine (8 recalls in 10 min, 14:1xZ) after the top model lifted the big ravine keep-out"
    }
   ],
   "furnaces": [
@@ -1061,8 +1071,8 @@
    "produces": [
     "food"
    ],
-   "minBots": 6,
-   "maxBots": 10,
+   "minBots": 3,
+   "maxBots": 5,
    "site": [
     -367,
     69,
@@ -1075,19 +1085,16 @@
    "plan": "gathering, no world change: first food. Hunters go where bots SAW herds (animals.jsonl) within 300 of muster, leave 2 of every kind alive for the pens",
    "params": {
     "kinds": [
-     "sheep",
-     "pig",
-     "cow",
-     "chicken"
+     "sheep"
     ],
     "leave": 0,
     "haul": 48,
     "maxDist": 220,
     "first": "sheep"
    },
-   "rev": 18,
+   "rev": 19,
    "bots": 2,
-   "note": "owner 09-20 13:4xZ: \"羊積極的にkillしたほうが良い\" - 249 sheep (69 in the pen), strays load the server tick: 6-10 hunters, leave 0, sheep first; the pens keep the breeders"
+   "note": "owner 09-20: sheep are culled actively (wool 10 328 / 150, TPS). ONLY sheep: the hunt handler has NO pen exclusion - with kinds sheep/pig/cow/chicken and leave 0 the hunters emptied pen 1 (69 sheep) within the hour; cows, chickens and pigs are left alone until the handler spares penned animals (BUGS)"
   },
   {
    "id": "wood_spawn",
@@ -1158,10 +1165,16 @@
       -377,
       -389,
       -363
+     ],
+     [
+      -337,
+      -489,
+      -286,
+      -458
      ]
     ]
    },
-   "rev": 59,
+   "rev": 60,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789909537319
   },
@@ -1580,7 +1593,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789913365766
+   "restUntil": 1789914349970
   },
   {
    "id": "fill_ring_field2",
@@ -1779,7 +1792,7 @@
      }
     ]
    },
-   "rev": 4
+   "rev": 5
   },
   {
    "id": "clear_yard_trees",
@@ -2035,7 +2048,7 @@
    },
    "rev": 3,
    "note": "03:10Z engineer: 40 obsidian banked (want reached) - paused. Re-activate with a higher params.args.want when more is needed; open spot on record: -54/29:-1 (37 cast obsidian left)",
-   "restUntil": 1789913016407
+   "restUntil": 1789914541695
   },
   {
    "id": "base_infill_n404_n556",
@@ -2249,7 +2262,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 20,
+   "bots": 3,
    "site": [
     -311,
     69,
@@ -2480,7 +2493,7 @@
     },
     "order": "near"
    },
-   "rev": 28,
+   "rev": 34,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check.",
    "note": "top model 14:1xZ: OPERATORS - DO NOT LOWER. open cells = left 3616 minus waiting 2920 = 696, so ceil(696/8) = 87 builders could work it at once; 20 is the cap. It reads done:0 because the last trench (x -306..-298 / z -461..-482, floor y52-55) has sheer walls and NO walkable entry, so the switchback ramp (x -300/-301, z -472..-478) can never be started: a ramp column is a solid cell built bottom-up and nobody can stand on the floor. It needs a way in built FROM THE TOP (ladder run, or a gravity-block ramp - gravel depot is 0, so fetch gravel first).",
    "restUntil": 1789906650052
@@ -2583,7 +2596,7 @@
    "type": "build",
    "priority": 70,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "site": [
@@ -2757,7 +2770,7 @@
    "type": "build",
    "priority": 64,
    "front": "works",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 1,
    "site": [
@@ -2796,14 +2809,20 @@
     },
     "order": "near"
    },
-   "note": "top model 14:0xZ: re-activated with the head-count its OPEN columns can use (base audit 13:59Z audit_fill). Pinholes are now CLOSED by the builder (dig the cap, gravity drop, place from the rim) and a tail nobody can reach ENDS after 3 rounds instead of declining for ever",
+   "note": "auto-paused: build complete - BUT 2 cells are left that 3 builders could not do (build_leftover): -277,67,-399 | -278,67,-399",
    "rev": 4,
    "stuckBy": {
-    "key": "rev3",
+    "key": "rev4",
     "bots": [
-     "Mashiro",
-     "Hina"
+     "Tamaki",
+     "Noa",
+     "Nozomi"
     ]
+   },
+   "cap": {
+    "id": "cap_fill_ne_valley",
+    "cols": 1395,
+    "t": 1789913572072
    }
   },
   {
@@ -2918,20 +2937,21 @@
      "d": 15
     }
    },
-   "rev": 14,
+   "rev": 15,
    "restUntil": 1789912916108,
    "after": "void_fix_base_yard_pad",
    "voidFix": {
-    "n": 1,
+    "n": 2,
     "id": "void_fix_base_yard_pad",
-    "cols": 33,
-    "t": 1789912974941
+    "cols": 4,
+    "t": 1789913775086
    },
    "cap": {
     "id": "cap_base_yard_pad",
     "cols": 465,
     "t": 1789912978111
-   }
+   },
+   "note": "auto-paused: build complete - BUT 4 columns are a deck over air (void_under_pad): -368,65,-490 | -368,65,-489 | -359,66,-490 | -340,67,-483"
   },
   {
    "id": "base_portal_go",
@@ -2971,66 +2991,6 @@
    "names": [
     "Kanade"
    ]
-  },
-  {
-   "id": "fill_yard_sw",
-   "type": "build",
-   "priority": 55,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 1,
-   "site": [
-    -398,
-    69,
-    -370
-   ],
-   "plan": {
-    "zone": "yard, SW corner x -401..-396 / z -373..-367",
-    "why": "base audit 11:37Z: `-398,-370 -9 x26 (yard)` - a pit 8-10 blocks deep in the middle of the finished yard that belongs to NO build job (probe 11:5xZ, ground per column: the '#' cluster at x -400..-397 / z -372..-368; the slope south of z -368 is the natural hillside down to the river and is NOT filled). Never deck a hole: fill it solid from the natural ground up to the base level y68"
-   },
-   "params": {
-    "blueprint": "fill_void",
-    "origin": [
-     -398,
-     68,
-     -370
-    ],
-    "unlid": 2,
-    "order": "near",
-    "args": {
-     "box": [
-      -401,
-      -373,
-      -396,
-      -367
-     ],
-     "depth": 12,
-     "fill": "cobblestone",
-     "mats": [
-      "cobbled_deepslate",
-      "cobblestone",
-      "stone",
-      "deepslate",
-      "tuff",
-      "andesite",
-      "diorite",
-      "granite",
-      "gravel"
-     ]
-    }
-   },
-   "restUntil": 1789906645060,
-   "stuckBy": {
-    "key": "rev1",
-    "bots": [
-     "Juri",
-     "Aoi",
-     "Yukina"
-    ]
-   },
-   "note": "auto-paused: 8 cells nobody could do: ",
-   "rev": 1
   },
   {
    "id": "base_road_9",
@@ -3393,7 +3353,7 @@
    "type": "build",
    "priority": 96,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 10,
    "site": [
@@ -3417,21 +3377,15 @@
      "d": 17
     }
    },
-   "rev": 12,
-   "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -329,66,-494",
-   "stuckBy": {
-    "key": "rev12",
-    "bots": [
-     "Erika"
-    ]
-   }
+   "rev": 13,
+   "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -329,67,-495"
   },
   {
    "id": "fill_road9_trench",
    "type": "build",
    "priority": 86,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "site": [
@@ -3478,9 +3432,12 @@
    "stuckBy": {
     "key": "rev4",
     "bots": [
-     "Kaede"
+     "Kaede",
+     "Tsumugi",
+     "Himari"
     ]
-   }
+   },
+   "note": "auto-paused: 6 cells nobody could do: -285,67,-476 | -284,67,-476 | -288,64,-472"
   },
   {
    "id": "nether_fortress",
@@ -3651,9 +3608,9 @@
    "type": "build",
    "priority": 65,
    "front": "works",
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 16,
+   "bots": 14,
    "site": [
     -520,
     74,
@@ -3673,7 +3630,7 @@
      "h": 32
     }
    },
-   "rev": 7,
+   "rev": 8,
    "note": "auto-paused: build_runaway - 4 digs of the same cell in one slice (dig/place loop) at -512,102,-485"
   },
   {
@@ -3708,8 +3665,8 @@
     },
     "order": "near"
    },
-   "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -323,68,-437",
-   "rev": 1
+   "note": "top model 14:3xZ: per-COLUMN ownership is live (ownedCols) - the cap yields only the columns an ACTIVE fill has not filled yet. Watch build_runaway.",
+   "rev": 2
   },
   {
    "id": "stray_furnace_344",
@@ -3978,10 +3935,12 @@
    "stuckBy": {
     "key": "rev0",
     "bots": [
-     "Erika"
+     "Erika",
+     "Yotsuba",
+     "Aoi"
     ]
    },
-   "note": "auto-paused: build_runaway - 4 digs of the same cell in one slice (dig/place loop) at -368,68,-489"
+   "note": "auto-paused: 9 cells nobody could do: -359,68,-490 | -359,67,-490 | -368,68,-490 | -368,67,-490 | -368,67,-489 | -368,66,-490"
   },
   {
    "id": "cap_base_yard_pad",
@@ -4017,6 +3976,84 @@
    },
    "rev": 1,
    "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -368,68,-478"
+  },
+  {
+   "id": "cap_fill_ne_valley",
+   "type": "build",
+   "priority": 38,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 5,
+   "site": [
+    -256,
+    68,
+    -386
+   ],
+   "plan": "the finished fill_void of fill_ne_valley is bare stone: cap the grade layer y67 of x -278..-234 / z -401..-371 with DIRT (grass spreads by itself). Only where bare stone, gravel or air stands - never paving, a field, a crop or another blueprint of ours - and only out of the dirt SURPLUS over targets.dirt 128",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -256,
+     67,
+     -386
+    ],
+    "args": {
+     "w": 45,
+     "d": 31,
+     "cap": true,
+     "fill": "dirt"
+    },
+    "needStock": {
+     "dirt": 128
+    },
+    "order": "near"
+   }
+  },
+  {
+   "id": "fill_minehead_pits",
+   "type": "build",
+   "priority": 74,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 3,
+   "site": [
+    -327,
+    68,
+    -500
+   ],
+   "plan": "BASE PLAN zone mine_head: the owner saw pockmarks at the mine mouth - a row of pits 2-5 deep at x -328..-325 / z -506..-494, three blocks east of the 2-wide stairwell (x -330/-329, untouched: the fill never enters stair columns). Fill them solid to the base level y68",
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -327,
+     68,
+     -500
+    ],
+    "args": {
+     "box": [
+      -328,
+      -506,
+      -325,
+      -494
+     ],
+     "depth": 7,
+     "fill": "cobblestone",
+     "mats": [
+      "cobblestone",
+      "cobbled_deepslate",
+      "stone",
+      "andesite",
+      "diorite",
+      "granite",
+      "tuff",
+      "dirt"
+     ]
+    },
+    "order": "near"
+   },
+   "restUntil": 1789914466508
   }
  ]
 }

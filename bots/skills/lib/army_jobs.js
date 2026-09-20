@@ -161,7 +161,10 @@ const sheepSheared = e => !!(e && e.metadata && ((e.metadata[18] | 0) & 0x10))
 // verb may look at penned sheep (shearing is not killing).
 function preyNear (bot, r, kinds, opts = {}) {
   const me = bot.entity.position
-  let pens = []; try { pens = opts.penned ? [] : A.ours().pens } catch (e_) { swallow('army_jobs:preyPens', e_) }
+  // A PEN IS A PEN EVEN WITHOUT A HERDER (owner 09-20 14:4xZ, after the husbandry jobs were taken off the board: `ours().pens` is built from the `herd` JOBS only, so
+  // it went empty the minute they were removed - and `hunt_spawn` with leave:0 killed all 69 sheep INSIDE pen 1 within the hour, the breeders the owner was promised
+  // would stay). The FENCE RING is in the one registry (a `pen` blueprint build job), and it stands whether anybody herds or not: its footprint is a pen too.
+  let pens = []; try { pens = (opts.penned || opts.pens) ? [] : A.ours().pens.concat(A.ours().boxes.filter(q => q.blueprint === 'pen').map(q => ({ job: q.job, x1: q.x1, z1: q.z1, x2: q.x2, z2: q.z2 }))) } catch (e_) { swallow('army_jobs:preyPens', e_) }
   const lures = new Set([].concat(...Object.values(HERD_LURE)))
   const leaders = opts.penned ? [] : Object.values(bot.entities).filter(p => p && p !== bot.entity && p.type === 'player' && p.position && lures.has(((p.heldItem || (p.equipment && p.equipment[0]) || {}).name) || ''))
   const kept = e => pens.some(q => e.position.x >= q.x1 - 6 && e.position.x <= q.x2 + 7 && e.position.z >= q.z1 - 6 && e.position.z <= q.z2 + 7) || leaders.some(p => p.position.distanceTo(e.position) < 8)
@@ -225,7 +228,7 @@ async function hunt (bot, job, api, ctx) {
     task(bot, 'hunt:work ' + job.id)
     let dry = 0
     while (!api.stop() && !tooLate() && haulCount(bot) < (P.haul || 24) && dry < 6) {
-      const list = preyNear(bot, 40, P.kinds)
+      const list = preyNear(bot, 40, P.kinds, { pens: P.pens === true }) // params.pens:true = a CULL inside the pens was ordered (a pen over its head-count); anything else leaves the breeders alone
       const byKind = {}
       for (const e of list) (byKind[e.name] = byKind[e.name] || []).push(e)
       const target = list.find(e => byKind[e.name].length > (P.leave == null ? 2 : P.leave))
@@ -1411,7 +1414,7 @@ const VERBS = {
     return runs >= want || (runs + '/' + want + ' crafted (ingredients ran out?)')
   },
   async smelt (bot, st) { if (!A.count(bot, st.item)) return 'no ' + st.item + ' carried'; const n = await A.smelt(bot, st.item, st.n || A.count(bot, st.item), st.at ? v(st.at) : undefined); return n > 0 || 'smelted nothing: every furnace stayed busy for 2 min, or no fuel carried (coal/charcoal/planks/logs/sticks)' },
-  async kill (bot, st, api) { let n = 0; const want = st.n || 1; let dry = 0; while (n < want && dry < 4 && !api.stop()) { const t = preyNear(bot, st.radius || 32, st.kinds)[0]; if (!t) { dry++; const a = Math.random() * 6.28; const p0 = bot.entity.position; await A.travel(bot, { x: Math.round(p0.x + Math.cos(a) * 14), y: null, z: Math.round(p0.z + Math.sin(a) * 14) }, { range: 3, ms: 15000, quiet: true, stop: () => api.stop() || !!preyNear(bot, st.radius || 32, st.kinds)[0] }); continue } if (await A.kill(bot, t, 25000, api.stop)) { n++; await A.pickup(bot, 7, 4000) } else dry++ } return n > 0 || 'no kills' },
+  async kill (bot, st, api) { let n = 0; const want = st.n || 1; let dry = 0; while (n < want && dry < 4 && !api.stop()) { const t = preyNear(bot, st.radius || 32, st.kinds, { pens: st.pens === true })[0]; if (!t) { dry++; const a = Math.random() * 6.28; const p0 = bot.entity.position; await A.travel(bot, { x: Math.round(p0.x + Math.cos(a) * 14), y: null, z: Math.round(p0.z + Math.sin(a) * 14) }, { range: 3, ms: 15000, quiet: true, stop: () => api.stop() || !!preyNear(bot, st.radius || 32, st.kinds, { pens: st.pens === true })[0] }); continue } if (await A.kill(bot, t, 25000, api.stop)) { n++; await A.pickup(bot, 7, 4000) } else dry++ } return n > 0 || 'no kills' },
   // bucket work: fill {at:[x,y,z] a WATER source block} -> water_bucket; pour {at:[x,y,z] the empty cell that shall hold the source}
   async fill (bot, st, api) {
     // The server ray-traces the click from the EYE: the water must be the first thing on that ray. Measured 09-19: from the fishing stand
@@ -2654,30 +2657,28 @@ async function build (bot, job, api, ctx) {
       A.decline(bot, job, 600000, why); return muster(bot, job, api, ctx, why)
     }
   }
-  // TWO JOBS MAY NOT OWN ONE GRADE CELL (owner 14:1xZ 「整地が穴を掘って置くを永遠に繰り返している」; my own `build_runaway` caught it: cap_ravine_nm -323,68,-437 seven digs of
-  // one cell in a slice, cap_base_yard_pad -368,68,-478, void_fix_base_yard_pad -368,68,-489). Both jobs are individually right: the CAP digs the stone at grade and lays
-  // dirt, the FILL underneath sees an open grade cell and puts its filler back, for ever. `A.ours()` cannot arbitrate because it leaves terrain blueprints out of the
-  // registry on purpose. So the order is made explicit: a cap does not start while ANY active terrain job's box overlaps its footprint - it pauses itself, names the job
-  // it is waiting for, and an operator or that job's own completion brings it back.
-  if ((P.args || {}).cap) {
-    let x1 = Infinity; let z1 = Infinity; let x2 = -Infinity; let z2 = -Infinity
-    for (const c of cells) { if (c.x < x1) x1 = c.x; if (c.x > x2) x2 = c.x; if (c.z < z1) z1 = c.z; if (c.z > z2) z2 = c.z }
-    let owner = null
+  const capJob = !!(P.args || {}).cap
+  // ONE GRADE CELL, ONE OWNER — PER COLUMN (owner 14:1xZ 「整地が穴を掘って置くを永遠に繰り返している」, 「12時間以上経過して未だに穴埋め終わって無い」). MEASURED 14:05-14:08Z:
+  // `build_runaway` on cap_ravine_nm -323,68,-437 (7 digs of ONE cell in one slice; the same cell is a grade cell of fill_ravine_m), cap_base_yard_pad -368,68,-478 and
+  // void_fix_base_yard_pad -368,68,-489 (the same cell in both blueprints, checked against the board 14:2xZ). Each job is right on its own: the CAP's `only` list holds
+  // cobblestone, so it digs the fill's grade block and lays dirt; between that dig and the place the fill's own grade cell is OPEN and a second builder puts cobblestone
+  // back; and the fill's `unlid` rule takes the dirt off again while the body of the column is still air. With 12 cap builders and 6 fill builders in one box the race
+  // never ends. `A.ours()` cannot arbitrate (terrain blueprints stay out of the registry on purpose). A whole-job pause (my first cure, 14:1xZ) was too coarse - it
+  // parked a 1220-cell cap because ONE finished neighbour fill was still active - so ownership is decided PER COLUMN and by the WORLD: while an active fill/pad still
+  // has an unfilled cell in a column, that column is its, and the cap leaves it alone (counted as `waiting`, never as done, never dug).
+  let _own = { t: 0, m: null }
+  const ownedCols = () => { // "x,z" -> [y,…] cells of ACTIVE terrain jobs that are not this one. 30 s cache: one board read + one blueprint expansion per job
+    if (_own.m && Date.now() - _own.t < 30000) return _own.m
+    const m = new Map()
     try {
       for (const q of ((A.readJSON(A.F.board, {}) || {}).jobs || [])) {
         if (q.id === job.id || q.status !== 'active' || q.type !== 'build' || !q.params || (q.params.args || {}).cap) continue
         if (!A.TERRAIN_BP.test(String(q.params.blueprint)) || !Array.isArray(q.params.origin)) continue
-        let a1 = Infinity; let b1 = Infinity; let a2 = -Infinity; let b2 = -Infinity
-        for (const c of A.blueprintCellsOf(q.params)) { if (c.x < a1) a1 = c.x; if (c.x > a2) a2 = c.x; if (c.z < b1) b1 = c.z; if (c.z > b2) b2 = c.z }
-        if (a1 <= x2 && a2 >= x1 && b1 <= z2 && b2 >= z1) { owner = q.id; break }
+        for (const c of A.blueprintCellsOf(q.params)) { if (c.block === 'air' || !(c.fillOnly || c.solid)) continue; const k = c.x + ',' + c.z; const e = m.get(k); if (e) e.push(c.y); else m.set(k, [c.y]) }
       }
-    } catch (e_) { swallow('army_jobs:capOverlap', e_) }
-    if (owner) {
-      const why = 'build: the ground under this cap still belongs to ' + owner + ' (active terrain job overlapping x ' + x1 + '..' + x2 + ' / z ' + z1 + '..' + z2 + ') - a cap that lays dirt while a fill puts its filler back digs the same cell for ever'
-      A.boardEdit(b => { const q = (b.jobs || []).find(z => z.id === job.id); if (q && q.status === 'active') { q.status = 'paused'; q.note = 'auto-paused: waiting for ' + owner + ' (one grade cell, one owner)' } })
-      A.result(bot, { ev: 'cap_waits', job: job.id, owner, box: [x1, z1, x2, z2] })
-      return muster(bot, job, api, ctx, why)
-    }
+    } catch (e_) { swallow('army_jobs:ownedCols', e_) }
+    _own = { t: Date.now(), m }
+    return m
   }
   // LAYERED PITS (blueprint `quarry`) are legal only inside a settings.keepOut box = the quarry zone (rule 4: never a hole in natural ground)
   const layered = cells.some(c => c.layer); const cellKeys = layered ? new Set(cells.map(c => c.x + ',' + c.y + ',' + c.z)) : null
@@ -2769,7 +2770,11 @@ async function build (bot, job, api, ctx) {
   // SOIL cells keep theirs too (grass/farmland/podzol are all "the ground is there" - the dirt cap, not this rule, is what makes ground ground).
   const HARD_SOIL = /^(dirt|grass_block|farmland|podzol|coarse_dirt|rooted_dirt|dirt_path|mycelium|mud)$/
   const EXACT = new Set()
-  { const top = new Map()
+  // ...and EXACTNESS IS FOR STRUCTURES ONLY (owner 14:1xZ, the same dig/place loop): a road, a wall, a floor is looked at, so it takes its own block; the GROUND is
+  // ground whatever stands there. A cell of `level` / `fill_void` / `clear_area` / `quarry` (and of a cap) is done when ANY solid block stands in it - dirt, grass,
+  // cobblestone, deepslate alike - and nothing of it is ever dug for being "the wrong material". Today the three terrain kinds fell out of the filter below anyway
+  // (solid / fillOnly / HARD_SOIL), which is exactly why the rule must be stated: a `level` cap with fill:'cobblestone' or a fill with `top` would have re-armed it.
+  if (!A.TERRAIN_BP.test(String(P.blueprint))) { const top = new Map()
     for (const c of cells) { if (c.solid || c.fillOnly || c.block === 'air' || /torch|button|_sign$|_door$|ladder|lever|rail$/.test(c.block)) continue; const k = c.x + ',' + c.z; const e = top.get(k); if (e == null || c.y > e.y) top.set(k, c) }
     for (const c of top.values()) if (c.mats && c.mats.length > 1 && !c.wood && !/_bed$/.test(c.block) && !HARD_SOIL.test(c.block)) EXACT.add(K(c)) }
   const exact = c => EXACT.has(K(c))
@@ -2801,7 +2806,7 @@ async function build (bot, job, api, ctx) {
     const _bm = new Map()
     const _at = (x, y, z) => { const k = x + ',' + y + ',' + z; if (_bm.has(k)) return _bm.get(k); const b = bot.blockAt(new Vec3(x, y, z)); _bm.set(k, b); return b }
     const at = _at
-    const me = bot.entity.position; const dig = []; const put = []; let wait = 0; const deep = []; let far = 0
+    const me = bot.entity.position; const dig = []; const put = []; let wait = 0; const deep = []; let far = 0; let owned = 0
     const matSeen = {}; const haveMat = c => { const k = c.block + '|' + (c.wood || '') + '|' + (exact(c) ? 'x' : ''); if (matSeen[k] == null) matSeen[k] = pickList(c).some(n => A.count(bot, n) > 0 || A.stockOf(n) > 0) || (!exact(c) && !!craftPick(c)); return matSeen[k] }
     const open = cells.some(c => c.solid) ? skyOpen() : null; const roofs = new Set(); const mates = open ? mateBlocked() : null; const lavaOn = !!open && lavaSet().size > 0
     // NEVER A LID (owner: never deck a hole; main 09-19 19:5xZ: base_field_1_pad / base_yard_pad "complete - BUT 7/10 columns are a deck over air", core pad
@@ -2825,6 +2830,8 @@ async function build (bot, job, api, ctx) {
       // `only`: a cell that may replace ONLY these blocks is no cell of this job at all anywhere else - not work, not `left`, not `wait` (blueprint `level` in cap
       // mode: bare stone, gravel or air becomes dirt; paving, a crop, a chest, soil that is already soil are none of the cap's business)
       if (c.only && !c.only.includes(b.name)) continue
+      // the column still belongs to an active fill/pad (see ownedCols): not this cap's cell this minute
+      if (capJob) { const ys = ownedCols().get(c.x + ',' + c.z); if (ys && ys.some(y => !solid(at(c.x, y, c.z)))) { owned++; wait++; continue } }
       // A BLOCK THAT STANDS WHERE ANOTHER BLUEPRINT OF OURS PUT IT IS NEVER THIS JOB'S TO DIG (a pad's headroom inside the dorm walls, a road shoulder in the hall): not work, not `left`
       // ...and this was an IIFE run for EVERY cell of the blueprint although only the four branches below ever read it: 747 k - 887 k `A.ourBlock` calls in 45 s on one
       // bot. Lazy, memoised per cell: same answer, called only where it decides something.
@@ -2894,7 +2901,9 @@ async function build (bot, job, api, ctx) {
         // OUR OWN small decoration (a torch of the light job, a button) inside a cell that wants a solid block is MOVED: dug (allowProtected), the block placed, a torch put back on top
         if (DECOR.test(b.name) && solidItem(c.block)) { dig.push(Object.assign({}, c, { block: 'air', then: c, decor: b.name })); continue }
         // ... and only when the block that goes in EXISTS (09-19: field paths were cut out of the grass with 0 cobblestone in the world = a net of trenches)
-        if (solid(b) && !BL.isReplaceable(b)) { if (!U.protectedBlock(b) && !foreign()) { if (exact(c) ? A.count(bot, c.block) > 0 : haveMat(c)) dig.push(Object.assign({}, c, { block: 'air', then: c })); else { wait++; st.missing = { item: c.block, t: Date.now() } } } continue } // wrong block in the way (chests/beds/torches are never dug)
+        // A CAP NEVER OPENS GROUND IT CANNOT CLOSE THIS SECOND (owner 14:1xZ 「穴を掘って置く」): it swaps the SKIN of finished ground, so the dirt must be in the POCKETS
+        // before the stone comes out - a depot index is not a promise (the road-trench lesson above). With none carried the cell simply waits and `needs: dirt` is said.
+        if (solid(b) && !BL.isReplaceable(b)) { if (!U.protectedBlock(b) && !foreign()) { if (capJob ? inHand(c) : (exact(c) ? A.count(bot, c.block) > 0 : haveMat(c))) dig.push(Object.assign({}, c, { block: 'air', then: c })); else { wait++; st.missing = { item: c.block, t: Date.now() } } } continue } // wrong block in the way (chests/beds/torches are never dug)
         // NOTHING IS PLACED ON A GROUND CELL THAT IS STILL OPEN (road paving / a wall over the blueprint's own `fillOnly` ground cell): with a side neighbour as support the
         // paving went in first = a deck over air (09-19: road 2, cobblestone y68 over air y67-66 on its whole centre line). It waits until the column is filled from the
         // natural ground up; over water/lava or a drop of 7+ (groundUnder null, reported as void) it is placed as before (a deck over water is a bridge).
@@ -2937,7 +2946,7 @@ async function build (bot, job, api, ctx) {
     put.sort((a, b) => ((b.ramp ? 1 : 0) - (a.ramp ? 1 : 0)) || ((b.hot ? 1 : 0) - (a.hot ? 1 : 0)) || ((a.redo ? 1 : 0) - (b.redo ? 1 : 0)) ||
       (fillOrder ? ((tier(a) - tier(b)) || (band2(a) - band2(b)) || (a.y - b.y)) : ((near ? band(a) - band(b) : 0) || (a.y - b.y) || ((a.block === 'water') - (b.block === 'water')))) ||
       (me.distanceTo(new Vec3(a.x, a.y, a.z)) - me.distanceTo(new Vec3(b.x, b.y, b.z))))
-    return { dig, put, wait, deep, far, sealed: open ? open.sealed : [] }
+    return { dig, put, wait, deep, far, owned, sealed: open ? open.sealed : [] }
   }
   let done = 0; let streak = 0; let lockSpins = 0; let dropped = 0; const fails = {}
   // SOLID FILL placing: plain placeBlock (no scaffolds, no pillars, no support columns - the fill itself is the floor the builder rides up on).
@@ -3403,7 +3412,7 @@ async function build (bot, job, api, ctx) {
     }
   }
   const voidNote = voids.length ? ' - BUT ' + voids.length + (isFill ? ' air cells stay sealed under it' : ' columns are a deck over air') + ' (void_under_pad): ' + voids.slice(0, 6).join(' | ') : ''
-  A.result(bot, Object.assign({ ev: 'build_pass', job: job.id, blueprint: P.blueprint, done, left: n, gaveUp: n - nMine }, isFill ? Object.assign({ dropped, waiting: left.wait, sealed: left.sealed.length }, pin.length ? { pinholes: pin.length } : {}) : {}, Object.keys(fails).length ? { fails } : {}))
+  A.result(bot, Object.assign({ ev: 'build_pass', job: job.id, blueprint: P.blueprint, done, left: n, gaveUp: n - nMine }, isFill ? Object.assign({ dropped, waiting: left.wait, sealed: left.sealed.length }, pin.length ? { pinholes: pin.length } : {}) : {}, left.owned ? { owned: left.owned } : {}, Object.keys(fails).length ? { fails } : {}))
   if (!n && voids.length) A.result(bot, { ev: 'void_under_pad', job: job.id, n: voids.length, cells: voids.slice(0, 8).join(' | ') })
   // A FILLED KEEP-OUT SAYS SO ONCE (nothing in the code reads it: the top model removes the zone from settings.keepOut on this event and the base becomes one piece):
   // every grade column of the box solid, no pinhole, nothing above grade.
@@ -3457,6 +3466,9 @@ async function build (bot, job, api, ctx) {
   if (waterKeys.size && n && !nMine && !left.dig.concat(left.put).some(c => !(c.block === 'water' && waterClaimed(c)))) return muster(bot, job, api, ctx, 'build: the rest waits for a water cell in work')
   if (n && !nMine && st.missing && Date.now() - st.missing.t < 300000) needNote(st.missing.item, n)
   if (n && !nMine && st.missing && Date.now() - st.missing.t < 300000) return muster(bot, job, api, ctx, 'build: waiting for ' + st.missing.item) // only furniture nobody has (a gate, a bed) is left: not "stuck"
+  // a cap whose remaining cells all still belong to a working fill is NOT stuck (three `stuckBy` bots pause a job, and the cap would be paused by the very job that is
+  // making its ground): it steps aside for 5 min and comes back when the fill has raised those columns.
+  if (capJob && n && !nMine && left.owned && !left.dig.length && !left.put.length) { const why = 'build: ' + left.owned + ' cap cells still belong to an active fill (one grade cell, one owner)'; A.decline(bot, job, 300000, why); return muster(bot, job, api, ctx, why) }
   if (n && !nMine) { // three different bots failed on everything that is left -> stop cycling the army through it: pause with the cell list for the foreman
     // the tally lives ON THE BOARD (the 30 bots run in 10 processes: a per-process Set never reached 3 and cap_stair_e spun at 2 passes/s)
     // A HANDFUL OF TERRAIN CELLS MUST NOT STALL THE BUILD ORDER (main 09-19: base_core_pad, 1500 cells, paused as "1 cells nobody could do: -346,68,-492" and its
@@ -3484,15 +3496,29 @@ async function build (bot, job, api, ctx) {
       let w = x2 - x1 + 1; let d = z2 - z1 + 1; if (w % 2 === 0) w++; if (d % 2 === 0) d++ // `level` is centred: an even side would drop a row (one row of ground more is no harm)
       const cx = x1 + (w - 1) / 2; const cz = z1 + (d - 1) / 2; const cols = w * d
       const capId = 'cap_' + job.id; let armed = false
+      // ...and IT IS NOT ARMED OVER GROUND THAT IS STILL BEING MADE (owner 14:1xZ): my footprint often overlaps the NEXT fill of the same trench (cap_ravine_nm over
+      // fill_ravine_m/n). A cap laying dirt while a fill puts its filler back is the dig/place loop, so the cap is pushed PAUSED with `after: <that fill>` and no note -
+      // the dispatcher activates it the moment the fill finishes. Per-column yielding (ownedCols) covers the rest; this only keeps a whole squad from walking there.
+      let blocker = null; let bOver = 0
+      try {
+        for (const q of ((A.readJSON(A.F.board, {}) || {}).jobs || [])) {
+          if (q.id === job.id || q.status !== 'active' || q.type !== 'build' || !q.params || (q.params.args || {}).cap) continue
+          if (!A.TERRAIN_BP.test(String(q.params.blueprint)) || !Array.isArray(q.params.origin)) continue
+          let a1 = Infinity; let c1 = Infinity; let a2 = -Infinity; let c2 = -Infinity
+          for (const c of A.blueprintCellsOf(q.params)) { if (c.x < a1) a1 = c.x; if (c.x > a2) a2 = c.x; if (c.z < c1) c1 = c.z; if (c.z > c2) c2 = c.z }
+          const ov = Math.max(0, Math.min(a2, x2) - Math.max(a1, x1) + 1) * Math.max(0, Math.min(c2, z2) - Math.max(c1, z1) + 1)
+          if (ov > bOver) { bOver = ov; blocker = q.id }
+        }
+      } catch (e_) { swallow('army_jobs:capBlocker', e_) }
       A.boardEdit(b => {
         const j = (b.jobs || []).find(q => q.id === job.id); if (!j || j.cap) return
         if (!(b.jobs || []).some(q => q.id === capId)) {
           // ORDER OF CAPS = WHAT THE OWNER SEES FIRST (owner 12:1xZ): the filled ravine in the middle of the base before the yard before the outer tiles - the
           // distance of the cap's centre from settings.base decides its priority (45 within 40 blocks, 38 within 90, else 30).
           const bs = A.settings().base || {}; const dBase = Number.isFinite(bs.x) ? Math.hypot(cx - bs.x, cz - bs.z) : 999
-          b.jobs.push({ id: capId, type: 'build', priority: dBase <= 40 ? 45 : dBase <= 90 ? 38 : 30, front: job.front || 'base', status: 'active', when: 'any', bots: Math.max(2, Math.min(8, Math.round(cols / 300))), site: [cx, o.y + 1, cz],
+          b.jobs.push(Object.assign({ id: capId, type: 'build', priority: dBase <= 40 ? 45 : dBase <= 90 ? 38 : 30, front: job.front || 'base', status: blocker ? 'paused' : 'active', when: 'any', bots: Math.max(2, Math.min(8, Math.round(cols / 300))), site: [cx, o.y + 1, cz] }, blocker ? { after: blocker } : {}, {
             plan: 'the finished ' + P.blueprint + ' of ' + job.id + ' is bare stone: cap the grade layer y' + o.y + ' of x ' + x1 + '..' + (x1 + w - 1) + ' / z ' + z1 + '..' + (z1 + d - 1) + ' with DIRT (grass spreads by itself). Only where bare stone, gravel or air stands - never paving, a field, a crop or another blueprint of ours - and only out of the dirt SURPLUS over targets.dirt ' + tgt,
-            params: { blueprint: 'level', origin: [cx, o.y, cz], args: { w, d, cap: true, fill: 'dirt' }, needStock: { dirt: 128 } /* a small floor, NOT settings.targets.dirt: the target is what the army wants to OWN (20 000 on 09-20) - a cap that waits for it never starts */, order: 'near' } })
+            params: { blueprint: 'level', origin: [cx, o.y, cz], args: { w, d, cap: true, fill: 'dirt' }, needStock: { dirt: 128 } /* a small floor, NOT settings.targets.dirt: the target is what the army wants to OWN (20 000 on 09-20) - a cap that waits for it never starts */, order: 'near' } }))
         }
         j.cap = { id: capId, cols, t: Date.now() }; armed = true
       })
