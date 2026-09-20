@@ -1024,7 +1024,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 11,
+   "bots": 10,
    "site": [
     -367,
     69,
@@ -1054,7 +1054,7 @@
      ]
     ]
    },
-   "rev": 40,
+   "rev": 42,
    "note": "engineer 07:45Z: the sponge now works the base audit work list first (tidy_fix events), tiles second"
   },
   {
@@ -1730,7 +1730,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789898450414
+   "restUntil": 1789899386234
   },
   {
    "id": "guard_muster",
@@ -1904,7 +1904,7 @@
    "priority": 96,
    "status": "active",
    "when": "any",
-   "bots": 8,
+   "bots": 2,
    "requires": {
     "minHp": 6
    },
@@ -1948,7 +1948,7 @@
      }
     ]
    },
-   "rev": 4,
+   "rev": 5,
    "note": "foreman 09:58: chest_full x8 (cat food) while the depot holds 19523 wheat and only 2355 bread. Baking compacts 3:1 AND is the food. Re-activated with 8 bots."
   },
   {
@@ -2121,7 +2121,7 @@
    },
    "shiftMin": 20,
    "rev": 12,
-   "restUntil": 1789898201410,
+   "restUntil": 1789899429329,
    "note": "09-20 05:40Z top model: 82 sheep stand OUTSIDE pen 1 (escaped 03:42-05:30Z over step blocks an escape routine left on the pen floor - removed, pen_litter rule live). want 30 + 4 herders until the flock is back; then want 10-24 / minBots 1 again",
    "desc": "OPERATORS: do NOT pause - since 09-20 02:00Z the herd job itself SHEARS the woolly sheep and CULLS the adults beyond want inside the pen (event pen_harvest); a full pen is its work, not a dead end (BUGS 105 fixed)",
    "produces": [
@@ -2166,7 +2166,7 @@
    },
    "shiftMin": 20,
    "rev": 5,
-   "restUntil": 1789898588103,
+   "restUntil": 1789899506550,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "leather"
@@ -2210,8 +2210,8 @@
     "max": 20
    },
    "shiftMin": 20,
-   "rev": 4,
-   "restUntil": 1789898579971,
+   "rev": 5,
+   "restUntil": 1789899244128,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "feather"
@@ -2569,7 +2569,7 @@
    },
    "bots": 2,
    "rev": 8,
-   "restUntil": 1789883283496,
+   "restUntil": 1789899661352,
    "note": "auto-activated: `after` base_cane finished (auto-paused: build complete)"
   },
   {
@@ -3201,7 +3201,8 @@
    },
    "desc": "starts by itself when base_cane (blueprint cane_block) is built. Pauses itself when cane_farm holds 260 plants. The depot also holds cane (626 at 05:30Z): cane_farm plants from stock first.",
    "rev": 1,
-   "note": "auto-activated: `after` base_cane finished (auto-paused: build complete)"
+   "note": "auto-activated: `after` base_cane finished (auto-paused: build complete)",
+   "restUntil": 1789899963024
   },
   {
    "id": "fill_ravine_s",
@@ -3319,7 +3320,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 6,
+   "bots": 2,
    "site": [
     -311,
     69,
@@ -3405,7 +3406,7 @@
      ]
     }
    },
-   "rev": 8,
+   "rev": 11,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check. | 09-20 09:4x: WALK-IN STAIR first (ramp z=-415, x -330..-323 joins the floor y55 to the natural slope y64->68 at the north end): the hole had NO walkable exit, 12 bots no_route"
   },
   {
@@ -3644,16 +3645,8 @@
      "d": 17
     }
    },
-   "rev": 10,
-   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -324,68,-505",
-   "stuckBy": {
-    "key": "rev10",
-    "bots": [
-     "Erika",
-     "Yui",
-     "Karin"
-    ]
-   }
+   "rev": 11,
+   "note": "auto-paused: build complete - BUT 31 columns are a deck over air (void_under_pad): -337,66,-503 | -336,65,-501 | -333,65,-506 | -333,65,-501 | -333,66,-500 | -332,66,-506"
   },
   {
    "id": "fill_void_mine_pad",
@@ -3662,7 +3655,7 @@
    "front": "works",
    "status": "paused",
    "when": "day",
-   "bots": 6,
+   "bots": 4,
    "site": [
     -334,
     68,
@@ -3692,7 +3685,8 @@
      ]
     }
    },
-   "note": "auto-paused: build complete - BUT 50 air cells stay sealed under it (void_under_pad): -338,64,-507 | -338,65,-507 | -338,66,-507 | -338,67,-507 | -338,63,-506 | -338,64,-506"
+   "note": "auto-paused: build complete - BUT 50 air cells stay sealed under it (void_under_pad): -338,64,-507 | -338,65,-507 | -338,66,-507 | -338,67,-507 | -338,63,-506 | -338,64,-506",
+   "rev": 1
   },
   {
    "id": "base_infill_n314_n527",
@@ -4019,7 +4013,7 @@
    "type": "build",
    "priority": 70,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 4,
    "site": [
@@ -4045,58 +4039,12 @@
      -422
     ]
    },
-   "note": "foreman 09:56: BASE AUDIT - 13 cells WRONG: the irrigation water at -297/-288/-279,68,-516 is cobbled_deepslate - a levelling/infill job decked the field水路. Restored from archive = the repair.",
+   "note": "auto-paused: build complete",
    "water": {
-    "key": "rev0",
-    "cells": {
-     "-288,68,-507": {
-      "fail": 1,
-      "why": "water NOT poured at -288,68,-507: no stand with a verified aim into the hole (bucket kept)"
-     },
-     "-279,68,-507": {
-      "by": "Tamaki",
-      "t": 1789898236734
-     },
-     "-297,68,-516": {
-      "by": "Rena",
-      "t": 1789898278947
-     }
-    }
-   }
-  },
-  {
-   "id": "chika_hold",
-   "type": "steps",
-   "priority": 97,
-   "status": "active",
-   "when": "any",
-   "names": [
-    "Chika"
-   ],
-   "plan": "no world change: Chika is trapped in a low river (y49, 16 below the forest floor at -520,-559; the pathfinder finds 45 nodes, the water body is 2000+). She HOLDS here quietly (no_route storm x38/10 min) until the top model fixes the swim routing - see docs/BUGS.md 10:1xZ",
-   "params": {
-    "steps": [
-     {
-      "do": "eat"
-     },
-     {
-      "do": "wait",
-      "s": 3000
-     },
-     {
-      "do": "wait",
-      "s": 3000
-     },
-     {
-      "do": "wait",
-      "s": 3000
-     },
-     {
-      "do": "wait",
-      "s": 3000
-     }
-    ]
-   }
+    "key": "rev1",
+    "cells": {}
+   },
+   "rev": 1
   }
  ]
 }

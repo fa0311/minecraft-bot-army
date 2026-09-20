@@ -2709,8 +2709,12 @@ async function build (bot, job, api, ctx) {
   const GRAV = ['gravel', 'sand', 'red_sand']
   const fillCell = async (c, item) => {
     const pos = new Vec3(c.x, c.y, c.z)
+    // A FLOWER IN THE CELL IS NOT A FILLED CELL AND NOT A PLACE TO PUT A BLOCK (10:4xZ fill_ravine_n: 1386 cells left, `done:0` x393 by 34 bots - the LOWEST open cells were
+    // dandelions/poppies on the old ravine floor; placeBlock said `occupied`, the cells rested 30 s, and every pass spent its 8 failures on the same flowers before it
+    // reached a single cell of the two open layers): pull the plant first; out of reach -> the COLUMN rests 10 min like any unreachable cell.
+    { const cur = at(c.x, c.y, c.z); if (cur && WEED_RE.test(cur.name)) { const d = await BL.digBlock(bot, pos, { collect: false, requireHarvest: false, plug: false }).catch(e => ({ ok: false, reason: String(e && e.message) })); if (!(d && d.ok)) { st.colSkip = st.colSkip || {}; st.colSkip[c.x + ',' + c.z] = Date.now() + 600000; return { ok: false, reason: 'rest:weed ' + String(d && d.reason).slice(0, 12) } } } }
     let r = await BL.placeBlock(bot, pos, item, { retries: 1, moveMs: 8000 }).catch(e => ({ ok: false, reason: String(e && e.message) }))
-    if (!r.ok && !/unreachable|no_los|locked/.test(String(r.reason))) { st.lockSkip = st.lockSkip || {}; st.lockSkip[K(c)] = Date.now() + 30000 }
+    if (!r.ok && !/unreachable|no_los|locked/.test(String(r.reason))) { st.lockSkip = st.lockSkip || {}; st.lockSkip[K(c)] = Date.now() + (/occupied/.test(String(r.reason)) ? 300000 : 30000) } // `occupied` does not change in 30 s: 5 min, the pass goes on to cells it CAN do
     if (r.ok || !/unreachable|no_los/.test(String(r.reason))) return r
     // A GROUND COLUMN NO RIM SHOWS (a 1x1 shaft under a pad cell) IS FILLED FROM INSIDE: step in, jump-place under the feet, ride up with it (army.js fillInside; drop <= 3 by
     // the pathfinder's own rule). Big solid fills (fill_void) keep their own way: builders already work inside the void on the rising floor.

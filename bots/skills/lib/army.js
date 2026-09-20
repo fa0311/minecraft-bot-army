@@ -622,7 +622,9 @@ function walkableArea (bot, limit = 120, maxDrop = 3) {
   // NOBODY STANDS ON WATER (09-20 09:3x-10:0xZ: Chika in a closed 44-cell pond 16 below the forest floor, banks 2 high - the air cell ABOVE the water counted as a
   // place to stand, from there every bank was "one step up": area 120, island 150, so no escape ever ran; the pathfinder reached 44 nodes, `no_route` x38 in 10 min).
   // A swimmer is IN a water cell; it leaves onto a bank whose top is level with that cell's top (dy +1 from the water cell) - exactly what the pathfinder can do.
-  const stand = p => (solid(bot.blockAt(p.offset(0, -1, 0))) || wet(bot.blockAt(p))) && pass(bot.blockAt(p)) && pass(bot.blockAt(p.offset(0, 1, 0)))
+  // ...AND NOBODY DIVES: only the SURFACE cell of a water column is room (10:2xZ: with every water cell counted the flood fill left Chika's pond through a submerged
+  // passage and reported 2000 cells, while the pathfinder - which swims on top - had 45 nodes; no escape routine ever ran).
+  const stand = p => (solid(bot.blockAt(p.offset(0, -1, 0))) || (wet(bot.blockAt(p)) && !wet(bot.blockAt(p.offset(0, 1, 0))))) && pass(bot.blockAt(p)) && pass(bot.blockAt(p.offset(0, 1, 0)))
   const start = bot.entity.position.floored()
   const seen = new Set([start.x + ',' + start.y + ',' + start.z])
   const q = [start]
@@ -820,7 +822,9 @@ async function digOut (bot, pit) {
   try {
     // stairUp checks its deadline only BETWEEN steps and one hand-dug step can take 3 x 35 s: an outer timeout 5 s after the inner one fired ~100x
     // (errors `army:373 timeout:stairUp`) and left stairUp digging on as a zombie while travel() walked the same bot. Slack = one full step.
-    if (pit && !gone()) await U.withTimeout(stairUp(bot, from.y + 4, 90000, () => skyAbove(bot) && walkableArea(bot) >= 60), 90000 + 115000, 'stairUp')
+    // A DEEP PIT UNDER THE SKY (10:3xZ Chika: a closed pond 16 below the forest floor - ONE flight of +4 ended at y53, `dug_out` from == to, `no_route` again for ever):
+    // flight after flight until the bot can walk again, at most 8 flights (32 levels); a flight that gains no height ends it.
+    if (pit) for (let i = 0; i < 8 && !gone() && !U.cancelled(bot) && (i === 0 || walkableArea(bot) < 60); i++) { const y0 = Math.floor(bot.entity.position.y); await U.withTimeout(stairUp(bot, y0 + 4, 90000, () => skyAbove(bot) && walkableArea(bot) >= 60), 90000 + 115000, 'stairUp'); if (Math.floor(bot.entity.position.y) <= y0) break }
     for (let i = 0; i < 12 && !skyAbove(bot) && !U.cancelled(bot) && !gone() && !insideOurs(bot); i++) await U.withTimeout(stairUp(bot, Math.floor(bot.entity.position.y) + 3, 60000, () => skyAbove(bot) && walkableArea(bot) >= 60), 60000 + 115000, 'stairUp')
   } catch (e_) { swallow('army:373', e_) }
   if (gone()) { result(bot, { ev: 'escape_aborted', from: [from.x, from.y, from.z], why: 'the bot died during the escape' }); bot.__stairPlaced = []; strictMovements(bot); return }
