@@ -1550,19 +1550,25 @@
     73,
     27
    ],
-   "surveyed": 1789919632607,
+   "surveyed": 1789922148941,
    "villagers": 9,
    "professions": {
-    "leatherworker": 4,
     "farmer": 2,
+    "leatherworker": 4,
     "weaponsmith": 1,
-    "unknown": 2
+    "toolsmith": 1,
+    "unknown": 1
    },
    "beds": 12,
    "stations": {
-    "composter": 2,
+    "smithing_table": 1,
     "grindstone": 1,
-    "blast_furnace": 1
+    "blast_furnace": 2,
+    "loom": 1,
+    "composter": 2,
+    "smoker": 1,
+    "lectern": 1,
+    "barrel": 1
    },
    "golems": 2,
    "bounds": [
@@ -1573,44 +1579,44 @@
    ],
    "nearest": [
     [
-     -722,
-     72,
-     29
-    ],
-    [
-     -722,
+     -724,
      72,
      30
     ],
     [
-     -722,
+     -721,
      72,
      30
     ],
     [
-     -720,
+     -719,
      72,
-     31
+     27
     ],
     [
-     -728,
+     -718,
      71,
-     32
+     24
     ],
     [
-     -729,
-     72,
-     32
-    ],
-    [
-     -733,
-     72,
-     32
-    ],
-    [
-     -714,
-     72,
+     -717,
+     71,
      31
+    ],
+    [
+     -717,
+     72,
+     32
+    ],
+    [
+     -717,
+     71,
+     25
+    ],
+    [
+     -744,
+     72,
+     38
     ]
    ],
    "post": {
@@ -1657,7 +1663,18 @@
      ]
     },
     "t": 1789920643887
-   }
+   },
+   "absorb": {
+    "carrot": 352,
+    "wheat": 320,
+    "pumpkin": 72,
+    "melon": 48,
+    "coal": 480,
+    "iron_ingot": 48,
+    "flint": 600,
+    "leather": 192
+   },
+   "absorbT": 1789922014930
   },
   "enchantTable": [
    -344,
@@ -1864,7 +1881,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 2,
    "site": [
     -367,
     69,
@@ -1900,7 +1917,7 @@
      ]
     ]
    },
-   "rev": 69,
+   "rev": 70,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789917857836
   },
@@ -2448,7 +2465,7 @@
    "id": "smelt_depot",
    "type": "steps",
    "priority": 87,
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "requires": {
@@ -3167,8 +3184,8 @@
    "note": "top model 15:1xZ: 655 OPEN cells (left 3216 minus waiting 2561) - do not lower; ladderWay (fill_wayin) needs builders standing on the RIM to hang the way in",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Misaki",
-    "t": 1789921998139,
+    "by": "Ayame",
+    "t": 1789922134466,
     "at": [
      -301,
      60,
@@ -3931,7 +3948,7 @@
    "front": "base",
    "status": "active",
    "when": "day",
-   "bots": 1,
+   "bots": 6,
    "site": [
     -326,
     68,
@@ -3949,7 +3966,8 @@
     "args": {
      "axis": "x",
      "clear": 6,
-     "margin": 6
+     "margin": 6,
+     "stone": "cobbled_deepslate"
     }
    },
    "stuckBy": {
@@ -3959,7 +3977,7 @@
     ]
    },
    "note": "needs: cobblestone (150 cells wait; every cell whose material exists is done or in work)",
-   "rev": 6
+   "rev": 8
   },
   {
    "id": "base_mine_pad",
@@ -4300,7 +4318,7 @@
      "Akari"
     ]
    },
-   "restUntil": 1789922017357
+   "restUntil": 1789923833466
   },
   {
    "id": "stray_furnace_344",
@@ -4690,7 +4708,7 @@
     },
     "order": "near"
    },
-   "restUntil": 1789921896934,
+   "restUntil": 1789923828453,
    "way": {
     "by": "Madoka",
     "t": 1789916716021,
@@ -5122,33 +5140,39 @@
      {
       "item": "wheat",
       "reserve": 4000,
+      "n": 384,
       "min": 64
      },
      {
       "item": "coal",
       "reserve": 768,
-      "min": 64
-     },
-     {
-      "item": "leather",
-      "reserve": 48,
-      "min": 32
-     },
-     {
-      "item": "gray_wool",
-      "reserve": 64,
+      "n": 240,
       "min": 64
      },
      {
       "item": "paper",
       "reserve": 96,
+      "n": 384,
       "min": 48
+     },
+     {
+      "item": "leather",
+      "reserve": 48,
+      "n": 120,
+      "min": 32
+     },
+     {
+      "item": "gray_wool",
+      "reserve": 64,
+      "n": 288,
+      "min": 64
      }
     ],
     "passes": 3,
-    "cargoSlots": 20
+    "cargoSlots": 22,
+    "food": 32
    },
-   "rev": 6
+   "rev": 7
   },
   {
    "id": "nether_landing_3",
@@ -5764,7 +5788,7 @@
    "id": "bake_bulk",
    "type": "steps",
    "priority": 96,
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 4,
    "requires": {
@@ -6043,7 +6067,8 @@
      }
     ]
    },
-   "rev": 6
+   "rev": 6,
+   "note": "auto-paused: plan failed"
   },
   {
    "id": "void_fix_base_infill_minehead_mound",
@@ -6160,7 +6185,7 @@
    "type": "enchant",
    "priority": 88,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "site": [
@@ -6203,10 +6228,12 @@
      "Aoi": 9,
      "Nanami": 18,
      "Noa": 9,
-     "Himari": 19
+     "Himari": 19,
+     "Tsumugi": 0
     }
    },
-   "restUntil": 1789921753614
+   "restUntil": 1789921753614,
+   "note": "auto-paused 16:33Z: 12 bots tried, best level 26/30 - EXPERIENCE is the bottleneck, not the table. Re-activate when a bot reaches 30."
   },
   {
    "id": "cavity_base",
@@ -6250,7 +6277,7 @@
      -455
     ]
    },
-   "rev": 7
+   "rev": 9
   },
   {
    "id": "fill_buckets",
@@ -6486,7 +6513,7 @@
    "type": "build",
    "priority": 95,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 1,
    "site": [
@@ -6513,8 +6540,14 @@
      "shoulder": 0
     }
    },
-   "note": "needs: cobblestone (17 cells wait; every cell whose material exists is done or in work)",
-   "rev": 1
+   "note": "auto-paused: build complete",
+   "rev": 1,
+   "stuckBy": {
+    "key": "rev1",
+    "bots": [
+     "Kanade"
+    ]
+   }
   }
  ]
 }

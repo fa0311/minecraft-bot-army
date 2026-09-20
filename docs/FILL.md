@@ -29,9 +29,9 @@
 |---|---|---|---|---|---|---|
 | a | 20x20x6 pit with a ramp, 6 builders | 1980 | 6 | 6.4 | 92 | walks in, no entry needed |
 | b | the live trench 7x21x15, 12 builders | 2277 | 7 | 10.9 | 83 | `drop` entry, 22 falls, 0 deaths |
-| c | overhangs + three 1x1 shafts 12 deep | 1720 | 8 | — | — | **OPEN**: finishes in 7.8 min with `entry:'ladder'`, stalls with `drop` — the roofed pocket and the drop entry interact (see the log line `stalled … 311 cells left`) |
+| c | overhangs + three 1x1 shafts 12 deep | 1720 | 8 | — | — | **OPEN**: 7.8 min with `entry:'ladder'`, stalls with the default `drop` (311 cells) — the roofed pocket and the drop entry interact |
 | d | pit with a 4x4 lava pool | 1536 | 8 | 3.8 | 68 | quenched first, nobody stands touching lava |
-| e | the whole ravine 46x79, 10-28 deep, 30 builders | ~69k | — | — | — | long run; numbers in the suite output |
+| e | the whole ravine 46x79, 10-28 deep, 30 builders | 69055 | 30 | **35.2** | 64 | 0 abandoned, 0 falls, 68 restock trips — the twelve-hour job |
 | f | 150-cell tail, 25 builders | 150 | 10 | 0.9 | 68 | 39 `leave`s: the surplus is spent elsewhere |
 | g | the same trench while builders join and vanish | 2277 | 5 | 26.4 | 84 | a vanished owner's lane is reclaimed by timeout |
 `K` is the one throughput knob (measured on (b), 12 builders available): K 40 → 1 builder, 27.6 min · K 9 → 5, 16.5 · **K 8 → 6, 12.8** · K 6 → 7, 10.1 · K 4 → 10, 10.8 (crowded, each slower).

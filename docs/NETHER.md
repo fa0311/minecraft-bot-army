@@ -61,6 +61,16 @@ Both scouts of the 15:4x-16:0x shift were killed by an operator's `rescue` withi
 reads ONE gate in each dimension** (the second overworld cluster at -284..-279, y30-31, -604..-601 is 13 obsidian with **0 portal
 cells** — a natural lava/water pocket in a cave, not a gate).
 
+## SIZED FOR FIFTY (owner 16:3xZ 「50人でマインクラフトをやっていることを忘れているのでは？ネザーゲート周りが狭すぎる」, CLAUDE.md rule 0)
+| where | was | is |
+|---|---|---|
+| home apron (blueprint `nether_portal`, job `base_portal`, `args {clear:6, margin:6}`) | 10x9 cobble, no road | **16x15** at y68 with the frame in the middle, 6 clear cells at each face, 5 of headroom, stepped shoulders, 4 torches — 264 stone; plus `nether_gate_road`, a 3-wide paved link from -334,68,-518 to the lattice at -338,68,-518 (probe: grass y68 the whole way, lattice cobble y68) |
+| far platform (`work:'pair'`) | 7x9 | **15x15** with the gate in the middle, 3 high clear, a **solid rail on the whole outer rim** (a ghast's fireball knocks bots off, it does not kill them), 7 clear cells at each face |
+| causeway (`causewayCells`) | 3 wide + rails | **5 walkable** (two lanes each way + a spare), floor 7 wide, rail on both rims |
+| `spreadOut` / `landing` | ring 2-4 cells, 7x9 | the whole platform: ring 3-7 by roster index, landing box 15x15, nothing within 3 of a portal face |
+
+**Throughput of ONE frame, from today's measurements** (single-bot, a 20-bot crossing has not been run): a bot is transferred after the vanilla 80 ticks (4 s) and is **off the arrival cells in 0.3-0.7 s** (`offCellS`, five crossings) — so a cell is free again ~4.5 s after it is entered, and a frame has **6 cells working in parallel**: ~6 bots per 4.5 s, i.e. a 20-bot shift change ≈ 18 s through one frame. **No second frame is needed**; what was actually queueing was the 8-cell arrival pocket, which the 15x15 platform removes. Re-measure with a real squad once the platform stands.
+
 ## NEXT, in order
 1. `nether_pair` (1 pinned scout, **OWNER-LOCKED** while it runs): finish the causeway — anchored at the gate and written to `settings.nether.pairRoad`, so every trip continues the same road; 17 legs, floor 5 wide (the middle 3 walkable, the outer 2 carry the rail — a rail over the void has nothing to be placed against otherwise), and `buildCells` now walks to the head of the road it has already laid instead of looking for a stand in the void it is about to bridge. Then the 7x9 platform → frame on -41,-65 → light → `paired`.
 2. Then `portal_through` must land within 2 of the NEW gate (the return side is already proven), with a camera census after each trip.

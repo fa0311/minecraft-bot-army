@@ -1187,7 +1187,8 @@ async function main () {
     const b = rj(BOARD); const j = (b.jobs || []).find(x => x.id === arg); const st = process.argv[4]
     if (!j || !['active', 'paused'].includes(st)) return console.log('usage: job <id> active|paused   ids:', (b.jobs || []).map(x => x.id + '=' + x.status).join(' '))
     if (st === 'paused' && b.settings.fallback === j.id) return console.log('REFUSED: ' + j.id + ' is the FALLBACK sponge (settings.fallback) - pausing it parks the whole army at muster. Lower its `bots` or fix its handler instead.')
-    if (st === 'active' && /^OWNER-LOCKED/.test(j.desc || '') && process.env.ARMY_OWNER !== '1') return console.log('REFUSED: ' + j.id + ' is OWNER-LOCKED (' + String(j.desc).slice(0, 120) + '). Nobody but the top model at the owner\'s word re-activates it. If bots idle, that is the finding: report it, do not feed them make-work.')
+    if (/^OWNER-LOCKED/.test(j.desc || '') && st !== j.status && process.env.ARMY_OWNER !== '1') // BOTH ways (16:3xZ: an operator paused the locked `nether_pair` twice in 20 min)
+ return console.log('REFUSED: ' + j.id + ' is OWNER-LOCKED (' + String(j.desc).slice(0, 120) + '). Its status is not yours to change (neither activate nor pause). If bots idle or the job looks slow, that is a finding: one line in docs/BUGS.md.')
     j.status = st; wj(BOARD, b); console.log(j.id, '->', st)
   } else if (cmd === 'events') { // events [n] [regex|all]
     const n = +arg || 30; const flt = process.argv[4] || (arg && !+arg ? arg : ''); const fmt = (t, bot, ev, rest, extra) => console.log(new Date(t).toISOString().slice(11, 19), String(bot).padEnd(8), String(ev).padEnd(12), (extra || '') + JSON.stringify(rest).slice(0, 160))

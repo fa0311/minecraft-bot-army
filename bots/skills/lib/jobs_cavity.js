@@ -870,11 +870,33 @@ module.exports = ctx => {
     const item0 = await stockUp(bot, job, api, P, ent.cells + 48)
     if (!item0) return { ok: false, why: 'no filler: depot ' + (P.filler || 'cobblestone') + ' ' + A.stockOf(P.filler || 'cobblestone'), declined: true }
     // 2. GO AND LOOK
+    // EVERY RIM, NOT THE FIRST ONE: over a ravine crust most surface columns are islands the read-only pathfinder cannot reach, and one
+    // `no_route` used to cost the whole hole (16:5xZ: -317,68,-462 / -311,68,-470 / -320,68,-461 / -313,68,-464 / -308,68,-462 all at y68,
+    // i.e. ABOVE the ravine_s keep-out floor y65 - the keep-out is not what stops them, the broken crust is).
     const tops0 = (ent.tops || []).map(t => t.at)
-    const to = tops0[0] || [ent.at[0], ent.at[1], ent.at[2]]
-    task(bot, 'cavity: walking to ' + to.join(','))
-    holdPockets(bot)
-    if (!await A.travel(bot, { x: to[0], y: null, z: to[2] }, { range: 4, ms: 300000, stop: api.stop, onHop: () => holdPockets(bot) })) return { ok: false, why: 'no_route to ' + to.join(',') }
+    if (!tops0.length) tops0.push([ent.at[0], ent.at[1], ent.at[2]])
+    let reached = null; let extraTop = null; const noRoute = []
+    for (const to of tops0.slice(0, 4)) {
+      if (api.stop()) break
+      task(bot, 'cavity: walking to ' + to.join(','))
+      holdPockets(bot)
+      if (await A.travel(bot, { x: to[0], y: null, z: to[2] }, { range: 4, ms: 180000, stop: api.stop, quiet: noRoute.length > 0 })) { reached = to; break }
+      noRoute.push(to.join(','))
+    }
+    // ...and when the six recorded rims are all islands, ANY free column over the hole will do: dig through the crust from there and let the
+    // entry rules (read below the feet, sideDrop with the bucket when a real drop opens) do the rest.
+    if (!reached && !api.stop()) {
+      const PS0 = planSets(A, paramsBox(P)); const bb0 = ent.bbox || [ent.at[0], 0, ent.at[2], ent.at[0], 0, ent.at[2]]
+      const cands = []
+      for (let x = bb0[0] - 2; x <= bb0[3] + 2; x++) for (let z = bb0[2] - 2; z <= bb0[5] + 2; z++) if (!PS0.blockedCol(x, z) && !tops0.some(t => t[0] === x && t[2] === z)) cands.push([x, z])
+      cands.sort((a, b) => A.dist2(bot, a[0], a[1]) - A.dist2(bot, b[0], b[1]))
+      for (const [x, z] of cands.slice(0, 6)) {
+        if (api.stop()) break
+        if (await A.travel(bot, { x, y: null, z }, { range: 2, ms: 90000, stop: api.stop, quiet: true })) { reached = [x, null, z]; extraTop = { at: [x, 0, z], entryY: bb0[4], drop: 0, tunnel: null, live: true }; break }
+        noRoute.push(x + ',' + z)
+      }
+    }
+    if (!reached) return { ok: false, why: api.stop() ? 'the slice ended on the way to ' + ent.at.join(',') : 'no_route to any of ' + noRoute.slice(0, 6).join(' ') + ' (' + noRoute.length + ' rim columns tried)', quiet: api.stop() }
     holdPockets(bot)
     await sleep(600)
     // 3. re-read the hole in the world. A NECK carries its own cell list (it was cut out of a cave component the bot must not flood-fill).
@@ -929,7 +951,8 @@ module.exports = ctx => {
       if (!await A.travel(bot, low, { range: 1, ms: 180000, stop: api.stop })) return { ok: false, why: 'no_route down the scar to ' + xyzOf(low).join(',') }
     } else {
       const PS = planSets(A, paramsBox(P))
-      const tops = (ent.tops || []).filter(t => !PS.blockedCol(t.at[0], t.at[2]))
+      const tops = (extraTop ? [extraTop] : []).concat((ent.tops || []).filter(t => !PS.blockedCol(t.at[0], t.at[2]))
+        .sort((a, b) => (b.at.join(',') === reached.join(',') ? 1 : 0) - (a.at.join(',') === reached.join(',') ? 1 : 0)))
       if (!tops.length) return { ok: false, why: 'no free surface cell over ' + ent.at.join(',') + ' (building / field / pen / road / furniture)' }
       let got = null; const sCache = new Map(); const skipped = []
       for (const t0 of tops.slice(0, 4)) {
@@ -950,6 +973,7 @@ module.exports = ctx => {
       if (!got) return { ok: false, why: 'no shaft could be cut over ' + ent.at.join(',') + (skipped.length ? ' (' + skipped.slice(0, 4).join(' ') + ')' : '') }
       for (let y = got.at[1] - 1; y >= got.entryY; y--) { const q = new Vec3(got.at[0], y, got.at[2]); want.set(keyOf(q), q) } // the shaft is filled too
       for (const c of got.tunnel || []) { const q = vv(c); want.set(keyOf(q), q) } // ...and so is the tunnel
+      for (const k of log) { const [qx, qy, qz] = k.split(',').map(Number); const q = new Vec3(qx, qy, qz); if (!want.has(keyOf(q))) want.set(keyOf(q), q) } // ...and EVERY cell we opened, including the neighbour column sideDrop cut
       restoreList.push({ at: vv(got.at), name: got.name }) // ...and its top cell gets the surface material back
     }
     const inFill = setInterval(() => { try { const q = bot.entity.position.floored(); bot.__armyInFill = { job: job.id, until: Date.now() + 300000, at: [q.x, q.y, q.z] } } catch (e_) { swallow('jobs_cavity:inFillTick', e_) } }, 5000)
@@ -1072,8 +1096,11 @@ module.exports = ctx => {
       A.result(bot, { ev: 'cavity_filled', at: ent.at, kind: ent.type + (ent.neck ? '/neck' : ''), cells: r.cells, placed: r.placed, top: r.top, restored: r.restored, scooped: r.scooped, hang: r.hang || 0, tookS: r.tookS })
       return 'cavity: filled ' + ent.at.join(',') + ' (' + r.placed + ' blocks, ' + r.tookS + ' s)'
     }
-    if (r.done || r.stale) { markDone(ent.id, { type: r.done ? 'filled' : 'stale', spawnable: 0 }); await claimEnd(bot, ent.id, { done: true, why: r.why }) } else await claimEnd(bot, ent.id, { cool: 20 * 60000, why: String(r.why).slice(0, 80) })
-    A.result(bot, { ev: 'cavity_failed', at: ent.at, kind: ent.type, why: String(r.why).slice(0, 110), placed: r.placed || 0, left: r.left == null ? null : r.left })
+    if (r.done || r.stale) { markDone(ent.id, { type: r.done ? 'filled' : 'stale', spawnable: 0 }); await claimEnd(bot, ent.id, { done: true, why: r.why }) } else await claimEnd(bot, ent.id, { cool: (r.placed > 0 ? 4 : 20) * 60000, why: String(r.why).slice(0, 80) })
+    // A BIG CAVERN IS NOT CLOSED IN ONE SLICE and a pass that put 80 blocks in is not a failure - it is the measurement of this front's rate.
+    // Only a pass that changed NOTHING in the world is reported as a failure (that is the line an operator has to act on).
+    if (r.placed > 0) A.result(bot, { ev: 'cavity_pass', at: ent.at, kind: ent.type + (ent.neck ? '/neck' : ''), placed: r.placed, left: r.left, cells: r.cells, entered: r.entered || null, tookS: r.tookS })
+    else if (!r.quiet) A.result(bot, { ev: 'cavity_failed', at: ent.at, kind: ent.type, why: String(r.why).slice(0, 110), placed: 0, left: r.left == null ? null : r.left })
     if (r.declined) return muster(bot, job, api, ctx2, 'cavity: ' + r.why)
     return 'cavity: ' + ent.at.join(',') + ' not closed - ' + String(r.why).slice(0, 80)
   }

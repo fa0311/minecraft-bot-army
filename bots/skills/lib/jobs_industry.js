@@ -49,6 +49,13 @@ module.exports = ctx => {
   }
   const industryEdit = patch => A.boardEdit(b => { const S = b.settings = b.settings || {}; S.industry = Object.assign({}, S.industry || {}, patch) })
 
+  // EAT ON THE ROAD. This front's legs are 624 blocks at a sprint and the handler owns the bot for the whole of them; the
+  // canteen in withHandover only runs at a slice start near the depot. Measured 16:35Z: Tamaki reached hp 1 / food 0 with 6 iron
+  // axes and 24 emeralds in her pockets, four loaves in hand and nothing calling eat(). Called at every phase boundary.
+  async function nibble (bot) {
+    try { if (bot.food < 18) await U.withTimeout(require('./feed').eat(bot, { rawOk: true }), 15000, 'tradeEat') } catch (e_) { swallow('jobs_industry:nibble', e_) }
+  }
+
   // ---------------------------------------------------------------- what we sell and what we buy
   // reserve = what stays in the depot whatever happens. Glut above the reserve is dead weight; below it, it is the army's supply.
   // n = how much one trip carries (16 uses of the vanilla trade, which is about one restock cycle of one villager).
