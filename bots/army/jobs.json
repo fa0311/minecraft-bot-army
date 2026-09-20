@@ -1280,7 +1280,7 @@
     98,
     -80
    ],
-   "through": 1789932692565,
+   "through": 1789933468672,
    "scoutRev": 2,
    "hub": {
     "room": [
@@ -1392,8 +1392,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789932692768,
-   "back": 1789932704814,
+   "landingAt": 1789933377630,
+   "back": 1789933511487,
    "lastDeath": 1789924669079,
    "lastDeathBy": "Fuuka",
    "roads": {
@@ -1615,20 +1615,20 @@
     "t": 1789924913245
    },
    "absorb": {
-    "iron_ingot": 336,
-    "coal": 1200,
+    "coal": 480,
+    "iron_ingot": 144,
     "white_wool": 288,
     "black_wool": 288,
-    "flint": 1176,
-    "diamond": 36,
+    "flint": 600,
+    "diamond": 12,
     "leather": 192,
-    "carrot": 704,
-    "wheat": 640,
-    "pumpkin": 216,
-    "melon": 144,
+    "carrot": 352,
+    "wheat": 320,
+    "pumpkin": 144,
+    "melon": 96,
     "beetroot": 240
    },
-   "absorbT": 1789931726176
+   "absorbT": 1789933837273
   },
   "enchantTable": [
    -344,
@@ -1649,6 +1649,19 @@
      "raw": 0,
      "by": "Yui",
      "t": 1789924071497
+    },
+    {
+     "key": "-32,1,-48/iron",
+     "at": [
+      -253,
+      15,
+      -382
+     ],
+     "kind": "iron",
+     "seen": 20,
+     "raw": 0,
+     "by": "Nanami",
+     "t": 1789933526726
     }
    ]
   }
@@ -1785,8 +1798,8 @@
    "produces": [
     "food"
    ],
-   "minBots": 3,
-   "maxBots": 5,
+   "minBots": 0,
+   "maxBots": 2,
    "site": [
     -367,
     69,
@@ -1806,8 +1819,8 @@
     "maxDist": 220,
     "first": "sheep"
    },
-   "rev": 21,
-   "bots": 5,
+   "rev": 25,
+   "bots": 2,
    "note": "owner 09-20: sheep are culled actively (wool 10 328 / 150, TPS). ONLY sheep: the hunt handler has NO pen exclusion - with kinds sheep/pig/cow/chicken and leave 0 the hunters emptied pen 1 (69 sheep) within the hour; cows, chickens and pigs are left alone until the handler spares penned animals (BUGS)"
   },
   {
@@ -2223,7 +2236,7 @@
    },
    "rev": 10,
    "bots": 1,
-   "restUntil": 1789933761548
+   "restUntil": 1789935680169
   },
   {
    "id": "sleeper",
@@ -2310,7 +2323,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789932781240
+   "restUntil": 1789934628497
   },
   {
    "id": "fill_ring_field2",
@@ -3676,7 +3689,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789933007771
+   "restUntil": 1789934822887
   },
   {
    "id": "nether_landing_2",
@@ -4646,7 +4659,7 @@
    "type": "build",
    "priority": 74,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "site": [
@@ -4695,7 +4708,13 @@
     ]
    },
    "rev": 10,
-   "pri": 97
+   "pri": 97,
+   "note": "auto-paused: build complete - BUT 39 air cells stay sealed under it (void_under_pad): -328,64,-506 | -328,65,-506 | -328,66,-506 | -328,64,-503 | -328,62,-495 | -328,63,-495",
+   "cap": {
+    "id": "cap_fill_minehead_pits",
+    "cols": 65,
+    "t": 1789933032522
+   }
   },
   {
    "id": "base_depot_south",
@@ -4745,9 +4764,9 @@
    "type": "build",
    "priority": 60,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 6,
+   "bots": 3,
    "site": [
     -291,
     68,
@@ -4772,15 +4791,14 @@
     },
     "order": "near"
    },
-   "rev": 11,
-   "note": "auto-paused: 52 cells nobody could do: -269,68,-559 | -268,68,-559 | -267,68,-559 | -266,68,-559 | -265,68,-559 | -264,68,-559",
+   "rev": 14,
+   "note": "needs: dirt (18 cells wait; every cell whose material exists is done or in work)",
    "restUntil": 1789922783977,
    "stuckBy": {
-    "key": "rev11",
+    "key": "rev14",
     "bots": [
-     "Fuuka",
-     "Rena",
-     "Akari"
+     "Hina",
+     "Kokoro"
     ]
    }
   },
@@ -4888,7 +4906,7 @@
    "front": "base",
    "status": "active",
    "when": "day",
-   "bots": 2,
+   "bots": 1,
    "shiftMin": 20,
    "site": [
     -326,
@@ -4917,7 +4935,7 @@
     "maxDeaths": 6
    },
    "desc": "EYE OF ENDER, pearl half (owner: eyes are missing after 22 h): 1291 gold in the depot, 4 golden_boots exist. Bartering stands at the hub - it does NOT walk the open Nether, so it runs before the fortress road. 2 bots, maxDeaths 2: measure pearls per gold before it grows",
-   "rev": 2,
+   "rev": 3,
    "maxDeaths": 2
   },
   {
@@ -5968,7 +5986,7 @@
     "carry": 320
    },
    "rev": 14,
-   "restUntil": 1789932691718
+   "restUntil": 1789934983419
   },
   {
    "id": "fill_buckets",
@@ -6457,7 +6475,7 @@
    "type": "build",
    "priority": 57,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 13,
    "site": [
@@ -6481,21 +6499,13 @@
      "d": 15
     }
    },
-   "rev": 4,
-   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -402,65,-548",
+   "rev": 5,
+   "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -402,64,-548",
    "restUntil": 1789931178935,
    "cap": {
     "id": "cap_base_pen_2_pad",
     "cols": 435,
     "t": 1789927911282
-   },
-   "stuckBy": {
-    "key": "rev4",
-    "bots": [
-     "Yui",
-     "Sayaka",
-     "Kotori"
-    ]
    }
   },
   {
@@ -6627,6 +6637,46 @@
     ]
    },
    "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -402,65,-548"
+  },
+  {
+   "id": "cap_fill_minehead_pits",
+   "type": "build",
+   "priority": 38,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -326,
+    69,
+    -500
+   ],
+   "plan": "the finished fill_void of fill_minehead_pits is bare stone: cap the grade layer y68 of x -328..-324 / z -506..-494 with DIRT (grass spreads by itself). Only where bare stone, gravel or air stands - never paving, a field, a crop or another blueprint of ours - and only out of the dirt SURPLUS over targets.dirt 128",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -326,
+     68,
+     -500
+    ],
+    "args": {
+     "w": 5,
+     "d": 13,
+     "cap": true,
+     "fill": "dirt"
+    },
+    "needStock": {
+     "dirt": 128
+    },
+    "order": "near"
+   },
+   "note": "auto-paused: build complete",
+   "stuckBy": {
+    "key": "rev0",
+    "bots": [
+     "Hazuki"
+    ]
+   }
   }
  ]
 }
