@@ -173,6 +173,11 @@ module.exports = ctx => {
   }
 
   // ---------------------------------------------------------------- one trade window
+  // THE OPEN WINDOW IS THE TRUTH, NEVER bot.inventory (docs/DEV.md §3, and measured here 15:16Z: Tamaki really sold 320 wheat for
+  // 16 emeralds and this file reported `trade_none` and bought nothing, because `A.count` still read 0 emeralds while the villager
+  // window was open). Every count taken between opening and closing a trade window goes through inWin().
+  const inWin = (win, name) => { let n = 0; for (const i of win.items()) if (i.name === name) n += i.count; return n }
+
   // Reading an offer: mineflayer turns the packet into Items. `realPrice` already carries demand + reputation; a trade that the
   // server marks disabled or used up is SKIPPED, never retried (the villager restocks at its workstation by itself).
   function offerOf (t) {
@@ -203,22 +208,24 @@ module.exports = ctx => {
     try {
       try { await bot.lookAt(ent.position.offset(0, 1, 0), true) } catch (e_) { swallow('jobs_industry:lookAt', e_) }
       win = await U.withTimeout(bot.openVillager(ent), 12000, 'openVillager')
-      const offers = (win.trades || []).map(offerOf)
+      // the offer list is re-read from the window before every decision: a finished trade changes `nbTradeUses` and the server
+      // sends a fresh trade_list, so a list cached at the top of the visit goes stale halfway through it
+      const offersNow = () => (win.trades || []).map(offerOf)
+      const offers = offersNow()
       if (!offers.some(Boolean)) return { why: 'no offers' }
       // say ONCE per profession what this village really pays — the numbers in a wiki are not this server's numbers
       const key = offers.filter(Boolean).map(o => o.in1 + '->' + o.out).join(' ')
       if (!seenOffers.has(key)) {
         seenOffers.add(key)
-        A.result(bot, { ev: 'trade_offer', job: job.id, at: xyz(ent.position), title: String(win.title || '').slice(0, 40), offers: offers.filter(Boolean).map(o => (o.price + ' ' + o.in1 + (o.in2 ? ' + ' + o.price2 + ' ' + o.in2 : '') + ' -> ' + o.outN + ' ' + o.out + (o.left ? '' : ' [locked]'))) })
+        A.result(bot, { ev: 'trade_offer', job: job.id, at: xyz(ent.position), title: titleOf(win), offers: offers.filter(Boolean).map(o => (o.price + ' ' + o.in1 + (o.in2 ? ' + ' + o.price2 + ' ' + o.in2 : '') + ' -> ' + o.outN + ' ' + o.out + (o.left ? '' : ' [locked]'))) })
       }
 
       // SELL: every offer that pays emeralds for something in our pockets
       for (let i = 0; i < offers.length; i++) {
         if (api.stop()) break
-        const o = offers[i]
+        const o = offersNow()[i]
         if (!o || o.out !== 'emerald' || o.in2 || !o.left) continue
-        const have = A.count(bot, o.in1)
-        const n = Math.min(o.left, Math.floor(have / o.price))
+        const n = Math.min(o.left, Math.floor(inWin(win, o.in1) / o.price))
         if (n <= 0) continue
         const got = await runTrade(bot, win, i, n)
         if (got > 0) { sold[o.in1] = (sold[o.in1] || 0) + got * o.price; await sleep(250) }
@@ -228,10 +235,10 @@ module.exports = ctx => {
       for (const b of want) {
         if (api.stop() || b.want <= 0) continue
         for (let i = 0; i < offers.length; i++) {
-          const o = offers[i]
+          const o = offersNow()[i]
           if (!o || !o.left || o.in1 !== 'emerald' || o.in2 || !b.re.test(o.out)) continue
           if (o.price > maxPrice) continue
-          const canPay = Math.floor(A.count(bot, 'emerald') / o.price)
+          const canPay = Math.floor(inWin(win, 'emerald') / o.price)
           const n = Math.min(o.left, canPay, Math.ceil(b.want / o.outN))
           if (n <= 0) continue
           const got = await runTrade(bot, win, i, n)
@@ -245,21 +252,25 @@ module.exports = ctx => {
     } finally {
       if (win) A.closeWin(win)
       try { if (bot.currentWindow) bot.closeWindow(bot.currentWindow) } catch (e_) { swallow('jobs_industry:closeCur', e_) }
-      await sleep(300)
+      // the NEXT openVillager fails with `timeout:openVillager` while this window is still open server-side (measured 15:16Z):
+      // wait for the client to have no window before walking on
+      for (let i = 0; i < 20 && bot.currentWindow; i++) await sleep(150)
     }
     return { sold, bought, emeralds: A.count(bot, 'emerald') - em0 }
   }
   const seenOffers = new Set()
+  const titleOf = win => { const t = win && win.title; return typeof t === 'string' ? t.slice(0, 40) : JSON.stringify(t || null).slice(0, 80) }
 
-  // Run one offer `n` times and report what the SERVER actually gave us (bot.trade resolves optimistically).
+  // Run one offer `n` times and report what the SERVER actually gave us (bot.trade resolves optimistically), counted on the
+  // OPEN WINDOW — bot.inventory does not update until the window closes.
   async function runTrade (bot, win, index, n) {
     const t = (win.trades || [])[index]
     const out = t && (t.outputItem || (t.outputs && t.outputs[0]))
     if (!out || !out.name) return 0
-    const before = A.count(bot, out.name)
-    try { await U.withTimeout(bot.trade(win, index, n), 15000, 'trade') } catch (e_) { swallow('jobs_industry:runTrade', e_) }
-    await sleep(400)
-    const gained = A.count(bot, out.name) - before
+    const before = inWin(win, out.name)
+    try { await U.withTimeout(bot.trade(win, index, n), 20000, 'trade') } catch (e_) { swallow('jobs_industry:runTrade', e_) }
+    for (let i = 0; i < 12 && inWin(win, out.name) <= before; i++) await sleep(150) // the window lags the server by a tick or two
+    const gained = inWin(win, out.name) - before
     return Math.max(0, Math.round(gained / (out.count || 1)))
   }
 
@@ -288,6 +299,10 @@ module.exports = ctx => {
       const n = await A.withdraw(bot, c.item, c.n, { stop: api.stop })
       if (n > 0) got[c.item] = n
     }
+    // EMERALDS ARE WORKING CAPITAL, not loot: whatever a previous trip banked goes back out, so a visit can buy even when this
+    // village has little left to buy from us that day.
+    const purse = Math.min(64, A.stockOf('emerald'))
+    if (purse > 0) { const n = await A.withdraw(bot, 'emerald', purse, { stop: api.stop }); if (n > 0) got.emerald = n }
     if (!A.count(bot, 'bread') && !bot.inventory.items().some(i => bot.registry.foodsByName[i.name])) await A.obtain(bot, 'bread', 16, { stop: api.stop }).catch(e_ => swallow('jobs_industry:bread', e_))
     return { got }
   }

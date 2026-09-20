@@ -116,13 +116,14 @@ function workMap (world, box, grade, opts = {}) {
     }
   }
   sealFlood(map, world)
+  capSeal(map, world)
   for (let x = b.x1 - 2; x <= b.x2 + 2; x++) {
     for (let z = b.z1 - 2; z <= b.z2 + 2; z++) {
       for (let y = b.y1 - 2; y <= b.y2 + 2; y++) if (isLava(world, x, y, z)) map.lava.add(K3(x, y, z))
       if (x < b.x1 || x > b.x2 || z < b.z1 || z > b.z2) continue
-      for (let y = b.y1; y <= b.y2; y++) {
-        if (isLava(world, x, y, z) || (!isSolid(world, x, y, z) && (isSolid(world, x, y + 1, z) || isSolid(world, x, y + 2, z)))) { map.hard.add(K2(x, z)); break }
-      }
+      // `hard` = a column with LAVA in it. (Cells under a roof were in here too, and the wide rule then
+      // froze a third of the box around every overhang; capSeal() answers those instead.)
+      for (let y = b.y1; y <= b.y2; y++) if (isLava(world, x, y, z)) { map.hard.add(K2(x, z)); break }
       if (!isSolid(world, x, b.y1, z) && !isSolid(world, x, b.y1 - 1, z)) map.voidBelow.add(K2(x, z))
     }
   }
@@ -153,6 +154,33 @@ function sealFlood (map, world) {
   for (let x = b.x1; x <= b.x2; x++) {
     for (let z = b.z1; z <= b.z2; z++) {
       for (let y = b.y1; y <= b.y2; y++) if (!isSolid(world, x, y, z) && !open.has(K3(x, y, z))) map.sealed.add(K3(x, y, z))
+    }
+  }
+}
+
+// UNDER A ROOF, AT ARM'S LENGTH ONLY. A cell with a solid block one or two above it is a cell no
+// builder can stand in: it has to be filled from a column beside it where one can. Beyond about two
+// columns that shot does not exist (you cannot see into a 1-high gap from three blocks away), so those
+// cells are declared NOT WORK here, once, before anybody walks anywhere — instead of freezing the box
+// while builder after builder proves it again. They are reported as `roofed`: taking the lid off first
+// (the live blueprint's `unlid`) is a decision for the job, not for the man with the cobblestone.
+function capSeal (map, world) {
+  const b = map.box
+  const capped = (x, y, z) => isSolid(world, x, y + 1, z) || isSolid(world, x, y + 2, z)
+  map.roofed = new Set()
+  for (let x = b.x1; x <= b.x2; x++) {
+    for (let z = b.z1; z <= b.z2; z++) {
+      for (let y = b.y1; y <= b.y2; y++) {
+        if (isSolid(world, x, y, z) || map.sealed.has(K3(x, y, z)) || !capped(x, y, z)) continue
+        let shot = false
+        for (let dx = -2; dx <= 2 && !shot; dx++) {
+          for (let dz = -2; dz <= 2 && !shot; dz++) {
+            if (!dx && !dz) continue
+            if (!isSolid(world, x + dx, y, z + dz) && !isSolid(world, x + dx, y + 1, z + dz)) shot = true
+          }
+        }
+        if (!shot) { map.sealed.add(K3(x, y, z)); map.roofed.add(K3(x, y, z)) }
+      }
     }
   }
 }
@@ -204,7 +232,9 @@ function levelWith (map, world, x, y, z) {
   // sat at the bottom of a funnel 3 deep, out of reach from the nearest place a builder may stand, and
   // the whole box waited for it for ever). A lava cell and a cell under a roof are filled from a
   // distance, so the ground within an arm's length of them must stay at their level until they are done.
-  if (!map.hard.size) return true
+  // …but a hard column is not held back by another one: they rise together under the 1-step rule above,
+  // and whatever is left over when they can rise no further is written off and reported.
+  if (!map.hard.size || map.hard.has(K2(x, z))) return true
   for (const k of map.hard) {
     const c = k.split(',')
     const hx = +c[0]; const hz = +c[1]
@@ -256,6 +286,19 @@ function tileState (map, world, tile, now, fresh) {
   const st = { t: now, id: tile.id, layerY, targets, remaining, blocked, done: layerY == null }
   map.state.set(tile.id, st)
   return st
+}
+
+// A cell we cannot fill takes with it every open cell ABOVE it until the next solid block: they could
+// only ever stand on air. If the run reaches the sky, the whole column stops being work and is reported
+// (`abandoned` -> the adapter's void_under_pad); under a roof the column carries on above the roof.
+function sealUp (map, world, x, y, z) {
+  let q = y
+  for (; q <= map.grade; q++) {
+    if (isSolid(world, x, q, z)) break
+    map.sealed.add(K3(x, q, z))
+  }
+  map.floor.delete(K2(x, z))
+  if (q > map.grade) map.abandoned.add(K2(x, z))
 }
 
 // ---------------------------------------------------------------- claims: small, expiring, per lane
@@ -577,27 +620,29 @@ function next (bot, tile, world, opts = {}) {
   }
 
   // 7. …else nobody could fill it FROM HERE. A cell is written off only with EVIDENCE (a builder stood
-  // in front of it and could do nothing, five times over 20 s) — a busy second is not a verdict. A
+  // in front of it and could do nothing, five times over 30 s) — a busy second is not a verdict. A
   // written-off cell takes the rest of its column with it unless a roof stands over it: a column over a
   // hole we cannot close would hang in the air, and "never deck a hole" beats "the box is finished".
   // The adapter reports these as void_under_pad. This is counted BEFORE the entry branch: a lane nobody
   // can work must end, not send builder after builder down a ladder to look at it (measured in (c)).
   const done = []
+  let near = false
   for (const c of safe) {
+    // evidence means a builder STOOD IN FRONT of the cell: a report from 40 blocks away proves nothing
+    // (it wrote off 30 good columns of the trench in one run before this line existed)
+    if (Math.hypot(c.x - feet.x, c.y - feet.y, c.z - feet.z) > 8) continue
+    near = true
     const k = K3(c.x, c.y, c.z)
     const e = map.tries.get(k) || { n: 0, t0: now }
     e.n++; map.tries.set(k, e)
-    if (e.n < 5 || now - e.t0 < 20000) continue
-    map.sealed.add(k)
-    map.floor.delete(K2(c.x, c.z))
-    // a cell under a roof is simply left hollow — what goes above it rests on the roof, not on air.
-    // With open sky over it the rest of the column would hang, so the whole column stops being work.
-    let roofed = false
-    for (let y = c.y + 1; y <= map.grade; y++) if (isSolid(world, c.x, y, c.z)) { roofed = true; break }
-    if (!roofed) map.abandoned.add(K2(c.x, c.z))
+    if (e.n < 5 || now - e.t0 < 15000) continue
+    sealUp(map, world, c.x, c.y, c.z)
     done.push(k)
   }
   map.state.delete(t.id)
+  // a builder that is AT the cell keeps the lane while it proves the point — handing it back and
+  // walking away means the next one starts the evidence from nothing and the tail never ends
+  if (!done.length && near) return { type: 'wait', why: 'standing in front of ' + safe.length + ' cells of ' + t.id + ' I cannot reach — proving it' }
   if (done.length) return { type: 'wait', why: 'wrote off ' + done.join(' ') + ': no stand, no shaft, five tries — not work' }
 
   // 8. a way in, if the pit is deeper than a walkable step and I am still up top
@@ -727,7 +772,7 @@ function assertDisjoint (actions) {
 function summary (map, world, now = 0) {
   let open = 0; let left = 0
   for (const t of map.tiles.values()) { const st = tileState(map, world, t, now, true); open += st.targets.length; left += st.remaining }
-  return { open, left, sealed: map.sealed.size, voidBelow: [...map.voidBelow], abandoned: [...map.abandoned], tiles: map.tiles.size, drops: map.dropCols.size }
+  return { open, left, sealed: map.sealed.size, roofed: map.roofed ? map.roofed.size : 0, voidBelow: [...map.voidBelow], abandoned: [...map.abandoned], tiles: map.tiles.size, drops: map.dropCols.size }
 }
 
 module.exports = {

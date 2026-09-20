@@ -2861,6 +2861,10 @@ async function build (bot, job, api, ctx) {
         const side = () => [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1]].some(([dx, dy, dz]) => solid(at(c.x + dx, c.y, c.z + dz)))
         const hot = b.name === 'lava'
         if (!hot && lavaOn && nearLava(c.x, c.y, c.z)) { wait++; continue } // touches lava: its lava neighbour is quenched first, nobody stands here meanwhile
+        // A RAMP IS POURED FROM THE RIM, NOT BUILT FROM BELOW (owner 15:1xZ 「12時間以上経過して未だに穴埋め終わって無い」, after the ladder run failed twice live): a `ramp`
+        // column is exempt from the strict bottom-up test - GRAVEL falls, so a step is made by dropping k blocks down its shaft from the rim and nobody ever has to
+        // stand below. That is the ONE way into a pit with sheer walls, and the ramp is fill like everything else (fillCell does the drop).
+        if (c.ramp) { put.push(c); continue }
         if (solid(at(c.x, c.y - 1, c.z)) || (c.floor && side())) put.push(hot ? Object.assign({}, c, { hot: true }) : c); else wait++
         continue
       }
@@ -2976,6 +2980,12 @@ async function build (bot, job, api, ctx) {
         if (!(d && d.ok)) { st.colSkip = st.colSkip || {}; st.colSkip[c.x + ',' + c.z] = Date.now() + 600000; return { ok: false, reason: 'rest:weed ' + String(d && d.reason).slice(0, 12) } }
       } }
     if (c.solid && (mateBlocked().has(K(c)) || wallsIn(c))) return { ok: false, reason: 'mate' } // read again right before placing: mates move while a pass runs
+    // the drop goes into the LOWEST OPEN cell of the column (A.gravityDrop refuses a cell with nothing solid under it): one gravel per call, the stack grows from the
+    // floor up until the step reaches its height. 77 gravel for a 10-step ramp; the builder stands on the rim the whole time.
+    if (c.ramp && !solid(at(c.x, c.y - 1, c.z))) {
+      let ly = c.y; while (ly > c.g - 24 && !solid(at(c.x, ly - 1, c.z)) && !/^(water|lava)$/.test((at(c.x, ly - 1, c.z) || { name: 'air' }).name)) ly--
+      if (solid(at(c.x, ly - 1, c.z)) && !solid(at(c.x, ly, c.z))) { if (await getGrav()) { const gd = await A.gravityDrop(bot, new Vec3(c.x, ly, c.z), c.g + 1); if (gd) { dropped++; return { ok: true, dropped: gd } } } }
+    }
     // LAVA FIRST, AND NEVER FROM BESIDE IT: gravity block down the shaft from wherever we stand, else a stand that touches no lava and is 2+ away horizontally (avoidStand);
     // nothing works -> the column rests 3 min and the job says so once. A builder is never sent to a cell that touches lava (todo() makes those wait).
     if (c.solid && (c.hot || nearLava(c.x, c.y, c.z))) {
@@ -3231,10 +3241,14 @@ async function build (bot, job, api, ctx) {
   // 1-block move, not a 14-block fall). The run is part of the fill: as the floor rises past a ladder cell it is dug like decor and filled (see the `solid` branch of
   // todo). 16 ladders = 42 sticks = ~11 logs of the 2800 in stock. Movement stays READ-ONLY: this is a built way, the same for everybody, not a private shortcut.
   const ladderWay = async () => {
-    if (!f0 || (st.wayT || 0) > Date.now() - 300000 || depthNow() > 2 || !Number.isFinite(bx.x1)) return false // >2, not >0: a builder standing on the RISEN FLOOR of the box is on ground, not in the pit (14:5xZ: 26 builders on fill_ravine_s, not one attempt in 17 min - they all stand at y68 inside the box)
+    // OPT-IN until a run is proven end to end (owner 15:1xZ: 'stop iterating on ladders today, ship the gravity ramp'). Three failure modes were measured and cured
+    // (entry, rung line of sight, the contiguous column the pathfinder cannot enter) and a run still stops at 2 rungs, while every attempt costs a builder a craft trip.
+    // `args.ladders:true` on a fill turns it back on; the way into a pit today is a `ramp` (poured from the rim, see fillCell). A 3-5 block dip needs neither: builders
+    // step in and ride out (fill_minehead_pits asked for a way into a 5-deep pit and filed `no column with a solid wall face` every pass).
+    if (!f0 || !(P.args || {}).ladders || (st.wayT || 0) > Date.now() - 300000 || depthNow() > 2 || !Number.isFinite(bx.x1)) return false // >2, not >0: a builder standing on the RISEN FLOOR of the box is on ground, not in the pit (14:5xZ: 26 builders on fill_ravine_s, not one attempt in 17 min - they all stand at y68 inside the box)
     st.wayT = Date.now()
     const me = bot.entity.position.floored(); let low = null
-    for (const c of cells) { if (!c.solid || Math.abs(c.x - me.x) > 20 || Math.abs(c.z - me.z) > 20 || c.y > fillG - 5) continue; if (low && c.y >= low.y) continue; if (solid(at(c.x, c.y, c.z)) || solid(at(c.x, fillG, c.z))) continue; low = c } // ...and its column must be open at GRADE: a sealed cave pocket 27 blocks down (14:33Z: -330,41,-486) is not the pit we cannot get into
+    for (const c of cells) { if (!c.solid || Math.abs(c.x - me.x) > 20 || Math.abs(c.z - me.z) > 20 || c.y > fillG - 7) continue; if (low && c.y >= low.y) continue; if (solid(at(c.x, c.y, c.z)) || solid(at(c.x, fillG, c.z))) continue; low = c } // ...and its column must be open at GRADE: a sealed cave pocket 27 blocks down (14:33Z: -330,41,-486) is not the pit we cannot get into
     if (!low) return false // no open cell more than 4 below grade near me: no pit to get into
     let G = null; try { G = require('mineflayer-pathfinder').goals } catch (e_) { swallow('army_jobs:wayGoals', e_); return false }
     try { const r = bot.pathfinder.getPathTo(bot.pathfinder.movements, new G.GoalNear(low.x, low.y, low.z, 2), 1500); if (r && r.status === 'success') return false } catch (e_) { swallow('army_jobs:wayPath', e_); return false } // there IS a way in (a ramp, the risen floor, an older run)
@@ -3314,9 +3328,62 @@ async function build (bot, job, api, ctx) {
     A.result(bot, Object.assign({ ev: 'fill_wayin', job: job.id, ok: placed >= n - 1, ladders: placed, of: n, top: [site.x, fillG, site.z], floor: site.fy, wall: [site.dx, site.dz] }, why ? { why } : {}))
     return placed > 0
   }
+  // THE WAY INTO A PIT IS THE ONE A PLAYER TAKES (owner 15:2xZ, his own words: 「落下ダメージ覚悟で下に降りる、バケツ降り」 - after a ladder run failed twice live and a
+  // gravel ramp costs 77-240 gravel). MEASURED on fill_ravine_s: the trench floor is NOT one level - it steps from y64 down to y50 - so the cheapest entry is the
+  // SHALLOWEST open column, not the deepest: a 4-block step-off costs 0 hp (fall damage = blocks - 3), a 9-block one 6 hp, and from where it lands the crew walks
+  // the floor and rides up with the fill. Rules: hp >= 18 and food >= 14 (it heals itself), never more than 16 blocks, the landing cell is READ first (solid floor,
+  // no lava within 2, no mate standing in it), and the column is claimed on the board for 60 s so twenty builders never step off onto the same block.
+  const dropIn = async () => {
+    if (!f0 || (st.dropT || 0) > Date.now() - 120000 || depthNow() > 2 || !Number.isFinite(bx.x1)) return false
+    st.dropT = Date.now()
+    if (bot.health < 18 || bot.food < 14) return false
+    const me = bot.entity.position.floored(); let best = null
+    const cols = new Map()
+    for (const c of cells) { if (!c.solid || Math.abs(c.x - me.x) > 24 || Math.abs(c.z - me.z) > 24) continue; const k = c.x + ',' + c.z; if (!cols.has(k)) cols.set(k, c) }
+    for (const c of cols.values()) {
+      let fy = null; for (let y = fillG; y >= fillG - 18; y--) { const q = at(c.x, y, c.z); if (!q) break; if (solid(q)) { fy = y + 1; break } }
+      if (fy == null) continue
+      const drop = fillG + 1 - fy
+      // DEEPEST first, not shallowest (measured 15:19Z, Kurumi: the shallowest column was a 4-block step at the rim edge where there is no work left - and a mate
+      // had filled it before she got there). The work is the FLOOR of the trench; 12 blocks cost 8 hp of 20 and heal back while she fills, deeper than that is refused.
+      if (drop < 4 || drop > (bot.health >= 19 ? 14 : 12) || (best && drop <= best.drop)) continue
+      let open = true; for (let y = fy; y <= fillG && open; y++) if (solid(at(c.x, y, c.z))) open = false // the shaft must be clear all the way up to the rim
+      if (!open || mateBlocked().has(c.x + ',' + fy + ',' + c.z) || lavaSet().has(c.x + ',' + fy + ',' + c.z) || nearLava(c.x, fy, c.z)) continue
+      let stand = null
+      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = c.x + dx; const nz = c.z + dz; if (solid(at(nx, fillG, nz)) && !solid(at(nx, fillG + 1, nz)) && !solid(at(nx, fillG + 2, nz))) { stand = { x: nx, y: fillG + 1, z: nz }; break } }
+      if (!stand) continue
+      best = { x: c.x, z: c.z, fy, drop, stand }
+    }
+    if (!best) return false
+    let mine = false
+    A.boardEdit(b => { const j = (b.jobs || []).find(z => z.id === job.id); if (!j) return; const w = j.way; if (w && w.by !== bot.username && Date.now() - w.t < 60000) return; j.way = { by: bot.username, t: Date.now(), at: [best.x, best.fy, best.z], drop: best.drop }; mine = true })
+    if (!mine) return false
+    task(bot, 'build: stepping into the pit (' + best.drop + ' blocks)')
+    if (!await A.travel(bot, best.stand, { range: 0, ms: 90000, stop: api.stop })) return false
+    { let ok2 = true; for (let y = best.fy; y <= fillG && ok2; y++) if (solid(at(best.x, y, best.z))) ok2 = false; if (!ok2 || !solid(at(best.x, best.fy - 1, best.z))) { A.result(bot, { ev: 'fill_dropped_in', job: job.id, ok: false, why: 'the shaft closed while I walked to the rim', want: [best.x, best.fy, best.z] }); return false } } // 30 builders fill while one walks: the shaft is read again from the rim, one step before the step off
+    const hp0 = bot.health
+    try {
+      await bot.lookAt(new Vec3(best.x + 0.5, best.fy + 0.5, best.z + 0.5), true).catch(e_ => { swallow('army_jobs:dropLook', e_) })
+      bot.setControlState('forward', true)
+      // walk until the FEET LEAVE THE RIM, not until the centre crosses the block line (measured 15:2xZ, Mio -294,68,-480 and Aoi -305,68,-461: both stopped ON the
+      // edge with `lost:0` - a 0.6 wide body still rests on the rim when its centre is one pixel inside the shaft, so releasing there ends the step-off in mid-stride)
+      const t1 = Date.now() + 3000
+      while (Date.now() < t1 && bot.entity.onGround && !api.stop()) await sleep(50)
+      bot.setControlState('forward', false)
+      const t2 = Date.now() + 8000
+      while (Date.now() < t2 && !bot.entity.onGround) await sleep(50)
+      await sleep(400)
+    } finally { bot.setControlState('forward', false) }
+    const p1 = bot.entity.position.floored()
+    const ok = p1.y <= fillG - 3
+    A.result(bot, { ev: 'fill_dropped_in', job: job.id, ok, at: [p1.x, p1.y, p1.z], want: [best.x, best.fy, best.z], drop: best.drop, hp: bot.health, lost: Math.max(0, Math.round(hp0 - bot.health)) })
+    if (ok && bot.health < 14) await lib('feed').eat(bot, { hurt: true }).catch(e_ => { swallow('army_jobs:dropEat', e_) }) // it heals on a full belly while it works
+    task(bot, 'build ' + P.blueprint)
+    return ok
+  }
   const needNote = (miss, nWait) => { st.miss = st.miss || {}; st.miss[miss] = Date.now(); const all = Object.keys(st.miss).filter(k => Date.now() - st.miss[k] < 600000).sort().join(', '); A.boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (j && j.status === 'active' && !(j.note || '').startsWith('needs: ' + all + ' ')) j.note = 'needs: ' + all + ' (' + nWait + ' cells wait; every cell whose material exists is done or in work)' }) }
   task(bot, 'build ' + P.blueprint)
-  if (f0) await ladderWay() // a pit with no way in gets one BEFORE this builder spends its slice on cells 14 blocks under its feet (see ladderWay)
+  if (f0) { if (!await ladderWay()) await dropIn() } // a pit with no way in: the opt-in ladder run, else the player's own answer - step off the rim where it is shallowest (dropIn)
   // ONE WALK OF THE BLUEPRINT SERVES A BATCH (same measurement: the loop ran `todo()` again after EVERY single block, so a 30 000-cell fill was walked once per placed
   // block, three times per pass counting the two closing walks). The list is now reused for up to 8 cells or 6 s, and a queued cell is re-read once right before it is
   // worked and dropped when the world already satisfies it - so a mate's block is never placed twice and exactly the same cells get built.

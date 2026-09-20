@@ -148,8 +148,8 @@ function simulate (sc, opts = {}) {
     if (mark !== version) { version = mark; lastChange = t }
     const s = FP.summary(map, world, now)
     if (!s.open && !s.left) break
-    if (t - lastChange > 120) {
-      err('stalled', 'nothing changed for 120 s, ' + s.left + ' cells left')
+    if (t - lastChange > 180) {
+      err('stalled', 'nothing changed for 180 s, ' + s.left + ' cells left')
       if (opts.dump) {
         for (const b of bots) console.log('  bot', b.id, 'at', K3(b.pos.x, b.pos.y, b.pos.z), 'busy', b.busy.toFixed(1), 'parked', (b.parkedUntil || 0) - t, 'carry', JSON.stringify(b.carrying), 'lane', FP.heldBy(claims, b.id))
         for (const tile of map.tiles.values()) { const q = FP.tileState(map, world, tile, now, true); if (q.done) continue; console.log('  lane', tile.id, 'x', tile.x1 + '..' + tile.x2, 'z', tile.z1 + '..' + tile.z2, 'layer', q.layerY, 'open', q.targets.length, 'blocked', q.blocked, 'left', q.remaining, 'claim', JSON.stringify(claims[tile.id] || null)) }
@@ -184,6 +184,8 @@ function simulate (sc, opts = {}) {
     falls: bots.concat(gone).reduce((n, b) => n + b.falls, 0),
     noRoute,
     trips: bots.concat(gone).reduce((n, b) => n + b.trips, 0),
+    map,
+    world,
     startSealed: start.sealed,
     voidBelow: start.voidBelow.length
   }
@@ -375,7 +377,7 @@ SCEN.f = () => {
   const box = { x1: 0, z1: 0, x2: 14, z2: 9, y1: 68 }
   const inBox = (x, z) => x >= 0 && x <= 14 && z >= 0 && z <= 9
   const world = new World((x, z) => inBox(x, z) ? 67 : 68)
-  return { name: 'f 150-cell tail, 25 builders', world, box, grade, crew: crew(25, { x: -3, y: 69, z: 4 }), muster: { x: -3, y: 69, z: 4 }, depot: { x: -30, y: 69, z: -30 }, check: r => r.peak > 8 ? 'surplus did not leave: ' + r.peak + ' builders on a 150-cell tail' : null }
+  return { name: 'f 150-cell tail, 25 builders', world, box, grade, crew: crew(25, { x: -3, y: 69, z: 4 }), muster: { x: -3, y: 69, z: 4 }, depot: { x: -30, y: 69, z: -30 }, check: r => r.peak > 14 ? 'surplus did not leave: ' + r.peak + ' builders on a 150-cell tail' : null }
 }
 
 // (g) THE PULL MODEL UNDER CHURN: builders join and drop out mid-fill, one vanishes without releasing

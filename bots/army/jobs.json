@@ -985,7 +985,7 @@
     98,
     -80
    ],
-   "through": 1789917143139,
+   "through": 1789917269304,
    "scoutRev": 6,
    "hub": {
     "room": [
@@ -1097,8 +1097,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789917143437,
-   "back": 1789917176583,
+   "landingAt": 1789917269447,
+   "back": 1789917297964,
    "lastDeath": 1789911678325,
    "lastDeathBy": "Hotaru",
    "roads": {
@@ -1146,7 +1146,7 @@
     ],
     "left": 0,
     "unloaded": 1330,
-    "at": 1789917156927,
+    "at": 1789917282702,
     "done": false
    },
    "gatePolicy": "LIT PERMANENTLY (owner 15:0xZ): closing it made the game generate spare gates"
@@ -1157,15 +1157,14 @@
     73,
     27
    ],
-   "surveyed": 1789916834732,
-   "villagers": 9,
+   "surveyed": 1789917885230,
+   "villagers": 8,
    "professions": {
-    "none": 1,
-    "farmer": 1,
+    "leatherworker": 4,
     "unknown": 3,
-    "leatherworker": 4
+    "farmer": 1
    },
-   "beds": 10,
+   "beds": 12,
    "stations": {
     "composter": 2,
     "blast_furnace": 1
@@ -1176,6 +1175,48 @@
     10,
     -703,
     57
+   ],
+   "nearest": [
+    [
+     -715,
+     73,
+     37
+    ],
+    [
+     -727,
+     70,
+     24
+    ],
+    [
+     -733,
+     67,
+     22
+    ],
+    [
+     -731,
+     68,
+     19
+    ],
+    [
+     -736,
+     85,
+     58
+    ],
+    [
+     -745,
+     80,
+     55
+    ],
+    [
+     -696,
+     76,
+     12
+    ],
+    [
+     -755,
+     74,
+     13
+    ]
    ]
   }
  },
@@ -1416,7 +1457,7 @@
    },
    "rev": 61,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
-   "restUntil": 1789915891283
+   "restUntil": 1789917857836
   },
   {
    "id": "farm_1",
@@ -1555,12 +1596,12 @@
       "z": -500,
       "facing": "north"
      },
-     "level": -48
+     "level": 24
     }
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
-   "bots": 17,
-   "rev": 41
+   "bots": 14,
+   "rev": 45
   },
   {
    "id": "base_dorm",
@@ -1833,7 +1874,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789917241259
+   "restUntil": 1789917942992
   },
   {
    "id": "fill_ring_field2",
@@ -2512,7 +2553,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 10,
+   "bots": 4,
    "site": [
     -311,
     69,
@@ -2743,18 +2784,19 @@
     },
     "order": "near"
    },
-   "rev": 45,
+   "rev": 47,
    "desc": "until `fill_wayin ok:true` (ladder run in work by the engineer) only 3 bots: nobody can reach the trench floor, a bigger crew just stands at the rim - do NOT raise the head-count to hide idle bots",
    "note": "top model 15:1xZ: 655 OPEN cells (left 3216 minus waiting 2561) - do not lower; ladderWay (fill_wayin) needs builders standing on the RIM to hang the way in",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Mei",
-    "t": 1789916965434,
+    "by": "Ichika",
+    "t": 1789917804489,
     "at": [
-     -322,
-     42,
-     -475
-    ]
+     -305,
+     55,
+     -461
+    ],
+    "drop": 14
    }
   },
   {
@@ -3268,7 +3310,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789916769963
+   "restUntil": 1789917867859
   },
   {
    "id": "nether_landing_2",
@@ -3877,7 +3919,7 @@
      "Akari"
     ]
    },
-   "restUntil": 1789917611855
+   "restUntil": 1789918218751
   },
   {
    "id": "stray_furnace_344",
@@ -4222,7 +4264,7 @@
    },
    "rev": 3,
    "note": "needs: dirt (835 cells wait; every cell whose material exists is done or in work)",
-   "restUntil": 1789917742666
+   "restUntil": 1789919004295
   },
   {
    "id": "fill_minehead_pits",
@@ -4267,7 +4309,7 @@
     },
     "order": "near"
    },
-   "restUntil": 1789917325804,
+   "restUntil": 1789918113471,
    "way": {
     "by": "Madoka",
     "t": 1789916716021,
@@ -4355,9 +4397,9 @@
     },
     "order": "near"
    },
-   "rev": 3,
+   "rev": 4,
    "note": "needs: dirt (17 cells wait; every cell whose material exists is done or in work)",
-   "restUntil": 1789917702922
+   "restUntil": 1789918909003
   },
   {
    "id": "ladders_for_ravine",
@@ -4661,7 +4703,8 @@
    "status": "active",
    "when": "any",
    "names": [
-    "Tamaki"
+    "Tamaki",
+    "Yotsuba"
    ],
    "front": "industry",
    "site": [
@@ -4701,6 +4744,42 @@
       "n": 288
      }
     ]
+   },
+   "rev": 1
+  },
+  {
+   "id": "nether_landing_3",
+   "type": "portal",
+   "priority": 96,
+   "front": "base",
+   "status": "active",
+   "when": "day",
+   "bots": 3,
+   "shiftMin": 20,
+   "site": [
+    -326,
+    69,
+    -518
+   ],
+   "plan": "zone portal (docs/WORLD.md): REBUILD THE FAR LANDING AS A REAL PLATFORM. The owner's diagnosis: a bot standing in a portal cell cannot place, and the old 5x5 cage left one cell beside the frame - five bots had to be rescued. Now: out of the frame before anything else, spread off the arrival cell by roster index, then a 7x9 floor with 3 cells of headroom and at least 4 clear cells in front of AND behind the gate, a rail only on the outer rim where the ground falls away, 4 torches. Nothing within 2 of a portal face.",
+   "params": {
+    "blueprint": "nether_portal",
+    "origin": [
+     -326,
+     68,
+     -518
+    ],
+    "args": {
+     "axis": "x"
+    },
+    "buildJob": "base_portal",
+    "go": true,
+    "landing": true,
+    "work": "landing",
+    "minutes": 5,
+    "cobble": 208,
+    "crossS": 30,
+    "maxDeaths": 6
    }
   }
  ]

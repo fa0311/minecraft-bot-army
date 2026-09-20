@@ -135,41 +135,91 @@ module.exports = ctx => {
     return last
   }
 
-  // ---------------------------------------------------------------- stand in the gate until the server moves us
-  // The player delay is 80 ticks; the bot must STAY on the cell, so the goal is dropped and the position re-centred every 2 s.
-  async function stepThrough (bot, api, cells, seconds, why) {
-    const dim0 = dimOf(bot)
-    const inGate = p => { const b = bot.blockAt(p); return !!b && b.name === 'nether_portal' }
-    // A GATE ONLY TAKES SOMEBODY WHO WALKED INTO IT (measured 12:05-12:08Z: Koharu stood in the far gate at -38,98,-76 for 90 s and
-    // stayed in the Nether). Minecraft RESETS the portal cooldown on every tick an entity is STILL inside the portal, so the bot
-    // that the gate just spat out has to leave it and come back. One cell, to a cell verified standable — never a walkabout.
-    const stepOut = async () => {
-      if (!inGate(bot.entity.position.floored())) return true
-      const BLL = BL(); const me = bot.entity.position.floored()
-      const outs = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]].map(d => me.offset(d[0], 0, d[1])).filter(q => !inGate(q) && BLL.standable(bot, q))
-      for (const q of outs) {
-        task(bot, 'portal: stepping out of the gate so it takes me again')
-        if (await A.travel(bot, q, { range: 0, ms: 15000, stop: api.stop, quiet: true, anyDepth: true })) { await sleep(2500); return true }
-      }
-      return false
+  // ---------------------------------------------------------------- GET OUT OF THE FRAME FIRST (owner 15:3xZ)
+  // 「ネザーゲートブロックと同じ位置にいる場合、ブロックを置くことが出来ません、ネザーゲート周辺が狭すぎるせいでハングします」 — and he is
+  // right: a player standing IN a portal cell cannot place a block, and five bots had to be rescued (losing their whole kit)
+  // because every arrival routine ran from inside the frame. So the FIRST act after ANY arrival, in either dimension, is to walk
+  // OUT — onto a cell at least 2 clear of the frame — and nothing else (no look, no place, no dig, no window) happens before it.
+  // If the pathfinder refuses to plan from inside a portal block (it often does: the cell is not "standable"), we walk by hand
+  // with control states, away from the gate, which is what a player does.
+  const inGate = (bot, p) => { const b = bot.blockAt(p); return !!b && b.name === 'nether_portal' }
+  const inGateNow = bot => { const f = bot.entity.position.floored(); return inGate(bot, f) || inGate(bot, f.offset(0, 1, 0)) }
+  async function clearOfGate (bot, api, body, want) {
+    if (!inGateNow(bot)) return true
+    const min = want == null ? 2 : want
+    const near = p => body.length ? Math.min(...body.map(q => Math.max(Math.abs(q.x - p.x), Math.abs(q.z - p.z)))) : 9
+    const me = bot.entity.position.floored()
+    const cands = []
+    for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) for (const dy of [0, 1, -1]) {
+      const c = me.offset(dx, dy, dz)
+      if (inGate(bot, c) || inGate(bot, c.offset(0, 1, 0))) continue
+      if (near(c) < min) continue
+      if (!BL().standable(bot, c)) continue
+      cands.push(c)
     }
-    const target = cells.map(q => v(q)).sort((a, b) => a.distanceTo(bot.entity.position) - b.distanceTo(bot.entity.position))
-    for (const c of target) {
-      if (api.stop() || dimOf(bot) !== dim0) break
-      await stepOut()
+    cands.sort((a, b) => a.distanceTo(bot.entity.position) - b.distanceTo(bot.entity.position))
+    for (const c of cands.slice(0, 8)) {
+      if (api.stop()) break
+      task(bot, 'portal: out of the frame first')
+      if (await A.travel(bot, c, { range: 0, ms: 12000, stop: api.stop, quiet: true, anyDepth: true }) && !inGateNow(bot)) return true
+    }
+    // THE PATHFINDER WILL NOT PLAN FROM INSIDE A PORTAL BLOCK: walk out by hand, the way a player does
+    for (const c of cands.slice(0, 4)) {
+      if (api.stop() || !inGateNow(bot)) break
+      try {
+        bot.pathfinder.setGoal(null); bot.clearControlStates()
+        await bot.lookAt(c.offset(0.5, 1.2, 0.5), true)
+        bot.setControlState('forward', true)
+        for (let t = 0; t < 24 && inGateNow(bot) && !api.stop(); t++) await sleep(250)
+        bot.setControlState('forward', false)
+      } catch (e_) { swallow('jobs_nether:walkOut', e_) }
+      if (!inGateNow(bot)) return true
+    }
+    try { bot.clearControlStates() } catch (e_) { swallow('jobs_nether:walkOutClear', e_) }
+    if (inGateNow(bot)) A.result(bot, { ev: 'gate_stuck', at: xyz(bot.entity.position), dim: dimOf(bot), why: 'cannot get out of the portal cells - the gate area is too tight to stand beside' })
+    return !inGateNow(bot)
+  }
+  // SEVERAL BOTS ARRIVE TOGETHER: the arrival cell must be vacated at once or the next one is pushed back into the frame. Each bot
+  // takes a DIFFERENT platform cell, chosen by its roster index, so no coordination message is needed.
+  async function spreadOut (bot, api, body) {
+    try {
+      const idx = Math.max(0, (A.settings().roster || []).indexOf(bot.username))
+      const me = bot.entity.position.floored()
+      const near = p => body.length ? Math.min(...body.map(q => Math.max(Math.abs(q.x - p.x), Math.abs(q.z - p.z)))) : 9
+      const ring = []
+      for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) { const c = me.offset(dx, 0, dz); const d = near(c); if (d >= 2 && d <= 4 && !inGate(bot, c) && BL().standable(bot, c)) ring.push(c) }
+      if (!ring.length) return false
+      ring.sort((a, b) => (a.x * 31 + a.z) - (b.x * 31 + b.z))
+      const pick = ring[idx % ring.length]
+      const p = bot.entity.position.floored()
+      if (p.equals(pick)) return true
+      return !!await A.travel(bot, pick, { range: 0, ms: 10000, stop: api.stop, quiet: true, anyDepth: true })
+    } catch (e_) { swallow('jobs_nether:spreadOut', e_); return false }
+  }
+
+  // ---------------------------------------------------------------- walk INTO the gate (never stand in it waiting)
+  // Minecraft resets the portal cooldown on every tick an entity is still inside, so a bot the gate just spat out is never taken
+  // again by standing there. The move is a player's: walk 3 cells CLEAR, then walk back in and hold only while the transfer runs.
+  // Two failed attempts and we stop - no loops in the frame, ever (that is what had to be rescued five times).
+  async function stepThrough (bot, api, cells, seconds, why, body) {
+    const dim0 = dimOf(bot)
+    const tgt = cells.map(q => v(q))
+    const bod = body && body.length ? body : tgt
+    for (let attempt = 0; attempt < 2 && !api.stop() && dimOf(bot) === dim0; attempt++) {
+      if (!await clearOfGate(bot, api, bod, 3)) break // 3 cells clear: the cooldown only expires outside
+      await sleep(1200)
+      const c = tgt.slice().sort((a, b) => a.distanceTo(bot.entity.position) - b.distanceTo(bot.entity.position))[0]
       task(bot, 'portal: ' + why)
-      if (!await A.travel(bot, c, { range: 0, ms: 45000, stop: api.stop, quiet: true, anyDepth: true })) continue
-      try { bot.pathfinder.setGoal(null); bot.clearControlStates() } catch (e_) { swallow('jobs_nether:hold', e_) }
-      const end = Date.now() + seconds * 1000
+      if (!await A.travel(bot, c, { range: 0, ms: 30000, stop: api.stop, quiet: true, anyDepth: true })) continue
+      const end = Date.now() + Math.min(seconds, 30) * 1000
       while (Date.now() < end && !api.stop()) {
         if (dimOf(bot) !== dim0) return dimOf(bot)
-        const p = bot.entity.position.floored()
-        if (p.x !== c.x || p.z !== c.z || Math.abs(p.y - c.y) > 1) { if (!await A.travel(bot, c, { range: 0, ms: 15000, stop: api.stop, quiet: true, anyDepth: true })) break; try { bot.pathfinder.setGoal(null); bot.clearControlStates() } catch (e_) { swallow('jobs_nether:hold2', e_) } }
-        else { await BL().centreOn(bot, c).catch(e_ => swallow('jobs_nether:centre', e_)) }
-        await sleep(1000)
+        if (!inGateNow(bot)) { try { await A.travel(bot, c, { range: 0, ms: 8000, stop: api.stop, quiet: true, anyDepth: true }) } catch (e_) { swallow('jobs_nether:hold', e_) } }
+        await sleep(500)
       }
       if (dimOf(bot) !== dim0) return dimOf(bot)
     }
+    if (dimOf(bot) === dim0) await clearOfGate(bot, api, bod, 2) // never be left standing in the frame
     return dimOf(bot) !== dim0 ? dimOf(bot) : null
   }
 
@@ -238,6 +288,7 @@ module.exports = ctx => {
       let prog = 0
       for (const c of todo) {
         if (Date.now() >= until || api.stop()) break
+        if (inGateNow(bot)) { await clearOfGate(bot, api, [], 2); if (inGateNow(bot)) break } // a bot in a portal cell can place nothing
         const q = v([c.x, c.y, c.z]); const k = c.x + ',' + c.y + ',' + c.z
         if (eyeOf(bot).distanceTo(q.offset(0.5, 0.5, 0.5)) > 4.0) { why[k] = 'out of reach'; continue }
         task(bot, 'nether ' + what + ': ' + placed + ' placed, ' + dug + ' cleared')
@@ -279,51 +330,69 @@ module.exports = ctx => {
     const bz = [Math.min(...body.map(p => p.z)), Math.max(...body.map(p => p.z))]
     const y0 = Math.min(...body.map(p => p.y))
     const cx = Math.round((bx[0] + bx[1]) / 2); const cz = Math.round((bz[0] + bz[1]) / 2)
-    // the gate and the ring of blocks that holds it up are never touched
-    const keep = new Set(); for (const p of body) { keep.add(p.x + ',' + p.y + ',' + p.z); for (const d of [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]) keep.add((p.x + d[0]) + ',' + (p.y + d[1]) + ',' + (p.z + d[2])) }
-    const inBody = c => body.some(p => p.equals(c))
-    const ring = []
-    for (let x = cx - 2; x <= cx + 2; x++) for (let z = cz - 2; z <= cz + 2; z++) if (Math.abs(x - cx) === 2 || Math.abs(z - cz) === 2) ring.push([x, z])
-    // the door gap: the ring cell nearest to where we stand, 2 high — the way out for the next expedition (never a sealed box)
-    const me = bot.entity.position
-    const gap = ring.slice().sort((a, b) => Math.hypot(a[0] + 0.5 - me.x, a[1] + 0.5 - me.z) - Math.hypot(b[0] + 0.5 - me.x, b[1] + 0.5 - me.z))[0]
-    const floorCells = []; for (let x = cx - 2; x <= cx + 2; x++) for (let z = cz - 2; z <= cz + 2; z++) floorCells.push(new Vec3(x, y0 - 1, z))
-    const wallCells = []; for (const [x, z] of ring) for (const y of [y0, y0 + 1]) { if (gap && x === gap[0] && z === gap[1]) continue; wallCells.push(new Vec3(x, y, z)) }
+    // WHICH WAY DOES THE GATE FACE? the frame spans 2 along its own axis and 1 through it; you walk through the SHORT one.
+    const alongX = (bx[1] - bx[0]) >= (bz[1] - bz[0])
+    const RA = 3 // half-width along the frame  -> 7 wide
+    const RT = 4 // half-depth through the gate -> 9 deep: at least 4 clear cells IN FRONT OF and BEHIND it, both faces are exits
+    const cell = (a2, t) => alongX ? new Vec3(cx + a2, 0, cz + t) : new Vec3(cx + t, 0, cz + a2)
+    const inPortal = c => body.some(q => q.x === c.x && q.z === c.z)
+    // NOTHING WITHIN 2 OF A PORTAL FACE (owner: 「ネザーゲート周辺が狭すぎるせいでハングします」 — the old 5x5 put a wall one cell off
+    // the frame and bots could not get out of their own landing). Walls live ONLY on the outer rim, and only over a real drop.
+    const tooNear = c => { const t = alongX ? Math.abs(c.z - cz) : Math.abs(c.x - cx); const a3 = alongX ? Math.abs(c.x - cx) : Math.abs(c.z - cz); return t <= 2 && a3 <= RA }
+    const floorCells = []; const clearCells = []; const rimCells = []
+    for (let a2 = -RA; a2 <= RA; a2++) for (let t = -RT; t <= RT; t++) {
+      const c = cell(a2, t)
+      floorCells.push(new Vec3(c.x, y0 - 1, c.z))
+      if (!inPortal(c)) for (let k = 0; k < 3; k++) clearCells.push(new Vec3(c.x, y0 + k, c.z)) // 3 high clear everywhere
+      if ((Math.abs(a2) === RA || Math.abs(t) === RT) && !tooNear(c)) rimCells.push(new Vec3(c.x, y0, c.z)) // a rail, not a cage
+    }
     const eye = () => eyeOf(bot)
-    let floor = 0; let walls = 0; let out = 0; let lava = 0; const t0 = Date.now()
+    let floor = 0; let rail = 0; let out = 0; let lava = 0; let cleared = 0; const t0 = Date.now()
     const lay = async (c, what) => {
-      if (api.stop() || floor + walls >= budget || Date.now() - t0 > 150000) return false
-      if (keep.has(c.x + ',' + c.y + ',' + c.z) || inBody(c)) return false
-      const b = bot.blockAt(c); if (!b || b.name === 'obsidian' || b.name === 'nether_portal' || b.boundingBox === 'block') return false
+      if (api.stop() || floor + rail >= budget || Date.now() - t0 > 150000 || inGateNow(bot)) return false
+      const b2 = bot.blockAt(c); if (!b2 || b2.name === 'obsidian' || b2.name === 'nether_portal' || b2.boundingBox === 'block') return false
       if (eye().distanceTo(c.offset(0.5, 0.5, 0.5)) > 4.0 || !hasRef(bot, c)) { out++; return false }
       const item = stoneItem(bot); if (!item) return false
-      if (b.name === 'lava') lava++
-      task(bot, 'portal: ' + what + ' at the far gate (' + (floor + walls) + ')')
+      if (b2.name === 'lava') lava++
+      task(bot, 'portal: ' + what + ' the landing (' + (floor + rail) + ')')
       return (await placeStill(bot, api, c, item)).ok
     }
-    // FLOOR FIRST — nearest column out, so the cell under our own feet closes before anything else
-    for (const c of floorCells.slice().sort((a, b) => a.distanceTo(me) - b.distanceTo(me))) if (await lay(c, 'flooring')) floor++
-    for (const c of wallCells.slice().sort((a, b) => a.distanceTo(me) - b.distanceTo(me))) if (await lay(c, 'walling')) walls++
-    // LIGHT: torches on the finished floor (nothing spawns on a lit landing); only where the floor really is solid under them
+    // FLOOR FIRST, nearest column out — a platform you can stand on everywhere is what makes the rest possible
+    for (const c of floorCells.slice().sort((x, y) => x.distanceTo(bot.entity.position) - y.distanceTo(bot.entity.position))) if (await lay(c, 'flooring')) floor++
+    // then CLEAR the headroom: a landing you cannot walk out of is the bug we are fixing
+    for (const c of clearCells.slice().sort((x, y) => x.distanceTo(bot.entity.position) - y.distanceTo(bot.entity.position))) {
+      if (api.stop() || Date.now() - t0 > 170000 || inGateNow(bot)) break
+      const b2 = bot.blockAt(c); if (!b2 || b2.boundingBox !== 'block' || /obsidian|portal/.test(b2.name)) continue
+      if (eye().distanceTo(c.offset(0.5, 0.5, 0.5)) > 4.0) { out++; continue }
+      const r = await BL().digBlock(bot, c, { collect: true, requireHarvest: false, noMove: true }).catch(() => ({ ok: false }))
+      if (r && r.ok) cleared++
+    }
+    // a RAIL on the outer rim only where the floor really falls away (never a wall beside the gate)
+    for (const c of rimCells.slice().sort((x, y) => x.distanceTo(bot.entity.position) - y.distanceTo(bot.entity.position))) {
+      const below = bot.blockAt(c.offset(0, -1, 0))
+      if (below && below.boundingBox === 'block') continue // solid ground outside: nothing to fall off
+      if (await lay(c, 'railing')) rail++
+    }
     let torches = 0
     if (A.count(bot, 'torch')) {
-      for (const c of [[cx - 1, cz - 1], [cx + 1, cz + 1], [cx - 1, cz + 1], [cx + 1, cz - 1]].map(q => new Vec3(q[0], y0, q[1]))) {
-        if (api.stop() || torches >= 4 || !A.count(bot, 'torch')) break
-        const b = bot.blockAt(c); const u = bot.blockAt(c.offset(0, -1, 0))
-        if (!b || b.boundingBox === 'block' || inBody(c) || !u || u.boundingBox !== 'block') continue
+      for (const q of [[RA - 1, RT - 1], [-(RA - 1), RT - 1], [RA - 1, -(RT - 1)], [-(RA - 1), -(RT - 1)]]) {
+        if (api.stop() || torches >= 4 || !A.count(bot, 'torch') || inGateNow(bot)) break
+        const cc = cell(q[0], q[1]); const c = new Vec3(cc.x, y0, cc.z)
+        const b2 = bot.blockAt(c); const u = bot.blockAt(c.offset(0, -1, 0))
+        if (!b2 || b2.boundingBox === 'block' || inPortal(c) || !u || u.boundingBox !== 'block') continue
         if (eye().distanceTo(c.offset(0.5, 0.5, 0.5)) > 4.0) { out++; continue }
         await placeStill(bot, api, c, 'torch')
         const nb = bot.blockAt(c); if (nb && /torch/.test(nb.name)) torches++
       }
     }
-    // THE VERDICT IS READ, NOT COUNTED: holes left in the floor, and lava/fire still within 5 of any landing cell
+    // THE VERDICT IS READ: holes you could fall through, headroom still blocked, and lava/fire within 5 of the platform
     const holes = floorCells.filter(c => !floorSafe(bot, { x: c.x, y: c.y, z: c.z }))
-    const covered = floorCells.filter(c => { const b = bot.blockAt(c); return (!b || b.boundingBox !== 'block') && floorSafe(bot, { x: c.x, y: c.y, z: c.z }) }).length
+    const blocked = clearCells.filter(c => { const b2 = bot.blockAt(c); return !!b2 && b2.boundingBox === 'block' && !/obsidian/.test(b2.name) })
     const hotIds = ['lava', 'fire'].map(n => bot.registry.blocksByName[n] && bot.registry.blocksByName[n].id).filter(q => q != null)
     const hot = hotIds.length ? bot.findBlocks({ matching: hotIds, maxDistance: 12, count: 400, point: new Vec3(cx, y0, cz) }) : []
     const near = hot.filter(q => floorCells.some(c => Math.max(Math.abs(q.x - c.x), Math.abs(q.y - c.y), Math.abs(q.z - c.z)) <= 5))
-    const safe = holes.length === 0 && near.length === 0
-    return { floor, walls, torches, placed: floor + walls, outOfReach: out, lavaPlugged: lava, holes: holes.length, coveredVoids: covered, hotNear: near.length, safe, gap: gap ? [gap[0], y0, gap[1]] : null, box: [cx - 2, cz - 2, cx + 2, cz + 2], y: y0, cells: floorCells.map(c => ({ x: c.x, y: c.y, z: c.z, block: 'stone' })).concat(wallCells.map(c => ({ x: c.x, y: c.y, z: c.z, block: 'stone' }))).filter(c => !keep.has(c.x + ',' + c.y + ',' + c.z)) }
+    const safe = holes.length === 0 && blocked.length === 0 && near.length === 0
+    return { floor, rail, torches, cleared, placed: floor + rail, outOfReach: out, lavaPlugged: lava, holes: holes.length, blocked: blocked.length, hotNear: near.length, safe, box: alongX ? [cx - RA, cz - RT, cx + RA, cz + RT] : [cx - RT, cz - RA, cx + RT, cz + RA], y: y0, cells: floorCells.map(c => ({ x: c.x, y: c.y, z: c.z, block: 'stone' })) }
   }
 
   // ---------------------------------------------------------------- ON ARRIVAL NOBODY WALKS
@@ -339,7 +408,7 @@ module.exports = ctx => {
     const foot = me.offset(0, -1, 0)
     let sealed = 0; const t0 = Date.now()
     for (const c of [foot].concat(cells)) {
-      if (api.stop() || sealed >= budget || Date.now() - t0 > 90000) break
+      if (api.stop() || sealed >= budget || Date.now() - t0 > 90000 || inGateNow(bot)) break
       const b = bot.blockAt(c); if (!b) continue
       const isFoot = c.equals(foot)
       if (!isFoot && !/^(lava|fire)$/.test(b.name)) continue
@@ -623,7 +692,16 @@ module.exports = ctx => {
     // THE GATE IS NEVER BUILT OVER: the portal blocks and the obsidian that holds them are dropped from the plan
     const gate = new Set(); for (const q of body) { gate.add(q.x + ',' + q.y + ',' + q.z); for (const d of [[0, -1, 0], [0, 1, 0], [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1]]) gate.add((q.x + d[0]) + ',' + (q.y + d[1]) + ',' + (q.z + d[2])) }
     cells = cells.filter(c => !gate.has(c.x + ',' + c.y + ',' + c.z))
+    // A PASS WORKS WHAT IT CAN SEE (owner 15:3xZ: `nether_pass unloaded:1330, done:0` with a bot standing at the stair head — the
+    // pass was judging a 65-block stair through chunks it had not loaded). Only cells within `reach` of the bot count this pass;
+    // the rest are reported as `outOfRange`, so the number never pretends the job is finished or untouched.
+    const reach = Math.max(24, Math.min(P.reach || 64, 128))
+    const here = bot.entity.position
+    const all = cells
+    cells = all.filter(c => Math.hypot(c.x - here.x, c.z - here.z) <= reach)
+    const outOfRange = all.length - cells.length
     const r = await buildCells(bot, job, api, cells, box, until, work)
+    r.outOfRange = outOfRange; r.ofAll = all.length
     const min = Math.max(0.1, (Date.now() - t0) / 60000)
     const out = Object.assign({ work, box, y: y0 }, r, { min: Math.round(min * 10) / 10, perBotMin: Math.round((r.placed + r.dug) / min * 10) / 10, carried: stoneCarried(bot) })
 
@@ -642,7 +720,7 @@ module.exports = ctx => {
       netherEdit({ hub: Object.assign({}, meta, { built: r.left === 0, chestStands: stands.chest, tableStands: stands.table, at: Date.now() }) })
     }
     if (work === 'stair' && meta) {
-      const reached = !r.left && !r.unloaded
+      const reached = !r.left && !r.unloaded && !r.outOfRange
       netherEdit({ stair: { from: Array.isArray(P.from) ? P.from : null, bearing: meta.bearing, end: meta.end, toY: meta.toY, box: meta.box, left: r.left, unloaded: r.unloaded, at: Date.now(), done: reached } })
       if (reached) netherEdit({ floorHub: meta.end })
       out.bearing = meta.bearing; out.end = meta.end; out.toY = meta.toY
@@ -703,7 +781,7 @@ module.exports = ctx => {
       if (netherOf().lit === false) return 'waiting in the Nether: the home gate is out'
     }
     const cells = portalBody(bot, far.position, 10).map(p => [p.x, p.y, p.z])
-    const to = await stepThrough(bot, api, cells.length ? cells : [xyz(far.position)], Math.min(P.crossS || 45, 120), 'standing in the far gate')
+    const to = await stepThrough(bot, api, cells.length ? cells : [xyz(far.position)], Math.min(P.crossS || 45, 120), 'walking into the far gate', cells)
     if (to && !/nether/.test(to)) {
       netherWalkOff(bot)
       A.result(bot, { ev: 'portal_back', job: job.id, to, pos: xyz(bot.entity.position), from: xyz(far.position) })
@@ -720,9 +798,13 @@ module.exports = ctx => {
     task(bot, 'portal: the Nether — waiting for the world')
     for (let w = 0; w < 80 && !bot.world.getColumnAt(bot.entity.position); w++) await sleep(500)
     await sleep(1500)
-    const me = bot.entity.position.floored()
     let far = bot.findBlock({ matching: b => !!b && b.name === 'nether_portal', maxDistance: 32 })
     const body = far ? portalBody(bot, far.position, 10) : []
+    // OUT OF THE FRAME BEFORE ANYTHING ELSE (owner 15:3xZ): no look, no place, no dig, no window while feet or head are a portal
+    // cell - a bot cannot place from there and it is what every rescue was about. Then spread off the arrival cell for the next one.
+    await clearOfGate(bot, api, body, 2)
+    await spreadOut(bot, api, body)
+    const me = bot.entity.position.floored()
     if (!st.through) {
       st.through = Date.now()
       A.result(bot, { ev: 'portal_through', job: job.id, from: st.fromDim || 'overworld', to: dimOf(bot), pos: xyz(me), portal: far ? xyz(far.position) : null, cells: body.length })
@@ -985,7 +1067,7 @@ module.exports = ctx => {
 
     // CROSS
     st.fromDim = dimOf(bot); st.deathsAtGo = bot.__armyDeaths || 0; st.through = 0; st.looked = false; st.landed = false; st.sealed = false; st.worked = false
-    const to = await stepThrough(bot, api, G.inner.filter(q => q[1] === P.origin[1] + 1), P.crossS || 90, 'standing in the gate')
+    const to = await stepThrough(bot, api, G.inner.filter(q => q[1] === P.origin[1] + 1), P.crossS || 90, 'walking into the gate', G.inner)
     if (!to) {
       st.deathsAtGo = null
       // WHY did a lit gate not take us? (two bots, 45 s, 14:45Z). Paper has no portal-cooldown knob here, so record what we CAN
