@@ -739,6 +739,8 @@ function walkableArea (bot, limit = 120, maxDrop = 3) { return walkCells(bot, li
 const TRAP_ISLAND = 40
 function islandOf (bot, from) { return walkCells(bot, TRAP_ISLAND + 8, 1, from) }
 function inFill (bot) { const m = bot.__armyInFill; return !!(m && m.until > Date.now() && (!bot.__armyJob || bot.__armyJob === m.job)) }
+// really stuck, by BOTH measures - the reversible island AND the one-way area armyctl's `rescue` reads. Nothing that can walk is ever called `stranded`.
+function stuckNow (bot) { try { return islandOf(bot).size < TRAP_ISLAND && walkableArea(bot) < 60 } catch (e_) { swallow('army:stuckNow', e_); return false } }
 function trapped (bot, target) {
   try {
     if (!bot.entity || bot.isSleeping || !overworldBot(bot) || inFill(bot) || /^iron:/.test(String((bot.state && bot.state.task) || ''))) { bot.__armyTrapT = 0; return null }
@@ -842,9 +844,16 @@ async function digFiller (bot) {
     return false
   } catch (e_) { swallow('army:digFiller2', e_); return false }
 }
-// the lip of the hole: a cell 1..4 ABOVE the island the bot stands on from which a real walk starts again (island >= 40). null = no rim in reach (deep pit, cave).
-// -> {h, rim, under}: h = how far over OUR feet the lip stands, `under` = the cell of our island to pillar FROM (right under the lip; a pillar in mid-pit ends
-// level with the rim with nothing to step onto). null = no rim in reach (deep pit, cave).
+// AM I IN SOMETHING? walls that rise over my feet in one of the four directions. No walls under the open sky = a ledge, a roof, a plateau: neither a pillar nor a
+// staircase belongs there (Yotsuba 15:46Z cut 6 cells up a mountainside and left 4 of them open) - that spot needs a road from a job, and the bot says `stranded`.
+function wallsAround (bot, dyMax = 3) {
+  const p = bot.entity.position.floored()
+  for (const [dx, dz] of N4) for (let dy = 1; dy <= dyMax; dy++) { const b = bot.blockAt(p.offset(dx, dy, dz)); if (b && b.boundingBox === 'block' && !/leaves/.test(b.name)) return true }
+  return false
+}
+// the lip of the hole: a cell 1..4 ABOVE the island the bot stands on from which a real walk starts again (island >= 40) -> {h, rim, under}: h = how far over OUR
+// feet the lip stands, `under` = the cell of our island to pillar FROM (right under the lip; a pillar in mid-pit ends level with the rim with nothing to step
+// onto). null = no rim in reach (deep pit, cave).
 function rimAbove (bot, cells) {
   const me = bot.entity.position.floored(); let best = null
   for (const k of cells) {
@@ -893,6 +902,10 @@ async function pillarEscape (bot, opts = {}) {
   const rim = skyAbove(bot) ? rimAbove(bot, cells) : null
   const how = rim ? 'step_out' : 'pillar'
   const max = rim ? rim.h + 2 : 20
+  // NOBODY PILLARS IN THE OPEN (the owner sees every tower): the bot must be IN something - walls that rise over its head. On a wall top, a roof or a plateau
+  // (`marooned`) a pillar only makes the eyesore taller; that is the operator's business, not an escape. The same test ends the climb at ground level.
+  const walled = dy => wallsAround(bot, dy)
+  if (!rim && skyAbove(bot) && !walled(6)) return { how: 'none', blocks: 0, free: free() }
   // STAND UNDER THE LIP FIRST: a pillar in the middle of a pit ends level with the rim with nothing to step onto (island 1). The walk is inside our own island = read-only.
   if (rim && !rim.under.equals(from)) {
     const r0 = await U.pathTo(bot, new goals.GoalBlock(rim.under.x, rim.under.y, rim.under.z), 15000).catch(() => 'fail')
@@ -907,11 +920,14 @@ async function pillarEscape (bot, opts = {}) {
     if (!fillers() && !await digFiller(bot)) break
     const bad = falling()
     if (bad) { if (!await sideStep(bot)) break; continue } // gravel/sand/water over the head: one column over, never through it
-    const lvl = levelAround(bot); if (lvl != null && Math.floor(bot.entity.position.y + 0.01) >= lvl && !free()) break // level with the ground beside us and still stuck: pillaring higher helps nobody
+    if (!walled()) break // nothing solid beside our head any more: we are level with the ground around us, a taller pillar helps nobody (trimPillar makes it flush)
     const r = await U.withTimeout(BL.pillarUp(bot, 1, {}), 45000, 'pillarEscape').catch(e_ => { swallow('army:pillarEscape', e_); return 0 })
     if (!r) break
     up += r
   }
+  // ...AND FLUSH: "I can walk again" is already true ONE BLOCK UNDER the rim (the last step up is a normal step), which leaves a 1-deep dip where the hole was
+  // (Aoi 15:47Z: column top y67 under a rim at y68). One more block and the hole is gone.
+  if (up && !U.cancelled(bot) && !gone()) { const lvl = levelAround(bot); if (lvl != null && Math.floor(bot.entity.position.y + 0.01) === lvl - 1 && fillers()) up += await U.withTimeout(BL.pillarUp(bot, 1, {}), 8000, 'pillarFlush').catch(e_ => { swallow('army:pillarFlush', e_); return 0 }) }
   if (up && !gone()) await trimPillar(bot) // a pillar never stands above the ground beside it
   if (up) { try { writeJSON(path.join(__dirname, '..', '..', '.scaffold', bot.username + '.json'), []) } catch (e_) { swallow('army:pillarLedger', e_) } } // the column is the hole's fill now, nobody's scaffold
   if (up && free() && !gone()) await stepOff(bot)
@@ -1058,20 +1074,31 @@ async function digOut (bot, pit, opts = {}) {
   if (opts.reflex && inFill(bot)) return
   const life = bot.__armyDeaths || 0; const gone = () => (bot.__armyDeaths || 0) !== life || !!bot.__armyDied || !bot.entity || bot.health <= 0
   bot.__stairPlaced = []; bot.__stairDug = []
-  // BRAKE: an escape that has to be repeated at the same spot is a loop, not an escape (Ichika 15:31Z: `pillared_out x6, blocks:1, free:false`). One per place per 5 min.
+  // BRAKE: a RETRY OF A FAILED escape at the same spot is a loop, not an escape (Ichika 15:31Z: `pillared_out x6, blocks:1, free:false`), and so is a third escape
+  // in ten minutes. An escape that WORKED and whose bot fell into the next hole may run again - each pass leaves one more block of fill in the ground.
   const e0 = bot.__armyEsc
-  if (e0 && Date.now() - e0.t < 300000 && Math.abs(e0.at[0] - from.x) <= 6 && Math.abs(e0.at[1] - from.y) <= 6 && Math.abs(e0.at[2] - from.z) <= 6) {
-    if (Date.now() - (bot.__armyStrandedT || 0) > 600000) { bot.__armyStrandedT = Date.now(); result(bot, { ev: 'stranded', at: [from.x, from.y, from.z], area: walkableArea(bot), island: islandOf(bot).size, why: 'escaped here ' + Math.round((Date.now() - e0.t) / 1000) + ' s ago and I am stuck again' }) }
+  bot.__armyEscLog = (bot.__armyEscLog || []).filter(t => Date.now() - t < 600000)
+  const same = e0 && Date.now() - e0.t < 300000 && Math.abs(e0.at[0] - from.x) <= 4 && Math.abs(e0.at[1] - from.y) <= 4 && Math.abs(e0.at[2] - from.z) <= 4
+  if ((same && !e0.free) || bot.__armyEscLog.length >= 2) {
+    // `stranded` is the word an operator answers with `rescue` = a KILL and a lost kit (15:56Z: Tsumugi was killed on a report that said `area:120` - she could
+    // walk). It is only ever said about a bot that is really stuck by BOTH measures, the same ones armyctl's rescue check reads.
+    if (stuckNow(bot) && Date.now() - (bot.__armyStrandedT || 0) > 600000) { bot.__armyStrandedT = Date.now(); result(bot, { ev: 'stranded', at: [from.x, from.y, from.z], area: walkableArea(bot), island: islandOf(bot).size, why: same ? 'the same escape failed here ' + Math.round((Date.now() - e0.t) / 1000) + ' s ago' : 'three escapes in ten minutes - this is a loop, the spot needs a job' }) }
     strictMovements(bot); return
   }
-  bot.__armyEsc = { t: Date.now(), at: [from.x, from.y, from.z] }
+  if (U.cancelled(bot)) return // the slice is being taken away: an escape that cannot run must not count as one that failed (Nozomi 15:50Z: `dug:0, tookS:1`)
+  bot.__armyEscLog.push(Date.now())
+  bot.__armyEsc = { t: Date.now(), at: [from.x, from.y, from.z], free: false }
   if (pit && inShaft(bot) && await fillShaft(bot)) { strictMovements(bot); return }
   // THE PLAYER'S ANSWER FIRST: pillar out (step out of the hole, or straight up through rock). The column is the hole's fill - no staircase, no scar.
   const t0 = Date.now(); const isl = islandOf(bot)
-  trapFound(bot, isl.size)
-  const esc = await pillarEscape(bot, { pit, cells: isl })
+  if (isl.size < TRAP_ISLAND) trapFound(bot, isl.size) // the SPOT is only worth naming when it really holds a bot
+  const esc = await pillarEscape(bot, { pit, cells: isl }).catch(e_ => { swallow('army:escape', e_); return { how: 'none', blocks: 0, free: false } })
   if (esc.blocks) debt(bot, { kind: 'pillar', at: [from.x, from.y, from.z], blocks: esc.blocks })
-  if (esc.free && !gone()) {
+  // nothing placed and already free = the old `area < 60` gate fired on a wide one-way island (Nagisa 15:54Z, island 49): no escape happened, so nothing is
+  // reported. Under a roof the bot may still need the staircase, so only a bot under the open sky leaves here.
+  if (esc.free && !esc.blocks && skyAbove(bot)) { bot.__armyEscLog.pop(); bot.__armyEsc = null; strictMovements(bot); return } // it never happened: it must not count against the brake either
+  if (esc.free && esc.blocks && !gone()) {
+    bot.__armyEsc.free = true
     const to1 = bot.entity.position.floored()
     result(bot, { ev: 'escaped', how: esc.how, blocks: esc.blocks, tookS: Math.round((Date.now() - t0) / 1000), from: [from.x, from.y, from.z], to: [to1.x, to1.y, to1.z], island: islandOf(bot).size })
     strictMovements(bot); return
@@ -1082,10 +1109,13 @@ async function digOut (bot, pit, opts = {}) {
     // A DEEP PIT UNDER THE SKY (10:3xZ Chika: a closed pond 16 below the forest floor - ONE flight of +4 ended at y53, `dug_out` from == to, `no_route` again for ever):
     // flight after flight until the bot can walk again, at most 8 flights (32 levels); a flight that gains no height ends it.
     const out = () => skyAbove(bot) && islandOf(bot).size >= TRAP_ISLAND
-    if (pit) for (let i = 0; i < 8 && !gone() && !U.cancelled(bot) && (i === 0 || !out()); i++) { const y0 = Math.floor(bot.entity.position.y); await U.withTimeout(stairUp(bot, y0 + 4, 90000, out), 90000 + 115000, 'stairUp'); if (Math.floor(bot.entity.position.y) <= y0) break }
+    // the climber fills what it digs behind it: one wall block bought now pays for the whole seal (a bot far from the depot carries no cobblestone)
+    if (FILLERS.reduce((n, f) => n + count(bot, f), 0) < 3 && !gone()) await digFiller(bot)
+    if (pit && wallsAround(bot, 4)) for (let i = 0; i < 8 && !gone() && !U.cancelled(bot) && (i === 0 || !out()); i++) { const y0 = Math.floor(bot.entity.position.y); await U.withTimeout(stairUp(bot, y0 + 4, 90000, out), 90000 + 115000, 'stairUp'); if (Math.floor(bot.entity.position.y) <= y0) break }
     for (let i = 0; i < 12 && !skyAbove(bot) && !U.cancelled(bot) && !gone() && !insideOurs(bot); i++) await U.withTimeout(stairUp(bot, Math.floor(bot.entity.position.y) + 3, 60000, out), 60000 + 115000, 'stairUp')
   } catch (e_) { swallow('army:373', e_) }
   if (gone()) { result(bot, { ev: 'escape_aborted', from: [from.x, from.y, from.z], why: 'the bot died during the escape' }); bot.__stairPlaced = []; bot.__stairDug = []; strictMovements(bot); return }
+  if (U.cancelled(bot)) { bot.__armyEsc = null; bot.__armyEscLog.pop(); bot.__stairPlaced = []; bot.__stairDug = []; return } // cut short by a re-assignment: try again next slice, no brake, no report
   const to = bot.entity.position.floored()
   // STEPS LEFT IN THE OPEN ARE LITTER (rule: what a routine places as a help it takes away again): a placed step at or above the level the bot walked out on
   // is dug and collected; steps below it are fill in the hole and stay.
@@ -1094,16 +1124,37 @@ async function digOut (bot, pit, opts = {}) {
     for (const q of (bot.__stairPlaced || []).filter(q => q.y >= to.y).sort((a, b) => b.y - a.y)) { if (U.cancelled(bot) || gone()) break; const b = bot.blockAt(new Vec3(q.x, q.y, q.z)); if (b && b.name === q.name && !(q.x === to.x && q.z === to.z && q.y === to.y - 1)) await BL.digBlock(bot, new Vec3(q.x, q.y, q.z), { collect: true, requireHarvest: false, plug: false }).catch(e_ => swallow('army:stairLitter', e_)) }
   } catch (e_) { swallow('army:stairCleanup', e_) }
   bot.__stairPlaced = []
+  // ...AND THE MOUTH OF THE STAIR IS CLOSED FROM OUTSIDE: standing on the rim, whatever the climb still has open within arm's reach is filled with the bot's own
+  // filler (Sakura 15:40Z climbed out of the ravine with 1064 cobblestone in her pockets and left one open cell behind her).
+  const dug0 = (bot.__stairDug || []).length
+  try {
+    for (const q of (bot.__stairDug || []).slice().sort((a, b) => b.y - a.y)) {
+      if (U.cancelled(bot) || gone()) break
+      const p2 = new Vec3(q.x, q.y, q.z); const me = bot.entity.position.floored()
+      if (me.x === q.x && me.z === q.z && Math.abs(me.y - q.y) <= 1) continue
+      if (bot.entity.position.distanceTo(p2.offset(0.5, 0.5, 0.5)) > 4.2) continue
+      const b = bot.blockAt(p2); if (!b || b.boundingBox !== 'empty' || /water|lava/.test(b.name)) continue
+      if (penAt(q.x, q.y, q.z, bot) || ourBlock(p2, b.name, bot)) continue
+      const fill = FILLERS.find(f => count(bot, f)); if (!fill) break
+      await U.safe(bot, () => U.placeBlockAt(bot, fill, p2), 'scarSeal')
+    }
+  } catch (e_) { swallow('army:scarSeal', e_) }
   // WHAT THE CLIMB LEFT OPEN (sealBehind closes each step from above as the bot rises; the world is re-read here): every cell still air is a SCAR and is named,
   // so the cavity/fill job closes it. A staircase without scars is a filled shaft - which is what the owner asked for.
   const scar = (bot.__stairDug || []).filter(q => { const b = bot.blockAt(new Vec3(q.x, q.y, q.z)); return b && b.boundingBox === 'empty' && !(q.x === to.x && q.z === to.z && q.y >= to.y && q.y <= to.y + 1) })
   bot.__stairDug = []
-  if (to.distanceTo(from) >= 1) {
-    result(bot, { ev: 'escaped', how: 'stair', blocks: esc.blocks, tookS: Math.round((Date.now() - t0) / 1000), from: [from.x, from.y, from.z], to: [to.x, to.y, to.z], island: islandOf(bot).size, scars: scar.length || undefined })
+  // ESCAPED MEANS FREE, not "I moved" (Nozomi 15:50Z rose 2 blocks inside her pocket, `island:1`, and called it an escape): otherwise the bot is still in there
+  // and says so, which is what the operator must see.
+  const isl2 = islandOf(bot).size
+  if (to.distanceTo(from) >= 1 && (isl2 >= TRAP_ISLAND || isl2 > isl.size)) {
+    bot.__armyEsc.free = isl2 >= TRAP_ISLAND
+    result(bot, { ev: 'escaped', how: 'stair', blocks: esc.blocks, dug: dug0, tookS: Math.round((Date.now() - t0) / 1000), from: [from.x, from.y, from.z], to: [to.x, to.y, to.z], island: isl2, free: isl2 >= TRAP_ISLAND, scars: scar.length || undefined })
     if (scar.length) { result(bot, { ev: 'escape_scar', n: scar.length, cells: scar.slice(0, 10).map(q => [q.x, q.y, q.z]) }); debt(bot, { kind: 'staircase', from: [from.x, from.y, from.z], to: [to.x, to.y, to.z], open: scar.slice(0, 20).map(q => [q.x, q.y, q.z]) }) }
-  } else if (Date.now() - (bot.__armyStrandedT || 0) > 10 * 60000) { // operator: `armyctl.js rescue <bot>`
+  } else if (stuckNow(bot) && Date.now() - (bot.__armyStrandedT || 0) > 10 * 60000) { // operator: `armyctl.js rescue <bot>` - a kill, so only for a bot that is really stuck
     bot.__armyStrandedT = Date.now()
-    result(bot, { ev: 'stranded', at: [from.x, from.y, from.z], area: walkableArea(bot) })
+    const p3 = bot.entity.position.floored()
+    result(bot, { ev: 'stranded', at: [p3.x, p3.y, p3.z], area: walkableArea(bot), island: isl2, why: 'pillar and stair both failed here (scars ' + scar.length + ')' })
+    if (scar.length) result(bot, { ev: 'escape_scar', n: scar.length, cells: scar.slice(0, 10).map(q => [q.x, q.y, q.z]), out: false }) // the cells are open whether or not the bot got out
   }
   strictMovements(bot)
 }
@@ -1179,7 +1230,10 @@ async function travel (bot, target, opts = {}) {
   if (!opts.quiet && overworldBot(bot) && dist2(bot, target.x, target.z) > 6 && Date.now() - (bot.__armyEscT || 0) > 120000) { // escapes edit the world: overworld only (digOut says why)
     const rev = walkableArea(bot, 150, 1) // what the bot can walk AND walk back from
     const tr = rev < 150 ? trapped(bot, target) : null
-    if (rev < 150 && onColumn(bot)) { bot.__armyEscT = Date.now(); await stepDown(bot) } else if ((tr && Date.now() - tr.since >= 20000) || (rev < 150 && walkableArea(bot) < 60)) { bot.__armyEscT = Date.now(); dug = true; await digOut(bot, skyAbove(bot), { target, reflex: true }) } else if (rev < 150 && surfaceTrip && skyAbove(bot) && Date.now() - (bot.__armyMaroonT || 0) > 600000) {
+    // 20 s trapped is enough to act BEFORE the first path attempt - but only where the pathfinder has already proved it cannot leave (a recent no_route from this
+    // island, or the old boxed-in reading): a bot that can still walk away one-way is a routing question, not a trap.
+    const stuckHere = tr && Date.now() - tr.since >= 20000 && (walkableArea(bot) < 60 || (bot.__armyNoRoute && Date.now() - bot.__armyNoRoute.t < 300000))
+    if (rev < 150 && onColumn(bot)) { bot.__armyEscT = Date.now(); await stepDown(bot) } else if (stuckHere || (rev < 150 && walkableArea(bot) < 60)) { bot.__armyEscT = Date.now(); dug = true; await digOut(bot, skyAbove(bot), { target, reflex: true }) } else if (rev < 150 && surfaceTrip && skyAbove(bot) && Date.now() - (bot.__armyMaroonT || 0) > 600000) {
       bot.__armyMaroonT = Date.now(); const p1 = bot.entity.position.floored(); const u1 = bot.blockAt(p1.offset(0, -1, 0))
       result(bot, { ev: 'marooned', at: [p1.x, p1.y, p1.z], on: u1 && u1.name, island: rev, area: walkableArea(bot) })
     }

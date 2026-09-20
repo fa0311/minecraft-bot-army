@@ -53,7 +53,6 @@ const DEFAULTS = {
 const K3 = (x, y, z) => x + ',' + y + ',' + z
 const K2 = (x, z) => x + ',' + z
 const SIDES = [[1, 0], [-1, 0], [0, 1], [0, -1]]
-const AROUND = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]
 const flr = p => ({ x: Math.floor(p.x), y: Math.floor(p.y), z: Math.floor(p.z) })
 const same = (a, b) => a && b && a.x === b.x && a.y === b.y && a.z === b.z
 
@@ -202,8 +201,10 @@ function findShafts (map, world) {
 
 function placeable (map, world, x, y, z) {
   if (isSolid(world, x, y, z)) return false
-  // the way in stands until the floor is within one step of the rim (the last layer)
-  if (map.entry && map.entry.cells.has(K3(x, y, z)) && map.grade - y > map.o.maxDrop) return false
+  // A BUILT STAIR stands until the floor is within one step of the rim; nothing else needs protecting.
+  // Water runs down again after its lowest cell is filled and a ladder simply loses its bottom rung, so
+  // protecting those froze their whole column and, through the level rule, a tenth of the box with it.
+  if (map.entry && map.entry.kind === 'stair' && map.entry.cells.has(K3(x, y, z)) && map.grade - y > map.o.maxDrop) return false
   if (map.sealed.has(K3(x, y, z))) return false
   if (map.voidBelow.has(K2(x, z)) && y === map.box.y1) return false
   return isSolid(world, x, y - 1, z) // SOLID FILL: no block is ever placed with air beneath it
@@ -564,10 +565,11 @@ function chooseEntry (map, world, bot, col, o) {
   const floor = firstOpen(map, world, col.x, col.z)
   const depth = map.grade - (floor == null ? map.grade : floor)
   if (depth <= o.maxDrop) return 'walk'
-  if (have(bot, 'water_bucket', o) > 0) return 'water' // free, damage-free, and it is the way back up
-  if (depth - o.maxDrop <= (bot.hp == null ? 20 : bot.hp) - o.keepHp) return 'drop' // nothing to build at all
-  if (have(bot, 'pickaxe', o) > 0) return 'dig_stair'
-  return 'stair'
+  // MEASURED (tests/fill_sim.js h): drop is the fastest way down and costs hit points, water costs one
+  // bucket and nothing else, the ladder is slower and the live bots misread it, and the two staircases
+  // are not finished yet (docs/FILL.md). So: fall while it is cheap, pour when it is not.
+  if (depth - o.maxDrop <= (bot.hp == null ? 20 : bot.hp) - o.keepHp) return 'drop'
+  return 'water'
 }
 
 // the cells an entry occupies, so that nothing fills them while it is still needed
@@ -637,6 +639,15 @@ function entryAction (map, world, bot, tile, o) {
   E.cells = new Set(run.map(q => K3(q.x, q.y, q.z)))
   const next2 = run.find(q => (E.kind === 'stair' ? !isSolid(world, q.x, q.y, q.z) : isSolid(world, q.x, q.y, q.z)))
   if (!next2) return same(feet, landing) ? { type: 'wait', release: true, why: 'at the foot of the stair' } : { type: 'move', target: landing, entry: tag, why: 'down the finished stair' }
+  // a stair is built/cut step by step FROM the step before it: walk down what already stands first
+  if (!canPlaceFrom(world, feet, next2, o.reach)) {
+    const done2 = run.filter(q => (E.kind === 'stair' ? isSolid(world, q.x, q.y, q.z) : !isSolid(world, q.x, q.y, q.z)))
+    const stands2 = done2.map(q => ({ x: q.x, y: E.kind === 'stair' ? q.y + 1 : q.y, z: q.z }))
+      .filter(q => canStand(map, world, q.x, q.y, q.z) && canPlaceFrom(world, q, next2, o.reach))
+    if (stands2.length) return { type: 'move', target: stands2[stands2.length - 1], entry: tag, why: 'down to the last finished step' }
+    if (!same(feet, rim)) return { type: 'move', target: rim, entry: tag, why: 'back to the rim to start the ' + E.kind }
+    return { type: 'wait', entry: tag, why: 'cannot reach the next step of the ' + E.kind }
+  }
   if (E.kind === 'stair') {
     if (have(bot, o.fillItem, o) < 1) return { type: 'restock', item: o.fillItem, n: o.pocket, entry: tag, why: 'blocks for the entry stair' }
     return { type: 'place', cell: next2, item: o.fillItem, step: true, entry: tag, why: 'entry stair step y' + next2.y }
@@ -657,8 +668,10 @@ function stairRun (map, world, col, floor, kind) {
     if (kind === 'stair') {
       out.push({ x: col.x + along[0] * i, y: y - 1, z: col.z + along[1] * i }) // the tread you step down onto
     } else {
-      const x = col.x + col.ox + along[0] * i
-      const z = col.z + col.oz + along[1] * i
+      // the run starts ONE cell along the wall: the first step cannot be the block the builder is
+      // standing on at the rim (measured: dig-out-of-reach on the very first cut)
+      const x = col.x + col.ox + along[0] * (i + 1)
+      const z = col.z + col.oz + along[1] * (i + 1)
       out.push({ x, y, z }) // feet
       out.push({ x, y: y + 1, z }) // head
     }
@@ -927,6 +940,7 @@ module.exports = {
   summary,
   // used by the simulator and by the live adapter's own checks
   firstOpen,
+  laneFloor,
   placeable,
   canStand,
   canPlaceFrom,

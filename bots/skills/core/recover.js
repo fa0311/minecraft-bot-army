@@ -5,8 +5,10 @@
 // and WHETHER the items burned; onDeath() decides once (overworld only, not lava/fire/void, worth a trip, not a keep-out, not a spot that killed
 // this bot twice in 10 min); onTick() re-raises the alert each second while the drop can still be reached (the alert goes stale in 30 s and kitUp
 // runs first, so ONE raise is not enough), and handle() owns the legs: A.travel there (read-only movement — nothing is dug or placed for a trip),
-// A.pickup within 10 blocks until the 5-minute mark or 60 s on site, A.wear what came back, then ONE report with the MEASURED inventory difference.
-// Fights nothing (core/combat.js raises prio 80, this one 70), one attempt per death, aborts at hp < 8.
+// A.pickup within 12 blocks until the 5-minute mark or 60 s on site, A.wear what came back, then ONE report with the MEASURED inventory difference.
+// Fights nothing (core/combat.js raises prio 80, this one 70), one attempt per death, aborts at hp < 8. Second, cheaper mechanism for the same loss
+// (nobody died): `looseGear` — a bot that WALKS PAST iron/diamond/netherite gear lying on the ground takes it (see the comment there for the brakes).
+// Every death is also PRICED here: `lost()` is the one iron/diamond table behind `death {lost:{…}}` (army_worker.js) and `recovered {back:{…}}`.
 const LIFETIME = 300000 // an item entity despawns 5 min after it dropped (vanilla; Paper's `alt-item-despawn-rate` is off by default)
 const SPEED = 4 // blocks per second a bot really makes with strictMovements (measured: 13214 m / 15 min / ~45 bots ≈ 4)
 const MARGIN = 20000 // slack for the path around hills, the mobs on the way and the last metres of chasing the stack
@@ -103,7 +105,13 @@ function arm (bot) { // idempotent across hot reloads: the OLD listeners are rem
   bot.__recoverInstalled = VER
 }
 
+// A keep-out box is horizontal (x1,z1,x2,z2); what is forbidden inside it is the HOLE, not the ground. A.travel uses exactly this test
+// (`inKO`: y < base.y - 3 AND inside the box) and, when the TARGET is in the hole, drops the rule altogether - so the brake here must not be
+// stricter than the legs. MEASURED 09-20 15:40-15:52Z: four deaths at y66-68 on the RIM of `ravine_s` (base y68) were refused with "inside
+// keep-out" although they lay on walkable grade; 12 iron + 5 diamonds sat there until a passing bot's loose-gear reflex picked them up.
 function keepOutAt (A, pos) {
+  const koY = ((A.settings().base || {}).y || A.SEA_LEVEL + 5) - 3
+  if (pos[1] >= koY) return null // on grade: ordinary ground that the pathfinder walks every day
   for (const k of (A.settings().keepOut || [])) {
     const b = k && k.box
     if (!Array.isArray(b) || b.length !== 4) continue
@@ -116,6 +124,51 @@ function itemsNear (bot, r) {
   let n = 0; const me = bot.entity && bot.entity.position; if (!me) return 0
   for (const e of Object.values(bot.entities)) if (e && e.name === 'item' && e.position && e.position.distanceTo(me) <= r) n++
   return n
+}
+
+// THE SECOND MECHANISM FOR THE SAME LOSS: gear already lying on the ground. Checked first (do not duplicate): `tidy`'s `litter` kind is about
+// BLOCKS (floating blocks, stray crafting tables and containers) and A.pickup only ever runs right after a dig — nothing in the army looks at a
+// dropped diamond pickaxe it walks past. Deliberately narrow, because bots DO drop things on purpose: only iron/diamond/netherite tools and armour
+// (nothing else - no ingots, no bulk, so A.dumpJunk's junk piles and the Nether gold-for-piglin barter are untouched), overworld
+// only, never within 24 blocks of settings.dump, one excursion per bot per 5 min (15 after an empty one), prio 40 = after combat and after a real
+// death recovery. A miss is not reported: it just makes the bot wait longer before looking again. GEAR ONLY, not loose diamonds or ingots: a miner
+// breaking diamond ore makes a diamond entity every few minutes and picks it up itself (blocks.js digBlock collect) - reacting to that would
+// preempt the mining slice for one block. Finished tools and armour never lie on the ground unless somebody died or a chest was blown up.
+const LOOSE = GOOD_GEAR
+function looseGear (bot, core, st) {
+  const now = Date.now()
+  if (now - (st.scavT || 0) < 300000 || now - (st.scanT || 0) < 5000) return
+  st.scanT = now
+  const A = core.A
+  if (bot.health < 14 || A.dimOf(bot) !== 'overworld') return
+  const me = bot.entity.position
+  const D = (A.settings().dump || {}).at
+  if (Array.isArray(D) && Math.hypot(me.x - D[0], me.z - D[2]) < 24) return
+  for (const e of Object.values(bot.entities)) {
+    if (!e || e.name !== 'item' || !e.position || e.position.distanceTo(me) > 12) continue
+    let it = null
+    try { it = e.getDroppedItem && e.getDroppedItem() } catch { continue }
+    if (!it || !LOOSE.test(it.name)) continue
+    st.scavT = now
+    core.raise(bot, { kind: 'loose', by: 'recover', prio: 40, ms: 25000, data: { name: it.name, at: [Math.round(e.position.x), Math.round(e.position.y), Math.round(e.position.z)] } })
+    return
+  }
+}
+async function scavenge (bot, alert, core) {
+  const A = core.A; const st = state(bot)
+  const at = (alert.data && alert.data.at) || null
+  if (!at) return
+  const t0 = Date.now()
+  const before = A.carried(bot)
+  try { bot.state.task = 'picking up a loose ' + alert.data.name } catch { /* the bot is going away */ }
+  const stop = () => core.cancelled(bot) || bot.health < 8 || Date.now() - t0 > 20000
+  await A.travel(bot, { x: at[0], y: at[1], z: at[2] }, { range: 1, ms: 14000, stop, dim: 'overworld', _noOffload: true, quiet: true })
+  await A.pickup(bot, 8, 5000)
+  const after = A.carried(bot)
+  const got = {}
+  for (const [k, n] of Object.entries(after)) { const g = n - (before[k] || 0); if (g > 0) got[k] = g }
+  if (!Object.keys(got).length) { st.scavT = Date.now() + 600000; return } // nothing there: look again in 15 min, and say nothing
+  core.log(bot, 'scavenged', { at, items: got, back: lost(got), tookS: Math.round((Date.now() - t0) / 1000) })
 }
 
 module.exports = {
@@ -159,7 +212,8 @@ module.exports = {
   onTick (bot, core) {
     arm(bot)
     const st = state(bot); const rec = st.want
-    if (!rec || rec.done || !bot.entity || bot.health <= 0 || bot.isSleeping || core.pending(bot)) return
+    if (!bot.entity || bot.health <= 0 || bot.isSleeping || core.pending(bot)) return
+    if (!rec || rec.done) return looseGear(bot, core, st)
     const left = rec.t + LIFETIME - Date.now()
     const me = bot.entity.position
     const d = dist3([me.x, me.y, me.z], rec.pos)
@@ -174,6 +228,7 @@ module.exports = {
 
   // THE TRIP. Read-only movement (A.travel with strictMovements), no fighting (combat.js outranks this alert), ONE attempt per death whatever happens.
   async handle (bot, alert, core) {
+    if (alert.kind === 'loose') return scavenge(bot, alert, core) // gear lying on the ground, nobody died: a 20 s detour, not a recovery
     const A = core.A; const st = state(bot); const rec = st.want
     if (!rec || rec.done) return
     rec.done = true; st.want = null // one attempt per death: a second walk to a spot that is empty (or that kills) is waste

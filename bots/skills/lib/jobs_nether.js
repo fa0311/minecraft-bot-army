@@ -153,37 +153,88 @@ module.exports = ctx => {
   // with control states, away from the gate, which is what a player does.
   const inGate = (bot, p) => { const b = bot.blockAt(p); return !!b && b.name === 'nether_portal' }
   const inGateNow = bot => { const f = bot.entity.position.floored(); return inGate(bot, f) || inGate(bot, f.offset(0, 1, 0)) }
+  // A PORTAL CELL IS A TELEPORTER AND THE PATHFINDER DOES NOT KNOW IT. Measured 15:50:23Z: Ichika crossed, stood in the_nether at
+  // -44,98,-80 (`stranded`, 15:49:11), and 72 s later she was in the OVERWORLD at -177,62,-286 — `clearOfGate` had asked the
+  // pathfinder for a cell on the far side of the frame, the route went straight back THROUGH the six portal blocks, the gate sent
+  // her home, and she then walked the NETHER goal on overworld ground (that is the whole "revolving door", and every "extra gate"
+  // it bred). So every walk of ours prices portal cells out of the graph, in both dimensions; the ONE deliberate entry lifts the
+  // guard for as long as it takes and puts it straight back.
+  // the set is kept ON THE BOT, never in this module: 50 bots share one process pool and one bot's gate is not another's world
+  function gateSet (bot, force) {
+    const g = bot.__armyGateCells = bot.__armyGateCells || { t: 0, s: new Set() }
+    if (!force && Date.now() - g.t < 4000) return g.s
+    const s2 = new Set()
+    try {
+      const id = bot.registry.blocksByName.nether_portal && bot.registry.blocksByName.nether_portal.id
+      if (id != null) for (const q of bot.findBlocks({ matching: [id], maxDistance: 40, count: 200 })) s2.add(q.x + ',' + q.y + ',' + q.z)
+    } catch (e_) { swallow('jobs_nether:gateSet', e_) }
+    g.t = Date.now(); g.s = s2
+    return s2
+  }
+  const gateCell = (bot, p) => { const s2 = (bot.__armyGateCells || {}).s; return !!s2 && s2.size > 0 && (s2.has(p.x + ',' + p.y + ',' + p.z) || s2.has(p.x + ',' + (p.y + 1) + ',' + p.z)) }
+  function gateGuardOn (bot, force) {
+    try {
+      gateSet(bot, force)
+      const mv = bot.pathfinder && bot.pathfinder.movements; if (!mv) return
+      if (!mv.__gateRule) { const r = b => (b && b.position && gateCell(bot, b.position) ? 400 : 0); mv.__gateRule = r; mv.exclusionAreasStep.push(r) }
+    } catch (e_) { swallow('jobs_nether:gateGuardOn', e_) }
+  }
+  function gateGuardOff (bot) {
+    try {
+      const mv = bot.pathfinder && bot.pathfinder.movements; if (!mv || !mv.__gateRule) return
+      mv.exclusionAreasStep = mv.exclusionAreasStep.filter(f => f !== mv.__gateRule); mv.__gateRule = null
+    } catch (e_) { swallow('jobs_nether:gateGuardOff', e_) }
+  }
   async function clearOfGate (bot, api, body, want) {
     if (!inGateNow(bot)) return true
-    const min = want == null ? 2 : want
     const near = p => body.length ? Math.min(...body.map(q => Math.max(Math.abs(q.x - p.x), Math.abs(q.z - p.z)))) : 9
-    const me = bot.entity.position.floored()
-    const cands = []
-    for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) for (const dy of [0, 1, -1]) {
-      const c = me.offset(dx, dy, dz)
-      if (inGate(bot, c) || inGate(bot, c.offset(0, 1, 0))) continue
-      if (near(c) < min) continue
-      if (!BL().standable(bot, c)) continue
-      cands.push(c)
+    const candsFor = min => {
+      const me = bot.entity.position.floored()
+      const cands = []
+      for (let dx = -5; dx <= 5; dx++) for (let dz = -5; dz <= 5; dz++) for (const dy of [0, 1, -1]) {
+        const c = me.offset(dx, dy, dz)
+        if (inGate(bot, c) || inGate(bot, c.offset(0, 1, 0))) continue
+        if (near(c) < min) continue
+        if (!BL().standable(bot, c)) continue
+        cands.push(c)
+      }
+      cands.sort((a, b) => a.distanceTo(bot.entity.position) - b.distanceTo(bot.entity.position))
+      return cands
     }
-    cands.sort((a, b) => a.distanceTo(bot.entity.position) - b.distanceTo(bot.entity.position))
-    for (const c of cands.slice(0, 8)) {
-      if (api.stop()) break
-      task(bot, 'portal: out of the frame first')
-      if (await A.travel(bot, c, { range: 0, ms: 12000, stop: api.stop, quiet: true, anyDepth: true }) && !inGateNow(bot)) return true
-    }
-    // THE PATHFINDER WILL NOT PLAN FROM INSIDE A PORTAL BLOCK: walk out by hand, the way a player does
-    for (const c of cands.slice(0, 4)) {
-      if (api.stop() || !inGateNow(bot)) break
+    // OUT IS OUT, AND ROOM IS A LUXURY (measured 15:35:37Z: Ichika filed `gate_stuck` at the home gate — "the gate area is too
+    // tight to stand beside" — and the whole crossing was abandoned, although the cobblestone apron one cell off the frame would
+    // have done). The thing that matters is being OUT of a portal cell, because the cooldown only ticks down outside one; three
+    // cells of room is what we ask for, one cell is what we accept before we leave a bot standing in the fire.
+    // BY HAND FIRST, AND FAST. The arrival cooldown is 15 s long and it is ALL the time we have: stay in the cells longer than
+    // that and the gate takes us straight back (measured 15:50:23Z: `offCellS 72.9` and a bot in the wrong dimension). A step out
+    // of a portal cell is one block of walking, so it is done with control states, and only then is the pathfinder asked — with
+    // portal cells priced out of its graph, because its idea of "the nearest free cell" was a route through the gate itself.
+    gateGuardOn(bot, true)
+    const deadline = Date.now() + 25000
+    // ONE list, roomy cells first, near ones right behind them — never three rounds of it. (Measured at the far gate: the only
+    // cells 2 clear of that frame lie BEHIND its west wall, so a `min:2` round burns the whole cooldown walking into obsidian
+    // while a cell one step to the east is free. Being OUT is the thing; room is a preference, not a condition.)
+    const cands = candsFor(1)
+    const me0 = bot.entity.position
+    cands.sort((a, b) => (Math.round(a.distanceTo(me0) * 2) - Math.round(b.distanceTo(me0) * 2)) || (near(b) - near(a))) // nearest out, roomiest of the equally near
+    for (const c of cands.slice(0, 6)) {
+      if (api.stop() || Date.now() > deadline || !inGateNow(bot)) break
       try {
+        task(bot, 'portal: out of the frame first')
         bot.pathfinder.setGoal(null); bot.clearControlStates()
         await bot.lookAt(c.offset(0.5, 1.2, 0.5), true)
         bot.setControlState('forward', true)
-        for (let t = 0; t < 24 && inGateNow(bot) && !api.stop(); t++) await sleep(250)
+        for (let t = 0; t < 12 && inGateNow(bot) && !api.stop(); t++) await sleep(250)
         bot.setControlState('forward', false)
       } catch (e_) { swallow('jobs_nether:walkOut', e_) }
       if (!inGateNow(bot)) return true
     }
+    for (const c of cands.slice(0, 4)) {
+      if (api.stop() || Date.now() > deadline || !inGateNow(bot)) break
+      task(bot, 'portal: out of the frame first')
+      if (await A.travel(bot, c, { range: 0, ms: 6000, stop: api.stop, quiet: true, anyDepth: true }) && !inGateNow(bot)) return true
+    }
+    if (!inGateNow(bot)) return true
     try { bot.clearControlStates() } catch (e_) { swallow('jobs_nether:walkOutClear', e_) }
     if (inGateNow(bot)) A.result(bot, { ev: 'gate_stuck', at: xyz(bot.entity.position), dim: dimOf(bot), why: 'cannot get out of the portal cells - the gate area is too tight to stand beside' })
     return !inGateNow(bot)
@@ -214,12 +265,28 @@ module.exports = ctx => {
     const dim0 = dimOf(bot)
     const tgt = cells.map(q => v(q))
     const bod = body && body.length ? body : tgt
+    // ALREADY IN THE GATE? STAND STILL AND LET IT TAKE YOU. A player who walks into a lit portal is moved after 80 ticks (4 s);
+    // measured 15:35:37Z the opposite happened — Ichika was standing IN the home gate's cells, `clearOfGate` could not find three
+    // cells of room, and the crossing was abandoned from the one place it was already winning (`gate_stuck` + "stood in the gate
+    // for 30 s"). Standing is free, and it also TELLS US WHICH CASE WE ARE IN: if 12 s of standing changes nothing, this bot is on
+    // a portal COOLDOWN (300 ticks), and Minecraft RESETS that cooldown on every tick the entity is still inside — so the only
+    // cure is to be OUT of the cells for the whole of it and walk back in, which is what the attempts below do.
+    if (inGateNow(bot)) {
+      task(bot, 'portal: ' + why + ' (in the gate, waiting for the transfer)')
+      for (let t = 0; t < 24 && !api.stop() && inGateNow(bot); t++) { if (dimChanged(bot, dim0)) return dimOf(bot); await sleep(500) }
+      if (dimChanged(bot, dim0)) return dimOf(bot)
+    }
+    const cooling = inGateNow(bot) // 12 s inside a lit portal and still here = a cooldown that resets while we stand in it
     for (let attempt = 0; attempt < 2 && !api.stop() && dimOf(bot) === dim0; attempt++) {
       if (!await clearOfGate(bot, api, bod, 3)) break // 3 cells clear: the cooldown only expires outside
-      await sleep(1200)
+      // THE COOLDOWN IS 15 SECONDS, NOT ONE (this is why a bot that had just come home walked straight back in and hung there):
+      // out of the cells, wait it out, then in again. A bot that walked up from base has no cooldown and waits a moment.
+      for (let w = 0; w < (cooling ? 36 : 3) && !api.stop() && !dimChanged(bot, dim0); w++) await sleep(500)
       const c = tgt.slice().sort((a, b) => a.distanceTo(bot.entity.position) - b.distanceTo(bot.entity.position))[0]
       task(bot, 'portal: ' + why)
-      if (!await A.travel(bot, c, { range: 0, ms: 30000, stop: api.stop, quiet: true, anyDepth: true })) continue
+      gateGuardOff(bot) // the ONE deliberate entry: the guard that keeps every other walk out of the gate is lifted for it
+      const walkedIn = await A.travel(bot, c, { range: 0, ms: 30000, stop: api.stop, quiet: true, anyDepth: true })
+      if (!walkedIn) { gateGuardOn(bot, true); continue }
       const end = Date.now() + Math.min(seconds, 30) * 1000
       while (Date.now() < end && !api.stop()) {
         if (dimChanged(bot, dim0)) return dimOf(bot)
@@ -227,6 +294,7 @@ module.exports = ctx => {
         await sleep(500)
       }
       if (dimChanged(bot, dim0)) return dimOf(bot)
+      gateGuardOn(bot, true)
     }
     if (!dimChanged(bot, dim0)) await clearOfGate(bot, api, bod, 2) // never be left standing in the frame
     return dimChanged(bot, dim0) ? dimOf(bot) : null
@@ -488,6 +556,20 @@ module.exports = ctx => {
     return Object.values(seen).map(e => ({ kind: e.kind, n: e.n, at: e.at, d: e.d, by: bot.username, t: Date.now(), from: xyz(bot.entity.position) }))
   }
   function biomeOf (bot) { try { const b = bot.blockAt(bot.entity.position.floored()); return (b && b.biome && b.biome.name) || '?' } catch (e_) { swallow('jobs_nether:biome', e_); return '?' } }
+  // THE DIMENSION FIELD LAGS, THE WORLD DOES NOT (measured 15:51:51Z: Ichika had been back in the overworld for a minute — she
+  // was walking home across the plains and was killed by a mob at -349,-543 — and her next slice still ran the far-side code and
+  // reported `portal_through to:"overworld"`, because `bot.game.dimension` still read the_nether). So the packet gets a second
+  // opinion from the ground under the bot's feet before anything on the far side runs.
+  function netherHere (bot) {
+    if (!isNether(bot)) return false
+    try {
+      const bi = String(biomeOf(bot) || '?')
+      if (bi === '?') return true // the column has not arrived yet: the packet is all we have
+      if (/nether|crimson|warped|basalt|soul_sand/.test(bi)) return true
+      const u = bot.blockAt(bot.entity.position.floored().offset(0, -1, 0))
+      return !!u && /netherrack|soul_|basalt|blackstone|magma|nether_|crimson|warped|glowstone|obsidian|lava/.test(u.name)
+    } catch (e_) { swallow('jobs_nether:netherHere', e_); return true }
+  }
   // A BRIDGE IS A ROAD (doctrine Q2), not a private shortcut: where the read-only pathfinder finds no way over a gap the squad
   // lays a FLOOR across it, at most 4 cells, at arm's length, and everybody who comes after walks it. Never a tunnel, never a pillar.
   async function bridgeAhead (bot, api, tgt) {
@@ -641,32 +723,76 @@ module.exports = ctx => {
   // 128-block search: every return was a coin toss between our gate and a freshly generated one, and that is why gates kept
   // multiplying. So we build the partner where it belongs: probe the column, walk there, platform first (the 7x9 rule), then the
   // frame centred on -41,-65, then light it. Every step reports what it READ.
+  // A CAUSEWAY IS A ROAD FOR THE NEXT 1000 TRIPS (doctrine Q2), never a private shortcut: 3 walkable cells wide, a rail on each
+  // outer rim so nobody is shoved off, 3 cells of headroom, laid at the ARRIVAL level in an L (z first, then x). It is generated
+  // as a plain cell list so `buildCells` lays it from safe stands of its own and reports what it could not reach.
+  function causewayCells (from, to, y) {
+    const cells = []; const seen = new Set()
+    const add = (x, yy, z, block) => { const k = x + ',' + yy + ',' + z; if (seen.has(k)) return; seen.add(k); cells.push({ x, y: yy, z, block }) }
+    const legs = []
+    let cx = Math.floor(from[0]); let cz = Math.floor(from[2])
+    while (cz !== Math.floor(to[2]) && legs.length < 96) { cz += Math.sign(Math.floor(to[2]) - cz); legs.push([cx, cz, 'z']) }
+    while (cx !== Math.floor(to[0]) && legs.length < 128) { cx += Math.sign(Math.floor(to[0]) - cx); legs.push([cx, cz, 'x']) }
+    for (const [px, pz, axis] of legs) {
+      for (let o = -2; o <= 2; o++) {
+        const x = axis === 'z' ? px + o : px; const z = axis === 'z' ? pz : pz + o
+        if (Math.abs(o) <= 1) { add(x, y - 1, z, 'stone'); for (let k = 0; k < 3; k++) add(x, y + k, z, 'air') } else add(x, y, z, 'stone') // rail on the rim
+      }
+    }
+    const xs = cells.map(c => c.x); const zs = cells.map(c => c.z)
+    return { cells, box: [Math.min(...xs) - 1, Math.min(...zs) - 1, Math.max(...xs) + 1, Math.max(...zs) + 1], len: legs.length }
+  }
   async function pairGate (bot, job, api, P, until) {
     const at = P.at || [-41, null, -65]
     const tx = Math.floor(at[0]); const tz = Math.floor(at[2])
     const here = bot.entity.position.floored()
     // 1. WHAT IS THERE? the highest solid, non-lava block of the column, and the first free cell over it
-    let groundY = null; let roofY = null
+    // THE BEDROCK ROOF IS A SLAB, NOT A BLOCK (measured 15:57:55Z: `groundY 121` for a column whose floor is 60 blocks under the
+    // bot — the scan started at y122, took the first solid under the topmost one for "ground" and reported the roof's underside).
+    // So we walk DOWN THROUGH the roof until the first gap, and the ground is the first solid block under THAT.
+    let groundY = null; let roofY = null; let sawAir = false
     for (let y = Math.min(122, here.y + 24); y >= 20; y--) {
       const b = bot.blockAt(new Vec3(tx, y, tz)); if (!b) continue
-      if (b.boundingBox === 'block' && !/lava/.test(b.name)) { if (roofY == null && y > here.y + 2) { roofY = y; continue } groundY = y; break }
+      const solid = b.boundingBox === 'block' && !/lava/.test(b.name)
+      if (!sawAir) { if (solid) { if (roofY == null && y > here.y + 2) roofY = y; continue } sawAir = true; continue }
+      if (solid) { groundY = y; break }
     }
     if (groundY == null) { A.result(bot, { ev: 'pair_probe', job: job.id, at: [tx, null, tz], from: xyz(here), why: 'the column at ' + tx + ',' + tz + ' is not loaded or has no solid block between y20 and y' + Math.min(122, here.y + 24) }); return { work: 'pair', at: [tx, null, tz], groundY: null, why: 'column unreadable from here' } }
-    const y0 = groundY + 1
-    A.result(bot, { ev: 'pair_probe', job: job.id, at: [tx, y0, tz], groundY, roofY, from: xyz(here), dy: y0 - here.y, d: Math.round(Math.hypot(tx - here.x, tz - here.z)) })
-    // 2. CAN WE WALK THERE? read-only, lava-aware, short hops - no new earthworks unless the operator asks for them
-    let reached = false
-    for (let h = 0; h < 8 && !api.stop() && Date.now() < until; h++) {
-      const me = bot.entity.position; const dv = new Vec3(tx + 0.5 - me.x, 0, tz + 0.5 - me.z); const len = Math.hypot(dv.x, dv.z)
-      if (len < 4) { reached = true; break }
-      const k = Math.min(8, len) / len
-      const sub = new Vec3(Math.round(me.x + dv.x * k), y0, Math.round(me.z + dv.z * k))
-      if (!await nTravel(bot, sub, { range: 2, ms: 25000, stop: api.stop })) break
+    // WHICH LEVEL? The partner point is an x,z point — the game pairs by column, not by height. So the gate goes on the ground of
+    // that column when the ground is where we stand (a road that is level is a road that is safe), and at the ARRIVAL level when
+    // the column's floor is far below us: the far gate sits on a ledge at y98 and the floor is ~65 blocks down, and a stair to it
+    // is `nether_stair`'s work, not the pairing's.
+    const y0 = Math.abs(groundY + 1 - here.y) <= 4 ? groundY + 1 : Math.floor(here.y)
+    A.result(bot, { ev: 'pair_probe', job: job.id, at: [tx, y0, tz], groundY, roofY, from: xyz(here), atArrivalLevel: y0 !== groundY + 1, dy: y0 - here.y, d: Math.round(Math.hypot(tx - here.x, tz - here.z)) })
+    // 2. CAN WE WALK THERE? read-only, lava-aware, short hops - the walk is tried first and again after any earthworks
+    const walk = async () => {
+      for (let h = 0; h < 10 && !api.stop() && Date.now() < until; h++) {
+        if (!netherHere(bot)) return false // the gate took us home mid-walk: Nether coordinates mean nothing on overworld ground
+        const me = bot.entity.position; const dv = new Vec3(tx + 0.5 - me.x, 0, tz + 0.5 - me.z); const len = Math.hypot(dv.x, dv.z)
+        if (len < 4) return true
+        const k = Math.min(8, len) / len
+        const sub = new Vec3(Math.round(me.x + dv.x * k), y0, Math.round(me.z + dv.z * k))
+        if (!await nTravel(bot, sub, { range: 2, ms: 25000, stop: api.stop })) break
+      }
+      return bot.entity.position.distanceTo(new Vec3(tx + 0.5, y0, tz + 0.5)) < 6
     }
-    if (!reached) reached = bot.entity.position.distanceTo(new Vec3(tx + 0.5, y0, tz + 0.5)) < 6
+    let reached = await walk()
+    let bridged = null
+    // 2b. NO WALK? THEN LAY THE ROAD. The far gate is on a ledge and the pathfinder is right that there is nowhere to walk; the
+    // answer a good player gives is a causeway everybody reuses — 3 wide, railed both sides, level, from where we stand to the
+    // partner column. It is built with carried stone from safe stands only, and then the same read-only walk is tried again.
+    if (!reached && !netherHere(bot)) return { work: 'pair', at: [tx, y0, tz], groundY, reached: false, why: 'the gate sent me back to the overworld during the walk - nothing is built from here' }
+    if (!reached && stoneCarried(bot) >= 32) {
+      const from0 = xyz(bot.entity.position)
+      const cw = causewayCells(from0, [tx, y0, tz], y0)
+      const rb = await buildCells(bot, job, api, cw.cells, cw.box, Math.min(until, Date.now() + 240000), 'pair-bridge')
+      bridged = { len: cw.len, placed: rb.placed, dug: rb.dug, steps: rb.steps, left: rb.left, unloaded: rb.unloaded, of: rb.of, leftAt: rb.leftAt }
+      A.result(bot, Object.assign({ ev: 'pair_bridge', job: job.id, from: from0, to: [tx, y0, tz] }, bridged))
+      reached = await walk()
+    }
     if (!reached) {
-      A.result(bot, { ev: 'pair_unreachable', job: job.id, at: [tx, y0, tz], stoppedAt: xyz(bot.entity.position), groundY, why: 'no read-only walk from the present landing to the partner column - it needs a 3-wide bridge with a rail, say so before digging' })
-      return { work: 'pair', at: [tx, y0, tz], groundY, reached: false }
+      A.result(bot, { ev: 'pair_unreachable', job: job.id, at: [tx, y0, tz], stoppedAt: xyz(bot.entity.position), groundY, bridge: bridged, carried: stoneCarried(bot), why: 'no read-only walk to the partner column' + (bridged ? ' even after a ' + bridged.placed + '-block causeway (' + (bridged.leftAt || []).join(' · ') + ')' : ' and too little stone carried to bridge (' + stoneCarried(bot) + ')') })
+      return { work: 'pair', at: [tx, y0, tz], groundY, reached: false, bridge: bridged }
     }
     // 3. PLATFORM FIRST, then the frame: both from the cell list, both placed without ever standing in a portal
     const body = []; for (let dx = -1; dx <= 0; dx++) for (let dy = 1; dy <= 3; dy++) body.push(new Vec3(tx + dx, y0 + dy, tz)) // where the portal WILL be
@@ -710,7 +836,7 @@ module.exports = ctx => {
   }
   const _wpM = {}
   async function doWork (bot, job, api, st, P, body, landed) {
-    if (!isNether(bot)) return { work: String(P.work || ''), why: 'not in the Nether - no far-side work runs from the overworld' }
+    if (!netherHere(bot)) return { work: String(P.work || ''), why: 'not in the Nether - no far-side work runs from the overworld' }
     const until = Date.now() + Math.min(Math.max(1, P.minutes || 6), 10) * 60000
     const t0 = Date.now()
     const N = netherOf()
@@ -751,6 +877,12 @@ module.exports = ctx => {
       box = unionBox(meta.box, N2.hub && N2.hub.room, xyz(bot.entity.position))
     } else if (work === 'pair') {
       return await pairGate(bot, job, api, P, until)
+    } else if (work === 'degate') {
+      // TAKE A STRAY FRAME DOWN ON THE FAR SIDE (owner 15:0xZ "余計なネザーゲート壊して"). `degate` on its own is the overworld job;
+      // as a `work` it runs inside a crossing, so the frames that stand in the NETHER can be taken down by a bot that got there
+      // through our own gate. The registered pair is protected by `degate` itself and is never touched.
+      if (!Array.isArray(P.at) || P.at.length !== 3) return { work, why: 'params.at [x,y,z] is missing: which frame comes down?' }
+      return Object.assign({ work, at: P.at }, await degate(bot, job, api, P.at))
     } else if (work === 'fortress') {
       return await explore(bot, job, api, P, until)
     } else if (work === 'barter') {
@@ -856,7 +988,7 @@ module.exports = ctx => {
     const cells = portalBody(bot, far.position, 10).map(p => [p.x, p.y, p.z])
     const to = await stepThrough(bot, api, cells.length ? cells : [xyz(far.position)], Math.min(P.crossS || 45, 120), 'walking into the far gate', cells)
     if (to && !/nether/.test(to)) {
-      netherWalkOff(bot)
+      netherWalkOff(bot); gateGuardOn(bot, true) // home: the guard now holds the HOME gate cells, so no later walk of this bot wanders into it
       A.result(bot, { ev: 'portal_back', job: job.id, to, pos: xyz(bot.entity.position), from: xyz(far.position) })
       netherEdit({ back: Date.now(), portal: xyz(far.position) })
       st.home = true
@@ -871,13 +1003,32 @@ module.exports = ctx => {
     // column, because the crossing had double-transferred her through a stray gate and back out, while `dimOf` sampled inside
     // `stepThrough` had briefly read `the_nether`. Every number after that was Nether coordinates measured on overworld ground).
     // Nothing on this side of the code runs unless the bot is standing in the Nether, checked here and again before each work.
-    if (!isNether(bot)) {
-      netherWalkOff(bot)
-      A.result(bot, { ev: 'portal_bounced', job: job.id, at: xyz(bot.entity.position), dim: dimOf(bot), why: 'the gate put me back in the overworld (a stray gate in range) - no far-side work runs from here' })
+    if (!netherHere(bot)) {
+      netherWalkOff(bot); gateGuardOff(bot)
+      A.result(bot, { ev: 'portal_bounced', job: job.id, at: xyz(bot.entity.position), dim: dimOf(bot), biome: biomeOf(bot), why: 'the world under my feet is not the Nether (the gate sent me back, or the dimension packet lagged) - no far-side work runs from here' })
       st.through = 0; st.looked = false; st.landed = false; st.sealed = false; st.worked = false
       return 'bounced back to ' + dimOf(bot) + ' at ' + xyz(bot.entity.position).join(',') + ': the gates are not paired'
     }
-    netherWalkOn(bot)
+    netherWalkOn(bot); gateGuardOn(bot, true)
+    // OFF THE ARRIVAL CELLS FIRST — before the wait for the world, before the look (owner 15:3xZ: from inside a portal cell a bot
+    // can place nothing, and that is what every rescue was about). The bot's OWN column is there the moment the gate spits it out;
+    // the rest of the world may arrive while it stands beside the gate rather than in it. `offCellS` is measured, not assumed.
+    // AN UNREADABLE WORLD IS NOT AN EMPTY WORLD (measured 15:57:55Z: `offCellS 0.6, offCell:false` — 0.6 s after the gate spat
+    // Hazuki out `blockAt` still gave null, so `inGateNow` read false, the routine believed she was clear of the frame, nobody
+    // walked her out, and 15 s later the cooldown ran out under her feet and the gate took her straight home again. She then
+    // "worked" the Nether plan on overworld ground at -317,69,-476). So: wait for the block under our feet to be READABLE, then
+    // get out and CHECK, up to four times, inside the 15 s the cooldown gives us.
+    const tArr = Date.now()
+    for (let w = 0; w < 40 && !bot.blockAt(bot.entity.position.floored()); w++) await sleep(250)
+    let first = bot.findBlock({ matching: b => !!b && b.name === 'nether_portal', maxDistance: 8 })
+    let body0 = first ? portalBody(bot, first.position, 6) : []
+    for (let t = 0; t < 4 && inGateNow(bot) && !api.stop() && Date.now() - tArr < 20000; t++) {
+      await clearOfGate(bot, api, body0, 2)
+      if (!inGateNow(bot)) break
+      first = bot.findBlock({ matching: b => !!b && b.name === 'nether_portal', maxDistance: 8 })
+      if (first) body0 = portalBody(bot, first.position, 6)
+    }
+    const offCellS = Math.round((Date.now() - tArr) / 100) / 10
     task(bot, 'portal: the Nether — waiting for the world')
     for (let w = 0; w < 80 && !bot.world.getColumnAt(bot.entity.position); w++) await sleep(500)
     await sleep(1500)
@@ -887,11 +1038,18 @@ module.exports = ctx => {
     // cell - a bot cannot place from there and it is what every rescue was about. Then spread off the arrival cell for the next one.
     await clearOfGate(bot, api, body, 2)
     await spreadOut(bot, api, body)
+    if (inGateNow(bot)) await clearOfGate(bot, api, body, 2) // spreading out must never end ON a cell
     const me = bot.entity.position.floored()
     if (!st.through) {
       st.through = Date.now()
-      A.result(bot, { ev: 'portal_through', job: job.id, from: st.fromDim || 'overworld', to: dimOf(bot), pos: xyz(me), portal: far ? xyz(far.position) : null, cells: body.length })
+      A.result(bot, { ev: 'portal_through', job: job.id, from: st.fromDim || 'overworld', to: dimOf(bot), pos: xyz(me), portal: far ? xyz(far.position) : null, cells: body.length, offCellS, offCell: !inGateNow(bot), hp: bot.health })
       netherEdit({ portal: far ? xyz(far.position) : xyz(me), through: Date.now(), scoutRev: job.rev || 0, by: bot.username })
+    }
+    // STILL ON A CELL = THE TRIP IS OVER BEFORE IT STARTS: the cooldown will send this bot home under its own feet, and anything
+    // it "measures" or "builds" from here belongs to the wrong world. Say so and let the gate do it, rather than work on a lie.
+    if (inGateNow(bot)) {
+      A.result(bot, { ev: 'gate_stuck', job: job.id, at: xyz(bot.entity.position), dim: dimOf(bot), offCellS, area: A.walkableArea(bot, 60, 1), why: 'still standing in the arrival cells after ' + offCellS + ' s - no work starts from a portal cell; the cooldown will take me home' })
+      return 'in the Nether standing in the gate at ' + xyz(me).join(',') + ': could not get clear of the arrival cells'
     }
     if (!far) {
       // no gate in sight = no way home on foot. Say it and stand still; the operator decides (a second gate, a rescue expedition).
@@ -965,7 +1123,8 @@ module.exports = ctx => {
     const keep = new Set()
     for (const q of [N.gate, N.portal]) if (Array.isArray(q)) for (let dx = -4; dx <= 4; dx++) for (let dy = -2; dy <= 6; dy++) for (let dz = -4; dz <= 4; dz++) keep.add((q[0] + dx) + ',' + (q[1] + dy) + ',' + (q[2] + dz))
     const c0 = v(at)
-    if (A.dist2(bot, c0.x, c0.z) > 24 && !await A.travel(bot, { x: c0.x, y: c0.y, z: c0.z }, { range: 4, ms: 300000, stop: api.stop })) return { ok: false, why: 'cannot reach ' + at.join(',') }
+    const trav = (t, o) => netherHere(bot) ? nTravel(bot, t, o) : A.travel(bot, t, o) // over there every walk is lava-aware
+    if (A.dist2(bot, c0.x, c0.z) > 24 && !await trav({ x: c0.x, y: c0.y, z: c0.z }, { range: 4, ms: 300000, stop: api.stop })) return { ok: false, why: 'cannot reach ' + at.join(',') }
     await sleep(500)
     const pk = A.bestOf(bot, 'pickaxe')
     if (!pk || !/diamond|netherite/.test(pk.name)) { if (!await A.obtain(bot, 'diamond_pickaxe', 1, { stop: api.stop }).catch(() => false)) return { ok: false, why: 'no diamond pickaxe' } }
@@ -977,7 +1136,7 @@ module.exports = ctx => {
       let did = 0
       for (const q of found) {
         if (api.stop()) break
-        if (eyeOf(bot).distanceTo(q.offset(0.5, 0.5, 0.5)) > 4.2 && !await A.travel(bot, q, { range: 2, ms: 30000, stop: api.stop, quiet: true })) continue
+        if (eyeOf(bot).distanceTo(q.offset(0.5, 0.5, 0.5)) > 4.2 && !await trav(q, { range: 2, ms: 30000, stop: api.stop, quiet: true })) continue
         await A.equipBest(bot, 'pickaxe').catch(e_ => swallow('jobs_nether:degatePick', e_))
         const r = await BL().digBlock(bot, q, { collect: true, requireHarvest: true, allowProtected: true, own: true }).catch(() => ({ ok: false }))
         if (r && r.ok) { got++; did++ }
@@ -989,7 +1148,7 @@ module.exports = ctx => {
       left = ids.length ? bot.findBlocks({ matching: ids, maxDistance: 12, count: 60, point: c0 }).filter(q => !keep.has(q.x + ',' + q.y + ',' + q.z)).length : 0 }
     const portalLeft = bot.findBlocks({ matching: b2 => !!b2 && b2.name === 'nether_portal', maxDistance: 12, count: 20, point: c0 }).length
     A.result(bot, { ev: 'gate_removed', job: job.id, dim: dimOf(bot), at, obsidian: got, obsidianLeft: left, portalCellsLeft: portalLeft })
-    if (got) await A.bank(bot, { torch: 16 }, { job: job.id, stop: api.stop }).catch(e_ => swallow('jobs_nether:degateBank', e_))
+    if (got && !netherHere(bot)) await A.bank(bot, { torch: 16 }, { job: job.id, stop: api.stop }).catch(e_ => swallow('jobs_nether:degateBank', e_)) // there is no depot on the far side: the obsidian comes home in the pocket
     return { ok: left === 0 && portalLeft === 0, obsidian: got, left, portalLeft }
   }
   // WHEN IS A WORK JOB FINISHED? Read from the BOARD, never from one bot's memory — the next bot is in another process.
@@ -1013,7 +1172,7 @@ module.exports = ctx => {
     if (P.return === true) {
       // 45 min, not 5: until the dispatcher filters by `hb.dim` this job is offered to overworld bots too, and a short decline would
       // bounce the whole army through it every few minutes (churn is backlog item 1). One bounce per bot per 45 min costs nothing.
-      if (!isNether(bot)) { A.decline(bot, job, 45 * 60000, 'not in the Nether'); return muster(bot, job, api, ctx2, 'portal: the return job only carries bots that are in the Nether') }
+      if (!netherHere(bot)) { A.decline(bot, job, 45 * 60000, 'not in the Nether'); return muster(bot, job, api, ctx2, 'portal: the return job only carries bots that are in the Nether') }
       const rk = job.id + ':' + (job.rev || 0)
       const rs = bot.__armyPortalBack = (bot.__armyPortalBack && bot.__armyPortalBack.key === rk) ? bot.__armyPortalBack : { key: rk }
       return await comeHome(bot, job, api, ctx2, rs, P)
@@ -1046,10 +1205,11 @@ module.exports = ctx => {
       return muster(bot, job, api, ctx2, 'portal: I died over there; re-kitting and going again in 3 min')
     }
     // already over there (a new slice, or the dispatcher handed the job back): only nether work happens in the nether
-    if (isNether(bot)) return await netherSide(bot, job, api, ctx2, st, P)
+    if (netherHere(bot)) return await netherSide(bot, job, api, ctx2, st, P)
 
     // ---- 1. the FRAME is the build job's, never this one's
     const gate = v(G.floor[0])
+    gateGuardOn(bot, true) // walking UP TO a lit gate must never mean walking INTO it: the entry is a decision, not a step on a path
     if (A.dist2(bot, gate.x, gate.z) > 24 && !await A.travel(bot, { x: gate.x, y: gate.y + 1, z: gate.z }, { range: 3, ms: 300000, stop: api.stop })) return 'portal: cannot reach the gate at ' + G.floor[0].join(',')
     await sleep(500)
     const gaps = frameGaps(bot, G)
@@ -1135,6 +1295,14 @@ module.exports = ctx => {
       // a scout that finds the fortress must be able to say so from 100 blocks out and get home: bow + arrows when the depot has them
       if (P.work === 'barter') { for (const it of ['golden_helmet', 'gold_ingot']) if (A.count(bot, it) < (it === 'gold_ingot' ? (P.ingots || 64) : 1)) await A.obtain(bot, it, it === 'gold_ingot' ? (P.ingots || 64) : 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:gold', e_)) }
       if (P.work === 'fortress') for (const it of ['bow', 'arrow']) if (A.stockOf(it) > 0 && A.count(bot, it) < (it === 'arrow' ? 16 : 1)) await A.obtain(bot, it, it === 'arrow' ? 32 : 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:bow', e_))
+      // THE PARTNER GATE IS BUILT, NOT FOUND: 10 obsidian for the frame (the 4 corners are any stone), the fire to light it, and a
+      // diamond pickaxe, because obsidian is the one block that comes back out of the world only with one.
+      if (P.work === 'pair') {
+        const wantObs = Math.max(10, P.obsidian || 14)
+        if (A.count(bot, 'obsidian') < wantObs) await A.obtain(bot, 'obsidian', wantObs, { stop: api.stop }).catch(e_ => swallow('jobs_nether:obsidian', e_))
+        if (!A.count(bot, 'flint_and_steel')) await A.obtain(bot, 'flint_and_steel', 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:fs', e_))
+        if (!/diamond|netherite/.test(String((A.bestOf(bot, 'pickaxe') || {}).name || ''))) await A.obtain(bot, 'diamond_pickaxe', 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:pick', e_))
+      }
       // a shield is the difference between a ghast fireball and a death (top model 12:4xZ)
       if (!A.count(bot, 'shield') && !(bot.inventory.slots[45] || {}).name) await A.obtain(bot, 'shield', 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:shield', e_))
       if (!bot.registry.foodsByName || !bot.inventory.items().some(i => bot.registry.foodsByName[i.name])) await A.obtain(bot, 'bread', 16, { stop: api.stop }).catch(e_ => swallow('jobs_nether:food', e_))
@@ -1143,6 +1311,10 @@ module.exports = ctx => {
       if (stoneCarried(bot) < 32) short.push('stone to build with ' + stoneCarried(bot) + '/32 (depot: ' + SHELL_STONE.map(k => k + ' ' + A.stockOf(k)).join(', ') + ')')
       if (!A.bestOf(bot, 'sword')) short.push('no sword')
       if (!bot.inventory.items().some(i => bot.registry.foodsByName[i.name])) short.push('no food')
+      if (P.work === 'pair') {
+        if (A.count(bot, 'obsidian') < 10) short.push('obsidian ' + A.count(bot, 'obsidian') + '/10 (depot: ' + A.stockOf('obsidian') + ') - a frame cannot be built without it')
+        if (!A.count(bot, 'flint_and_steel')) short.push('no flint_and_steel - the new gate could not be lit')
+      }
       if (short.length) { A.decline(bot, job, 10 * 60000, 'kit short: ' + short.join(', ')); return muster(bot, job, api, ctx2, 'portal: not going through under-equipped (' + short.join(', ') + ')') }
       st.kitted = true
     }

@@ -98,6 +98,16 @@
      -369,
      69,
      -509
+    ],
+    [
+     -371,
+     70,
+     -509
+    ],
+    [
+     -371,
+     71,
+     -509
     ]
    ],
    "build": [
@@ -767,7 +777,7 @@
    "stone_axe": 20,
    "dirt": 6500,
    "stone_pickaxe": 16,
-   "book": 48,
+   "book": 64,
    "bookshelf": 15,
    "sugar_cane": 512,
    "diamond_pickaxe": 12,
@@ -960,14 +970,14 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Riko",
+   "by": "Hazuki",
    "portal": [
     -44,
     98,
     -80
    ],
-   "through": 1789918420704,
-   "scoutRev": 0,
+   "through": 1789919875826,
+   "scoutRev": 3,
    "hub": {
     "room": [
      -41,
@@ -1067,7 +1077,7 @@
    ],
    "shellY": 98,
    "returnJob": "nether_return",
-   "deaths": 0,
+   "deaths": 1,
    "deathsResetAt": 1789910779294,
    "deathsResetWhy": "owner 13:2xZ: death is an accepted cost of exploring the Nether; the brake is 6 in 30 min",
    "landing": [
@@ -1080,8 +1090,8 @@
    "landingSafe": false,
    "landingAt": 1789918122175,
    "back": 1789917297964,
-   "lastDeath": 1789911678325,
-   "lastDeathBy": "Hotaru",
+   "lastDeath": 1789919534346,
+   "lastDeathBy": "Ichika",
    "roads": {
     "x+": {
      "from": [
@@ -1107,7 +1117,9 @@
    },
    "outAt": 1789915921402,
    "outBy": "Rin",
-   "deathLog": [],
+   "deathLog": [
+    1789919534346
+   ],
    "sightings": [],
    "fortress": null,
    "stair": {
@@ -1163,68 +1175,90 @@
     73,
     27
    ],
-   "surveyed": 1789918821901,
+   "surveyed": 1789919632607,
    "villagers": 9,
    "professions": {
     "leatherworker": 4,
-    "unknown": 2,
-    "farmer": 3
+    "farmer": 2,
+    "weaponsmith": 1,
+    "unknown": 2
    },
-   "beds": 10,
+   "beds": 12,
    "stations": {
     "composter": 2,
+    "grindstone": 1,
     "blast_furnace": 1
    },
-   "golems": 1,
+   "golems": 2,
    "bounds": [
     -766,
-    11,
-    -710,
+    10,
+    -703,
     57
    ],
    "nearest": [
     [
-     -738,
-     71,
-     39
-    ],
-    [
-     -738,
-     71,
-     38
-    ],
-    [
-     -743,
+     -722,
      72,
-     41
+     29
     ],
     [
-     -747,
+     -722,
+     72,
+     30
+    ],
+    [
+     -722,
+     72,
+     30
+    ],
+    [
+     -720,
+     72,
+     31
+    ],
+    [
+     -728,
      71,
-     36
+     32
+    ],
+    [
+     -729,
+     72,
+     32
     ],
     [
      -733,
-     68,
-     22
+     72,
+     32
     ],
     [
-     -731,
-     87,
-     41
-    ],
-    [
-     -736,
-     85,
-     58
-    ],
-    [
-     -709,
-     73,
-     30
+     -714,
+     72,
+     31
     ]
-   ]
-  }
+   ],
+   "post": {
+    "at": [
+     -742,
+     69,
+     28
+    ],
+    "stations": {
+     "grindstone": [
+      -740,
+      70,
+      33
+     ]
+    },
+    "t": 1789919315694
+   }
+  },
+  "enchantTable": [
+   -344,
+   69,
+   -517
+  ]
  },
  "enlisted": [
   "Sakura",
@@ -1425,7 +1459,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 1,
+   "bots": 6,
    "site": [
     -367,
     69,
@@ -1461,7 +1495,7 @@
      ]
     ]
    },
-   "rev": 64,
+   "rev": 66,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789917857836
   },
@@ -1606,8 +1640,8 @@
     }
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
-   "bots": 14,
-   "rev": 46
+   "bots": 10,
+   "rev": 47
   },
   {
    "id": "base_dorm",
@@ -1763,7 +1797,7 @@
    "type": "ores",
    "priority": 91,
    "front": "mine",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "produces": [
     "fuel",
@@ -1793,7 +1827,8 @@
     "radius": 150,
     "bankAt": 32
    },
-   "rev": 2
+   "rev": 3,
+   "bots": 8
   },
   {
    "id": "sleeper",
@@ -1880,7 +1915,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789918744560
+   "restUntil": 1789920204282
   },
   {
    "id": "fill_ring_field2",
@@ -2079,7 +2114,7 @@
      }
     ]
    },
-   "rev": 6
+   "rev": 7
   },
   {
    "id": "clear_yard_trees",
@@ -2345,7 +2380,7 @@
    },
    "rev": 3,
    "note": "03:10Z engineer: 40 obsidian banked (want reached) - paused. Re-activate with a higher params.args.want when more is needed; open spot on record: -54/29:-1 (37 cast obsidian left)",
-   "restUntil": 1789917702919
+   "restUntil": 1789920160291
   },
   {
    "id": "base_infill_n404_n556",
@@ -2559,7 +2594,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 16,
+   "bots": 6,
    "site": [
     -311,
     69,
@@ -2790,17 +2825,17 @@
     },
     "order": "near"
    },
-   "rev": 48,
+   "rev": 49,
    "desc": "way in PROVEN 15:26Z: dropIn (step off the rim, fall-3 damage, hp>=18) - 4 builders on the floor, left 3216->2379 in 18 min. Crew follows the measured rate: lower it again if gemba shows builders standing at the rim",
    "note": "top model 15:1xZ: 655 OPEN cells (left 3216 minus waiting 2561) - do not lower; ladderWay (fill_wayin) needs builders standing on the RIM to hang the way in",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Madoka",
-    "t": 1789918698628,
+    "by": "Aika",
+    "t": 1789920110311,
     "at": [
-     -302,
+     -301,
      57,
-     -463
+     -474
     ],
     "drop": 12
    }
@@ -3316,7 +3351,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789919094524
+   "restUntil": 1789920914133
   },
   {
    "id": "nether_landing_2",
@@ -3893,7 +3928,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 1,
    "site": [
     -311,
     68,
@@ -3919,7 +3954,7 @@
     "order": "near"
    },
    "note": "needs: dirt (5 cells wait; every cell whose material exists is done or in work)",
-   "rev": 3,
+   "rev": 4,
    "stuckBy": {
     "key": "rev2",
     "bots": [
@@ -4244,7 +4279,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 1,
    "site": [
     -256,
     68,
@@ -4269,9 +4304,9 @@
     },
     "order": "near"
    },
-   "rev": 3,
+   "rev": 4,
    "note": "needs: dirt (835 cells wait; every cell whose material exists is done or in work)",
-   "restUntil": 1789919004295
+   "restUntil": 1789920914136
   },
   {
    "id": "fill_minehead_pits",
@@ -4280,7 +4315,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 2,
    "site": [
     -327,
     68,
@@ -4316,7 +4351,7 @@
     },
     "order": "near"
    },
-   "restUntil": 1789919540974,
+   "restUntil": 1789921896934,
    "way": {
     "by": "Madoka",
     "t": 1789916716021,
@@ -4326,7 +4361,7 @@
      -504
     ]
    },
-   "rev": 7,
+   "rev": 9,
    "pri": 97
   },
   {
@@ -4405,9 +4440,9 @@
     },
     "order": "near"
    },
-   "rev": 4,
+   "rev": 6,
    "note": "needs: dirt (17 cells wait; every cell whose material exists is done or in work)",
-   "restUntil": 1789918909003
+   "restUntil": 1789920723295
   },
   {
    "id": "ladders_for_ravine",
@@ -4694,7 +4729,7 @@
    "id": "village_survey",
    "type": "trade",
    "priority": 99,
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "names": [
     "Hina"
@@ -4752,10 +4787,15 @@
       "item": "leather",
       "reserve": 48,
       "n": 120
+     },
+     {
+      "item": "coal",
+      "reserve": 768,
+      "n": 240
      }
     ]
    },
-   "rev": 4
+   "rev": 5
   },
   {
    "id": "nether_landing_3",
@@ -5287,9 +5327,9 @@
    "type": "portal",
    "priority": 97,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "day",
-   "bots": 2,
+   "bots": 1,
    "shiftMin": 20,
    "site": [
     -326,
@@ -5316,11 +5356,17 @@
      null,
      -65
     ],
-    "minutes": 7,
+    "minutes": 9,
     "cobble": 256,
     "crossS": 30,
-    "maxDeaths": 6
-   }
+    "maxDeaths": 2,
+    "obsidian": 14
+   },
+   "names": [
+    "Hazuki"
+   ],
+   "rev": 3,
+   "note": "CODE OWNER IS DRIVING THIS (15:5xZ, do not touch until 17:00Z): ONE pinned scout proves the crossing and builds the partner gate at the_nether -41,-65. OPERATORS: do NOT rescue this bot (a `stranded` line from the far gate is EXPECTED - the arrival pocket is 8 cells wide; the last rescue killed a fully kitted scout in the Nether at 15:51:49 and cost 14 obsidian), do NOT pause the job, do NOT add bots."
   },
   {
    "id": "base_infill_minehead_mound",
@@ -5363,9 +5409,9 @@
    "id": "bake_bulk",
    "type": "steps",
    "priority": 96,
-   "status": "active",
+   "status": "paused",
    "when": "any",
-   "bots": 6,
+   "bots": 4,
    "requires": {
     "minHp": 6
    },
@@ -5536,7 +5582,8 @@
      }
     ]
    },
-   "rev": 3
+   "rev": 4,
+   "note": "auto-paused: plan failed"
   },
   {
    "id": "void_fix_base_infill_minehead_mound",
@@ -5545,7 +5592,7 @@
    "front": "works",
    "status": "paused",
    "when": "any",
-   "bots": 2,
+   "bots": 3,
    "site": [
     -325,
     68,
@@ -5583,7 +5630,197 @@
      ]
     }
    },
-   "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) - fill_ravine_s (fill_void, active) has the SAME cell in its blueprint at -325,68,-486"
+   "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) - fill_ravine_s (fill_void, active) has the SAME cell in its blueprint at -325,68,-486",
+   "rev": 1
+  },
+  {
+   "id": "test_bucket_drop",
+   "type": "steps",
+   "priority": 99,
+   "status": "active",
+   "when": "any",
+   "bots": 1,
+   "names": [
+    "Yuzu"
+   ],
+   "requires": {
+    "minHp": 18
+   },
+   "plan": "no zone: TEST ordered by the owner - is a water-bucket landing reliable? One bot fetches a bucket, fills it at the pond -408,62,-455, then stands at the ravine rim; the top model drives the drops by probe and measures hp lost",
+   "params": {
+    "steps": [
+     {
+      "do": "goto",
+      "to": [
+       -302,
+       69,
+       -474
+      ],
+      "range": 0
+     },
+     {
+      "do": "wait",
+      "s": 1500
+     }
+    ]
+   },
+   "rev": 7
+  },
+  {
+   "id": "enchant_room",
+   "type": "build",
+   "priority": 70,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 1,
+   "site": [
+    -344,
+    69,
+    -517
+   ],
+   "plan": "zone enchanting room (docs/WORLD.md), inside zone core at the hall's east end: the table at -344,69,-517 with its 15-bookshelf ring. Blueprint `enchant_room` = exactly what stands, so this job is the REPAIR order if a shelf or the table is ever lost (the ring must keep 15 shelves and 8 empty cells or the power drops below 30 levels).",
+   "params": {
+    "blueprint": "enchant_room",
+    "origin": [
+     -344,
+     69,
+     -517
+    ],
+    "pad": false,
+    "args": {
+     "door": "north",
+     "torch": true
+    }
+   },
+   "note": "auto-paused: build complete"
+  },
+  {
+   "id": "enchant_fortune",
+   "type": "enchant",
+   "priority": 88,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 1,
+   "site": [
+    -344,
+    69,
+    -517
+   ],
+   "plan": "zone enchanting room (docs/WORLD.md): FORTUNE III for the mine. The same rock gives x2.2 raw iron per ore block with Fortune III, so one 30-level visit is worth more than an hour of new branches. A bot with >= 30 levels takes a diamond pickaxe from the depot, re-rolls up to 5 times with books until offer 3 hints Fortune (or settles for efficiency/unbreaking), and banks the pick in the tools chest, where kitUp hands the best pickaxe to the mine squad first. Nobody under 30 levels holds this job for more than one tick.",
+   "params": {
+    "at": [
+     -344,
+     69,
+     -517
+    ],
+    "minLevel": 30,
+    "items": [
+     "diamond_pickaxe",
+     "iron_pickaxe"
+    ],
+    "want": [
+     "fortune"
+    ],
+    "rerolls": 5,
+    "throwaway": "book",
+    "issue": "tools",
+    "settle": true,
+    "tries": 12,
+    "restMin": 20
+   },
+   "xpSeen": {
+    "t0": 1789919586082,
+    "n": {
+     "Ume": 0,
+     "Kokoro": 26,
+     "Koharu": 12,
+     "Fuuka": 18,
+     "Nozomi": 0,
+     "Ichika": 0
+    }
+   },
+   "restUntil": 1789920516357
+  },
+  {
+   "id": "cavity_base",
+   "type": "cavity",
+   "priority": 71,
+   "status": "active",
+   "when": "any",
+   "bots": 3,
+   "site": [
+    -310,
+    68,
+    -475
+   ],
+   "requires": {
+    "minHp": 12,
+    "minFood": 8
+   },
+   "plan": "BASE PLAN zone infill: close the holes our own bots dug under the base (owner 09-20: 地下にbotが誤って掘った穴が多すぎます / 緊急脱出の階段を埋めない). Only what bots/army/cavities.json proves is an ENCLOSED cavity under our own ground (roof at most 8 under the grade) or a narrow escape scar that still reaches daylight - the mine, blueprint cells, open pits (fill_void's work) and natural caves are never touched. One bot per cavity (cavity_claims.json).",
+   "params": {
+    "work": "fill",
+    "filler": "cobblestone",
+    "needStock": {
+     "cobblestone": 512
+    },
+    "minutes": 12,
+    "maxAgeMin": 90,
+    "maxCells": 400
+   }
+  },
+  {
+   "id": "fill_buckets",
+   "type": "steps",
+   "priority": 74,
+   "status": "active",
+   "when": "any",
+   "names": [
+    "Karin",
+    "Mashiro"
+   ],
+   "plan": "no world change: the depot holds 9 empty buckets and 0 full ones, so no bot can do a water-bucket descent into a shaft (jobs_cavity waterDescent). Fill three at the natural lake edge -408,62,-455 (never a field or the cane block, whose water the crops need) and bank them.",
+   "params": {
+    "steps": [
+     {
+      "do": "withdraw",
+      "item": "bucket",
+      "n": 3
+     },
+     {
+      "do": "fill",
+      "at": [
+       -408,
+       62,
+       -455
+      ]
+     },
+     {
+      "do": "fill",
+      "at": [
+       -408,
+       62,
+       -455
+      ]
+     },
+     {
+      "do": "fill",
+      "at": [
+       -408,
+       62,
+       -455
+      ]
+     },
+     {
+      "do": "bank",
+      "keep": {
+       "torch": 16
+      }
+     }
+    ]
+   }
   }
  ]
 }

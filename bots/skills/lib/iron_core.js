@@ -472,9 +472,31 @@ function durLeft (bot, it) {
   return max - used
 }
 function pickRank (n) { return /^(diamond|netherite)/.test(n) ? 4 : /^iron/.test(n) ? 3 : /^stone/.test(n) ? 2 : 1 }
-function bestPick (bot) {
+// A FORTUNE PICK IS FOR ORE, NOT FOR ROCK (owner 09-20: "鉄は様々な方法で産出できます"). Fortune III gives x2.2 raw iron per ore block and
+// nothing at all on stone, deepslate or dirt - so a miner that carries one digs ORE with it and every other block with the plain pick,
+// which also spends the enchanted tool's durability only on the blocks that pay it back. `b` = the block about to be dug (digCell passes
+// it); called without a block the old rule stands unchanged: best tier, most worn first.
+const FORTUNE_RE = /_ore$|^ancient_debris$/
+function bestPick (bot, b) {
   const ps = pickaxes(bot).filter(i => durLeft(bot, i) > 0)
-  ps.sort((a, b) => pickRank(b.name) - pickRank(a.name) || durLeft(bot, a) - durLeft(bot, b)) // best tier, most worn first
+  // how many levels of Fortune sit on this pick (26.1: `item.enchants` = {enchantments:[{id,level}]}, the same data under `components`)
+  const fortune = it => {
+    try {
+      let raw = it.enchants
+      if (raw && !Array.isArray(raw) && Array.isArray(raw.enchantments)) raw = raw.enchantments
+      if (!Array.isArray(raw) || !raw.length) { const c = ((it.components || []).find(q => q && /enchantments$/.test(String(q.type))) || {}).data; raw = (c && c.enchantments) || (Array.isArray(c) ? c : []) }
+      if (!Array.isArray(raw) || !raw.length) return 0
+      const fid = (((bot.registry || {}).enchantmentsByName || {}).fortune || {}).id
+      for (const e of raw) {
+        if (!e) continue
+        const nm = typeof e.id === 'string' ? String(e.id).replace(/^minecraft:/, '') : (fid != null && e.id === fid ? 'fortune' : null)
+        if (nm === 'fortune') return e.level || e.lvl || 1
+      }
+    } catch (e_) { swallow('iron_core:fortune', e_) }
+    return 0
+  }
+  const ore = !!b && FORTUNE_RE.test(b.name)
+  ps.sort((p, q) => (ore ? fortune(q) - fortune(p) : fortune(p) - fortune(q)) || pickRank(q.name) - pickRank(p.name) || durLeft(bot, p) - durLeft(bot, q))
   return ps[0] || null
 }
 function stonePickCount (bot) { return pickaxes(bot).filter(i => pickRank(i.name) >= 2 && durLeft(bot, i) > 8).length }
@@ -598,9 +620,9 @@ async function digCell (bot, p, opts = {}) {
     }
     const needsPick = !!b.harvestTools && !clutter(b) // a cobweb "needs" a sword/shears for its DROP only: equipForBlock takes the fastest tool, else the hand
     if (needsPick) {
-      const pk = bestPick(bot)
+      const pk = bestPick(bot, b) // `b`: an ORE cell takes the Fortune pick, plain rock the plain one (see bestPick)
       if (!pk) { if (!await ensurePick(bot, 1) && !opts.hand) return 'notool' }
-      const pk2 = bestPick(bot)
+      const pk2 = bestPick(bot, b)
       if (!pk2 && !opts.hand) return 'notool'
       // opts.hand: a bot with NO pickaxe and nothing to craft one from may punch its way (slow, no drops) - only for the short level connection
       // back to the graph (reconnect / repairs), like a player who lost his tools in a cave

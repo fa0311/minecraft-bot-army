@@ -18,6 +18,9 @@ vanilla's — no clocks, observers, piston timing or zero-tick anywhere here; wa
 - **nobody** buys wool, paper, coal or string, and **nobody sells iron**. That is the whole problem, and it is a recipe away (below).
 - Measured trades: Tamaki 320 wheat → **16 emeralds**; second trip 320 wheat + 96 leather over 2 villagers → **51 emeralds**;
   Yotsuba 320 wheat → **16 emeralds**. ~83 emeralds in three round trips, 0 deaths, 0 `no_route` on the whole 624-block route.
+- **THE LOOP IS CLOSED (15:53Z):** with the new weaponsmith on the board, Yotsuba sold 375 wheat + 12 leather over 4 villagers for
+  36 emeralds and **bought 6 iron axes** — 18 ingots of iron gear paid for with wheat, in one trip, by two bots. That is the whole
+  answer to 「在庫の有効活用はしないのか？」: the depot's glut is iron, at 20 wheat per emerald.
 
 ## Stage 1a — MAKE THE BUYERS (`work:'post'`, running)
 An unemployed villager claims the nearest unclaimed workstation it can reach, so the professions we need are craftable:
@@ -27,6 +30,10 @@ for 4-9 emeralds a piece)** · `barrel` (fisherman) · `smoker` (butcher). Total
 against 105 armour pieces (620 ingots) that the armorer can then sell us for emeralds we make out of wheat and wool.
 Nothing that already stands in the village is dug, moved or replaced; the stations go on columns probed with `armyctl.js ground`.
 `stone` and `smooth_stone` are SMELTED, not crafted, so the job runs two furnace passes before the recipe solver.
+**PROVEN ON THE FIELD 09-20 15:48Z:** Tamaki placed a `grindstone` at -740,70,33; four minutes later `village_seen` read
+`professions {farmer:2, leatherworker:4, weaponsmith:1}` — a villager had taken the job. The village now buys our coal. The other
+six stations follow on the next pass (the first pass crafted only the grindstone: a bot carrying 800 wheat from an interrupted
+trade load made every withdrawal in the recipe chain fail with "inventory full", so `work:'post'` now banks its pockets first).
 
 ## Stage 1b — THE IRON GOLEM FARM: designed, sited nowhere yet, **0 ingots/hour measured** — and why
 - **A bot must never kill a golem.** A *player* kill costs village reputation (major_negative gossip) and raises every price at the

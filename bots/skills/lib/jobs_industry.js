@@ -435,6 +435,11 @@ module.exports = ctx => {
         task(bot, 'post: back to the depot to make the workstations')
         if (!await A.travel(bot, v([home.x, home.y, home.z]), { range: 6, ms: 12 * 60000, stop: api.stop })) return 'post: no route to the depot'
       }
+      // EMPTY POCKETS FIRST. Measured 15:44Z: Tamaki carried 800 wheat from an interrupted trade load, so every withdrawal in the
+      // recipe chain hit `Bot inventory is full` and `obtain` reported `missing {iron_ingot:5, furnace:1}` while those very items
+      // were in her hands. A station is crafted out of the DEPOT, so the pockets must be empty when the chain is solved.
+      task(bot, 'post: banking the pockets before crafting')
+      await A.bank(bot, { bread: 16, emerald: 64 }, { job: job.id, stop: api.stop, noKit: true }).catch(e_ => swallow('jobs_industry:postBank', e_))
       const short = await makeStations(bot, job, api, cells)
       const have = cells.filter(c => A.count(bot, c.block) > 0).map(c => c.block)
       A.result(bot, { ev: 'post_made', job: job.id, carrying: have, short })
