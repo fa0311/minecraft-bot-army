@@ -117,6 +117,7 @@ function workMap (world, box, grade, opts = {}) {
   }
   sealFlood(map, world)
   capSeal(map, world)
+  findShafts(map, world)
   for (let x = b.x1 - 2; x <= b.x2 + 2; x++) {
     for (let z = b.z1 - 2; z <= b.z2 + 2; z++) {
       for (let y = b.y1 - 2; y <= b.y2 + 2; y++) if (isLava(world, x, y, z)) map.lava.add(K3(x, y, z))
@@ -185,6 +186,22 @@ function capSeal (map, world) {
   }
 }
 
+// A 1x1 WELL is not a place to work, it is a place to drop gravel into — from any height, at any time.
+// Found once, so that it never drags the water level down with it: the pit around a 12-deep shaft used
+// to wait for 12 drops before it could rise one block (scenario (c)).
+function findShafts (map, world) {
+  const b = map.box
+  for (let x = b.x1; x <= b.x2; x++) {
+    for (let z = b.z1; z <= b.z2; z++) {
+      const y = firstOpen(map, world, x, z)
+      if (y == null) continue
+      let deep = 0
+      for (let q = y; q <= map.grade && SIDES.every(([dx, dz]) => isSolid(world, x + dx, q, z + dz)); q++) deep++
+      if (deep >= 3) map.dropCols.add(K2(x, z))
+    }
+  }
+}
+
 // ---------------------------------------------------------------- what is open, per column and lane
 
 function placeable (map, world, x, y, z) {
@@ -226,7 +243,10 @@ function colFloor (map, world, x, z) {
   return y == null ? map.grade + 1 : y
 }
 function levelWith (map, world, x, y, z) {
-  for (const [dx, dz] of SIDES) if (y > colFloor(map, world, x + dx, z + dz)) return false
+  for (const [dx, dz] of SIDES) {
+    if (map.dropCols.has(K2(x + dx, z + dz))) continue // a 1x1 well is filled by gravity, from any height
+    if (y > colFloor(map, world, x + dx, z + dz)) return false
+  }
   // …AND NOTHING RISES AROUND A CELL NOBODY CAN STAND IN (measured, scenario (d): the ring around a
   // lava pool went up one step per column — legally, each only 1 over its neighbour — until the pool
   // sat at the bottom of a funnel 3 deep, out of reach from the nearest place a builder may stand, and
