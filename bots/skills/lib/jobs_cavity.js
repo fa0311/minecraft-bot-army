@@ -627,20 +627,40 @@ module.exports = ctx => {
   // water a CROP depends on is never taken into a bucket: the farm/cane boxes on the board own theirs
   const PONDLESS = q => { try { const b = A.readJSON(A.F.board, {}) || {}; return (b.jobs || []).some(j => /^(farm|cane)$/.test(j.type) && Array.isArray((j.params || {}).box) && q.x >= Math.min(j.params.box[0], j.params.box[2]) - 1 && q.x <= Math.max(j.params.box[0], j.params.box[2]) + 1 && q.z >= Math.min(j.params.box[1], j.params.box[3]) - 1 && q.z <= Math.max(j.params.box[1], j.params.box[3]) + 1) } catch (e_) { swallow('jobs_cavity:pondless', e_); return false } }
   const restoreItem = (bot, name) => { const n = RESTORE[name] || name; return bot.registry.itemsByName[n] ? n : 'dirt' }
+  // FILLER IS WHATEVER THE DEPOT HOLDS MOST OF (owner's foreman 17:0xZ: four passes declined with `no filler: depot cobblestone 6230` while
+  // 5 506 cobbled_deepslate stood beside it). The old rule asked for ONE name, took whatever one walk delivered, and gave up under 32 blocks -
+  // so a full inventory or one unreachable chest looked like an empty depot. Now: free the slots FIRST, then take 5 stacks of the three
+  // best-stocked INSIDE_FILL stones, and never decline while any of them is over the reserve - a short trip is a FETCH problem, reported as one.
+  const STONE = FILLERS.filter(k => INSIDE_FILL_RE.test(k))
   async function stockUp (bot, job, api, P, need) {
-    const filler = P.filler || 'cobblestone'
-    const reserve = ((P.needStock || {})[filler]) || 0
-    if (A.stockOf(filler) <= reserve && !A.count(bot, filler)) { A.decline(bot, job, 900000, 'cavity: the depot holds ' + A.stockOf(filler) + ' ' + filler + ', at or below the reserve ' + reserve); return null }
+    const reserve = ((P.needStock || {})[P.filler || 'cobblestone']) || 512
+    const stock = {}; for (const k of STONE) stock[k] = A.stockOf(k)
+    const rich = STONE.filter(k => stock[k] > reserve).sort((x, y) => stock[y] - stock[x])
+    const carried = () => STONE.reduce((n, k) => n + A.count(bot, k), 0)
+    const want = Math.max(128, Math.min(P.carry || 320, need + 48))
+    if (!rich.length && carried() < 32) { A.result(bot, { ev: 'cavity_no_filler', why: 'the depot is under the reserve ' + reserve + ' for every stone', stock }); A.decline(bot, job, 300000, 'cavity: no stone over the reserve in the depot'); return null }
     await A.kitUp(bot, { stop: api.stop, why: 'cavity' }).catch(e_ => swallow('jobs_cavity:kit', e_))
-    const want = Math.max(64, Math.min(448, need))
-    if (A.count(bot, filler) < want) await A.withdraw(bot, filler, want - A.count(bot, filler), { stop: api.stop })
-    if (!fillerIn(bot, filler)) for (const alt of FILLERS) { if (A.stockOf(alt) > 64) { await A.withdraw(bot, alt, want, { stop: api.stop }); if (A.count(bot, alt)) break } }
+    // POCKETS ARE FOR FILLER (a cavity worker carrying 7 beds fetched 0 stone): bank everything else before the trip
+    if (U.freeSlots(bot) < 8 && carried() < want) {
+      const keep = { torch: 16, bread: 8, cooked_beef: 8, bucket: 2, water_bucket: 2, shield: 1 }
+      for (const k of STONE) keep[k] = 384
+      await A.bank(bot, keep, { job: job.id, stop: api.stop }).catch(e_ => swallow('jobs_cavity:bankFirst', e_))
+    }
+    holdPockets(bot)
+    const got = {}
+    const take = async () => { for (const k of rich.slice(0, 3)) { if (carried() >= want || api.stop()) break; const n = await A.withdraw(bot, k, want - carried(), { stop: api.stop }); if (n) got[k] = (got[k] || 0) + n } }
+    await take()
+    // A SHORT FETCH IS A WALK PROBLEM, NOT AN EMPTY DEPOT (17:1xZ: `have:2` against `depot:6697`). A bot that starts its slice down in the
+    // ravine cannot reach a chest at all - `withdraw` picks the container and gives up when the trip fails. So: walk to the depot row FIRST,
+    // out of the hole (`anyDepth` lets travel leave the keep-out), then ask the chests again.
+    if (carried() < 32 && !api.stop()) {
+      const ch = A.chestsOf('build').concat(A.chestsOf('ores'), A.chestsOf('tools')).sort((c1, c2) => A.dist2(bot, c1.x, c1.z) - A.dist2(bot, c2.x, c2.z))[0]
+      if (ch) { task(bot, 'cavity: up and over to the depot ' + xyzOf(ch).join(',') + ' for stone'); if (await A.travel(bot, ch, { range: 4, ms: 240000, stop: api.stop, anyDepth: true })) await take() }
+    }
     if (A.count(bot, 'dirt') < 8) await A.withdraw(bot, 'dirt', 16, { stop: api.stop })
     if (A.count(bot, 'torch') < 4) await A.withdraw(bot, 'torch', 8, { stop: api.stop })
     if (!A.count(bot, 'water_bucket')) await A.withdraw(bot, 'water_bucket', 1, { stop: api.stop })
     if (!A.count(bot, 'bucket')) await A.withdraw(bot, 'bucket', 1, { stop: api.stop })
-    // THE DEPOT HOLDS 16 EMPTY BUCKETS AND ONE FULL ONE: a bot that is going to need the water descent fills its own at the nearest water,
-    // the way a player does, instead of queueing for the single water_bucket on the shelf (verb `fill` = ONE implementation of that click)
     // A WORKER FILLS ITS OWN (the army holds 18 buckets and not one of them is in the depot): the pond first, any water in sight otherwise.
     // `moves.scoop` does the click; never a field's or the cane block's water, which the crops need.
     if (!A.count(bot, 'water_bucket') && A.count(bot, 'bucket')) {
@@ -654,16 +674,12 @@ module.exports = ctx => {
       }
     }
     if (!A.bestOf(bot, 'pickaxe')) await A.obtain(bot, 'stone_pickaxe', 1, { stop: api.stop })
-    // GO OUT LOADED OR DO NOT GO (16:1xZ: a bot stood in a 155-cell cavity with `placed:0` because its pockets held one stray block): the
-    // walk out is 60-150 blocks, so a half-empty trip is a wasted slice, not a partial fill.
-    const it = fillerIn(bot, filler)
     holdPockets(bot)
-    const have = FILLERS.reduce((n, k) => n + A.count(bot, k), 0)
-    if (!it || have < 32) { A.result(bot, { ev: 'cavity_no_filler', want, have, depot: A.stockOf(filler) }); A.decline(bot, job, 300000, 'cavity: only ' + have + ' filler blocks came out of the depot'); return null }
-    return it
+    const have = carried()
+    if (have < 32) { A.result(bot, { ev: 'cavity_no_filler', why: 'the chests gave ' + JSON.stringify(got) + ' of ' + want, stock, free: U.freeSlots(bot), at: xyzOf(bot.entity.position) }); A.decline(bot, job, 90000, 'cavity: the depot holds ' + JSON.stringify(stock) + ' and ' + have + ' arrived'); return null }
+    return fillerIn(bot, rich[0])
   }
 
-  // ---- THE SHAFT: stand on the top cell, read the two cells under the feet before every dig, go down
   // ---- THE WAY IN. The owner's algorithm with the army's PROVEN techniques (bots/skills/lib/moves.js, not mine to edit):
   //   * dig a 1x1 shaft down the crust, reading the two cells under the feet BEFORE every dig, while the next step is a fall of <= 3;
   //   * the moment the next cell would open a REAL drop, do not dig it - open the NEIGHBOUR column instead (from inside our own shaft, the
@@ -790,14 +806,19 @@ module.exports = ctx => {
   }
 
   // ---- THE FILL: lowest cell first, from inside, standing on its own fill (a player never decks a hole)
+  // THE FILL. One walk per BATCH, not per block (measured 17:0xZ: 0.6 blocks/min/bot - the loop took the lowest cell, walked to it, placed
+  // one block and walked again). A player standing in a hole lays every block he can reach before he moves his feet, lowest first, and only
+  // then steps. Everything else is unchanged: bottom-up, from the inside, standing on its own fill.
   async function fillCells (bot, api, want, item0, deadline, opts) {
-    let item = item0; let placed = 0; let dry = 0
+    let item = item0; let placed = 0; let dry = 0; let bridges = 0; let scans = 0
     const fails = new Map()
     const bump = (p, n) => fails.set(keyOf(p), (fails.get(keyOf(p)) || 0) + (n || 1))
-    const bad = p => (fails.get(keyOf(p)) || 0) >= 5 // a cell is given up on only after five real tries: 16:3xZ a 9-cell hole was left with ONE cell open
+    const bad = p => (fails.get(keyOf(p)) || 0) >= 5 // a cell is given up on only after five real tries
+    const prune = () => { for (const [k, p] of [...want]) { const bq = bot.blockAt(p); if (bq && isSolidB(bq)) want.delete(k) } }
+    prune()
     while (!api.stop() && Date.now() < deadline) {
       holdPockets(bot)
-      for (const [k, p] of [...want]) { const b = bot.blockAt(p); if (b && isSolidB(b)) want.delete(k) }
+      if (++scans % 8 === 0) prune() // 800 blockAt calls per placed block is its own tax
       if (!want.size) break
       if (A.count(bot, item) < 1) {
         const nx = fillerIn(bot)
@@ -805,29 +826,32 @@ module.exports = ctx => {
         else if (opts && opts.refill && await opts.refill()) { item = fillerIn(bot) || item; if (A.count(bot, item) < 1) break } else break
       }
       const me = bot.entity.position; const eye = me.offset(0, 1.62, 0); const feet = me.floored()
-      const list = [...want.values()].sort((a, b) => a.y - b.y || a.distanceTo(me) - b.distanceTo(me))
-      const open = list.filter(p => !bad(p)); if (!open.length) break
-      const lowest = open[0].y
-      let did = false
-      if (dry > 20) break // twelve passes in a row that changed nothing in the world: the rest of this hole is out of reach from in here
-      // the cell I stand in, and it is the lowest work left: jump, place under the feet, ride up with it
-      const mineCell = open.find(p => p.x === feet.x && p.z === feet.z && p.y === feet.y && p.y <= lowest)
-      if (mineCell) {
-        const it = INSIDE_FILL_RE.test(item) ? item : (FILLERS.find(n => A.count(bot, n) > 0 && INSIDE_FILL_RE.test(n)) || item)
-        if (await A.fillInside(bot, mineCell, it, { stop: api.stop })) { placed++; want.delete(keyOf(mineCell)); did = true } else bump(mineCell)
+      const list = [...want.values()].filter(p => !bad(p))
+      if (!list.length) break
+      list.sort((p1, p2) => p1.y - p2.y || p1.distanceTo(me) - p2.distanceTo(me))
+      const lowest = list[0].y
+      const body = p => p.x === feet.x && p.z === feet.z && (p.y === feet.y || p.y === feet.y + 1)
+      let did = 0
+      // (a) EVERYTHING IN REACH FROM HERE, lowest first - one stand, many blocks
+      const near = list.filter(p => !body(p) && p.distanceTo(eye) <= 4.2).slice(0, 24)
+      for (const p of near) {
+        if (api.stop() || Date.now() > deadline) break
+        const bq = bot.blockAt(p); if (bq && isSolidB(bq)) { want.delete(keyOf(p)); continue }
+        const r = await A.placeHard(bot, p, item, { stop: api.stop, fill: true, noInside: true, noRest: true, place: { retries: 0 } })
+        if (r.ok) { placed++; did++; want.delete(keyOf(p)) } else bump(p)
+        if (A.count(bot, item) < 1) { const nx = fillerIn(bot); if (!nx) break; item = nx }
       }
+      // (b) the cell I stand in, when it is the lowest work left: jump, place under the feet, ride up with it
       if (!did) {
-        for (const p of open.filter(q => q.y <= lowest + 1).slice(0, 8)) {
-          if (api.stop()) break
-          if (p.distanceTo(eye) > 4.2) continue
-          if (p.x === feet.x && p.z === feet.z && (p.y === feet.y || p.y === feet.y + 1)) continue // never brick myself in
-          const r = await A.placeHard(bot, p, item, { stop: api.stop, fill: true, noInside: true, noRest: true })
-          if (r.ok) { placed++; want.delete(keyOf(p)); did = true; break }
-          bump(p)
+        const mineCell = list.find(p => body(p) && p.y === feet.y && p.y <= lowest)
+        if (mineCell) {
+          const it = INSIDE_FILL_RE.test(item) ? item : (STONE.find(n => A.count(bot, n) > 0) || item)
+          if (await A.fillInside(bot, mineCell, it, { stop: api.stop })) { placed++; did++; want.delete(keyOf(mineCell)) } else bump(mineCell)
         }
       }
-      if (!did) { // walk to it: a stand beside the cell, at its level or one under it
-        const tgt = open[0]; let moved = false
+      // (c) nothing here any more: step to the lowest cell left - or bridge to it across the cavern floor
+      if (!did) {
+        const tgt = list[0]; let moved = false
         const stands = []
         for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) {
           for (const dy of [0, -1, 1]) {
@@ -835,30 +859,23 @@ module.exports = ctx => {
             if (isSolidB(bot.blockAt(c.offset(0, -1, 0))) && isAirB(bot.blockAt(c)) && isAirB(bot.blockAt(c.offset(0, 1, 0)))) stands.push(c)
           }
         }
-        stands.sort((a, b) => a.distanceTo(me) - b.distanceTo(me))
-        for (const s of stands.slice(0, 4)) { if (api.stop()) break; if (await A.travel(bot, s, { range: 0, ms: 20000, stop: api.stop, quiet: true })) { moved = true; break } }
+        stands.sort((p1, p2) => p1.distanceTo(me) - p2.distanceTo(me))
+        for (const st2 of stands.slice(0, 3)) { if (api.stop()) break; if (await A.travel(bot, st2, { range: 0, ms: 15000, stop: api.stop, quiet: true })) { moved = true; break } }
+        // a cell across a gap in the cavern floor is not "unreachable", it is a BRIDGE - moves.bridgeTo (pathfinder scaffolding + sneak) is
+        // the army's one implementation of it, and the blocks it lays down here ARE the fill, so they stay
+        if (!moved && stands.length && bridges < 4 && tgt.distanceTo(me) > 3) {
+          bridges++
+          const br = await require('./moves').bridgeTo(bot, [stands[0].x, stands[0].y, stands[0].z], { blocks: STONE, ms: 45000, half: 2, stop: api.stop }).catch(e_ => { swallow('jobs_cavity:bridge', e_); return { ok: false } })
+          placed += br.placed || 0
+          if (br.ok) moved = true
+        }
         if (!moved) bump(tgt, 2)
       }
       dry = did ? 0 : dry + 1
-      await sleep(60)
+      if (dry > 20) break // twenty passes in a row that changed nothing: the rest of this hole is out of reach from in here
     }
-    return { placed, left: want.size, item }
-  }
-
-  // RIDE THE SHAFT OUT (the owner's 埋めながら上まで上がる): place under the feet, rise with the block, repeat. fillCells does this too, but only
-  // while the shaft cell is the LOWEST work left - a cavity whose last cells sit beside the shaft foot left 1-2 shaft cells open (16:07Z Ume).
-  async function rideOut (bot, api, col, topY, item) {
-    let n = 0
-    for (let guard = 0; guard < 48 && !api.stop(); guard++) {
-      const feet = bot.entity.position.floored()
-      if (feet.y >= topY) break
-      if (feet.x !== col[0] || feet.z !== col[1]) { if (!await A.travel(bot, { x: col[0], y: feet.y, z: col[1] }, { range: 0, ms: 15000, stop: api.stop, quiet: true })) break; continue }
-      const b = bot.blockAt(feet); if (b && isSolidB(b)) break
-      const it = INSIDE_FILL_RE.test(item) ? item : (fillerIn(bot) || item)
-      if (!it || !await A.fillInside(bot, feet, it, { stop: api.stop })) break
-      n++
-    }
-    return n
+    prune()
+    return { placed, left: want.size, item, bridges }
   }
 
   // ---------------------------------------------------------------- PART 2: FIX — one bot, one cavity, the owner's algorithm
@@ -866,8 +883,12 @@ module.exports = ctx => {
     const B = BL()
     const t0 = Date.now()
     const deadline = t0 + Math.min((P.minutes || 12) * 60000, 13 * 60000)
+    // WHERE DOES A PASS GO? (foreman 17:0xZ: `tookS:250` for `placed:2`). Every phase is timed and reported, so the biggest waste is a number.
+    const split = { kitS: 0, walkS: 0, shaftS: 0, downS: 0, fillS: 0, outS: 0 }
+    let mark0 = Date.now(); const lap = k => { const n = Date.now(); split[k] += Math.round((n - mark0) / 1000); mark0 = n }
     // 1. KIT FIRST, at the depot, before the walk out (a bot that walks out and then remembers the cobblestone walks twice)
     const item0 = await stockUp(bot, job, api, P, ent.cells + 48)
+    lap('kitS')
     if (!item0) return { ok: false, why: 'no filler: depot ' + (P.filler || 'cobblestone') + ' ' + A.stockOf(P.filler || 'cobblestone'), declined: true }
     // 2. GO AND LOOK
     // EVERY RIM, NOT THE FIRST ONE: over a ravine crust most surface columns are islands the read-only pathfinder cannot reach, and one
@@ -896,6 +917,7 @@ module.exports = ctx => {
         noRoute.push(x + ',' + z)
       }
     }
+    lap('walkS')
     if (!reached) return { ok: false, why: api.stop() ? 'the slice ended on the way to ' + ent.at.join(',') : 'no_route to any of ' + noRoute.slice(0, 6).join(' ') + ' (' + noRoute.length + ' rim columns tried)', quiet: api.stop() }
     holdPockets(bot)
     await sleep(600)
@@ -954,9 +976,21 @@ module.exports = ctx => {
       const tops = (extraTop ? [extraTop] : []).concat((ent.tops || []).filter(t => !PS.blockedCol(t.at[0], t.at[2]))
         .sort((a, b) => (b.at.join(',') === reached.join(',') ? 1 : 0) - (a.at.join(',') === reached.join(',') ? 1 : 0)))
       if (!tops.length) return { ok: false, why: 'no free surface cell over ' + ent.at.join(',') + ' (building / field / pen / road / furniture)' }
+      // REUSE AN OPEN SHAFT (the biggest single cost of a pass): the component's own record on the board says where one was cut; if it is
+      // still open from the surface down to the void, this bot walks down it and cuts nothing.
       let got = null; const sCache = new Map(); const skipped = []
+      for (const sh of (ent.shafts || []).slice(0, 4)) {
+        if (api.stop() || got) break
+        const [hx, hy, hz] = sh
+        let open = true
+        for (let y = hy; y > hy - 40 && open; y--) { const bq = bot.blockAt(new Vec3(hx, y, hz)); if (!bq) { open = false; break } if (isSolidB(bq)) { if (y === hy) open = false; break } }
+        if (!open) continue
+        if (!await A.travel(bot, { x: hx, y: hy + 1, z: hz }, { range: 1, ms: 60000, stop: api.stop, quiet: true })) continue
+        const r0 = await digShaft(bot, job, api, { at: [hx, hy, hz], entryY: ent.bbox ? ent.bbox[4] : hy - 2, tunnel: null }, log)
+        if (r0.ok) { got = { at: [hx, hy, hz], entryY: ent.bbox ? ent.bbox[4] : hy - 2, name: (bot.blockAt(new Vec3(hx, hy, hz)) || {}).name || 'dirt', reused: true }; entered = r0.via || 'reuse'; break }
+      }
       for (const t0 of tops.slice(0, 4)) {
-        if (api.stop()) break
+        if (api.stop() || got) break
         // THE SURFACE MOVES while we walk: the cap crews lay dirt over the base all day, so the census's y is a hint and the world is the
         // truth (16:2xZ: `no shaft could be cut` x6 because every candidate's recorded top cell now read `air`).
         const sy = topOpaqueAt(bot, t0.at[0], t0.at[2], sCache)
@@ -971,6 +1005,7 @@ module.exports = ctx => {
         A.result(bot, { ev: 'cavity_shaft_failed', at: t.at, why: String(r.why).slice(0, 90) })
       }
       if (!got) return { ok: false, why: 'no shaft could be cut over ' + ent.at.join(',') + (skipped.length ? ' (' + skipped.slice(0, 4).join(' ') + ')' : '') }
+      if (!got.reused) markDone(ent.id, { shafts: (ent.shafts || []).concat([got.at]).slice(-4) })
       for (let y = got.at[1] - 1; y >= got.entryY; y--) { const q = new Vec3(got.at[0], y, got.at[2]); want.set(keyOf(q), q) } // the shaft is filled too
       for (const c of got.tunnel || []) { const q = vv(c); want.set(keyOf(q), q) } // ...and so is the tunnel
       for (const k of log) { const [qx, qy, qz] = k.split(',').map(Number); const q = new Vec3(qx, qy, qz); if (!want.has(keyOf(q))) want.set(keyOf(q), q) } // ...and EVERY cell we opened, including the neighbour column sideDrop cut
@@ -987,13 +1022,16 @@ module.exports = ctx => {
     const refill = async () => {
       if (refills >= 1 || Date.now() > deadline - 180000 || api.stop()) return false
       refills++
-      const f = P.filler || 'cobblestone'
-      task(bot, 'cavity: back to the depot for more ' + f)
-      const n = await A.withdraw(bot, f, 256, { stop: api.stop })
-      A.result(bot, { ev: 'cavity_refill', item: f, n, at: ent.at })
+      const rich = STONE.filter(k => A.stockOf(k) > 512).sort((x, y) => A.stockOf(y) - A.stockOf(x)).slice(0, 2)
+      task(bot, 'cavity: back to the depot for more ' + (rich[0] || 'stone'))
+      let n = 0
+      for (const k of rich) n += await A.withdraw(bot, k, 192, { stop: api.stop })
+      A.result(bot, { ev: 'cavity_refill', item: rich[0] || null, n, at: ent.at })
       return n > 0
     }
+    lap('shaftS')
     let r1 = await fillCells(bot, api, want, item0, deadline, { refill })
+    lap('fillS')
     // 7b. whatever is left of the shaft column is ridden out from the inside, then one more pass for anything that fell behind
     for (const q of restoreList) {
       if (api.stop() || Date.now() > deadline) break
@@ -1023,9 +1061,10 @@ module.exports = ctx => {
     for (const p of comp.cells.concat(capCells)) { const b = bot.blockAt(p); if (!b || isAirB(b) || LIQUID_RE.test(b.name)) { left++; if (leftAt.length < 3) leftAt.push(xyzOf(p).join(',')) } }
     let shaftLeft = 0
     for (const q of restoreList) for (let y = q.at.y; y >= comp.bbox[4]; y--) { const b = bot.blockAt(new Vec3(q.at.x, y, q.at.z)); if (!b || isAirB(b) || LIQUID_RE.test(b.name)) shaftLeft++ }
+    lap('outS')
     const badTop = restored.filter(n => n === 'air').length
     const ok = left === 0 && shaftLeft === 0 && badTop === 0
-    return Object.assign({ mineSkip }, {
+    return Object.assign({ mineSkip, split }, {
       ok,
       placed: r1.placed,
       cells: comp.cells.length + capCells.length,
@@ -1060,7 +1099,9 @@ module.exports = ctx => {
     }
     if (!doc || !Array.isArray(doc.list)) return muster(bot, job, api, ctx2, 'cavity: no census could be written')
     const claims = claimRead(); const now = Date.now()
+    const slotFree = e => { const n = Math.max(1, Math.min(6, Math.ceil(e.cells / 120))); for (let k = 0; k < n; k++) { const c = claims[e.id + (k ? '#' + k : '')]; if (!c || (!c.done && !c.cool && Date.now() - (c.t || 0) > (c.ttl || 900000))) return true } return false }
     const free = doc.list.filter(isTarget).filter(e => {
+      if (e.cells > 120 && slotFree(e)) return true
       const c = claims[e.id]
       if (!c) return true
       if (c.done) return false
@@ -1073,7 +1114,7 @@ module.exports = ctx => {
       const open = doc.list.filter(isTarget).length
       if (!open && !P.standing) A.boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (j && j.status === 'active') { j.status = 'paused'; j.note = 'auto-paused: the census reads 0 targets under the base (' + JSON.stringify(doc.counts) + ')' } })
       A.result(bot, { ev: 'cavity_none', open, claimed: Object.keys(claims).length })
-      A.decline(bot, job, 600000, 'cavity: every target is claimed by a mate')
+      A.decline(bot, job, 90000, 'cavity: every target is claimed by a mate right now')
       return muster(bot, job, api, ctx2, 'cavity: nothing free to fill')
     }
     // SMALL AND NEAR FIRST by default: a bot has ~12 min, and one 275-cell hole spends it all while nine 15-cell holes beside it keep spawning
@@ -1084,22 +1125,29 @@ module.exports = ctx => {
     // ONE BOT PER COMPONENT, AND SHAFTS >= 4 APART: two bots cutting neighbouring shafts undercut each other's fill
     const busy = Object.values(claims).filter(c => !c.done && c.bot !== bot.username && now - (c.t || 0) < (c.ttl || 900000) && Array.isArray(c.at))
     const tooClose = e => busy.some(c => Math.hypot(c.at[0] - e.at[0], c.at[2] - e.at[2]) < 4)
-    let ent = null
-    for (const e of free.slice(0, 8)) { if (tooClose(e)) continue; if (await claimTake(bot, e.id, 16 * 60000, e.at)) { ent = e; break } }
+    // x50 (owner's rule 0): a 959-cell cavern is a SQUAD's hole, not one bot's 12-minute slice. One claim per ~120 cells, each bot its own
+    // shaft >= 4 from the others (claimTake refuses a slot that is taken), and the lowest-first fill gives each of them its own sector.
+    let ent = null; let key = null
+    for (const e of free.slice(0, 8)) {
+      if (ent || tooClose(e)) continue
+      const slots = Math.max(1, Math.min(6, Math.ceil(e.cells / 120)))
+      for (let k = 0; k < slots && !ent; k++) { const kk = e.id + (k ? '#' + k : ''); if (await claimTake(bot, kk, 16 * 60000, e.at)) { ent = e; key = kk } }
+    }
     if (!ent) return muster(bot, job, api, ctx2, 'cavity: a mate took every target first')
     task(bot, 'cavity: ' + ent.type + ' ' + ent.at.join(',') + ' (' + ent.cells + ' cells, ' + ent.spawnable + ' spawnable)')
     let r = null
     try { r = await fillOne(bot, job, api, P, ent) } catch (e_) { swallow('jobs_cavity:fillOne', e_); r = { ok: false, why: 'error: ' + String(e_ && e_.message).slice(0, 80) } }
     if (r.ok) {
-      await claimEnd(bot, ent.id, { done: true, placed: r.placed })
+      await claimEnd(bot, key, { done: true, placed: r.placed })
       markDone(ent.id, { type: 'filled', spawnable: 0, filled: Date.now(), by: bot.username })
-      A.result(bot, { ev: 'cavity_filled', at: ent.at, kind: ent.type + (ent.neck ? '/neck' : ''), cells: r.cells, placed: r.placed, top: r.top, restored: r.restored, scooped: r.scooped, hang: r.hang || 0, tookS: r.tookS })
+      A.result(bot, { ev: 'cavity_filled', at: ent.at, kind: ent.type + (ent.neck ? '/neck' : ''), cells: r.cells, placed: r.placed, top: r.top, restored: r.restored, scooped: r.scooped, hang: r.hang || 0, tookS: r.tookS, split: r.split || null })
       return 'cavity: filled ' + ent.at.join(',') + ' (' + r.placed + ' blocks, ' + r.tookS + ' s)'
     }
-    if (r.done || r.stale) { markDone(ent.id, { type: r.done ? 'filled' : 'stale', spawnable: 0 }); await claimEnd(bot, ent.id, { done: true, why: r.why }) } else await claimEnd(bot, ent.id, { cool: (r.placed > 0 ? 4 : 20) * 60000, why: String(r.why).slice(0, 80) })
+    if (r.done || r.stale) { if (key === ent.id) markDone(ent.id, { type: r.done ? 'filled' : 'stale', spawnable: 0 }); await claimEnd(bot, key, { done: true, why: r.why }) } else await claimEnd(bot, key, { cool: (r.placed > 0 ? 4 : 20) * 60000, why: String(r.why).slice(0, 80) })
     // A BIG CAVERN IS NOT CLOSED IN ONE SLICE and a pass that put 80 blocks in is not a failure - it is the measurement of this front's rate.
     // Only a pass that changed NOTHING in the world is reported as a failure (that is the line an operator has to act on).
-    if (r.placed > 0) A.result(bot, { ev: 'cavity_pass', at: ent.at, kind: ent.type + (ent.neck ? '/neck' : ''), placed: r.placed, left: r.left, cells: r.cells, entered: r.entered || null, tookS: r.tookS })
+    if (r.placed > 0) markDone(ent.id, { left: r.left, lastPass: Date.now(), by: bot.username })
+    if (r.placed > 0) A.result(bot, { ev: 'cavity_pass', at: ent.at, kind: ent.type + (ent.neck ? '/neck' : ''), placed: r.placed, left: r.left, cells: r.cells, entered: r.entered || null, tookS: r.tookS, split: r.split || null, perMin: r.tookS ? Math.round(600 * r.placed / r.tookS) / 10 : null })
     else if (!r.quiet) A.result(bot, { ev: 'cavity_failed', at: ent.at, kind: ent.type, why: String(r.why).slice(0, 110), placed: 0, left: r.left == null ? null : r.left })
     if (r.declined) return muster(bot, job, api, ctx2, 'cavity: ' + r.why)
     return 'cavity: ' + ent.at.join(',') + ' not closed - ' + String(r.why).slice(0, 80)

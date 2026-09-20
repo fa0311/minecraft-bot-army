@@ -1239,21 +1239,6 @@
    "found": [
     [
      -359,
-     69,
-     -521
-    ],
-    [
-     -359,
-     70,
-     -521
-    ],
-    [
-     -360,
-     69,
-     -521
-    ],
-    [
-     -360,
      70,
      -521
     ],
@@ -1265,11 +1250,6 @@
     [
      -361,
      70,
-     -521
-    ],
-    [
-     -362,
-     69,
      -521
     ],
     [
@@ -1395,14 +1375,14 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Sakura",
+   "by": "Fuuka",
    "portal": [
-    -44,
-    98,
+    -43,
+    100,
     -80
    ],
-   "through": 1789923108781,
-   "scoutRev": 1,
+   "through": 1789924634203,
+   "scoutRev": 4,
    "hub": {
     "room": [
      -41,
@@ -1502,21 +1482,21 @@
    ],
    "shellY": 98,
    "returnJob": "nether_return",
-   "deaths": 2,
+   "deaths": 3,
    "deathsResetAt": 1789910779294,
    "deathsResetWhy": "owner 13:2xZ: death is an accepted cost of exploring the Nether; the brake is 6 in 30 min",
    "landing": [
-    -46,
-    -84,
-    -40,
-    -76
+    -50,
+    -87,
+    -36,
+    -73
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789918122175,
-   "back": 1789923122590,
-   "lastDeath": 1789923209104,
-   "lastDeathBy": "Aoi",
+   "landingAt": 1789924641474,
+   "back": 1789924643686,
+   "lastDeath": 1789924669079,
+   "lastDeathBy": "Fuuka",
    "roads": {
     "x+": {
      "from": [
@@ -1543,8 +1523,9 @@
    "outAt": 1789915921402,
    "outBy": "Rin",
    "deathLog": [
-    1789922833587,
-    1789923209104
+    1789923209104,
+    1789924651756,
+    1789924669079
    ],
    "sightings": [],
    "fortress": null,
@@ -1615,138 +1596,126 @@
     73,
     27
    ],
-   "surveyed": 1789923915477,
+   "surveyed": 1789924676576,
    "villagers": 9,
    "professions": {
     "leatherworker": 4,
-    "weaponsmith": 1,
-    "farmer": 2,
     "toolsmith": 1,
+    "farmer": 2,
+    "weaponsmith": 1,
     "unknown": 1
    },
-   "beds": 10,
+   "beds": 12,
    "stations": {
     "grindstone": 1,
     "loom": 1,
-    "barrel": 1,
     "smithing_table": 1,
-    "lectern": 1,
     "blast_furnace": 2,
     "smoker": 1,
+    "barrel": 1,
+    "lectern": 1,
     "composter": 2
    },
    "golems": 2,
    "bounds": [
     -766,
-    11,
-    -710,
+    10,
+    -703,
     57
    ],
    "nearest": [
     [
-     -739,
+     -729,
      71,
-     39
+     32
     ],
     [
-     -741,
-     71,
-     38
-    ],
-    [
-     -742,
-     71,
-     38
-    ],
-    [
-     -740,
-     71,
-     33
-    ],
-    [
-     -731,
-     75,
-     37
-    ],
-    [
-     -745,
+     -744,
      72,
-     41
+     38
     ],
     [
-     -737,
-     70,
-     26
+     -725,
+     71,
+     29
     ],
     [
-     -736,
-     85,
-     58
+     -722,
+     71,
+     28
+    ],
+    [
+     -721,
+     72,
+     30
+    ],
+    [
+     -721,
+     72,
+     30
+    ],
+    [
+     -721,
+     71,
+     27
+    ],
+    [
+     -718,
+     71,
+     25
     ]
    ],
    "post": {
     "at": [
-     -742,
-     69,
-     28
+     -744,
+     70,
+     31
     ],
     "stations": {
-     "blast_furnace": [
-      -742,
-      69,
-      28
-     ],
-     "smithing_table": [
-      -740,
-      69,
-      28
-     ],
-     "loom": [
-      -742,
-      70,
-      33
-     ],
-     "grindstone": [
-      -740,
-      70,
-      33
-     ],
-     "lectern": [
-      -746,
-      70,
-      32
-     ],
-     "barrel": [
-      -746,
-      71,
-      33
-     ],
-     "smoker": [
+     "chest": [
       -744,
-      69,
-      28
+      70,
+      31
      ]
     },
-    "t": 1789920643887
+    "t": 1789924246872
    },
    "absorb": {
-    "carrot": 336,
-    "wheat": 304,
-    "pumpkin": 120,
-    "melon": 72,
-    "beetroot": 224,
-    "coal": 480,
+    "coal": 720,
+    "iron_ingot": 144,
+    "flint": 888,
+    "diamond": 24,
     "leather": 288,
-    "flint": 600,
-    "iron_ingot": 48
+    "carrot": 688,
+    "wheat": 320,
+    "pumpkin": 204,
+    "melon": 132,
+    "beetroot": 240
    },
-   "absorbT": 1789923894369
+   "absorbT": 1789924576384
   },
   "enchantTable": [
    -344,
    69,
    -517
-  ]
+  ],
+  "mine": {
+   "veins": [
+    {
+     "key": "-45,2,-31/iron",
+     "at": [
+      -354,
+      17,
+      -246
+     ],
+     "kind": "iron",
+     "seen": 16,
+     "raw": 0,
+     "by": "Yui",
+     "t": 1789924071497
+    }
+   ]
+  }
  },
  "enlisted": [
   "Sakura",
@@ -2129,7 +2098,7 @@
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 20,
-   "rev": 55,
+   "rev": 57,
    "restUntil": 1789922076785
   },
   {
@@ -2318,7 +2287,7 @@
    },
    "rev": 9,
    "bots": 2,
-   "restUntil": 1789922834152
+   "restUntil": 1789925076688
   },
   {
    "id": "sleeper",
@@ -2405,7 +2374,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789924003247
+   "restUntil": 1789924755134
   },
   {
    "id": "fill_ring_field2",
@@ -3245,17 +3214,17 @@
     },
     "order": "near"
    },
-   "rev": 56,
+   "rev": 58,
    "desc": "MEASURED 16:3xZ by probe: 44 columns (444 cells) still open to the sky = this job (narrow deep shafts: step off / water drop in, pillar out = the column is filled); 3172 air cells lie UNDER the crust below grade = NOT reachable from above, they belong to the cavity job (owner algorithm: shaft down, fill riding up). `left` counts both - do not judge this job by `left`, and do not raise the crew over the number of open shafts",
    "note": "top model 15:1xZ: 655 OPEN cells (left 3216 minus waiting 2561) - do not lower; ladderWay (fill_wayin) needs builders standing on the RIM to hang the way in",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Rin",
-    "t": 1789923846044,
+    "by": "Sakura",
+    "t": 1789924275142,
     "at": [
-     -294,
+     -322,
      58,
-     -480
+     -479
     ],
     "drop": 11
    }
@@ -4153,9 +4122,9 @@
    "type": "portal",
    "priority": 96,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "day",
-   "bots": 12,
+   "bots": 6,
    "shiftMin": 20,
    "site": [
     -326,
@@ -4186,7 +4155,8 @@
     "hop": 16
    },
    "note": "auto-paused: the gate is lit and the round trip is done (bump rev to send another expedition)",
-   "rev": 3
+   "rev": 4,
+   "desc": "owner 09-20 17:2xZ 「ネザーはとっとと橋かけたらよくね？」: the way to the fortress is BRIDGED, not dug - `work:fortress` walks read-only and bridges the gaps ahead (4 cells, cobblestone) toward Nether -784,-592 (916 blocks). Start 6, raise to 12 when deaths <= 1 in 20 min. The 1330-cell dig-down `nether_stair` is superseded"
   },
   {
    "id": "base_field_3_pad",
@@ -4311,7 +4281,8 @@
     "maxDeaths": 6
    },
    "note": "auto-paused: the gate is lit and the round trip is done (bump rev to send another expedition)",
-   "rev": 6
+   "rev": 7,
+   "desc": "SUPERSEDED 09-20 17:2xZ (owner: bridge, do not dig): 1330 cells of staircase down to the Nether floor replaced by `nether_fortress` bridging across at shelf level. Do not re-activate"
   },
   {
    "id": "west_terrace_cut_3",
@@ -4350,9 +4321,9 @@
    "type": "build",
    "priority": 72,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
-   "bots": 1,
+   "bots": 2,
    "site": [
     -311,
     68,
@@ -4377,8 +4348,8 @@
     },
     "order": "near"
    },
-   "note": "needs: dirt (5 cells wait; every cell whose material exists is done or in work)",
-   "rev": 4,
+   "note": "auto-paused: build complete",
+   "rev": 5,
    "stuckBy": {
     "key": "rev2",
     "bots": [
@@ -4775,7 +4746,7 @@
     },
     "order": "near"
    },
-   "restUntil": 1789923828453,
+   "restUntil": 1789925759861,
    "way": {
     "by": "Madoka",
     "t": 1789916716021,
@@ -4998,7 +4969,9 @@
     "cobble": 128,
     "crossS": 45,
     "maxDeaths": 6
-   }
+   },
+   "desc": "EYE OF ENDER chain (owner 09-20 17:2xZ 「ネザーにeye来てないでしょ」): 1291 gold = ~12-20 ender pearls by bartering. Activate as soon as golden_boots are in stock (craft_gold_boots) and the barter squad wears one",
+   "rev": 1
   },
   {
    "id": "nether_gate_spare_n607",
@@ -5152,7 +5125,7 @@
    "id": "village_survey",
    "type": "trade",
    "priority": 94,
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "names": [
     "Hina"
@@ -5793,7 +5766,7 @@
    "type": "portal",
    "priority": 97,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "day",
    "bots": 1,
    "shiftMin": 20,
@@ -5825,13 +5798,13 @@
     "minutes": 9,
     "cobble": 256,
     "crossS": 30,
-    "maxDeaths": 2,
+    "maxDeaths": 3,
     "obsidian": 14
    },
    "names": [
-    "Mio"
+    "Nanami"
    ],
-   "rev": 7,
+   "rev": 10,
    "note": "auto-paused: 2 deaths in 30 min on the far side ([-44,98,-80]). Fix the cause you can see, clear settings.nether.deathLog, re-activate - do not wait",
    "desc": "OWNER-LOCKED top model 16:3xZ, nether front: the causeway and the 15x15 partner platform at the_nether -41,-65. Deaths in this window were operator rescues, not the Nether. Do not pause, do not rescue its bot, do not add bots - the arrival is still the old 8-cell pocket until the platform stands."
   },
@@ -6044,9 +6017,10 @@
      -408,
      62,
      -455
-    ]
+    ],
+    "carry": 320
    },
-   "rev": 9,
+   "rev": 13,
    "restUntil": 1789923426555
   },
   {
@@ -6395,7 +6369,8 @@
     ],
     "rerolls": 10,
     "legS": 300
-   }
+   },
+   "rev": 1
   },
   {
    "id": "mine_sweep",
@@ -6432,8 +6407,51 @@
     "radius": 150,
     "bankAt": 48
    },
-   "restUntil": 1789923943046,
+   "restUntil": 1789925686726,
    "rev": 1
+  },
+  {
+   "id": "craft_gold_boots",
+   "type": "steps",
+   "priority": 97,
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "no zone: the EYE OF ENDER chain (owner 09-20: eyes are missing). Bartering needs a worn gold piece or every piglin turns hostile; 1291 gold ingots idle in the depot. 8 golden_boots for the barter squad",
+   "params": {
+    "steps": [
+     {
+      "do": "withdraw",
+      "item": "gold_ingot",
+      "n": 32,
+      "atLeast": 16
+     },
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       69,
+       -523
+      ],
+      "range": 3
+     },
+     {
+      "do": "craft",
+      "item": "golden_boots",
+      "n": 4
+     },
+     {
+      "do": "bank",
+      "keep": {
+       "torch": 16
+      }
+     }
+    ]
+   },
+   "note": "auto-paused: plan finished"
   }
  ]
 }

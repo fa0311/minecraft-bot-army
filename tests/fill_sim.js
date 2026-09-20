@@ -303,10 +303,21 @@ function simulate (sc, opts = {}) {
 
   function doDescend (b, a) {
     const dy = Math.abs(b.pos.y - a.target.y) + Math.abs(b.pos.x - a.target.x) + Math.abs(b.pos.z - a.target.z)
-    if (a.mode === 'drop') {
+    // the two live techniques of skills/lib/moves.js, with their measured costs
+    if (a.mode === 'step_off' || a.mode === 'water_drop') {
       const fall = b.pos.y - a.target.y
-      const dmg = Math.max(0, fall - 3) // vanilla: one heart per block over three
-      b.hp -= dmg; b.hpLost += dmg; b.busy = 0.5; b.falls++
+      if (!FP.canStand(map, world, a.target.x, a.target.y, a.target.z)) { b.busy = 0.5; b.noRoute++; return }
+      for (let y = a.target.y; y <= b.pos.y; y++) { // the shaft must be open all the way, like the live check
+        if (world.get(a.target.x, y, a.target.z) === 'solid') { b.busy = 0.5; return err('shaft-blocked', K3(a.target.x, y, a.target.z)) }
+      }
+      if (a.mode === 'water_drop') {
+        if (has(b, 'water_bucket') < 1) return err('no-bucket', b.id + ' water_drop without a bucket')
+        b.busy = fall / 3 + 2 // place, swim down, scoop it again
+      } else {
+        const dmg = Math.max(0, fall - 3) // vanilla: one heart per block over three
+        b.hp -= dmg; b.hpLost += dmg; b.busy = 0.5; b.falls++
+        if (b.hp < map.o.keepHp - 0.001) err('reckless-drop', b.id + ' left with ' + b.hp.toFixed(1) + ' hp after a ' + fall + '-block fall')
+      }
       b.pos = { x: a.target.x, y: a.target.y, z: a.target.z }
       if (b.hp <= 0) { b.deaths++; b.hp = 20; b.pos = { x: sc.muster.x, y: sc.muster.y, z: sc.muster.z }; err('death', b.id + ' died on a planned ' + fall + '-block drop') }
       if (entryFirst == null) entryFirst = t
@@ -453,9 +464,9 @@ SCEN.g = () => {
 // (h) THE SAME TRENCH, EVERY WAY IN (owner 09-20: "埋めるアルゴリズムは色々考えられる")
 function entryTable () {
   const rows = []
-  for (const kind of ['drop', 'water', 'dig_stair', 'stair', 'ladder']) {
+  for (const kind of ['auto', 'step_off', 'water_drop']) {
     const sc = SCEN.b()
-    if (kind === 'water') for (const b of sc.crew) b.carrying.water_bucket = 1
+    if (kind === 'water_drop') for (const b of sc.crew) b.carrying.water_bucket = 1
     let r
     try { r = simulate(sc, { planner: { entry: kind } }) } catch (e) { r = { ok: false, errs: ['threw: ' + e.message], minutes: 0, entryFirst: 0, hpLost: 0, deaths: 0, placed: 0, perBotMin: 0 } }
     rows.push({ kind, r })

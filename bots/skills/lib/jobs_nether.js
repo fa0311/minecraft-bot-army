@@ -831,8 +831,26 @@ module.exports = ctx => {
     // that column when the ground is where we stand (a road that is level is a road that is safe), and at the ARRIVAL level when
     // the column's floor is far below us: the far gate sits on a ledge at y98 and the floor is ~65 blocks down, and a stair to it
     // is `nether_stair`'s work, not the pairing's.
-    const y0 = Math.abs(groundY + 1 - here.y) <= 4 ? groundY + 1 : Math.floor(here.y)
-    A.result(bot, { ev: 'pair_probe', job: job.id, at: [tx, y0, tz], groundY, roofY, from: xyz(here), atArrivalLevel: y0 !== groundY + 1, dy: y0 - here.y, d: Math.round(Math.hypot(tx - here.x, tz - here.z)) })
+    // ONE SITE = ONE HEIGHT, AND THE HEIGHT IS THE GROUND THE PLATFORM STANDS ON (measured 17:15:24Z: `pair_built overVoid:139` of
+    // 225 — the probe had taken the target column's own little knoll at y101, so the 15x15 sat 4 blocks above the shelf around it
+    // and two thirds of it had nothing under it). The level is the MEDIAN ground of the whole platform box: then the pad is
+    // LEVELLED into the rock (dig the knolls, fill the dips) instead of floating over it.
+    const groundCol = (x, z) => {
+      let air = false
+      for (let y = Math.min(122, here.y + 24); y >= 20; y--) {
+        const b = bot.blockAt(new Vec3(x, y, z)); if (!b) continue
+        const sol = b.boundingBox === 'block' && !/lava/.test(b.name)
+        if (!air) { if (sol) continue; air = true; continue }
+        if (sol) return y
+      }
+      return null
+    }
+    const hs = []
+    for (let dx = -7; dx <= 7; dx += 2) for (let dz = -7; dz <= 7; dz += 2) { const g = groundCol(tx + dx, tz + dz); if (g != null) hs.push(g) }
+    hs.sort((a, b) => a - b)
+    const median = hs.length ? hs[Math.floor(hs.length / 2)] : groundY
+    const y0 = Math.abs(median + 1 - here.y) <= 6 ? median + 1 : Math.floor(here.y)
+    A.result(bot, { ev: 'pair_probe', job: job.id, at: [tx, y0, tz], groundY, medianGround: median, samples: hs.length, spread: hs.length ? (hs[0] + '..' + hs[hs.length - 1]) : '-', roofY, from: xyz(here), atArrivalLevel: y0 !== median + 1, dy: y0 - here.y, d: Math.round(Math.hypot(tx - here.x, tz - here.z)) })
     // 2. CAN WE WALK THERE? read-only, lava-aware, short hops - the walk is tried first and again after any earthworks
     const walk = async () => {
       for (let h = 0; h < 10 && !api.stop() && Date.now() < until; h++) {
@@ -852,56 +870,48 @@ module.exports = ctx => {
     // partner column. It is built with carried stone from safe stands only, and then the same read-only walk is tried again.
     if (!reached && !netherHere(bot)) return { work: 'pair', at: [tx, y0, tz], groundY, reached: false, why: 'the gate sent me back to the overworld during the walk - nothing is built from here' }
     if (!reached && stoneCarried(bot) >= 32) {
-      // ONE ROAD, NOT ONE PER TRIP: the causeway is anchored at the GATE and written to the board, so every trip carries on with
-      // the same 3-wide walkway instead of starting a fresh L from wherever this bot happened to stop (16:11:45Z: 158 of 212
-      // cells laid in the first pass — that progress is only worth anything if the next pass continues it).
+      // WHERE THE ROAD IS BEING BUILT IS ON THE BOARD, so a later trip and an operator can see it (settings.nether.pairRoad).
       const N0 = netherOf()
-      const saved = N0.pairRoad && Array.isArray(N0.pairRoad.from) && N0.pairRoad.to && N0.pairRoad.to[0] === tx && N0.pairRoad.to[2] === tz && N0.pairRoad.y === y0 ? N0.pairRoad.from : null
-      const from0 = saved || (Array.isArray(N0.portal) ? [N0.portal[0], y0, N0.portal[2]] : xyz(bot.entity.position))
-      if (!saved) netherEdit({ pairRoad: { from: from0, to: [tx, y0, tz], y: y0, at: Date.now() } })
-      const cw = causewayCells(from0, [tx, y0, tz], y0)
-      // WORK THE HEAD OF THE ROAD, NOT THE WHOLE OF IT (measured 16:19:08Z: `steps 118, placed 2` — the nearest unfinished cell
-      // was always a pocket sealed under the shelf BEHIND the bot, so the pass paced the finished part instead of extending it).
-      // A pass takes the first leg that is not finished and the five after it; the next trip starts where this one stopped.
-      // THE HEAD OF THE ROAD IS THE WALKWAY, NOT THE RAIL (16:24:24Z: the head stuck on leg 2 for pass after pass over two
-      // rim cells at -45,97,-77/-78 that read "out of reach" every time, while eight legs of actual road were missing). The rails
-      // stay in the segment and go in when the bot is beside them; they never decide where the work is.
-      // AND A SEGMENT THAT IS ALREADY FINISHED IS NOT A TRIP (16:26:24Z: `leg 2, of 84, left 0, placed 0` — the head is chosen
-      // while the far chunks are still arriving, so an old segment wins the search, comes back done, and the whole crossing was
-      // spent on it). A pass walks FORWARD through the road until it finds work: three segments before it gives the trip up.
-      let rb = null; let head = 0; let start = 0
-      for (let k = 0; k < 3 && Date.now() < until && !api.stop(); k++) {
-        const h = cw.legs.findIndex((L, i) => i >= start && L.some(c => !c.rim && loadedAt(bot, c) && !cellOK(bot, c)))
-        head = h < 0 ? start : h
-        if (head >= cw.legs.length) break
-        // A FLOOR UNDER A BLOCK THAT ALREADY STANDS IS NOBODY'S HOLE: where the causeway runs through the shelf's own rock, the
-        // rim columns need no floor laid under them (16:19-16:22Z: the cell -45,97,-78 was named pass after pass - a sealed
-        // pocket one layer under rock the bot walks on, unreachable and pointless).
-        const seg = cw.legs.slice(head, head + 6).reduce((a, L) => a.concat(L), [])
-          .filter(c => !(c.rim && c.block === 'stone' && c.y === y0 - 1 && (b2 => b2 && b2.boundingBox === 'block')(bot.blockAt(new Vec3(c.x, y0, c.z)))))
-        rb = await buildCells(bot, job, api, seg, cw.box, Math.min(until, Date.now() + 200000), 'pair-bridge')
-        // WORK IS WORK; WHAT IS LEFT OVER IS NOT (16:43:01Z: `leg 1, placed 0, dug 0, steps 40, left 1` — ONE rim cell at
-        // -40,98,-79 that no stand of ours can reach held the head on the first segment for three trips, with eight legs of road
-        // still missing). A pass moves on unless it actually laid something; the leftovers are picked up when the road is walked.
-        if (rb.placed || rb.dug) break
-        start = head + 6
+      const from0 = xyz(bot.entity.position)
+      netherEdit({ pairRoad: { from: from0, to: [tx, y0, tz], y: y0, at: Date.now() } })
+      // SPAN BY SPAN, WITH THE LIBRARY, NOT BY HAND (owner 17:0xZ 「mineflyerに置きながら移動するのあるのでは？橋建設に利用できそう」).
+      // mineflayer-pathfinder bridges by itself: `moves.bridgeTo` hands it scaffolding blocks, a corridor it may not leave, the
+      // terrain guard's own time-boxed opt-out and SNEAK on every physics tick (proven live 17:1xZ, a 2-wide 9-deep gap, 0 hp
+      // lost). My hand-written spine builder is gone: it was 13 passes of `placed:0` and one bot in the lava sea (16:53:11Z).
+      // A span is at most 6 cells; the span is then WIDENED and RAILED from the spine we just walked, and only then the next one -
+      // so the head is never more than one span ahead of its rails.
+      const MV = require('./moves')
+      const spanBlocks = SHELL_STONE.filter(n => A.count(bot, n) > 0)
+      let spans = 0; let spanPlaced = 0; let lastWhy = null
+      for (let sp = 0; sp < 4 && !reached && Date.now() < until && !api.stop(); sp++) {
+        const me = bot.entity.position.floored()
+        const dv = new Vec3(tx - me.x, 0, tz - me.z); const len = Math.hypot(dv.x, dv.z)
+        if (len < 3) { reached = true; break }
+        const k = Math.min(6, len) / len
+        const next = [Math.round(me.x + dv.x * k), y0, Math.round(me.z + dv.z * k)]
+        const r = await MV.bridgeTo(bot, next, { half: 1, blocks: spanBlocks, ms: 60000, stop: api.stop })
+        spans++; spanPlaced += (r.placed || 0); lastWhy = r.why || null
+        A.result(bot, { ev: 'pair_span', job: job.id, from: [me.x, me.y, me.z], to: next, ok: !!r.ok, placed: r.placed || 0, tookMs: r.tookMs, hp: bot.health, why: r.why })
+        if (!r.ok) break
+        // WIDEN AND RAIL THE SPAN WE JUST WALKED, from the spine itself (floor 7 wide, 5 walkable, 2-high rail on both rims)
+        const cw = causewayCells([me.x, y0, me.z], next, y0)
+        const rb2 = await buildCells(bot, job, api, cw.cells, cw.box, Math.min(until, Date.now() + 90000), 'pair-span-widen')
+        A.result(bot, { ev: 'pair_bridge', job: job.id, from: [me.x, me.y, me.z], to: next, span: sp + 1, placed: rb2.placed, dug: rb2.dug, left: rb2.left, of: rb2.of, leftAt: rb2.leftAt })
+        bridged = { spans, spanPlaced, widen: rb2.placed, left: rb2.left }
+        reached = bot.entity.position.distanceTo(new Vec3(tx + 0.5, y0, tz + 0.5)) < 4 || await walk()
       }
-      if (!rb) rb = { placed: 0, dug: 0, steps: 0, left: 0, unloaded: 0, of: 0, leftAt: [] }
-      bridged = { len: cw.len, leg: head + 1, placed: rb.placed, dug: rb.dug, steps: rb.steps, left: rb.left, unloaded: rb.unloaded, of: rb.of, leftAt: rb.leftAt }
-      A.result(bot, Object.assign({ ev: 'pair_bridge', job: job.id, from: from0, to: [tx, y0, tz] }, bridged))
-      // A PASS THAT LAYS NOTHING IS A BOT STANDING AT A LETHAL EDGE (16:40-16:53Z: thirteen `placed:0` passes, then a bot in the
-      // lava sea). Two of them and this trip goes home; three and the job pauses itself and says what it is waiting for.
-      const idle = (rb.placed + rb.dug) > 0 ? 0 : ((netherOf().pairIdle || 0) + 1)
+      // A TRIP THAT CROSSED NOTHING IS A BOT AT A LETHAL EDGE (16:40-16:53Z: thirteen empty passes, then the lava sea). Two in a
+      // row and the trip goes home; three and the job pauses itself and says what it is waiting for.
+      const idle = spanPlaced > 0 || reached ? 0 : ((netherOf().pairIdle || 0) + 1)
       netherEdit({ pairIdle: idle })
-      if (idle >= 2) {
-        A.result(bot, { ev: 'pair_idle', job: job.id, passes: idle, at: [tx, y0, tz], leftAt: rb.leftAt, why: 'two passes in a row laid nothing - the head is not workable from where our own floor reaches; going home rather than standing at the edge' })
-        if (idle >= 3) A.boardEdit(b2 => { const j = (b2.jobs || []).find(q => q.id === job.id); if (j && j.status === 'active') { j.status = 'paused'; j.note = 'auto-paused: three passes laid nothing at the head of the road (' + (rb.leftAt || []).join(' · ') + '). Re-site the work or change the design - do not send another bot to stand at that edge' } })
+      if (!reached && idle >= 2) {
+        A.result(bot, { ev: 'pair_idle', job: job.id, passes: idle, at: [tx, y0, tz], spans, why: 'two trips in a row bridged nothing (' + (lastWhy || 'no reason given') + ') - going home rather than standing at the edge' })
+        if (idle >= 3) A.boardEdit(b2 => { const j = (b2.jobs || []).find(q => q.id === job.id); if (j && j.status === 'active') { j.status = 'paused'; j.note = 'auto-paused: three trips bridged nothing towards ' + [tx, y0, tz].join(',') + ' (' + (lastWhy || '') + '). Re-site the work or change the design - do not send another bot to that edge' } })
         return { work: 'pair', at: [tx, y0, tz], groundY, reached: false, bridge: bridged, idlePasses: idle }
       }
-      reached = await walk()
     }
     if (!reached) {
-      A.result(bot, { ev: 'pair_unreachable', job: job.id, at: [tx, y0, tz], stoppedAt: xyz(bot.entity.position), groundY, bridge: bridged, carried: stoneCarried(bot), why: 'no read-only walk to the partner column' + (bridged ? ' even after a ' + bridged.placed + '-block causeway (' + (bridged.leftAt || []).join(' · ') + ')' : ' and too little stone carried to bridge (' + stoneCarried(bot) + ')') })
+      A.result(bot, { ev: 'pair_unreachable', job: job.id, at: [tx, y0, tz], stoppedAt: xyz(bot.entity.position), groundY, bridge: bridged, carried: stoneCarried(bot), why: 'no read-only walk to the partner column' + (bridged ? ' even after ' + (bridged.spans || 0) + ' bridged span(s) (' + (bridged.spanPlaced || 0) + ' blocks placed, ' + (bridged.widen || 0) + ' widened)' : ' and too little stone carried to bridge (' + stoneCarried(bot) + ')') })
       return { work: 'pair', at: [tx, y0, tz], groundY, reached: false, bridge: bridged }
     }
     // 3. PLATFORM FIRST, then the frame: both from the cell list, both placed without ever standing in a portal
@@ -1116,6 +1126,19 @@ module.exports = ctx => {
       A.askHelp(bot, 'home_gate_out', 'I am in the Nether and the home gate at ' + ((netherOf().gate) || []).join(',') + ' is not lit: re-light it')
       for (let w = 0; w < 40 && !api.stop() && netherOf().lit === false; w++) await sleep(3000)
       if (netherOf().lit === false) return 'waiting in the Nether: the home gate is out'
+    }
+    // THE GATE MAY BE BELOW US (measured 17:16Z: Nanami finished a pass standing at the_nether -43,102,-80 — on the pad she had
+    // just laid, 4 blocks over the portal — and reported "the gate did not take me": `maxDropDown 1` is right for a Nether walk
+    // and it also means a bot cannot get DOWN to its own way home). A player steps off the rim; `moves.stepOff` is that step,
+    // with the landing column checked open and the hp cost known in advance.
+    if (far.position.y < bot.entity.position.y - 1.5 && bot.entity.position.y - far.position.y <= 8) {
+      const land = [far.position.x, far.position.y, far.position.z + (far.position.z > bot.entity.position.z ? -1 : 1)]
+      const lb = bot.blockAt(new Vec3(land[0], land[1] - 1, land[2]))
+      if (lb && lb.boundingBox === 'block') {
+        await nTravel(bot, new Vec3(land[0], bot.entity.position.y, land[2]), { range: 1, ms: 20000, stop: api.stop }).catch(e_ => swallow('jobs_nether:toRim', e_))
+        const r = await require('./moves').stepOff(bot, land, { stop: api.stop }).catch(e => ({ ok: false, why: String(e && e.message) }))
+        A.result(bot, { ev: 'gate_below', job: job.id, gate: xyz(far.position), land, ok: !!r.ok, drop: r.drop, lost: r.lost, why: r.why })
+      }
     }
     const cells = portalBody(bot, far.position, 10).map(p => [p.x, p.y, p.z])
     const to = await stepThrough(bot, api, cells.length ? cells : [xyz(far.position)], Math.min(P.crossS || 45, 120), 'walking into the far gate', cells)
