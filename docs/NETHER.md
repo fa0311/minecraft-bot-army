@@ -29,7 +29,10 @@ Keep this under 90 lines. Machine truth: `bots/army/jobs.json → settings.nethe
 * EVENTS: `portal_frame_incomplete · portal_lit · portal_through {offCellS, offCell, hp} · gate_stuck · nether_sealed · nether_look · nether_landing · pair_probe · pair_bridge · pair_built · pair_unreachable · nether_pass · portal_back · portal_bounced · gate_removed · nether_lost · portal_scout_died`.
 
 ## THE FAR SIDE, MEASURED BY CAMERA (`SkyEye`, perception only: rcon `tp` + `findBlocks`, /tmp/gates.js + /tmp/nmap2.js this shift)
-* **Census 15:4x / 16:0xZ:** overworld = exactly ONE gate (ours, lit). the_nether = ONE cluster, -45..-36 / y97..101 / -80..-76, 28 obsidian, 6 lit cells. No gate anywhere near -130,-240 or -203,-338 — the bots that "arrived" there never transferred (rule 5).
+* **Census 15:4x / 16:0xZ:** overworld = exactly ONE gate (ours, lit). No gate anywhere near -130,-240 or -203,-338 — the bots that "arrived" there never transferred (rule 5).
+* **Cell census 16:2xZ (`/tmp/cells.js`, every block read back):** the far side's 28 obsidian are **two** frames, not three —
+  **LIVE:** -45..-42 / y97..101 / **z-80**, 14 obsidian holding the six `nether_portal` cells (-44/-43, y98-100) = our way home.
+  **DEAD:** -39..-36 / y97..101 / **z-76**, 14 obsidian, **0 portal cells** — the "unnecessary gate" the owner sees. `nether_dead_frames` (`work:'degate'`) takes those 14 home; they are more than the 10 the partner frame needs. `degate` now reads the live portal cells back first and never digs an obsidian that touches one, so the way home cannot be broken; the live frame goes only after the new pair has its three verified round trips.
 * **The shelf:** at the arrival level y98 the rock runs from z -88 to about z -72 (x -50..-33) and everything north of it, including the partner column -41,-65, is **void** — the floor of that column is y23. So the partner gate is built **at the arrival level** on a platform, reached by a causeway: 3 walkable cells wide, a rail on each rim, 3 high, cut through the rock where there is rock and laid over the void where there is none (`causewayCells`).
 * Lava within 16 of the arrival: 3 cells. Drop under the frame: 0.
 

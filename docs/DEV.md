@@ -184,7 +184,13 @@ Command blocks are enabled on the server (`enable-command-block=true`); the bots
   A CAVE is not the end of the rock: the branch bridges it walled and lit for up to 16 cells (`cave_bridged`), and a branch that was closed at one is handed out
   again up to 3 times (`caveTry`) — so a level counts as EXHAUSTED only when its cave branches are used up too. `I.levelYield(L)` = ore / iron ore per 100 cells
   advanced from the branch ledger (`ore`, `iron` per branch); while iron is the deficit the squad works the level with the best MEASURED iron yield, the book
-  (peak y16, linear to 0 at y-24/y56) standing in only for levels under 400 cells driven.
+  (peak y16, linear to 0 at y-24/y56) standing in only for levels under 400 cells driven. **Every cell the mine opens reads its own 6 neighbours** — `digCell`
+  calls `noteOre` (one implementation, no per-call-site lists: branch, trunk, hub, landing, stair, reconnect gallery and the cells of a vein excursion alike)
+  and `drainSeen` mines from that queue what is in reach, putting what this pick cannot take on the ore log (`armyctl.js census ores`) for a better pick.
+- **Kit is ONE of each tool kind** (`army.js surplusTools`, owner 09-20 "鉄装備2セット持ってるやつとかいるぞ"): the best `kitAllow` of each kind (a miner/ore
+  job: 2 pickaxes), the worn armour and one shield; everything else a bot carries is SURPLUS and rides back to the shelf on the next `offload()` pass
+  (`banked {job:'… (surplus)'}`). `steps`/`scan`/`trade`/`haul`/`depot` loads are CARGO and are left alone. Builders, miners, deck and cavity crews get ONE
+  `water_bucket` as kit, moved into the HOTBAR for `lib/moves.js fallGuard`; never off the overworld, and kitUp takes only a bucket the depot holds FILLED.
 - **Chat:** `bots/chatter.js` (haiku, thinking off) answers PLAYERS in character and can do nothing else (no actuator); `speak()` in `lib/army.js` is the LLM-free work chatter.
 
 ## 8. New world (`ops/new-world.sh <seed>`; seed candidates: `ops/seed-gacha.js [n]` → `server-gacha/results.json`)

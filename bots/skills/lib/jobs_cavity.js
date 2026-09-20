@@ -27,7 +27,7 @@
 //
 // THE ALGORITHM (his, not a variation): stand on the surface cell ABOVE the hole -> dig a 1x1 shaft straight down, reading the two cells under
 // the feet BEFORE every dig (lava/water/gravel/bedrock/our own blocks veto the column) -> descend (a drop > 3 is taken with the WATER BUCKET,
-// see waterDescent below; <= 3 it just steps down) -> torch -> FILL the component bottom-up while standing on its own fill -> ride the shaft up
+// a NEIGHBOUR column is opened and stepped off with moves.waterDrop; <= 3 it steps down) -> torch -> FILL the component bottom-up while
 // placing under the feet -> restore the top cell with what was there (grass_block -> dirt, dirt_path/cobblestone as found) -> scoop the water
 // back. An escape staircase is WALKED down instead of dug into: it is already open, and its mouth is closed back to the grade of the yard.
 //
@@ -134,6 +134,15 @@ function markPlan (G, P) {
   for (const k of P.scars || []) { const [x, y, z] = k.split(',').map(Number); for (let dy = -1; dy <= 1; dy++) { const b = y + dy; if (gIn(G, x, z) && b >= G.yMin && b <= G.yTop) G.mask[gIdx(G, x, b, z)] |= M_SCAR } }
 }
 
+// is this hole ours to close, under the caller's caps? (`maxDepth`/`maxCells`; `dig:true` = the box IS an excavation of ours, all of it in scope)
+function targetOf (e, P) {
+  if (e.type === 'escape_stair') return true
+  if (e.type !== 'cavity') return false
+  if (!e.spawnable && !P.dig) return false
+  if (!e.tops.length) return false
+  if (P.dig) return e.cells - (e.mineTouch || 0) >= 4
+  return e.depth != null && e.depth <= (P.maxDepth || CAVITY_DEPTH)
+}
 function boxOfPts (pts) {
   const bb = [1e9, 1e9, 1e9, -1e9, -1e9, -1e9]
   for (const p of pts) { if (p.x < bb[0]) bb[0] = p.x; if (p.y < bb[1]) bb[1] = p.y; if (p.z < bb[2]) bb[2] = p.z; if (p.x > bb[3]) bb[3] = p.x; if (p.y > bb[4]) bb[4] = p.y; if (p.z > bb[5]) bb[5] = p.z }
@@ -261,6 +270,7 @@ function entryOf (G, P, type, pts, bb, colset, nCells, perY, wet, scarHit, sky) 
     scar: !!scarHit,
     lit: near.length > 0,
     tops: tops.slice(0, 6).map(t => ({ at: t.at, entryY: t.entryY, drop: t.drop, shaft: t.shaft, tunnel: t.tunnel, to: t.to || null })),
+    mineTouch: 0,
     seen: Date.now()
   }
 }
@@ -307,14 +317,16 @@ function analyse (G, P) {
     // NARROW AND RISING = an escape staircase / escape shaft one of ours dug (army.js stairUp = 1 wide, 2 high, one step per block; digOut the same)
     const stairy = cells.length <= 160 && perY <= 4.5 && height >= 3 && height >= 0.55 * horiz
     let type
-    if (mineHit) type = 'mine'
+    // THE MINE IS THE MINERS' - but a 959-cell ravine void the stairwell merely PASSES THROUGH is not the mine (measured 16:5xZ in the ravine
+    // box). A component is theirs when it mostly IS their geometry; otherwise their cells are simply taken out of the fill set (see fillOne).
+    if (mineHit >= 0.4 * cells.length) type = 'mine'
     else if (plannedHit >= 0.6 * cells.length) type = 'planned'
     else if (unk) type = 'unknown'
-    else if (capped || cells.length > maxCells || bound) type = 'natural_cave'
+    else if (capped || cells.length > maxCells || (bound && !P.dig)) type = 'natural_cave' // inside a known excavation the scan box edge is ours, not a cave's
     else if (sky) type = (stairy || scarHit) ? 'escape_stair' : 'open'
     else type = 'cavity'
     const e = entryOf(G, P, type, pts, bb, colset, cells.length, perY, wet, scarHit, sky)
-    if (e) out.push(e)
+    if (e) { e.mineTouch = mineHit; e.target = targetOf(e, P); out.push(e) }
     // A STAIRCASE WELDED TO THE CAVE IT ESCAPED FROM (490 `dug_out` events in this world, and the census found 2 free-standing ones): the
     // component is the whole cave, but the HOLE we made is the narrow NECK that reaches daylight. Cut it out and plug THAT - filling a cave
     // system is not survival work, closing the chimney our bot dug through its roof is.
@@ -328,7 +340,7 @@ function analyse (G, P) {
         // a 1-2 wide chimney is ours (nature does not dig 1x1); anything wider needs the ledger's word that a bot cut it
         if ((nbb[4] - nbb[1] + 1) >= 4 && (nScar || nPerY <= 2.2)) {
           const ne = entryOf(G, P, 'escape_stair', npts, nbb, ncols, nk.length, nPerY, false, nScar ? 1 : 0, true)
-          if (ne) { ne.neck = true; ne.list = npts.map(p => [p.x, p.y, p.z]); ne.scar = !!nScar; out.push(ne) }
+          if (ne) { ne.neck = true; ne.list = npts.map(p => [p.x, p.y, p.z]); ne.scar = !!nScar; ne.target = targetOf(ne, P); out.push(ne) }
         }
       }
     }
@@ -340,10 +352,12 @@ function analyse (G, P) {
   return out
 }
 // NO MAKE-WORK (owner 09-20): a sealed pocket deep in the rock is geology - no mob ever walks out of it, and 200 of them are 30 000 blocks of
-// pointless carrying. What the owner pointed at is the hole a BOT dug and the ground we then closed over it (its roof within CAVITY_DEPTH of the
-// grade of its own ground), and every scar that still reaches daylight.
+// pointless carrying. What the owner pointed at is the hole a BOT dug and the ground we then closed over it (its roof within `maxDepth` of the
+// grade of its own ground), and every scar that still reaches daylight. INSIDE A KNOWN DIG (`params.box` over a ravine the army is filling) the
+// depth and size caps come off: that is our own excavation, not a cave to preserve.
 const CAVITY_DEPTH = 8
-const isTarget = e => !!e && (e.type === 'escape_stair' ? true : e.type === 'cavity' && e.spawnable > 0 && e.tops.length > 0 && e.depth != null && e.depth <= CAVITY_DEPTH)
+// the flag is written by analyse(), where the caller's caps are known, so every reader of cavities.json judges by the same rule
+const isTarget = e => !!e && (e.target != null ? !!e.target : (e.type === 'escape_stair' ? true : e.type === 'cavity' && e.spawnable > 0 && e.tops.length > 0 && e.depth != null && e.depth <= CAVITY_DEPTH))
 
 // ---------------------------------------------------------------- the plan: what is ours, where no shaft may be opened, what the miners own
 let _plan = { t: 0 }
@@ -363,13 +377,12 @@ function planSets (A, box, fresh) {
       // closed again; a wall, a road, a field or a house is not.
       // ...but a crew that is WORKING a terrain job right now owns its columns: two jobs in one column is exactly the dig/place runaway of
       // 09-20 14:4xZ. An ACTIVE build job of any blueprint keeps this front out of its box until it pauses itself.
-      if (A.TERRAIN_BP.test(String(j.params.blueprint))) {
-        // ...but an ACTIVE `fill_void` owns the very thing this front works on - a void. Two jobs in one column is the dig/place runaway of
-        // 09-20 14:4xZ, so its own cells are off limits while it runs. (`level`/`clear_area` cap the GRADE: a shaft that is opened and closed
-        // again inside one slice does not fight them, and blocking their boxes would blanket the whole base.)
-        if (j.status === 'active' && j.params.blueprint === 'fill_void') for (const c of cells) if (inBox(c.x, c.z)) blockedCols.add(c.x + ',' + c.z)
-        continue
-      }
+      // THE LINE BETWEEN THIS FRONT AND AN ACTIVE FILL RUNS THROUGH CELLS, NOT COLUMNS (measured 16:5xZ inside fill_ravine_s x -334..-289 /
+      // z -486..-461: 44 columns / 444 cells still open to the sky, but 3172 AIR CELLS UNDER SOLID BLOCKS below grade - the fill crusted over
+      // the ravine's overhangs, `done 0` with no_los/unreachable, and my first rule handed exactly those cells to the job that cannot reach
+      // them). THE FILL KEEPS WHAT IS OPEN TO THE SKY; an air cell with a solid block over it is this front's, inside an active fill's box too.
+      // That is a cell rule the classifier already makes: `open` = sky-connected = theirs, `cavity` = enclosed = ours.
+      if (A.TERRAIN_BP.test(String(j.params.blueprint))) continue
       for (const c of cells) {
         if (!inBox(c.x, c.z)) continue
         planned.add(c.x + ',' + c.y + ',' + c.z)
@@ -473,177 +486,10 @@ function table (doc) {
   return rows.join('\n')
 }
 
-// ================================================================ WATER-BUCKET DESCENT (owner 09-20 "バケツ降り出来ないのか？")
-// The reliable form, not the MLG timing trick: pour the source into the TOP cell of an open column so a falling column of water reaches the
-// floor, step in, sink with the head under control, step out on the floor. `dropIn` in army_jobs.js takes 3-7 hp for a 9-14 block drop; this
-// takes none. ONE implementation, exported, so any job can use it (a fill shaft, a builder under 18 hp, a pit entry).
-//   waterDescent(bot, {rim:[x,y,z] the cell the bot stands IN, column:[x,z] the shaft, floorY, stop, scoop, openBelow})
-//     openBelow: optional async () => boolean — the caller's own dig of the LAST solid block under the rim, run AFTER the source is in place
-//                (that is the fill shaft's case: the column is not open until the bot breaks the floor it stands on).
-//     scoop:true — this is the LAST user: take the source back into the bucket from the floor if it is in reach, else say so.
-//   -> { ok, how:'column', from, to, drop, lost:<hp>, tookS, scooped, source:[x,y,z]|null, sources:<sources left>, why }
-// Never digs, never places a block; the only world edit is the water source, and the result says whether it is still standing.
-async function waterDescent (bot, opts = {}) {
-  const A = require('./army'); const U = require('./util'); const swallow = require('./swallow')
-  const stop = () => U.cancelled(bot) || !!(opts.stop && opts.stop())
-  const t0 = Date.now(); const hp0 = bot.health
-  const rim = vv(opts.rim || bot.entity.position.floored())
-  const cx = opts.column ? opts.column[0] : rim.x; const cz = opts.column ? opts.column[1] : rim.z
-  const at = (x, y, z) => bot.blockAt(new Vec3(x, y, z))
-  let floorY = opts.floorY
-  const out = (ok, why, extra) => {
-    const r = Object.assign({ ok, how: 'column', from: xyzOf(rim), to: xyzOf(bot.entity.position), drop: floorY == null ? 0 : Math.max(0, rim.y - floorY - 1), lost: Math.max(0, Math.round((hp0 - bot.health) * 10) / 10), tookS: Math.round((Date.now() - t0) / 1000), scooped: false, source: null, sources: 0, why: why || null }, extra || {})
-    try { A.result(bot, { ev: 'water_descent', from: r.from, to: r.to, drop: r.drop, lost: r.lost, scooped: r.scooped, ok: r.ok, why: r.why }) } catch (e_) { swallow('jobs_cavity:wdResult', e_) }
-    return r
-  }
-  // ---- 1. READ THE COLUMN. A falling column of water needs an open shaft and a landing that is not lava.
-  if (floorY == null) { for (let y = rim.y - (opts.openBelow ? 2 : 1); y >= rim.y - 40; y--) { const b = at(cx, y, cz); if (!b) break; if (isSolidB(b)) { floorY = y; break } } }
-  if (floorY == null) return out(false, 'no floor within 40 blocks under ' + [cx, rim.y, cz].join(','))
-  const land = at(cx, floorY, cz)
-  if (!land || !isSolidB(land)) return out(false, 'the landing ' + [cx, floorY, cz].join(',') + ' is not solid')
-  if (/lava|magma/.test(land.name)) return out(false, 'the landing is ' + land.name)
-  const firstOpen = rim.y - (opts.openBelow ? 2 : 1)
-  for (let y = firstOpen; y > floorY; y--) {
-    const b = at(cx, y, cz)
-    if (!b) return out(false, 'the column is not loaded at y ' + y)
-    if (b.name === 'lava') return out(false, 'lava in the column at y ' + y)
-    if (!isAirB(b) && b.name !== 'water') return out(false, 'the column is blocked by ' + b.name + ' at ' + [cx, y, cz].join(',') + ' - it is not one open shaft')
-  }
-  const drop = rim.y - floorY - 1
-  // ---- 2. THE BUCKET IS CARRIED, NEVER FETCHED FROM HERE (15:55Z: the withdraw walked Ume 66 blocks to the depot and it then poured at a
-  // rim it no longer stood on). The caller stocks up before it walks out; `fill` at a pond turns an empty bucket into a full one.
-  if (!A.count(bot, 'water_bucket')) return out(false, 'no water_bucket carried (depot holds ' + A.stockOf('water_bucket') + '; fill an empty one at water first: verb `fill`)')
-  // ---- 3. OPEN THE COLUMN FROM BESIDE IT, then pour against the TOP OF THE WALL (the owner's words). Two shapes, one rule:
-  //   * the bot stands ON the plug over an open drop  -> it steps off first, the caller opens the cell from the side (no 18-block fall),
-  //     and the source goes into the shaft's own top cell, whose four walls hold the water in a falling column.
-  //   * the bot is already INSIDE a 1x1 shaft (no free cell beside it) -> the source goes into its own cell; the same four walls hold it,
-  //     and the water follows the bot down as the caller opens the floor.
-  // Measured 16:0xZ on an 18-block shaft: with the source on OPEN GROUND at the rim the flow simply washed the bot 4 blocks sideways.
-  let srcCell = null; let steppedOff = false
-  const standable = c => { const f = at(c.x, c.y - 1, c.z); const a = at(c.x, c.y, c.z); const h = at(c.x, c.y + 1, c.z); return isSolidB(f) && !/lava|magma/.test(f.name) && isAirB(a) && isAirB(h) }
-  if (opts.openBelow) {
-    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) {
-      const c = new Vec3(rim.x + dx, rim.y, rim.z + dz)
-      if (!standable(c)) continue
-      if (await A.travel(bot, c, { range: 0, ms: 15000, stop: opts.stop, quiet: true })) { steppedOff = true; break }
-    }
-    if (!steppedOff) { // inside the shaft: pour first, the water comes down with us
-      srcCell = rim.clone()
-      if (!await pourInto(bot, srcCell, opts.stop)) return out(false, 'the bucket would not go into ' + xyzOf(srcCell).join(',') + ' (nothing solid under or beside the rim to click)')
-    }
-    if (!await opts.openBelow()) return out(false, 'the cell under the rim could not be opened', { source: srcCell ? xyzOf(srcCell) : null })
-    await sleep(500)
-  }
-  if (!srcCell) { // the column is open: the source goes into its highest air cell at or below the rim
-    // the TOP OF THE WALL, not the open air over it: the highest cell of the column that still has walls around it (>= 3 solid sides).
-    // A source on open ground washes the bot sideways instead of falling (measured 16:0xZ, the bot ended 4 blocks away).
-    const walls = y => [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dz]) => isSolidB(at(cx + dx, y, cz + dz))).length
-    const open = y => { const b = at(cx, y, cz); return !!b && (isAirB(b) || b.name === 'water') } // water left by an earlier descent is an OPEN column, not a wall
-    let ty = null
-    for (let y = rim.y; y > floorY; y--) if (open(y) && walls(y) >= 3) { ty = y; break }
-    if (ty == null) for (let y = rim.y; y > floorY; y--) if (open(y)) { ty = y; break }
-    if (ty == null) return out(false, 'the column has no open cell under ' + [cx, rim.y, cz].join(','))
-    srcCell = new Vec3(cx, ty, cz)
-    const already = at(cx, ty, cz)
-    if (!(already && already.name === 'water' && already.metadata === 0) && !await pourInto(bot, srcCell, opts.stop)) return out(false, 'the bucket would not go into ' + xyzOf(srcCell).join(',') + ' (no face of a wall beside it that the eye can see)')
-  }
-  await sleep(700)
-  // ---- 4/5. STEP IN and SINK. A player does not fall through water, he SWIMS DOWN: sneak is held for the whole descent (1.13+ makes a
-  // sneaking swimmer descend; measured 15:59Z without it: the bot floated at the top of the column for 40 s and went down 1 block).
-  // Head under control: at most 20 s under water, and a jump for air whenever the bubbles run low.
-  const inCol = () => { const p = bot.entity.position; return Math.floor(p.x) === cx && Math.floor(p.z) === cz }
-  // ONE loop: step in, and stay in. Short 120 ms pulses, because a 250 ms pulse carried the bot straight ACROSS the 1-wide column and out
-  // the other side (measured 16:1xZ). The instant the bot is over the column the legs stop and sneak takes over - that is the swim down.
-  const tIn = Date.now(); let lastY = bot.entity.position.y; let still = 0; let air = 0; let pushes = 0
-  while (!stop() && Date.now() - tIn < 45000) {
-    const p = bot.entity.position
-    if (Math.floor(p.y) <= floorY + 1) break
-    if (!inCol()) {
-      if (++pushes > 24) break
-      try { bot.setControlState('forward', false); bot.setControlState('sneak', false) } catch (e_) { swallow('jobs_cavity:wdSn0', e_) }
-      // WALK IN, do not charge in: the step down into the column is one block, which the read-only pathfinder does by itself. Raw forward
-      // pulses carried the bot clean ACROSS the 1-wide column twice (16:1xZ, it ended one block past it on both tries).
-      if (pushes <= 2) { if (await A.travel(bot, new Vec3(cx, srcCell.y, cz), { range: 0, ms: 12000, stop: opts.stop, quiet: true }) || inCol()) continue }
-      if (Math.hypot(p.x - (cx + 0.5), p.z - (cz + 0.5)) > 3.5) { await A.travel(bot, { x: cx, y: null, z: cz }, { range: 2, ms: 15000, stop: opts.stop, quiet: true }); continue }
-      // CREEP in and stop the LEGS the instant the body is over the column. A 110 ms pulse plus a poll carried the bot clean across the
-      // 1-wide shaft (measured 16:1xZ: it crossed x -307 in 0.5 s at 69.4 and walked out the other side, sinking all the while).
-      try {
-        await bot.lookAt(new Vec3(cx + 0.5, p.y + 1.4, cz + 0.5), true)
-        bot.setControlState('forward', true)
-        for (let t = 0; t < 30 && !inCol() && !stop(); t++) await sleep(50)
-      } catch (e_) { swallow('jobs_cavity:wdIn', e_) }
-      try { bot.setControlState('forward', false) } catch (e_) { swallow('jobs_cavity:wdIn2', e_) }
-      await sleep(150)
-      continue
-    }
-    try { bot.setControlState('forward', false); bot.setControlState('sneak', true) } catch (e_) { swallow('jobs_cavity:wdSneak', e_) }
-    if (bot.oxygenLevel != null && bot.oxygenLevel <= 6) { air++; try { bot.setControlState('sneak', false); bot.setControlState('jump', true); await sleep(700); bot.setControlState('jump', false) } catch (e_) { swallow('jobs_cavity:wdAir', e_) } ; if (air > 3) break }
-    if (Date.now() - tIn > 20000 && bot.oxygenLevel != null && bot.oxygenLevel < 20) break // 20 s of head time is the budget
-    if (Math.abs(p.y - lastY) < 0.02) { still++; if (still > 25) break } else still = 0 // it sinks ~0.6 blocks/s; 5 s without movement is a stall
-    lastY = p.y
-    await sleep(200)
-  }
-  try { bot.clearControlStates() } catch (e_) { swallow('jobs_cavity:wdClear', e_) }
-  await sleep(600)
-  const landed = Math.floor(bot.entity.position.y) <= floorY + 2
-  // ---- 6. the LAST user takes the source back; then READ BACK whether any source is left (a forgotten source floods a fill site)
-  let scooped = false
-  if (opts.scoop) scooped = await scoopSource(bot, srcCell, opts.stop)
-  const seenSrc = new Set()
-  for (let y = floorY; y <= rim.y + 1; y++) for (const [x, z] of [[cx, cz], [rim.x, rim.z]]) { const b = at(x, y, z); if (b && b.name === 'water' && b.metadata === 0) seenSrc.add(x + ',' + y + ',' + z) }
-  return out(landed, landed ? null : 'did not reach the floor ' + [cx, floorY, cz].join(','), { drop, scooped, source: xyzOf(srcCell), sources: seenSrc.size })
-}
-// put a liquid from the bucket INTO `cell`: click the face of a solid neighbour that points at the cell, then trust only what the server shows
-async function pourInto (bot, cell, stop) {
-  const A = require('./army'); const swallow = require('./swallow')
-  const p = vv(cell)
-  const is = () => { const b = bot.blockAt(p); return !!b && b.name === 'water' }
-  if (is()) return true
-  const e0 = bot.inventory.items().find(i => i.name === 'water_bucket'); if (!e0) return false
-  // the floor under the cell FIRST (its top face is what a player clicks), then the walls, then the ceiling
-  for (const [dx, dy, dz] of [[0, -1, 0], [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0]]) {
-    if (stop && stop()) break
-    const n = p.offset(dx, dy, dz); const nb = bot.blockAt(n)
-    if (!isSolidB(nb) || SKY_BLIND_RE.test(nb.name)) continue
-    // the centre of the face the two cells share, pulled 1/20 block into the neighbour so the ray lands on IT
-    const pt = new Vec3(n.x + 0.5 - dx * 0.45, n.y + 0.5 - dy * 0.45, n.z + 0.5 - dz * 0.45)
-    const eye = bot.entity.position.offset(0, 1.62, 0)
-    if (eye.distanceTo(pt) > 4.3) continue
-    try {
-      const hit = bot.world.raycast(eye, pt.minus(eye).normalize(), 5)
-      if (!hit || !hit.position || hit.position.x !== n.x || hit.position.y !== n.y || hit.position.z !== n.z) continue
-    } catch (e_) { swallow('jobs_cavity:pourRay', e_) }
-    try {
-      const it = bot.inventory.items().find(i => i.name === 'water_bucket'); if (!it) return false
-      await bot.equip(it, 'hand')
-      await bot.lookAt(pt, true); await sleep(200)
-      bot.activateItem(); await sleep(450); bot.deactivateItem()
-    } catch (e_) { swallow('jobs_cavity:pour', e_) }
-    await sleep(400)
-    if (is()) return true
-    void A
-  }
-  return is()
-}
-// take a water SOURCE back into an empty bucket (only a source, never flowing water)
-async function scoopSource (bot, at, stop) {
-  const A = require('./army'); const swallow = require('./swallow')
-  const p = vv(at)
-  const b = bot.blockAt(p); if (!b || b.name !== 'water' || b.metadata !== 0) return false
-  if (!A.count(bot, 'bucket')) return false
-  const eye = bot.entity.position.offset(0, 1.62, 0); const tgt = p.offset(0.5, 0.9, 0.5)
-  if (eye.distanceTo(tgt) > 4.3) return false
-  if (stop && stop()) return false
-  const had = A.count(bot, 'water_bucket')
-  try {
-    const e = bot.inventory.items().find(i => i.name === 'bucket'); if (!e) return false
-    await bot.equip(e, 'hand'); await bot.lookAt(tgt, true); await sleep(200)
-    bot.activateItem(); await sleep(450); bot.deactivateItem()
-  } catch (e_) { swallow('jobs_cavity:scoop', e_) }
-  for (let w = 0; w < 8 && A.count(bot, 'water_bucket') <= had; w++) await sleep(150)
-  const nb = bot.blockAt(p)
-  return A.count(bot, 'water_bucket') > had || !nb || nb.name !== 'water'
-}
+// THE WAY DOWN IS NOT MINE ANY MORE. My first version poured a source into the top of the column and swam down; it was safe (0 hp) but the
+// bot walked ACROSS a 1-wide shaft instead of into it, twice. `bots/skills/lib/moves.js` solves exactly that (`walkIn` lets go of the legs at
+// the column's CENTRE) and its `waterDrop` is measured 3/3 at 9/11/16 blocks with 0 hp lost. ONE implementation of everything: this file calls
+// `moves.waterDrop` / `moves.stepOff` / `moves.scoop` and keeps nothing of its own. What it still owns is WHERE to drop - see sideDrop().
 
 // ================================================================ the factory
 module.exports = ctx => {
@@ -685,7 +531,7 @@ module.exports = ctx => {
     if (!G.cols) return 'cavity: not one column of the box is loaded here'
     const PS = planSets(A, box)
     markPlan(G, PS)
-    const list = analyse(G, { maxCells: P.maxCells || 400, blockedCol: PS.blockedCol })
+    const list = analyse(G, { maxCells: P.maxCells || 400, maxDepth: P.maxDepth, dig: !!P.dig, hardCap: P.dig ? 60000 : 20000, blockedCol: PS.blockedCol })
     const doc = writeCensus(A, G, list, bot.username)
     const worst = doc.list.filter(isTarget).slice(0, 5).map(e => ({ at: e.at, cells: e.cells, depth: e.depth }))
     A.result(bot, { ev: 'cavity_census', n: doc.targets, cells: doc.list.filter(isTarget).reduce((n, e) => n + e.cells, 0), spawnable: doc.spawnable, coverage: doc.coverage, counts: doc.counts, worst, ms: Date.now() - t0 })
@@ -778,6 +624,8 @@ module.exports = ctx => {
 
   // ---------------------------------------------------------------- kit
   const fillerIn = (bot, prefer) => (prefer ? [prefer].concat(FILLERS) : FILLERS).find(n => A.count(bot, n) > 0) || null
+  // water a CROP depends on is never taken into a bucket: the farm/cane boxes on the board own theirs
+  const PONDLESS = q => { try { const b = A.readJSON(A.F.board, {}) || {}; return (b.jobs || []).some(j => /^(farm|cane)$/.test(j.type) && Array.isArray((j.params || {}).box) && q.x >= Math.min(j.params.box[0], j.params.box[2]) - 1 && q.x <= Math.max(j.params.box[0], j.params.box[2]) + 1 && q.z >= Math.min(j.params.box[1], j.params.box[3]) - 1 && q.z <= Math.max(j.params.box[1], j.params.box[3]) + 1) } catch (e_) { swallow('jobs_cavity:pondless', e_); return false } }
   const restoreItem = (bot, name) => { const n = RESTORE[name] || name; return bot.registry.itemsByName[n] ? n : 'dirt' }
   async function stockUp (bot, job, api, P, need) {
     const filler = P.filler || 'cobblestone'
@@ -793,9 +641,17 @@ module.exports = ctx => {
     if (!A.count(bot, 'bucket')) await A.withdraw(bot, 'bucket', 1, { stop: api.stop })
     // THE DEPOT HOLDS 16 EMPTY BUCKETS AND ONE FULL ONE: a bot that is going to need the water descent fills its own at the nearest water,
     // the way a player does, instead of queueing for the single water_bucket on the shelf (verb `fill` = ONE implementation of that click)
+    // A WORKER FILLS ITS OWN (the army holds 18 buckets and not one of them is in the depot): the pond first, any water in sight otherwise.
+    // `moves.scoop` does the click; never a field's or the cane block's water, which the crops need.
     if (!A.count(bot, 'water_bucket') && A.count(bot, 'bucket')) {
-      const w = U.findBlocksByName(bot, ['water'], 64, 4)[0]
-      if (w) { task(bot, 'cavity: filling the bucket at ' + [w.x, w.y, w.z].join(',')); await VERBS.fill(bot, { at: [w.x, w.y, w.z] }, api).catch(e_ => swallow('jobs_cavity:fillBucket', e_)) }
+      const MV = require('./moves')
+      const w = U.findBlocksByName(bot, ['water'], 48, 4).filter(q => !PONDLESS(q))[0]
+      if (w) { task(bot, 'cavity: filling the bucket at ' + [w.x, w.y, w.z].join(',')); await MV.scoop(bot, new Vec3(w.x, w.y, w.z)).catch(e_ => swallow('jobs_cavity:scoop1', e_)) }
+      else if (Array.isArray(P.pond)) {
+        task(bot, 'cavity: to the pond ' + P.pond.join(',') + ' for a bucket of water')
+        if (await A.travel(bot, { x: P.pond[0], y: null, z: P.pond[2] }, { range: 3, ms: 240000, stop: api.stop })) await MV.scoop(bot, vv(P.pond)).catch(e_ => swallow('jobs_cavity:scoop2', e_))
+        A.result(bot, { ev: 'cavity_bucket', at: P.pond, got: A.count(bot, 'water_bucket') })
+      }
     }
     if (!A.bestOf(bot, 'pickaxe')) await A.obtain(bot, 'stone_pickaxe', 1, { stop: api.stop })
     // GO OUT LOADED OR DO NOT GO (16:1xZ: a bot stood in a 155-cell cavity with `placed:0` because its pockets held one stray block): the
@@ -808,69 +664,115 @@ module.exports = ctx => {
   }
 
   // ---- THE SHAFT: stand on the top cell, read the two cells under the feet before every dig, go down
+  // ---- THE WAY IN. The owner's algorithm with the army's PROVEN techniques (bots/skills/lib/moves.js, not mine to edit):
+  //   * dig a 1x1 shaft down the crust, reading the two cells under the feet BEFORE every dig, while the next step is a fall of <= 3;
+  //   * the moment the next cell would open a REAL drop, do not dig it - open the NEIGHBOUR column instead (from inside our own shaft, the
+  //     walls are within arm's reach) and step off THAT with `moves.waterDrop`, which needs the bot on the rim BESIDE the landing column.
+  //     That is what a player does, it is why a 1x1 shaft cannot be bucket-dropped from the inside, and it fixes the "swims across the
+  //     shaft" failure my own poured column had: waterDrop walks to the column's CENTRE and lets go there (3/3 at 9/11/16 blocks, 0 hp).
+  //   * no bucket, or the drop is small: `moves.stepOff` takes the fall minus 3 and refuses what would leave the bot under 8 hp.
   async function digShaft (bot, job, api, top, log) {
-    const B = BL()
+    const B = BL(); const MV = require('./moves')
     const x = top.at[0]; const z = top.at[2]; const sy = top.at[1]; const feetY = top.entryY
     if (!await A.travel(bot, { x, y: sy + 1, z }, { range: 0, ms: 120000, stop: api.stop, quiet: true }) &&
         !await A.travel(bot, { x, y: null, z }, { range: 3, ms: 90000, stop: api.stop })) return { ok: false, why: 'no_route to the surface cell ' + top.at.join(',') }
     await sleep(300)
-    let source = null; let off = 0; let dug = 0
+    let off = 0; let dug = 0
+    const mark = () => { try { const p = bot.entity.position.floored(); bot.__armyInFill = { job: job.id, until: Date.now() + 900000, at: [p.x, p.y, p.z] } } catch (e_) { swallow('jobs_cavity:inFill', e_) } }
+    const diggable = (p, bl) => !!bl && !isAirB(bl) && !LIQUID_RE.test(bl.name) && !HARD_RE.test(bl.name) && !GRAVITY_RE.test(bl.name) && !A.ourBlock(p, bl.name) && !U.protectedBlock(bl)
     for (let guard = 0; guard < 64 && !api.stop(); guard++) {
-      holdPockets(bot)
+      holdPockets(bot); mark()
       const feet = bot.entity.position.floored()
-      if (feet.y <= feetY) return { ok: true, source }
+      if (feet.y <= feetY) return { ok: true, dug }
       if (feet.x !== x || feet.z !== z) {
         off++
-        if (off > 6 || !await A.travel(bot, { x, y: feet.y, z }, { range: 0, ms: 15000, stop: api.stop, quiet: true })) return { ok: false, why: 'stepped off the shaft column at ' + xyzOf(feet).join(','), source }
+        if (off > 6 || !await A.travel(bot, { x, y: feet.y, z }, { range: 0, ms: 15000, stop: api.stop, quiet: true })) return { ok: false, why: 'stepped off the shaft column at ' + xyzOf(feet).join(',') }
         await B.centreOn(bot, new Vec3(x, bot.entity.position.floored().y, z)).catch(e_ => swallow('jobs_cavity:centre', e_))
         continue
       }
       const below = feet.offset(0, -1, 0)
       const b = bot.blockAt(below)
-      if (!b) return { ok: false, why: 'the chunk under ' + xyzOf(below).join(',') + ' is not loaded', source }
+      if (!b) return { ok: false, why: 'the chunk under ' + xyzOf(below).join(',') + ' is not loaded' }
       if (isAirB(b)) { await sleep(500); continue } // gravity has not finished with us yet
       // READ BEFORE YOU DIG
-      if (HARD_RE.test(b.name) || A.ourBlock(below, b.name) || U.protectedBlock(b)) return { ok: false, why: b.name + ' at ' + xyzOf(below).join(',') + ' is not ours to dig', source }
-      if (GRAVITY_RE.test(b.name)) return { ok: false, why: 'gravel/sand at ' + xyzOf(below).join(',') + ' - another column', source }
+      if (HARD_RE.test(b.name) || A.ourBlock(below, b.name) || U.protectedBlock(b)) return { ok: false, why: b.name + ' at ' + xyzOf(below).join(',') + ' is not ours to dig' }
+      if (GRAVITY_RE.test(b.name)) return { ok: false, why: 'gravel/sand at ' + xyzOf(below).join(',') + ' - another column' }
       for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, -1, 0], [1, -1, 0], [-1, -1, 0], [0, -1, 1], [0, -1, -1]]) {
         const q = below.offset(dx, dy, dz); const n = bot.blockAt(q)
-        if (n && n.name === 'lava') return { ok: false, why: 'lava at ' + xyzOf(q).join(',') + ' beside the shaft', source }
+        if (n && n.name === 'lava') return { ok: false, why: 'lava at ' + xyzOf(q).join(',') + ' beside the shaft' }
       }
       for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { // water beside the cell we are about to open is PLUGGED first
         const q = below.offset(dx, 0, dz); const n = bot.blockAt(q)
         if (n && n.name === 'water') {
-          const item = fillerIn(bot); if (!item) return { ok: false, why: 'water at ' + xyzOf(q).join(',') + ' and nothing to plug it with', source }
+          const item = fillerIn(bot); if (!item) return { ok: false, why: 'water at ' + xyzOf(q).join(',') + ' and nothing to plug it with' }
           const r = await A.placeHard(bot, q, item, { stop: api.stop, noRest: true })
-          if (!r.ok) return { ok: false, why: 'water at ' + xyzOf(q).join(',') + ' could not be plugged: ' + r.reason, source }
+          if (!r.ok) return { ok: false, why: 'water at ' + xyzOf(q).join(',') + ' could not be plugged: ' + r.reason }
           log.push(keyOf(q))
         }
       }
       // how far would we FALL if we opened this cell?
-      let floorY = null
-      for (let y = below.y - 1; y >= below.y - 34; y--) { const q = bot.blockAt(new Vec3(x, y, z)); if (!q) break; if (q.name === 'lava') return { ok: false, why: 'lava in the column under ' + xyzOf(below).join(','), source } ; if (isSolidB(q)) { floorY = y; break } }
-      const drop = floorY == null ? 99 : below.y - floorY - 1 + 1 // the fall from the feet to the landing
+      const g0 = MV.groundBelow(bot, x, z, below.y, 48)
+      const drop = g0 ? feet.y - g0.y : 99
       if (drop > 3) {
-        // THE OWNER'S 水バケツ降り, through the one exported implementation: the source goes in first, THEN the floor under us is opened
-        task(bot, 'cavity: water bucket, ' + drop + ' blocks down')
-        const wd = await waterDescent(bot, {
-          rim: xyzOf(feet),
-          column: [x, z],
-          floorY,
-          stop: api.stop,
-          openBelow: async () => { const r = await B.digBlock(bot, below, { collect: true, requireHarvest: false, allowUnderFeet: true }); if (r.ok) log.push(keyOf(below)); return r.ok }
-        })
-        source = wd.source ? vv(wd.source) : source
-        if (!wd.ok) return { ok: false, why: 'water descent: ' + wd.why, source }
-        continue
+        // DO NOT open the floor we stand on. Cut the NEIGHBOUR column open instead and step off that one, with water.
+        const r = await sideDrop(bot, job, api, feet, log)
+        if (r.ok) return { ok: true, dug, via: r.how, lost: r.lost }
+        return { ok: false, why: 'drop of ' + drop + ' under ' + xyzOf(below).join(',') + ' and no way down: ' + r.why }
       }
       // allowUnderFeet: a 1x1 shaft IS dug from on top of it - and it is only safe because the two cells below were READ first (above)
+      if (!diggable(below, b)) return { ok: false, why: b.name + ' at ' + xyzOf(below).join(',') + ' cannot be dug' }
       const r = await B.digBlock(bot, below, { collect: true, requireHarvest: false, allowUnderFeet: true })
-      if (!r.ok) return { ok: false, why: 'dig ' + b.name + ' at ' + xyzOf(below).join(',') + ': ' + r.reason, source }
+      if (!r.ok) return { ok: false, why: 'dig ' + b.name + ' at ' + xyzOf(below).join(',') + ': ' + r.reason }
       log.push(keyOf(below)); dug++
       await sleep(400)
     }
-    return { ok: false, why: 'the shaft stopped at y ' + bot.entity.position.floored().y + ' short of ' + feetY + ' (' + dug + ' cells dug)', source }
+    return { ok: false, why: 'the shaft stopped at y ' + bot.entity.position.floored().y + ' short of ' + feetY + ' (' + dug + ' cells dug)' }
   }
+
+  // open ONE neighbour column of the shaft down to the void and step off it (waterDrop needs the bot on the rim, not in the column)
+  async function sideDrop (bot, job, api, feet, log) {
+    const B = BL(); const MV = require('./moves')
+    const why = []
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      if (api.stop()) break
+      const nx = feet.x + dx; const nz = feet.z + dz
+      let bad = null
+      // the neighbour's head, feet and the cells under them, as far as the arm reaches from where we stand
+      for (let y = feet.y + 1; y >= feet.y - 3 && !bad; y--) {
+        const q = new Vec3(nx, y, nz); const bl = bot.blockAt(q)
+        if (!bl) { bad = 'not loaded'; break }
+        if (isAirB(bl)) continue
+        if (LIQUID_RE.test(bl.name)) { bad = bl.name; break }
+        if (HARD_RE.test(bl.name) || GRAVITY_RE.test(bl.name) || A.ourBlock(q, bl.name) || U.protectedBlock(bl)) { bad = bl.name; break }
+        const r = await B.digBlock(bot, q, { collect: true, requireHarvest: false })
+        if (!r.ok) { bad = r.reason; break }
+        log.push(keyOf(q))
+        await sleep(150)
+      }
+      if (bad) { why.push([nx, nz].join(',') + ':' + bad); continue }
+      const g = MV.groundBelow(bot, nx, nz, feet.y - 1, 48)
+      if (!g) { why.push([nx, nz].join(',') + ':no floor within 48'); continue }
+      if (g.soft) { why.push([nx, nz].join(',') + ':' + g.on); continue }
+      const drop = feet.y - g.y
+      if (drop < 4) { // just walk in
+        if (await A.travel(bot, new Vec3(nx, g.y, nz), { range: 0, ms: 20000, stop: api.stop, quiet: true })) return { ok: true, how: 'step_in', lost: 0 }
+        const r0 = await MV.stepOff(bot, [nx, g.y, nz], { stop: api.stop })
+        if (r0.ok) return { ok: true, how: r0.how, lost: r0.lost }
+        why.push([nx, nz].join(',') + ':' + r0.why); continue
+      }
+      if (A.count(bot, 'water_bucket')) {
+        const r = await MV.waterDrop(bot, [nx, g.y, nz], { stop: api.stop, scoop: true })
+        A.result(bot, { ev: 'water_descent', from: xyzOf(feet), to: r.at || null, drop, lost: r.lost, scooped: r.scooped, ok: !!r.ok, shots: r.shots, why: r.why || null })
+        if (r.ok) return { ok: true, how: 'water_drop', lost: r.lost }
+        why.push([nx, nz].join(',') + ':' + r.why)
+      }
+      const r2 = await MV.stepOff(bot, [nx, g.y, nz], { stop: api.stop })
+      if (r2.ok) return { ok: true, how: r2.how, lost: r2.lost }
+      why.push([nx, nz].join(',') + ':' + r2.why)
+    }
+    return { ok: false, why: why.slice(0, 4).join(' | ') || 'no neighbour column could be opened' }
+  }
+
   // 1-3 cells of tunnel at depth, when the ground straight over the hole is a building, a field, a pen or a road
   async function digTunnel (bot, api, cells) {
     const B = BL()
@@ -1013,7 +915,7 @@ module.exports = ctx => {
       if (capCells.length > 160) return { ok: false, why: 'the scar at ' + ent.at.join(',') + ' needs ' + capCells.length + ' cells above the component - that is a pit, not a staircase', stale: true }
     }
     // 5. GET IN
-    const log = []; let source = null
+    const log = []; let entered = null
     if (comp.sky) { // an escape staircase is already open: walk down it, never cut a second hole
       const low = comp.cells.slice().sort((a, b) => a.y - b.y || a.distanceTo(bot.entity.position) - b.distanceTo(bot.entity.position))[0]
       task(bot, 'cavity: down the escape stair to ' + xyzOf(low).join(','))
@@ -1034,12 +936,11 @@ module.exports = ctx => {
         if (!sb || !isSolidB(sb) || GRAVITY_RE.test(sb.name) || HARD_RE.test(sb.name) || A.ourBlock(vv(t.at), sb.name) || A.penAt(t.at[0], t.at[1], t.at[2], bot)) { skipped.push(t.at.join(',') + ':' + (sb ? sb.name : 'not loaded')); continue }
         task(bot, 'cavity: shaft at ' + t.at.join(',') + ' down to ' + t.entryY + (t.tunnel && t.tunnel.length ? ' + ' + t.tunnel.length + ' tunnel cells' : ''))
         const r = await digShaft(bot, job, api, t, log)
-        source = r.source || source
         if (r.ok && t.tunnel && t.tunnel.length && !await digTunnel(bot, api, t.tunnel)) { A.result(bot, { ev: 'cavity_shaft_failed', at: t.at, why: 'the sideways tunnel to ' + (t.to || []).join(',') + ' could not be cut' }); continue }
-        if (r.ok) { got = Object.assign({ name: sb.name }, t); break }
+        if (r.ok) { got = Object.assign({ name: sb.name }, t); entered = r.via || 'dig'; break }
         A.result(bot, { ev: 'cavity_shaft_failed', at: t.at, why: String(r.why).slice(0, 90) })
       }
-      if (!got) return { ok: false, why: 'no shaft could be cut over ' + ent.at.join(',') + (skipped.length ? ' (' + skipped.slice(0, 4).join(' ') + ')' : ''), source }
+      if (!got) return { ok: false, why: 'no shaft could be cut over ' + ent.at.join(',') + (skipped.length ? ' (' + skipped.slice(0, 4).join(' ') + ')' : '') }
       for (let y = got.at[1] - 1; y >= got.entryY; y--) { const q = new Vec3(got.at[0], y, got.at[2]); want.set(keyOf(q), q) } // the shaft is filled too
       for (const c of got.tunnel || []) { const q = vv(c); want.set(keyOf(q), q) } // ...and so is the tunnel
       restoreList.push({ at: vv(got.at), name: got.name }) // ...and its top cell gets the surface material back
@@ -1080,9 +981,8 @@ module.exports = ctx => {
       }
       const nb = bot.blockAt(q.at); restored.push(nb ? nb.name : 'air')
     }
-    // 9. the water comes back into the bucket (if the shaft fill has not already taken the source)
-    let scooped = false
-    if (source) scooped = await scoopSource(bot, source, api.stop)
+    // 9. moves.waterDrop takes its own source back the moment it lands; nothing of ours is left standing in the world
+    const scooped = entered === 'water_drop'
     try { await B.removeScaffold(bot).catch(e_ => swallow('jobs_cavity:scaf', e_)) } catch (e_) { swallow('jobs_cavity:scaf2', e_) }
     // 10. VERIFY against the world, never against the intention
     await sleep(600)
@@ -1101,6 +1001,7 @@ module.exports = ctx => {
       leftAt,
       restored,
       scooped,
+      entered,
       hang,
       top: restoreList.map(q => xyzOf(q.at).join(',')),
       tookS: Math.round((Date.now() - t0) / 1000),
@@ -1170,7 +1071,4 @@ module.exports.TYPES = ['cavity']
 module.exports.VERBS = []
 // ONE implementation, used by the job and by anybody else: the water-bucket descent (owner 09-20) and the census with two pairs of eyes —
 // the bot's loaded chunks (job `cavity` work:'survey') and the spectator camera (ops/cavity-census.js, full coverage). All of it pure/serverless.
-module.exports.waterDescent = waterDescent
-module.exports.pourInto = pourInto
-module.exports.scoopSource = scoopSource
 module.exports.census = { newGrid, readInto, markPlan, analyse, coder, planSets, baseBox, baseY, writeCensus, table, isTarget, gIdx, gCol, gIn, gDecode, CAV_F, CLAIM_F, C_UNKNOWN, C_AIR, C_SOLID, C_LIQUID, C_THIN }

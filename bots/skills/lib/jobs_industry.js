@@ -198,6 +198,8 @@ module.exports = ctx => {
       out: out.name,
       outN: out.count || 1,
       outItem: out,
+      used: t.nbTradeUses || 0,
+      max: t.maximumNbTradeUses || 0,
       left: t.tradeDisabled ? 0 : left
     }
   }
@@ -593,7 +595,7 @@ module.exports = ctx => {
     const lect = P.lectern || ((industryOf().post || {}).stations || {}).lectern
     if (!Array.isArray(lect)) return muster(bot, job, api, ctx2, 'librarian: no lectern known — params.lectern:[x,y,z] or run work:"post" first')
     const wantRe = new RegExp('(' + (P.want || BOOK_WANT).join('|') + ')', 'i')
-    const st = bot.__industryLib = (bot.__industryLib && bot.__industryLib.key === job.id + ':' + (job.rev || 0)) ? bot.__industryLib : { key: job.id + ':' + (job.rev || 0), rolls: 0 }
+    const st = bot.__industryLib = (bot.__industryLib && bot.__industryLib.key === job.id + ':' + (job.rev || 0)) ? bot.__industryLib : { key: job.id + ':' + (job.rev || 0), rolls: 0, dry: 0, same: 0, last: '' }
 
     // KIT: a book and emeralds are what the trade costs; a spare lectern saves a walk if the broken one is not picked up
     if (A.dist2(bot, lect[0], lect[2]) > 64) {
@@ -613,7 +615,10 @@ module.exports = ctx => {
       st.dry = 0
       const { offers, win } = await readOffers(bot, ent, job, api)
       const book = offers.find(o => o.out === 'enchanted_book')
-      const traded = offers.some(o => (o.left != null) && offers.some(q => q.used))
+      // HAS HE ALREADY TRADED? Then his offers are frozen and breaking the lectern only annoys him. `nbTradeUses` resets on every
+      // restock, so it is only half the test; a levelled librarian also has MORE than the two offers a novice starts with, and a
+      // re-roll that hands back the same book three times running means the same thing whatever the counters say.
+      const traded = offers.some(o => o.used > 0) || offers.length > 3
       if (!book) {
         await closeOffers(bot, win)
         A.result(bot, { ev: 'book_none', job: job.id, at: xyz(ent.position), offers: offers.map(o => o.in1 + '->' + o.out), why: 'this villager has no enchanted_book offer (not a librarian yet, or the window did not open)' })
@@ -640,7 +645,10 @@ module.exports = ctx => {
         return 'librarian: the book we want is on offer but we cannot pay for it yet'
       }
       await closeOffers(bot, win)
-      if (traded) { A.result(bot, { ev: 'book_locked_bad', job: job.id, book: names, why: 'this librarian has already traded: his offers can never be re-rolled. Place a second lectern for a fresh villager' }); return 'librarian: already levelled, cannot re-roll' }
+      const sig = names.join('+')
+      st.same = sig === st.last ? st.same + 1 : 0
+      st.last = sig
+      if (traded || st.same >= 3) { A.result(bot, { ev: 'book_locked_bad', job: job.id, book: names, offers: offers.length, sameRolls: st.same, why: 'this librarian will not re-roll (already traded, or the same book came back ' + (st.same + 1) + ' times). Place a SECOND lectern for a fresh, unemployed villager' }); return 'librarian: cannot re-roll this one (' + sig + ')' }
       // RE-ROLL: break our own lectern and put it straight back. Only ever OUR lectern, never a block the village built.
       st.rolls++
       task(bot, 'librarian: re-roll ' + st.rolls + ' (' + names.join('+') + ' is not what we need)')

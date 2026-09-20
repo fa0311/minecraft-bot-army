@@ -1628,7 +1628,7 @@ function surplusOf (bot) { const m = inv(bot); const out = {}; for (const k of O
 // everything a bot carries is lost when it dies, 267 deaths ate ~1300 iron). So: the BEST `allow` of each tool kind is kit, the rest is surplus and
 // goes back on the shelf; a miner's spare pickaxe is kit, a toolsmith's crafted stack and a quartermaster's deliveries are CARGO, not kit. Armour in
 // the POCKETS (bot.inventory.items() never holds the worn slots) is a spare once something at least as good is worn - `wear()` runs before this.
-const TOOL_CARGO = /^(steps|scan)$/
+const TOOL_CARGO = /^(steps|scan|trade|haul|depot)$/ // a toolsmith's crafted stack, the quartermaster's deliveries and a trader's/hauler's load are CARGO
 function kitAllow (job) { return { pickaxe: /^(delegate|ores)$/.test(String(job && job.type)) ? 2 : 1, shovel: 1, axe: 1, hoe: 1, sword: 1 } }
 function surplusTools (bot, job) {
   const out = {}

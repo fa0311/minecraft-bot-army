@@ -254,7 +254,11 @@ module.exports = ctx => {
       const me = bot.entity.position.floored()
       const near = p => body.length ? Math.min(...body.map(q => Math.max(Math.abs(q.x - p.x), Math.abs(q.z - p.z)))) : 9
       const ring = []
-      for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) { const c = me.offset(dx, 0, dz); const d = near(c); if (d >= 2 && d <= 4 && !inGate(bot, c) && BL().standable(bot, c)) ring.push(c) }
+      // THE WHOLE PLATFORM, NOT EIGHT CELLS (owner 16:3xZ: the arrival is sized for 50 bots now — 15x15 with the gate in the
+      // middle — so the spread targets run out to 7 cells and every roster index gets a different one; 3 cells of clearance in
+      // front of the faces, because a bot standing right at a face is the next arrival's obstacle).
+      for (let dx = -7; dx <= 7; dx++) for (let dz = -7; dz <= 7; dz++) { const c = me.offset(dx, 0, dz); const d = near(c); if (d >= 3 && d <= 7 && !inGate(bot, c) && BL().standable(bot, c)) ring.push(c) }
+      if (!ring.length) for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) { const c = me.offset(dx, 0, dz); const d = near(c); if (d >= 2 && d <= 4 && !inGate(bot, c) && BL().standable(bot, c)) ring.push(c) }
       if (!ring.length) return false
       ring.sort((a, b) => (a.x * 31 + a.z) - (b.x * 31 + b.z))
       const pick = ring[idx % ring.length]
@@ -429,13 +433,14 @@ module.exports = ctx => {
     const cx = Math.round((bx[0] + bx[1]) / 2); const cz = Math.round((bz[0] + bz[1]) / 2)
     // WHICH WAY DOES THE GATE FACE? the frame spans 2 along its own axis and 1 through it; you walk through the SHORT one.
     const alongX = (bx[1] - bx[0]) >= (bz[1] - bz[0])
-    const RA = 3 // half-width along the frame  -> 7 wide
-    const RT = 4 // half-depth through the gate -> 9 deep: at least 4 clear cells IN FRONT OF and BEHIND it, both faces are exits
+    // SIZED FOR FIFTY (owner 16:3xZ): 15x15 round the gate, seven clear cells in front of and behind it, both faces exits.
+    const RA = 7 // half-width along the frame  -> 15 wide
+    const RT = 7 // half-depth through the gate -> 15 deep
     const cell = (a2, t) => alongX ? new Vec3(cx + a2, 0, cz + t) : new Vec3(cx + t, 0, cz + a2)
     const inPortal = c => body.some(q => q.x === c.x && q.z === c.z)
     // NOTHING WITHIN 2 OF A PORTAL FACE (owner: 「ネザーゲート周辺が狭すぎるせいでハングします」 — the old 5x5 put a wall one cell off
     // the frame and bots could not get out of their own landing). Walls live ONLY on the outer rim, and only over a real drop.
-    const tooNear = c => { const t = alongX ? Math.abs(c.z - cz) : Math.abs(c.x - cx); const a3 = alongX ? Math.abs(c.x - cx) : Math.abs(c.z - cz); return t <= 2 && a3 <= RA }
+    const tooNear = c => { const t = alongX ? Math.abs(c.z - cz) : Math.abs(c.x - cx); const a3 = alongX ? Math.abs(c.x - cx) : Math.abs(c.z - cz); return t <= 3 && a3 <= RA } // nothing within 3 of a portal face
     const floorCells = []; const clearCells = []; const rimCells = []
     for (let a2 = -RA; a2 <= RA; a2++) for (let t = -RT; t <= RT; t++) {
       const c = cell(a2, t)
@@ -754,15 +759,16 @@ module.exports = ctx => {
     let cx = Math.floor(from[0]); let cz = Math.floor(from[2])
     while (cz !== Math.floor(to[2]) && legs.length < 96) { cz += Math.sign(Math.floor(to[2]) - cz); legs.push([cx, cz, 'z']) }
     while (cx !== Math.floor(to[0]) && legs.length < 128) { cx += Math.sign(Math.floor(to[0]) - cx); legs.push([cx, cz, 'x']) }
+    // FIFTY BOTS, NOT ONE (owner 16:3xZ 「50人でマインクラフトをやっていることを忘れているのでは？」, CLAUDE.md rule 0): a road that
+    // carries a 20-bot shift change needs two lanes each way and a spare — 5 walkable cells wide, floor 7 wide, a solid rail on
+    // both rims. A RAIL NEEDS SOMETHING TO STAND ON (16:15:09Z: rim cells over the void had no face to be placed against), so the
+    // floor runs under the rails too.
     for (const [px, pz, axis] of legs) {
       cur = []; legCells.push(cur)
-      for (let o = -2; o <= 2; o++) {
+      for (let o = -3; o <= 3; o++) {
         const x = axis === 'z' ? px + o : px; const z = axis === 'z' ? pz : pz + o
-        // A RAIL NEEDS SOMETHING TO STAND ON (measured 16:15:09Z: `left 54, placed 0`, and the first cell named was a rail at
-        // -45,98,-74 — over the void a rim block at walking height has no face to be placed against, so it could never go in).
-        // The floor is 5 wide, the walkway is the middle 3, and the two outer columns carry the rail.
-        add(x, y - 1, z, 'stone', Math.abs(o) === 2)
-        if (Math.abs(o) <= 1) { for (let k = 0; k < 3; k++) add(x, y + k, z, 'air') } else add(x, y, z, 'stone')
+        add(x, y - 1, z, 'stone', Math.abs(o) === 3)
+        if (Math.abs(o) <= 2) { for (let k = 0; k < 3; k++) add(x, y + k, z, 'air') } else add(x, y, z, 'stone')
       }
     }
     const xs = cells.map(c => c.x); const zs = cells.map(c => c.z)
@@ -823,14 +829,24 @@ module.exports = ctx => {
       // THE HEAD OF THE ROAD IS THE WALKWAY, NOT THE RAIL (16:24:24Z: the head stuck on leg 2 for pass after pass over two
       // rim cells at -45,97,-77/-78 that read "out of reach" every time, while eight legs of actual road were missing). The rails
       // stay in the segment and go in when the bot is beside them; they never decide where the work is.
-      let head = cw.legs.findIndex(L => L.some(c => !c.rim && loadedAt(bot, c) && !cellOK(bot, c)))
-      if (head < 0) head = 0
-      // A FLOOR UNDER A BLOCK THAT ALREADY STANDS IS NOBODY'S HOLE: where the causeway runs through the shelf's own rock, the
-      // rim columns need no floor laid under them (16:19-16:22Z: the cell -45,97,-78 was named pass after pass - a sealed pocket
-      // one layer under rock the bot walks on, unreachable and pointless).
-      const seg = cw.legs.slice(head, head + 6).reduce((a, L) => a.concat(L), [])
-        .filter(c => !(c.rim && c.block === 'stone' && c.y === y0 - 1 && (b2 => b2 && b2.boundingBox === 'block')(bot.blockAt(new Vec3(c.x, y0, c.z)))))
-      const rb = await buildCells(bot, job, api, seg, cw.box, Math.min(until, Date.now() + 240000), 'pair-bridge')
+      // AND A SEGMENT THAT IS ALREADY FINISHED IS NOT A TRIP (16:26:24Z: `leg 2, of 84, left 0, placed 0` — the head is chosen
+      // while the far chunks are still arriving, so an old segment wins the search, comes back done, and the whole crossing was
+      // spent on it). A pass walks FORWARD through the road until it finds work: three segments before it gives the trip up.
+      let rb = null; let head = 0; let start = 0
+      for (let k = 0; k < 3 && Date.now() < until && !api.stop(); k++) {
+        const h = cw.legs.findIndex((L, i) => i >= start && L.some(c => !c.rim && loadedAt(bot, c) && !cellOK(bot, c)))
+        head = h < 0 ? start : h
+        if (head >= cw.legs.length) break
+        // A FLOOR UNDER A BLOCK THAT ALREADY STANDS IS NOBODY'S HOLE: where the causeway runs through the shelf's own rock, the
+        // rim columns need no floor laid under them (16:19-16:22Z: the cell -45,97,-78 was named pass after pass - a sealed
+        // pocket one layer under rock the bot walks on, unreachable and pointless).
+        const seg = cw.legs.slice(head, head + 6).reduce((a, L) => a.concat(L), [])
+          .filter(c => !(c.rim && c.block === 'stone' && c.y === y0 - 1 && (b2 => b2 && b2.boundingBox === 'block')(bot.blockAt(new Vec3(c.x, y0, c.z)))))
+        rb = await buildCells(bot, job, api, seg, cw.box, Math.min(until, Date.now() + 200000), 'pair-bridge')
+        if (rb.placed || rb.dug || rb.left) break
+        start = head + 6
+      }
+      if (!rb) rb = { placed: 0, dug: 0, steps: 0, left: 0, unloaded: 0, of: 0, leftAt: [] }
       bridged = { len: cw.len, leg: head + 1, placed: rb.placed, dug: rb.dug, steps: rb.steps, left: rb.left, unloaded: rb.unloaded, of: rb.of, leftAt: rb.leftAt }
       A.result(bot, Object.assign({ ev: 'pair_bridge', job: job.id, from: from0, to: [tx, y0, tz] }, bridged))
       reached = await walk()
@@ -842,11 +858,18 @@ module.exports = ctx => {
     // 3. PLATFORM FIRST, then the frame: both from the cell list, both placed without ever standing in a portal
     const body = []; for (let dx = -1; dx <= 0; dx++) for (let dy = 1; dy <= 3; dy++) body.push(new Vec3(tx + dx, y0 + dy, tz)) // where the portal WILL be
     const plat = []
-    for (let a2 = -3; a2 <= 3; a2++) for (let t = -4; t <= 4; t++) {
+    // A PLATFORM FOR FIFTY, NOT FOR ONE (owner 16:3xZ 「ネザーゲート周りが狭すぎる」): **15x15 with the gate in the middle**, three
+    // cells of headroom over all of it, a solid rail on the whole outer rim (a ghast's fireball knocks bots off, it does not kill
+    // them), and seven clear cells in front of AND behind the frame — both faces are exits, and a squad of 20 arriving inside a
+    // few seconds has to spread without anyone being shoved back into the portal or over the edge.
+    const R = 7
+    for (let a2 = -R; a2 <= R; a2++) for (let t = -R; t <= R; t++) {
       plat.push({ x: tx + a2, y: y0 - 1, z: tz + t, block: 'stone' })
-      for (let k = 0; k < 4; k++) if (!(t === 0 && a2 >= -1 && a2 <= 0)) plat.push({ x: tx + a2, y: y0 + k, z: tz + t, block: 'air' })
+      const rim = Math.abs(a2) === R || Math.abs(t) === R
+      if (rim) { plat.push({ x: tx + a2, y: y0, z: tz + t, block: 'stone' }); continue } // the rail: nobody is pushed off the edge
+      for (let k = 0; k < 3; k++) if (!(t === 0 && a2 >= -1 && a2 <= 0)) plat.push({ x: tx + a2, y: y0 + k, z: tz + t, block: 'air' })
     }
-    const box = [tx - 4, tz - 5, tx + 4, tz + 5]
+    const box = [tx - R - 1, tz - R - 1, tx + R + 1, tz + R + 1]
     const rp = await buildCells(bot, job, api, plat, box, Math.min(until, Date.now() + 150000), 'pair-platform')
     // 4. THE FRAME, from the same blueprint the home gate uses, with an inner column exactly on the partner point
     const fr = bpCells('nether_portal', [tx, y0, tz], { axis: 'x', clear: 3, margin: 3, torch: false })
@@ -1185,9 +1208,23 @@ module.exports = ctx => {
   // and never, ever touch the registered pair (`settings.nether.gate` / `settings.nether.portal`).
   async function degate (bot, job, api, at) {
     const N = netherOf()
+    // WHAT MUST NEVER BE TOUCHED IS WHAT HOLDS A BURNING PORTAL, not a box drawn round a coordinate (owner 16:2xZ "ネザー側に不要
+    // なゲートがあります"; camera cell census 16:2xZ: the far side holds 28 obsidian = ONE live frame, -45..-42 / y97..101 / z-80,
+    // holding six `nether_portal` cells, and ONE DEAD frame, -39..-36 / y97..101 / z-76, four blocks away. The old ±4 keep box
+    // round the registered gate covered the dead frame's first column too, so the dead frame could never come down).
     const keep = new Set()
-    for (const q of [N.gate, N.portal]) if (Array.isArray(q)) for (let dx = -4; dx <= 4; dx++) for (let dy = -2; dy <= 6; dy++) for (let dz = -4; dz <= 4; dz++) keep.add((q[0] + dx) + ',' + (q[1] + dy) + ',' + (q[2] + dz))
+    for (const q of [N.gate, N.portal]) if (Array.isArray(q)) for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 6; dy++) for (let dz = -2; dz <= 2; dz++) keep.add((q[0] + dx) + ',' + (q[1] + dy) + ',' + (q[2] + dz))
     const c0 = v(at)
+    // every obsidian that touches a LIVE portal block: taking one of those out puts the whole surface out, which is the one thing
+    // this job must never do to the gate we still travel through.
+    const holdsFire = () => {
+      const s2 = new Set()
+      try {
+        const pid = bot.registry.blocksByName.nether_portal && bot.registry.blocksByName.nether_portal.id
+        if (pid != null) for (const q of bot.findBlocks({ matching: [pid], maxDistance: 24, count: 300, point: c0 })) { for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) s2.add((q.x + dx) + ',' + (q.y + dy) + ',' + (q.z + dz)) }
+      } catch (e_) { swallow('jobs_nether:holdsFire', e_) }
+      return s2
+    }
     const trav = (t, o) => netherHere(bot) ? nTravel(bot, t, o) : A.travel(bot, t, o) // over there every walk is lava-aware
     if (A.dist2(bot, c0.x, c0.z) > 24 && !await trav({ x: c0.x, y: c0.y, z: c0.z }, { range: 4, ms: 300000, stop: api.stop })) return { ok: false, why: 'cannot reach ' + at.join(',') }
     await sleep(500)
@@ -1196,7 +1233,8 @@ module.exports = ctx => {
     let got = 0; let left = 0
     for (let round = 0; round < 6 && !api.stop(); round++) {
       const ids = ['obsidian', 'crying_obsidian'].map(n => bot.registry.blocksByName[n]).filter(Boolean).map(b => b.id)
-      const found = bot.findBlocks({ matching: ids, maxDistance: 12, count: 60, point: c0 }).filter(q => !keep.has(q.x + ',' + q.y + ',' + q.z))
+      const fire = holdsFire()
+      const found = bot.findBlocks({ matching: ids, maxDistance: 12, count: 60, point: c0 }).filter(q => !keep.has(q.x + ',' + q.y + ',' + q.z) && !fire.has(q.x + ',' + q.y + ',' + q.z))
       if (!found.length) break
       let did = 0
       for (const q of found) {
@@ -1210,11 +1248,14 @@ module.exports = ctx => {
       if (!did) break
     }
     { const ids = ['obsidian'].map(n => bot.registry.blocksByName[n]).filter(Boolean).map(b => b.id)
-      left = ids.length ? bot.findBlocks({ matching: ids, maxDistance: 12, count: 60, point: c0 }).filter(q => !keep.has(q.x + ',' + q.y + ',' + q.z)).length : 0 }
+      const fire2 = holdsFire()
+      left = ids.length ? bot.findBlocks({ matching: ids, maxDistance: 12, count: 60, point: c0 }).filter(q => !keep.has(q.x + ',' + q.y + ',' + q.z) && !fire2.has(q.x + ',' + q.y + ',' + q.z)).length : 0 }
     const portalLeft = bot.findBlocks({ matching: b2 => !!b2 && b2.name === 'nether_portal', maxDistance: 12, count: 20, point: c0 }).length
     A.result(bot, { ev: 'gate_removed', job: job.id, dim: dimOf(bot), at, obsidian: got, obsidianLeft: left, portalCellsLeft: portalLeft })
     if (got && !netherHere(bot)) await A.bank(bot, { torch: 16 }, { job: job.id, stop: api.stop }).catch(e_ => swallow('jobs_nether:degateBank', e_)) // there is no depot on the far side: the obsidian comes home in the pocket
-    return { ok: left === 0 && portalLeft === 0, obsidian: got, left, portalLeft }
+    // a DEAD frame is down when no obsidian of it is left; the LIVE gate we still travel through is expected to stand, so
+    // its six cells are not counted against us (this job takes the dead ones only until the new pair has its round trips).
+    return { ok: left === 0, obsidian: got, left, portalLeft }
   }
   // WHEN IS A WORK JOB FINISHED? Read from the BOARD, never from one bot's memory — the next bot is in another process.
   // A short human reason when it is done, false while there is work left.

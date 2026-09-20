@@ -976,8 +976,8 @@
     98,
     -80
    ],
-   "through": 1789921575000,
-   "scoutRev": 5,
+   "through": 1789921822863,
+   "scoutRev": 0,
    "hub": {
     "room": [
      -41,
@@ -1089,7 +1089,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789918122175,
-   "back": 1789921486340,
+   "back": 1789921605427,
    "lastDeath": 1789920279821,
    "lastDeathBy": "Hazuki",
    "roads": {
@@ -1504,7 +1504,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 4,
    "site": [
     -367,
     69,
@@ -1540,7 +1540,7 @@
      ]
     ]
    },
-   "rev": 68,
+   "rev": 69,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789917857836
   },
@@ -1686,7 +1686,7 @@
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 12,
-   "rev": 50,
+   "rev": 51,
    "restUntil": 1789922076785
   },
   {
@@ -1849,8 +1849,8 @@
     "fuel",
     "iron"
    ],
-   "minBots": 6,
-   "maxBots": 16,
+   "minBots": 1,
+   "maxBots": 2,
    "site": [
     -367,
     69,
@@ -1873,8 +1873,8 @@
     "radius": 150,
     "bankAt": 32
    },
-   "rev": 8,
-   "bots": 4,
+   "rev": 9,
+   "bots": 2,
    "restUntil": 1789920827391
   },
   {
@@ -1962,7 +1962,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789921690862
+   "restUntil": 1789921902621
   },
   {
    "id": "fill_ring_field2",
@@ -2327,7 +2327,7 @@
     -500
    ],
    "shiftMin": 60,
-   "bots": 1,
+   "bots": 0,
    "requires": {
     "minHp": 14,
     "minFood": 14
@@ -2354,9 +2354,10 @@
      ]
     }
    },
-   "rev": 3,
+   "rev": 6,
    "note": "03:10Z engineer: 40 obsidian banked (want reached) - paused. Re-activate with a higher params.args.want when more is needed; open spot on record: -54/29:-1 (37 cast obsidian left)",
-   "restUntil": 1789920160291
+   "restUntil": 1789920160291,
+   "names": []
   },
   {
    "id": "base_infill_n404_n556",
@@ -2570,7 +2571,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 6,
+   "bots": 4,
    "site": [
     -311,
     69,
@@ -2801,19 +2802,19 @@
     },
     "order": "near"
    },
-   "rev": 52,
+   "rev": 53,
    "desc": "MEASURED 16:3xZ by probe: 44 columns (444 cells) still open to the sky = this job (narrow deep shafts: step off / water drop in, pillar out = the column is filled); 3172 air cells lie UNDER the crust below grade = NOT reachable from above, they belong to the cavity job (owner algorithm: shaft down, fill riding up). `left` counts both - do not judge this job by `left`, and do not raise the crew over the number of open shafts",
    "note": "top model 15:1xZ: 655 OPEN cells (left 3216 minus waiting 2561) - do not lower; ladderWay (fill_wayin) needs builders standing on the RIM to hang the way in",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Ichika",
-    "t": 1789921459848,
+    "by": "Ayame",
+    "t": 1789921778961,
     "at": [
-     -301,
-     60,
-     -477
+     -294,
+     58,
+     -480
     ],
-    "drop": 9
+    "drop": 11
    }
   },
   {
@@ -3568,15 +3569,15 @@
    "type": "build",
    "priority": 97,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "day",
-   "bots": 3,
+   "bots": 6,
    "site": [
     -326,
     68,
     -518
    ],
-   "plan": "zone portal (docs/WORLD.md): THE Nether gate of the base — 4x5 obsidian frame on a 2-deep stone plinth with a paved, lit apron (3 clear cells in front and behind). x -330..-323 / z -522..-514. Re-activated 09-20 by the foreman: base audit found 6 apron cells missing (cobblestone@-330,69,-518, -329,69,-518, -329,70,-518 = air).",
+   "plan": "zone portal (docs/WORLD.md): THE Nether gate of the base, SIZED FOR FIFTY (owner 16:3xZ 50人でマインクラフトをやっていることを忘れているのでは). The apron grows from 10x9 to 16x15 with the frame in the middle - 6 clear cells in front of AND behind it (both faces are exits), stone at grade y68, 5 cells of headroom, the stepped shoulders and 4 corner torches. 264 stone, the frame is untouched (the 6 portal cells carry no blueprint cell and params.pad:false keeps the generic pad rule out of the portal columns). x -334..-319 / z -525..-511.",
    "params": {
     "blueprint": "nether_portal",
     "origin": [
@@ -3586,7 +3587,9 @@
     ],
     "pad": false,
     "args": {
-     "axis": "x"
+     "axis": "x",
+     "clear": 6,
+     "margin": 6
     }
    },
    "stuckBy": {
@@ -3596,7 +3599,7 @@
     ]
    },
    "note": "auto-paused: build complete",
-   "rev": 4
+   "rev": 5
   },
   {
    "id": "base_mine_pad",
@@ -4280,9 +4283,9 @@
     },
     "order": "near"
    },
-   "rev": 4,
+   "rev": 5,
    "note": "needs: dirt (835 cells wait; every cell whose material exists is done or in work)",
-   "restUntil": 1789920914136
+   "restUntil": 1789922437833
   },
   {
    "id": "fill_minehead_pits",
@@ -4391,7 +4394,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 3,
+   "bots": 2,
    "site": [
     -291,
     68,
@@ -4416,7 +4419,7 @@
     },
     "order": "near"
    },
-   "rev": 7,
+   "rev": 9,
    "note": "needs: dirt (17 cells wait; every cell whose material exists is done or in work)",
    "restUntil": 1789921354456
   },
@@ -4704,8 +4707,8 @@
   {
    "id": "village_survey",
    "type": "trade",
-   "priority": 99,
-   "status": "paused",
+   "priority": 94,
+   "status": "active",
    "when": "any",
    "names": [
     "Hina"
@@ -4726,7 +4729,8 @@
      27
     ],
     "radius": 56
-   }
+   },
+   "rev": 1
   },
   {
    "id": "village_trade",
@@ -4735,7 +4739,8 @@
    "status": "active",
    "when": "any",
    "names": [
-    "Yotsuba"
+    "Yotsuba",
+    "Tamaki"
    ],
    "front": "industry",
    "site": [
@@ -4757,21 +4762,33 @@
      {
       "item": "wheat",
       "reserve": 4000,
-      "n": 400
-     },
-     {
-      "item": "leather",
-      "reserve": 48,
-      "n": 120
+      "min": 64
      },
      {
       "item": "coal",
       "reserve": 768,
-      "n": 240
+      "min": 64
+     },
+     {
+      "item": "leather",
+      "reserve": 48,
+      "min": 32
+     },
+     {
+      "item": "gray_wool",
+      "reserve": 64,
+      "min": 64
+     },
+     {
+      "item": "paper",
+      "reserve": 96,
+      "min": 48
      }
-    ]
+    ],
+    "passes": 3,
+    "cargoSlots": 20
    },
-   "rev": 5
+   "rev": 6
   },
   {
    "id": "nether_landing_3",
@@ -5719,7 +5736,9 @@
      "Ichika": 0,
      "Akari": 0,
      "Aoi": 9,
-     "Nanami": 18
+     "Nanami": 18,
+     "Noa": 9,
+     "Himari": 19
     }
    },
    "restUntil": 1789921753614
@@ -5848,6 +5867,136 @@
     ],
     "minutes": 8,
     "cobble": 128,
+    "crossS": 30,
+    "maxDeaths": 6
+   }
+  },
+  {
+   "id": "cane_to_paper",
+   "type": "steps",
+   "priority": 86,
+   "status": "active",
+   "when": "any",
+   "bots": 2,
+   "front": "industry",
+   "site": [
+    -345,
+    69,
+    -523
+   ],
+   "plan": "industry: the 2995 sugar-cane glut becomes paper (librarian buys 24 paper -> 1 emerald; paper+leather = the books the enchanted-book trade costs)",
+   "params": {
+    "repeat": true,
+    "steps": [
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       69,
+       -523
+      ],
+      "range": 3,
+      "s": 300
+     },
+     {
+      "do": "withdraw",
+      "item": "sugar_cane",
+      "n": 192,
+      "atLeast": 48
+     },
+     {
+      "do": "craft",
+      "item": "paper",
+      "n": 64,
+      "s": 600
+     },
+     {
+      "do": "bank",
+      "keep": {}
+     }
+    ]
+   }
+  },
+  {
+   "id": "base_depot_east",
+   "type": "build",
+   "priority": 78,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 8,
+   "site": [
+    -348,
+    69,
+    -504
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone depot (ONE storage complex, sized x50 - owner 09-20: 50人でやっていることを忘れているのでは / 拠点のチェストが少なすぎる): MEASURED 9 tools chests for 50 bots (chest_full tools x39 in 60 min, 133 stone pickaxes ride in pockets), ores 85 %, food 64 %, salvage 66 %. EAST WING on the same z lines and aisles as the standing rows (z -512..-497), x -354..-341 between the depot and the road x -340, ground probed flat y68 (303 of 304 columns): 6 rows of 12 double-chest columns 2 high = 144 chests = 72 doubles = 3888 slots: tools x2, ores x2, food, salvage. The build registers every chest as it stands",
+   "params": {
+    "blueprint": "depot_rows",
+    "origin": [
+     -354,
+     68,
+     -512
+    ],
+    "args": {
+     "len": 12,
+     "high": 2,
+     "rows": [
+      "tools",
+      "tools",
+      "ores",
+      "ores",
+      "food",
+      "salvage"
+     ],
+     "torch": true
+    },
+    "order": "near"
+   },
+   "note": "needs: dirt (3 cells wait; every cell whose material exists is done or in work)"
+  },
+  {
+   "id": "nether_dead_frames",
+   "type": "portal",
+   "priority": 97,
+   "front": "base",
+   "status": "active",
+   "when": "day",
+   "bots": 1,
+   "names": [
+    "Aoi"
+   ],
+   "site": [
+    -326,
+    69,
+    -518
+   ],
+   "desc": "OWNER-LOCKED top model 16:3xZ, nether front (owner 16:2xZ: ネザー側に不要なゲートがあります). Do not pause, do not rescue its bot.",
+   "plan": "zone portal (docs/WORLD.md): TAKE THE DEAD NETHER FRAME DOWN. Camera cell census 16:2xZ: the far side holds 28 obsidian in two frames - the LIVE one at -45..-42 / y97..101 / z-80 (14 obsidian holding six nether_portal cells, our only way home) and a DEAD one at -39..-36 / y97..101 / z-76 (14 obsidian, 0 portal cells, carries nobody). One scout takes the dead 14 with a diamond pickaxe and brings them home: that is more than the 10 the partner frame at -41,-65 needs. Nothing that touches a burning portal block is ever dug (degate reads the live cells back first), so the way home cannot be broken. The live frame goes only after the new pair has its three verified round trips.",
+   "params": {
+    "blueprint": "nether_portal",
+    "origin": [
+     -326,
+     68,
+     -518
+    ],
+    "args": {
+     "axis": "x"
+    },
+    "buildJob": "base_portal",
+    "go": true,
+    "landing": false,
+    "work": "degate",
+    "at": [
+     -38,
+     99,
+     -76
+    ],
+    "minutes": 7,
+    "cobble": 64,
     "crossS": 30,
     "maxDeaths": 6
    }

@@ -656,6 +656,7 @@ async function digCell (bot, p, opts = {}) {
       try { await U.withTimeout(bot.dig(b, true), Math.max(4000, t * 2 + 3000), 'dig') } finally { bot.digTime = origDigTime }
       if (realMs) { await sleep(250); const still = bot.blockAt(p); if (still && still.name === 'obsidian') { if (round > 3) return 'fail'; continue } }
       bump(bot, 'dug')
+      noteOre(bot, p) // THE ONE RULE: every cell this army opens reads its own 6 neighbours (see noteOre)
     } catch (e) {
       try { bot.stopDigging() } catch (e_) { swallow('iron_core:q7', e_) }
       if (stale(bot)) return 'fail'
@@ -1261,6 +1262,49 @@ function exposedOre (bot, cells) {
   }
   return out
 }
+// THE ONE RULE FOR EVERY DIG (owner 09-20: "掘ったブロックに隣接しているブロックを見ていないのではないか？"). MEASURED before it existed, by walking our
+// own corridors with a probe: 1.6 leftover ore faces per 100 m at y-54 (44 redstone, 16 diamond, 7 gold, 3 iron) and 0.3 per 100 m at y-32 - ore
+// standing with an open face onto a lit tunnel we dug ourselves. Only two call sites read faces before (the branch's own step, and collectDrops), so
+// everything opened by the trunk, the hub, a landing, a stair flight, a reconnect gallery or a VEIN EXCURSION was blind. `digCell` is the single dig
+// primitive of the mine, so the faces are read HERE and nowhere else: what the pick can take is queued for the job's next turn (drainSeen), what it
+// cannot is put on the ore log for a better pick or a sweep. No per-call-site lists.
+function noteOre (bot, p) {
+  try {
+    const q = bot.__ironSeen = bot.__ironSeen || new Map()
+    if (q.size > 512) return
+    for (const d of FACES) {
+      const b = bot.blockAt(p.offset(d[0], d[1], d[2]))
+      if (!b || !oreFamily(b.name)) continue
+      const k = U.kpos(b.position)
+      if (!q.has(k)) q.set(k, b.position)
+    }
+  } catch (e_) { swallow('iron_core:noteOre', e_) }
+}
+const LOG_FAM = /^(diamond|gold|redstone|emerald|lapis)$/ // what a stone pick cannot take (or is worth a second trip): it goes on the ore log
+// Mine what the queue holds and this bot can reach NOW - as a VEIN, so the whole body comes out. What it cannot harvest, and what the miner has
+// already walked past, leaves the queue: the valuable kinds on the ore log (`armyctl.js census ores` and a sweep job find them again).
+async function drainSeen (bot, level, anchor, gen) {
+  const q = bot.__ironSeen
+  const out = { got: 0, iron: 0 }
+  if (!q || !q.size || bot.__ironDraining) return out
+  bot.__ironDraining = true
+  try {
+    for (const [k, p] of Array.from(q)) {
+      if (stale(bot, gen)) break
+      const b = bot.blockAt(p)
+      const fam = b && oreFamily(b.name)
+      if (!fam) { q.delete(k); continue }
+      const d = eyeDist(bot, p)
+      if (d > 4.4) { if (d > 12) { q.delete(k); if (LOG_FAM.test(fam)) recordOre(bot, b) } continue }
+      q.delete(k)
+      const pk = bestPick(bot, b)
+      if (!pk || !b.harvestTools || !b.harvestTools[pk.type]) { recordOre(bot, b); continue }
+      const n = await mineVein(bot, b, level, anchor, gen, { maxMoves: 0 })
+      out.got += n; if (fam === 'iron') out.iron += n
+    }
+  } catch (e_) { swallow('iron_core:drainSeen', e_) } finally { bot.__ironDraining = false }
+  return out
+}
 // THE WHOLE CONNECTED BODY, the way a player mines it: 26-neighbour connectivity (a diagonal touch is one vein in Minecraft). The cap is SAFETY,
 // not a count: the six faces of every cell are read before it is taken, and a cell that touches lava or water is neither taken nor expanded
 // through. A body with a raw block or >= VEIN_BIG ore in it is a giant vein: its TUFF is opened too (up to VEIN_FILLER cells), because the rest of
@@ -1311,7 +1355,8 @@ async function mineVein (bot, first, level, anchor, gen, opts = {}) {
   let todo = vein.slice()
   const big = vein.big
   const member = b => !!b && (oreFamily(b.name) === fam || (big && b.name === 'tuff'))
-  if (big) await recordVein(bot, first, fam, vein)
+  // the BOARD hears only what is worth moving head-count for: an iron body with a raw block in it, or 16+ connected ore of iron/diamond (a coal blob of 8 is not news)
+  if (big && (vein.raw > 0 || (vein.length >= 16 && /^(iron|diamond)$/.test(fam)))) await recordVein(bot, first, fam, vein)
   let got = 0
   let moves = 0
   // a big body is worth walking INSIDE: the old 8 moves / 60 turns stopped at the first 24 blocks in reach (owner 09-20: veins are the iron)
@@ -2043,6 +2088,8 @@ async function mineBranch (bot, M, br, gen, opts = {}) {
       const n = await mineVein(bot, b, y, { x: nx, y, z: nz }, gen)
       ore += n; if (fam === 'iron') oreIron += n
     }
+    // and everything ANY dig of this pass uncovered (the excursion's own cells included): one queue, drained from where we stand
+    { const dr = await drainSeen(bot, y, { x: nx, y, z: nz }, gen); ore += dr.got; oreIron += dr.iron }
     // a bridged cave is dark and full of mobs: light it every 3rd cell, not every 9th
     if (len % TORCH_EVERY === 2 || (bridged && len % 3 === 0)) { if (U.count(bot, 'torch') < 2) await ensureTorches(bot, 12); await torchNear(bot, nx, y, nz, dirIdx) }
     // (no toss while digging on: a pile in the branch lies on the miner's own way out and comes home in its pockets - a stint's stone fits the pack;
@@ -2568,7 +2615,7 @@ module.exports = {
   pickaxes, durLeft, bestPick, stonePickCount, cobbleCount, woodUnits, canCraftPick, withTable, ensurePick, ensureTorches,
   digCell, openCell, sealSides, torchNear, stepTo, settle, walkLine, pillarOne, blocked, sweep, returnTo,
   auditStairs, repairStairs, walkRoute, nearestWp, treadState, layTreads, stairItem, STAIR_RE, isSupport, supportChain, placeSupported,
-  exposedOre, veinOf, mineVein, fortuneOf, threat, defend, wallOff, eat, tossJunk,
+  exposedOre, veinOf, mineVein, noteOre, drainSeen, fortuneOf, threat, defend, wallOff, eat, tossJunk,
   claimStairs, digStairs, claimBranch, branchOutlook, exhausted, levelCap, levelYield, reopenable, commute, nextLanding, claimGrowth, sayMine, pickRank, stoneWanted, saveBranch, gotoBranchFace, mineBranch, walkTrunk,
   rawIron, lootScore, needHaul, foodUnits, pickUses, readiness, exitReason, reconnect, toSurface, toEntrance,
   // lava on record + the obsidian trip
