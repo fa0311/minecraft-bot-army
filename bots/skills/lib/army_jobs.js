@@ -2654,6 +2654,31 @@ async function build (bot, job, api, ctx) {
       A.decline(bot, job, 600000, why); return muster(bot, job, api, ctx, why)
     }
   }
+  // TWO JOBS MAY NOT OWN ONE GRADE CELL (owner 14:1xZ 「整地が穴を掘って置くを永遠に繰り返している」; my own `build_runaway` caught it: cap_ravine_nm -323,68,-437 seven digs of
+  // one cell in a slice, cap_base_yard_pad -368,68,-478, void_fix_base_yard_pad -368,68,-489). Both jobs are individually right: the CAP digs the stone at grade and lays
+  // dirt, the FILL underneath sees an open grade cell and puts its filler back, for ever. `A.ours()` cannot arbitrate because it leaves terrain blueprints out of the
+  // registry on purpose. So the order is made explicit: a cap does not start while ANY active terrain job's box overlaps its footprint - it pauses itself, names the job
+  // it is waiting for, and an operator or that job's own completion brings it back.
+  if ((P.args || {}).cap) {
+    let x1 = Infinity; let z1 = Infinity; let x2 = -Infinity; let z2 = -Infinity
+    for (const c of cells) { if (c.x < x1) x1 = c.x; if (c.x > x2) x2 = c.x; if (c.z < z1) z1 = c.z; if (c.z > z2) z2 = c.z }
+    let owner = null
+    try {
+      for (const q of ((A.readJSON(A.F.board, {}) || {}).jobs || [])) {
+        if (q.id === job.id || q.status !== 'active' || q.type !== 'build' || !q.params || (q.params.args || {}).cap) continue
+        if (!A.TERRAIN_BP.test(String(q.params.blueprint)) || !Array.isArray(q.params.origin)) continue
+        let a1 = Infinity; let b1 = Infinity; let a2 = -Infinity; let b2 = -Infinity
+        for (const c of A.blueprintCellsOf(q.params)) { if (c.x < a1) a1 = c.x; if (c.x > a2) a2 = c.x; if (c.z < b1) b1 = c.z; if (c.z > b2) b2 = c.z }
+        if (a1 <= x2 && a2 >= x1 && b1 <= z2 && b2 >= z1) { owner = q.id; break }
+      }
+    } catch (e_) { swallow('army_jobs:capOverlap', e_) }
+    if (owner) {
+      const why = 'build: the ground under this cap still belongs to ' + owner + ' (active terrain job overlapping x ' + x1 + '..' + x2 + ' / z ' + z1 + '..' + z2 + ') - a cap that lays dirt while a fill puts its filler back digs the same cell for ever'
+      A.boardEdit(b => { const q = (b.jobs || []).find(z => z.id === job.id); if (q && q.status === 'active') { q.status = 'paused'; q.note = 'auto-paused: waiting for ' + owner + ' (one grade cell, one owner)' } })
+      A.result(bot, { ev: 'cap_waits', job: job.id, owner, box: [x1, z1, x2, z2] })
+      return muster(bot, job, api, ctx, why)
+    }
+  }
   // LAYERED PITS (blueprint `quarry`) are legal only inside a settings.keepOut box = the quarry zone (rule 4: never a hole in natural ground)
   const layered = cells.some(c => c.layer); const cellKeys = layered ? new Set(cells.map(c => c.x + ',' + c.y + ',' + c.z)) : null
   if (layered) { const zones = (A.settings().keepOut || []).map(k => k && k.box).filter(q => Array.isArray(q) && q.length === 4).map(q => [Math.min(q[0], q[2]), Math.min(q[1], q[3]), Math.max(q[0], q[2]), Math.max(q[1], q[3])]); if (!cells.every(c => zones.some(q => c.x >= q[0] && c.x <= q[2] && c.z >= q[1] && c.z <= q[3]))) return muster(bot, job, api, ctx, 'build: a ' + P.blueprint + ' pit is legal only inside a settings.keepOut box (quarry zone)') }
@@ -3216,7 +3241,13 @@ async function build (bot, job, api, ctx) {
       const outside = !allKeys.has(dk) && !c.roof
       st.dug[dk] = (st.dug[dk] || 0) + 1
       if (outside || st.dug[dk] > 6) { // 6, not 3 (14:0xZ: `cap_ravine_nm` tripped it at 4 - a cap legitimately digs a cell again when its dirt place failed; a loop digs it 120 times a pass)
-        const why = outside ? 'a cell that is not in this blueprint' : st.dug[dk] + ' digs of the same cell in one slice (dig/place loop)'
+        let why = outside ? 'a cell that is not in this blueprint' : st.dug[dk] + ' digs of the same cell in one slice (dig/place loop)'
+        try { // WHO ELSE OWNS THIS CELL: the note must name the other job, not leave an operator guessing (owner 14:1xZ)
+          for (const q of ((A.readJSON(A.F.board, {}) || {}).jobs || [])) {
+            if (q.id === job.id || q.type !== 'build' || !q.params || !Array.isArray(q.params.origin)) continue
+            if (A.blueprintCellsOf(q.params).some(z => z.x === c.x && z.y === c.y && z.z === c.z)) { why += ' - ' + q.id + ' (' + q.params.blueprint + ', ' + q.status + ') has the SAME cell in its blueprint'; break }
+          }
+        } catch (e_) { swallow('army_jobs:runawayOwner', e_) }
         A.result(bot, { ev: 'build_runaway', job: job.id, at: [c.x, c.y, c.z], dug: st.dug[dk], allowed: 6, why })
         A.boardEdit(b => { const q = (b.jobs || []).find(z => z.id === job.id); if (q && q.status === 'active') { q.status = 'paused'; q.note = 'auto-paused: build_runaway - ' + why + ' at ' + dk } })
         return muster(bot, job, api, ctx, 'build: runaway dig stopped (' + why + ')')

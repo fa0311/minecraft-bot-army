@@ -76,3 +76,6 @@ bots/army/census.json
 # op is granted only temporarily from the terminal: the live state of this file is never published
 server/ops.json
 bots/army/place_rest.json
+bots/.lock-*
+ops/operator.*.log
+bots/metrics/gemba.json

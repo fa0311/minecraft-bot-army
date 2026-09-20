@@ -1580,7 +1580,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789913131704
+   "restUntil": 1789913365766
   },
   {
    "id": "fill_ring_field2",
@@ -2249,7 +2249,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 20,
    "site": [
     -311,
     69,
@@ -2480,9 +2480,9 @@
     },
     "order": "near"
    },
-   "rev": 27,
+   "rev": 28,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check.",
-   "note": "top model 13:3xZ: the first stair was swallowed by the fill itself (ramp columns are filled on up to grade) and the front became a 9-high cliff again = no way in, bots dropped in and pillared out (foreman paused it: \"roofing, not filling\"). NEW: a switchback stair from the finished front at z -471 (lane x -300 south 67->61, lane x -301 north 60->54) with  boxes that hold the air above every step open. Fill the stair itself last",
+   "note": "top model 14:1xZ: OPERATORS - DO NOT LOWER. open cells = left 3616 minus waiting 2920 = 696, so ceil(696/8) = 87 builders could work it at once; 20 is the cap. It reads done:0 because the last trench (x -306..-298 / z -461..-482, floor y52-55) has sheer walls and NO walkable entry, so the switchback ramp (x -300/-301, z -472..-478) can never be started: a ramp column is a solid cell built bottom-up and nobody can stand on the floor. It needs a way in built FROM THE TOP (ladder run, or a gravity-block ramp - gravel depot is 0, so fetch gravel first).",
    "restUntil": 1789906650052
   },
   {
@@ -2490,7 +2490,7 @@
    "type": "build",
    "priority": 70,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 7,
    "site": [
@@ -2759,7 +2759,7 @@
    "front": "works",
    "status": "active",
    "when": "day",
-   "bots": 2,
+   "bots": 1,
    "site": [
     -257,
     67,
@@ -2797,11 +2797,12 @@
     "order": "near"
    },
    "note": "top model 14:0xZ: re-activated with the head-count its OPEN columns can use (base audit 13:59Z audit_fill). Pinholes are now CLOSED by the builder (dig the cap, gravity drop, place from the rim) and a tail nobody can reach ENDS after 3 rounds instead of declining for ever",
-   "rev": 3,
+   "rev": 4,
    "stuckBy": {
     "key": "rev3",
     "bots": [
-     "Mashiro"
+     "Mashiro",
+     "Hina"
     ]
    }
   },
@@ -2976,7 +2977,7 @@
    "type": "build",
    "priority": 55,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "site": [
@@ -3023,10 +3024,12 @@
    "stuckBy": {
     "key": "rev1",
     "bots": [
-     "Juri"
+     "Juri",
+     "Aoi",
+     "Yukina"
     ]
    },
-   "note": "top model 14:0xZ: re-activated with the head-count its OPEN columns can use (base audit 13:59Z audit_fill). Pinholes are now CLOSED by the builder (dig the cap, gravity drop, place from the rim) and a tail nobody can reach ENDS after 3 rounds instead of declining for ever",
+   "note": "auto-paused: 8 cells nobody could do: ",
    "rev": 1
   },
   {
@@ -3471,7 +3474,13 @@
      ]
     }
    },
-   "rev": 4
+   "rev": 4,
+   "stuckBy": {
+    "key": "rev4",
+    "bots": [
+     "Kaede"
+    ]
+   }
   },
   {
    "id": "nether_fortress",
@@ -3699,7 +3708,7 @@
     },
     "order": "near"
    },
-   "note": "top model 14:0xZ: build_runaway tripped at 4 digs of -324,68,-448; the guard is a LOOP detector, not a repair counter - threshold raised to 6 and the cap re-activated",
+   "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -323,68,-437",
    "rev": 1
   },
   {
@@ -3892,7 +3901,7 @@
    "type": "build",
    "priority": 38,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 2,
    "site": [
@@ -3918,7 +3927,8 @@
      "dirt": 128
     },
     "order": "near"
-   }
+   },
+   "note": "auto-paused: build complete"
   },
   {
    "id": "void_fix_base_yard_pad",
@@ -3978,9 +3988,9 @@
    "type": "build",
    "priority": 38,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
-   "bots": 2,
+   "bots": 5,
    "site": [
     -355,
     69,
@@ -4004,7 +4014,9 @@
      "dirt": 128
     },
     "order": "near"
-   }
+   },
+   "rev": 1,
+   "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -368,68,-478"
   }
  ]
 }
