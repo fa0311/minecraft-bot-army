@@ -552,9 +552,20 @@ function wayDown (bot, fall, o) {
 // WHERE CAN I GET IN? My own lane if it has a rim over it — a 7-wide trench has one only along its
 // walls, so the builder drops in where it can and walks the rest along the floor (measured: taking the
 // lane's own column blindly left every interior lane "unreachable" and the whole trench at zero).
-function landingNear (map, world, t, stands, feet, mates) {
+function landingNear (map, world, t, stands, feet, mates, reach) {
+  let spare = null
+  const take = (x, y, z) => {
+    const b = brinkFor(map, world, { x, y, z }, mates)
+    if (!b) return null
+    const got = { target: { x, y, z }, brink: b.brink, fall: b.fall }
+    // A RIM I CANNOT WALK TO IS NOT A RIM (measured on the trench: the planner kept choosing the next
+    // column along the floor — one block higher, therefore formally a rim — and every builder stood on
+    // the bank saying "I cannot reach it", 0 cells placed in three minutes).
+    if (reach && !reach.has(K3(b.brink.x, b.brink.y, b.brink.z))) { spare = spare || got; return null }
+    return got
+  }
   const order = stands.slice().sort((a, b) => Math.hypot(a.x - feet.x, a.z - feet.z) - Math.hypot(b.x - feet.x, b.z - feet.z))
-  for (const s of order) { const b = brinkFor(map, world, s, mates); if (b) return { target: s, brink: b.brink, fall: b.fall } }
+  for (const s of order) { const got = take(s.x, s.y, s.z); if (got) return got }
   const cx = Math.round(t.cx); const cz = Math.round(t.cz)
   for (let r = 1; r <= 16; r++) {
     for (let dx = -r; dx <= r; dx++) {
@@ -564,17 +575,18 @@ function landingNear (map, world, t, stands, feet, mates) {
         if (x < map.box.x1 || x > map.box.x2 || z < map.box.z1 || z > map.box.z2) continue
         const y = firstOpen(map, world, x, z)
         if (y == null || !canStand(map, world, x, y, z, mates)) continue
-        const b = brinkFor(map, world, { x, y, z }, mates)
-        if (b) return { target: { x, y, z }, brink: b.brink, fall: b.fall }
+        const got = take(x, y, z)
+        if (got) return got
       }
     }
   }
-  return null
+  return spare
 }
 
 // ONE action towards "I am standing on the floor where the work is"
 function wayIn (map, world, bot, t, st, stands, feet, mates, o) {
-  const land = landingNear(map, world, t, stands, feet, mates)
+  const reach = reachSet(map, world, feet, null, 4000)
+  const land = landingNear(map, world, t, stands, feet, mates, reach)
   if (!land) return { type: 'wait', release: true, why: 'no rim anywhere over the open floor near ' + t.id + ' — another lane' }
   const target = land.target
   const b = { brink: land.brink, fall: land.fall }
@@ -583,7 +595,6 @@ function wayIn (map, world, bot, t, st, stands, feet, mates, o) {
   if (!kind) return { type: 'restock', item: 'water_bucket', n: 1, entry: tag, why: 'a ' + b.fall + '-block drop would leave me under ' + o.keepHp + ' hp: I need a bucket' }
   if (kind === 'water_drop' && have(bot, 'water_bucket', o) < 1) return { type: 'restock', item: 'water_bucket', n: 1, entry: tag, why: 'a bucket for the way down at ' + K2(target.x, target.z) }
   if (!same(feet, b.brink)) {
-    const reach = reachSet(map, world, feet, null, 4000)
     if (reach.has(K3(b.brink.x, b.brink.y, b.brink.z))) return { type: 'move', target: b.brink, entry: tag, why: 'to the rim over ' + K2(target.x, target.z) }
     // I CANNOT EVEN REACH THE RIM: ride my own fill up to the surface and come in again beside the work.
     // (Standing in a hole waiting for a mate to free the way is what cost twelve hours.)

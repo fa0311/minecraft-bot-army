@@ -796,6 +796,11 @@
      -343,
      70,
      -503
+    ],
+    [
+     -360,
+     69,
+     -506
     ]
    ]
   },
@@ -1238,11 +1243,6 @@
   "legacyChests": {
    "found": [
     [
-     -359,
-     70,
-     -521
-    ],
-    [
      -361,
      69,
      -521
@@ -1300,11 +1300,6 @@
     [
      -367,
      70,
-     -521
-    ],
-    [
-     -368,
-     69,
      -521
     ],
     [
@@ -1375,14 +1370,14 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Fuuka",
+   "by": "Nanami",
    "portal": [
-    -43,
+    -44,
     100,
     -80
    ],
-   "through": 1789924634203,
-   "scoutRev": 4,
+   "through": 1789924730961,
+   "scoutRev": 10,
    "hub": {
     "room": [
      -41,
@@ -1494,7 +1489,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789924641474,
-   "back": 1789924643686,
+   "back": 1789925010269,
    "lastDeath": 1789924669079,
    "lastDeathBy": "Fuuka",
    "roads": {
@@ -1675,10 +1670,45 @@
      "chest": [
       -744,
       70,
-      31
+      30
+     ],
+     "blast_furnace": [
+      -742,
+      69,
+      28
+     ],
+     "smithing_table": [
+      -740,
+      69,
+      28
+     ],
+     "loom": [
+      -742,
+      70,
+      33
+     ],
+     "grindstone": [
+      -740,
+      70,
+      33
+     ],
+     "lectern": [
+      -746,
+      70,
+      32
+     ],
+     "barrel": [
+      -746,
+      71,
+      33
+     ],
+     "smoker": [
+      -744,
+      69,
+      28
      ]
     },
-    "t": 1789924246872
+    "t": 1789924913245
    },
    "absorb": {
     "coal": 720,
@@ -2098,7 +2128,7 @@
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 20,
-   "rev": 57,
+   "rev": 59,
    "restUntil": 1789922076785
   },
   {
@@ -2374,7 +2404,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789924755134
+   "restUntil": 1789924990203
   },
   {
    "id": "fill_ring_field2",
@@ -4122,7 +4152,7 @@
    "type": "portal",
    "priority": 96,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 6,
    "shiftMin": 20,
@@ -4155,8 +4185,9 @@
     "hop": 16
    },
    "note": "auto-paused: the gate is lit and the round trip is done (bump rev to send another expedition)",
-   "rev": 4,
-   "desc": "owner 09-20 17:2xZ 「ネザーはとっとと橋かけたらよくね？」: the way to the fortress is BRIDGED, not dug - `work:fortress` walks read-only and bridges the gaps ahead (4 cells, cobblestone) toward Nether -784,-592 (916 blocks). Start 6, raise to 12 when deaths <= 1 in 20 min. The 1330-cell dig-down `nether_stair` is superseded"
+   "rev": 5,
+   "desc": "PAUSED 17:2xZ by the top model: two bots lost to lava in 2 min at the_nether -54..-55,28..29,-80 (47 iron + 5 diamonds) - the expedition walks the open Nether WITHOUT the edge rules the pair job has (sneak within 3 of an unrailed edge, never a pathfinder goal next to a drop, floor re-read before the step). Re-activate only after the Nether engineer applies those to work:fortress",
+   "maxDeaths": 2
   },
   {
    "id": "base_field_3_pad",
@@ -4672,7 +4703,7 @@
    "type": "build",
    "priority": 38,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "site": [
@@ -4699,9 +4730,10 @@
     },
     "order": "near"
    },
-   "rev": 7,
+   "rev": 8,
    "note": "needs: dirt (835 cells wait; every cell whose material exists is done or in work)",
-   "restUntil": 1789922437833
+   "restUntil": 1789922437833,
+   "desc": "PAUSED 17:3xZ top model: 107 passes with done:0 (left 857), its cells sit over the UNFILLED fill_ne_valley (paused) - a cap over an open fill can only fail. Re-activate after fill_ne_valley closes its columns"
   },
   {
    "id": "fill_minehead_pits",
@@ -5669,7 +5701,7 @@
    "id": "village_post",
    "type": "trade",
    "priority": 94,
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "front": "industry",
    "site": [

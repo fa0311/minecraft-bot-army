@@ -56,7 +56,7 @@ const FILLERS = ['cobblestone', 'cobbled_deepslate', 'dirt', 'andesite', 'diorit
 const INSIDE_FILL_RE = /^(dirt|coarse_dirt|cobblestone|cobbled_deepslate|stone|deepslate|andesite|diorite|granite|tuff|gravel|sand|netherrack|[a-z_]+_planks|stone_bricks)$/
 
 const C_UNKNOWN = 0; const C_AIR = 1; const C_SOLID = 2; const C_LIQUID = 3; const C_THIN = 4
-const M_MINE = 1; const M_PLANNED = 2; const M_SCAR = 4; const M_GRAVITY = 8; const M_HARD = 16
+const M_MINE = 1; const M_PLANNED = 2; const M_SCAR = 4; const M_GRAVITY = 8; const M_HARD = 16; const M_LAVA = 64
 const NOTOP = -32768
 
 const vv = p => Array.isArray(p) ? new Vec3(p[0], p[1], p[2]) : new Vec3(p.x, p.y, p.z)
@@ -84,7 +84,7 @@ function coder (registry) {
     if (sid == null) return 0
     let f = cFlag[sid]; if (f >= 0) return f
     const n = nameOf(sid) || 'air'
-    f = (GRAVITY_RE.test(n) ? M_GRAVITY : 0) | (HARD_RE.test(n) ? M_HARD : 0) | (LIGHT_RE.test(n) ? 32 : 0)
+    f = (GRAVITY_RE.test(n) ? M_GRAVITY : 0) | (HARD_RE.test(n) ? M_HARD : 0) | (LIGHT_RE.test(n) ? 32 : 0) | (n === 'lava' ? M_LAVA : 0)
     cFlag[sid] = f; return f
   }
   return { codeOf, flagOf, nameOf }
@@ -117,6 +117,9 @@ function readInto (G, sub, sid, cd) {
         const f = cd.flagOf(s)
         if (f & 32) G.lights.push([x, y, z])
         if (f & (M_GRAVITY | M_HARD)) G.mask[base + y - G.yMin] |= (f & (M_GRAVITY | M_HARD))
+        // LAVA POISONS ITS NEIGHBOURHOOD (Koharu died at -322,41,-472 on this job, 7 iron + 6 diamonds lost): every cell within 2 of a lava
+        // cell is marked, and `pure()` below refuses any shaft column that touches one. A shaft is never cut towards lava, not even past it.
+        if (f & M_LAVA) G.lava.push([x, y, z])
       }
       if (any) { G.top[ci] = t; if (!G.seen[ci]) { G.seen[ci] = 1; G.cols++ } ; cols++ }
     }
@@ -126,6 +129,7 @@ function readInto (G, sub, sid, cd) {
 
 // ---------------------------------------------------------------- what is OURS and what is the MINE (the two things we must never fill)
 function markPlan (G, P) {
+  for (const [x, y, z] of G.lava) for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) for (let dz = -2; dz <= 2; dz++) { const a = x + dx; const b = y + dy; const c = z + dz; if (gIn(G, a, c) && b >= G.yMin && b <= G.yTop) G.mask[gIdx(G, a, b, c)] |= M_LAVA }
   for (const k of P.planned || []) { const [x, y, z] = k.split(',').map(Number); if (gIn(G, x, z) && y >= G.yMin && y <= G.yTop) G.mask[gIdx(G, x, y, z)] |= M_PLANNED }
   for (const k of P.mine || []) { // "or any cell within 2 of them"
     const [x, y, z] = k.split(',').map(Number)
@@ -1159,4 +1163,4 @@ module.exports.TYPES = ['cavity']
 module.exports.VERBS = []
 // ONE implementation, used by the job and by anybody else: the water-bucket descent (owner 09-20) and the census with two pairs of eyes —
 // the bot's loaded chunks (job `cavity` work:'survey') and the spectator camera (ops/cavity-census.js, full coverage). All of it pure/serverless.
-module.exports.census = { newGrid, readInto, markPlan, analyse, coder, planSets, baseBox, baseY, writeCensus, table, isTarget, gIdx, gCol, gIn, gDecode, CAV_F, CLAIM_F, C_UNKNOWN, C_AIR, C_SOLID, C_LIQUID, C_THIN }
+module.exports.census = { newGrid, readInto, markPlan, analyse, coder, planSets, baseBox, baseY, writeCensus, table, isTarget, gIdx, gCol, gIn, gDecode, CAV_F, CLAIM_F, C_UNKNOWN, C_AIR, C_SOLID, C_LIQUID, C_THIN, M_LAVA }

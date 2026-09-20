@@ -600,10 +600,34 @@ module.exports = ctx => {
     } catch (e_) { swallow('jobs_nether:walkOff', e_) }
   }
   // every walk over there goes through here: fresh lava picture, rule on, then the ordinary read-only A.travel
+  // THE EDGE DOCTRINE BELONGS TO EVERY NETHER WALK, NOT TO ONE HANDLER (measured 17:17-17:18Z: the protections written for
+  // `work:'pair'` did nothing for `work:'fortress'`, which walked the same ledges and lost Aoi, Fuuka and Koharu to the lava sea
+  // at -54..-55,28,-80 inside two minutes — 40 iron, 5 diamond, 479 items). Everything below now applies to `nTravel`, and every
+  // Nether job goes through `nTravel`.
+  const noFloor = (bot, c, depth = 3) => { for (let dy = -1; dy >= -depth; dy--) { const b = bot.blockAt(c.offset(0, dy, 0)); if (b && b.boundingBox === 'block') return false } return true }
+  const lavaTouching = (bot, c) => [[0, -1, 0], [0, 1, 0], [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1]].some(d => { const b = bot.blockAt(c.offset(d[0], d[1], d[2])); return !!b && /^(lava|fire)$/.test(b.name) })
+  const edgeWithin = (bot, c, r = 3) => { for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) if (noFloor(bot, c.offset(dx, 0, dz))) return true; return false }
   async function nTravel (bot, target, opts) {
     lavaSet(bot, true); netherWalkOn(bot)
     const mv = bot.pathfinder && bot.pathfinder.movements; if (mv) mv.maxDropDown = 1
-    return await A.travel(bot, target, Object.assign({ anyDepth: true, quiet: true }, opts || {}))
+    const tgt = target && target.x != null ? new Vec3(Math.floor(target.x), Math.floor(target.y), Math.floor(target.z)) : null
+    if (tgt && netherHere(bot)) {
+      // 1. NEVER A GOAL IN A CELL WITH NO FLOOR OR ONE TOUCHING LAVA — the pathfinder happily walks to the lip of a drop
+      if (noFloor(bot, tgt) || lavaTouching(bot, tgt)) {
+        A.result(bot, { ev: 'nether_refused', to: [tgt.x, tgt.y, tgt.z], why: noFloor(bot, tgt) ? 'that cell has no floor within 3' : 'that cell touches lava or fire' })
+        return false
+      }
+      // 2. CLOSE TO AN EDGE: one cell at a time, by hand, sneaking — never a pathfinder route that can cut a corner over air
+      if (edgeWithin(bot, tgt, 1) && bot.entity.position.distanceTo(tgt.offset(0.5, 0, 0.5)) <= 4.5) return await sneakStep(bot, { stop: (opts && opts.stop) || (() => false) }, tgt)
+    }
+    // 3. ANY walk with a drop within 3 of either end holds SNEAK for its whole length (prismarine-physics stops a sneaking body
+    //    at a rim; `moves.bridgeTo` does the same and that is why it never lost a bot)
+    const risky = netherHere(bot) && (edgeWithin(bot, bot.entity.position.floored(), 3) || (tgt && edgeWithin(bot, tgt, 3)))
+    const tick = () => { try { bot.setControlState('sneak', true) } catch (e_) { swallow('jobs_nether:sneakTick', e_) } }
+    if (risky) bot.on('physicsTick', tick)
+    try {
+      return await A.travel(bot, target, Object.assign({ anyDepth: true, quiet: true }, opts || {}))
+    } finally { if (risky) { bot.removeListener('physicsTick', tick); sneakOff(bot) } }
   }
   // is where we STAND safe enough to build from? (never bridge off a 1-wide ledge with lava under it)
   const safeStand = bot => { const p = bot.entity.position.floored(); return !lavaNear(p, 2, 3, 2) && A.walkableArea(bot, 60, 1) >= 8 }
