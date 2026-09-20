@@ -40,6 +40,25 @@ Keep this under 80 lines. Machine truth: `bots/army/jobs.json → settings.nethe
 | 2 | `lib/army.js` | (a) `dimOf(bot)`; (b) `travel({dim})` refuses `wrong_dim` without pathing; (c) KEEP-OUT rule + homeward bias overworld-only; (d) `bank`/`withdraw`/`chestsOf`/`scanChests` refuse off-overworld; (e) **`skyAbove`/`digOut`/`stepDown` must not run off the overworld** — under the Nether's bedrock roof every bot reads "roofed in" and cuts a staircase (measured 12:30:23Z); (f) `ours()`/`ourBlock()` key cells by `x,y,z` alone, so an overworld cell matches a Nether position. *(`portal` in `STILL_OK`: done.)* |
 | 3 | `lib/army_jobs.js` | **Done 12:2xZ (by me, in the three places I was given):** `overworld(bot)` helper; `muster` stands still off-overworld instead of walking to the muster slot; `withHandover` skips bedtime, canteen, pocket-banking, handover-banking, the respawn-bed click and `upTheStairs` off-overworld. Proven live: Kanade banked **nothing** between 12:30:15 and 12:30:51 in the Nether and banked 208 cobblestone at 12:30:58, seven seconds after coming home. |
 
+## THE FAR GATE IS ON A LEDGE — that is the whole blocker (measured 13:4xZ)
+Probe from Juri at the_nether -43,98,-80: **42 of 81 sampled columns within 12 blocks of the gate have no floor within 4 below.**
+The gate generated on a narrow shelf near the Nether roof; the main floor is ~65 blocks down (soul sand at y33, ancient debris at
+y102-107 above). Everything that looked like a code problem this hour was this:
+* `routed:false` on every bearing, `walked 5-19` — the read-only pathfinder is right, there is nowhere to walk.
+* 10 deaths in 45 min, and every fall death is at **y24-38** — bots that did get out fell off the shelf.
+* The hub made it worse before it made it better: a 9x9 walled room with one door was a cage (`stranded {dim:"the_nether"}` x6 at
+  -34..-35,98,-74..-79). Now cut open: **four plain 2-wide x 2-high doorways, no gate, a stone landing and a torch outside each**
+  (`nether_door {doors:4, opened:13, landed:4}`), and scouts do step out — to the edge of the shelf, and no further.
+
+**THE DECISION THIS NEEDS (not more scouting):** either
+1. **a stair down** — a `work:'stair'` job from the hub's z- doorway to the Nether floor, built once with carried stone, walled and
+   lit: a reusable road (doctrine Q2), ~65 blocks of descent, the honest cost of a gate that landed badly; or
+2. **relocate** — a second overworld gate 128+ blocks away in x or z (its Nether exit lands 16+ blocks off, on different ground).
+   Cheaper to try first, and the present gate stays as a fallback. **Do not break the far obsidian**: a broken gate re-links the
+   overworld side somewhere unknown.
+My recommendation is **2 first, 1 if the new exit is no better** — one build job either way, and the fortress hunt is unblocked the
+moment a scout can walk.
+
 ## THE GATE IS OUT BETWEEN TRIPS (owner 13:0xZ, low TPS)
 A lit portal spawns zombified piglins **in the overworld**, outside the mob cap, and the bots rightly never attack a neutral mob —
 74 of them stood round the base. So the gate burns only while a trip is out. `closeGate` takes ONE frame obsidian out with a

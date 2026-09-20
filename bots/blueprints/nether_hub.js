@@ -9,8 +9,9 @@
 // under `settings.nether.hub`, and only jobs of this file read it.
 //
 // origin = the centre column of the far gate; y = the level of the gate's LOWEST portal cell (the floor you walk on is y-1).
-// params: w=9, d=9 (OUTER size, odd, walls included -> 7x7 of floor for 8 bots), h=3 (interior height), door='x+'|'x-'|'z+'|'z-'.
-// Cells: block 'stone' = any stone sort the squad carries · 'air' = must be clear · 'torch' · 'chest' · 'crafting_table' · 'fence_gate'.
+// params: w=9, d=9 (OUTER size, odd, walls included -> 7x7 of floor for 8 bots), h=3 (interior height). `door` only names the
+//         bearing the ROAD starts on: there is a doorway in every wall.
+// Cells: block 'stone' = any stone sort the squad carries · 'air' = must be clear · 'torch' · 'chest' · 'crafting_table'.
 const DIRS = { 'x+': [1, 0], 'x-': [-1, 0], 'z+': [0, 1], 'z-': [0, -1] }
 const size = (p = {}) => ({ w: Math.max(7, (p.w || 9) | 1), d: Math.max(7, (p.d || 9) | 1), h: Math.max(3, p.h || 3), door: DIRS[p.door] ? String(p.door) : 'x+' })
 module.exports = (o, p = {}) => {
@@ -27,13 +28,22 @@ module.exports = (o, p = {}) => {
     }
   }
   // ONE door, 1 wide and 2 high, in the middle of a wall — a sealed box is a trap, and the road starts here
-  // A FENCE GATE, NOT A HOLE (measured 13:07:42Z: Erika was killed by a mob that walked in through the open gap and found her
-  // standing at the portal). The army's standing rule: gates are FENCE GATES — the pathfinder opens a gate and a mob does not,
-  // while a door would lock the army out. The cell above it stays clear so a bot walks through at full height.
-  const [dx, dz] = DIRS[door]
-  const door0 = [dx * hx, dz * hz]
-  put(door0[0], o.y, door0[1], 'fence_gate', { axis: dx ? 'z' : 'x' })
-  put(door0[0], o.y + 1, door0[1], 'air')
+  // FOUR PLAIN DOORWAYS, NO GATE (owner 13:4xZ: "ネザーゲートの周り囲みすぎててハングしてる" — six scouts stood INSIDE this room
+  // with `stranded {dim:"the_nether"}` and could not path out. `A.strictMovements` does set `canOpenDoors` and does make an OPEN
+  // gate passable, but a hub that keeps mobs out by keeping the army in is worse than no hub. So: one doorway in the middle of
+  // EACH wall, 2 wide and 2 HIGH, plain air — the four bearings the squads leave by — with a stone landing and a torch outside
+  // it, because the gate sits on a ledge and the first step out must be onto something.
+  for (const dir of Object.keys(DIRS)) {
+    const [ex, ez] = DIRS[dir]
+    const lx = -ez; const lz = ex // along the wall
+    const wx = ex * hx; const wz = ez * hz
+    for (const l of [0, 1]) {
+      for (let k = 0; k < 2; k++) put(wx + lx * l, o.y + k, wz + lz * l, 'air') // the doorway itself
+      put(wx + ex + lx * l, o.y - 1, wz + ez + lz * l, 'stone') // the landing outside it
+      for (let k = 0; k < 2; k++) put(wx + ex + lx * l, o.y + k, wz + ez + lz * l, 'air')
+    }
+    put(wx + ex, o.y, wz + ez, 'torch', { needs: 'below' }) // lit outside: nothing spawns on the step we leave by
+  }
   // light (nothing spawns on a lit floor) and the furniture, both off the gate's own plane
   for (const [x, z] of [[-hx + 1, -hz + 1], [hx - 1, hz - 1], [-hx + 1, hz - 1], [hx - 1, -hz + 1]]) put(x, o.y, z, 'torch', { needs: 'below' })
   put(0, o.y, -hz + 1, 'chest')
@@ -49,6 +59,7 @@ module.exports.meta = (o, p = {}) => {
     y: o.y,
     h,
     door: [o.x + dx * hx, o.y, o.z + dz * hz],
+    doors: Object.keys(DIRS).map(k => ({ bearing: k, at: [o.x + DIRS[k][0] * hx, o.y, o.z + DIRS[k][1] * hz], out: [o.x + DIRS[k][0] * (hx + 1), o.y, o.z + DIRS[k][1] * (hz + 1)] })),
     outside: [o.x + dx * (hx + 1), o.y, o.z + dz * (hz + 1)], // the first cell of the road
     bearing: door,
     chest: [o.x, o.y, o.z - hz + 1],

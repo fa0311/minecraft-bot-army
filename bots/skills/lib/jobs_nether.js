@@ -380,31 +380,38 @@ module.exports = ctx => {
   // a road along four bearings is three roads too many. Every 50 blocks the bot says where it is and what it can see. The first
   // nether brick stops its finder and pulls everybody else towards it (`settings.nether.sightings` is the rendezvous).
   const BEARINGS = [[1, 0, 'x+'], [-1, 0, 'x-'], [0, 1, 'z+'], [0, -1, 'z-']]
-  // THE WAY OUT IS PART OF THE JOB (measured 13:32Z: twelve scouts left the gate, reported `routed:false` and `walked 4-21` — our
-  // own hub is a 9x9 box with ONE door, and the door was still a wall because the hub job had 38 cells left. A squad that cannot
-  // leave the room it built is the same planning failure as a bot idling at muster). Before the first leg the scout opens the
-  // door itself: anything solid in the two door cells comes out, and the fence gate goes in if one is carried.
-  async function openDoor (bot, api, N0) {
-    try {
-      const d = N0.hub && Array.isArray(N0.hub.door) ? N0.hub.door : null; if (!d) return false
-      let opened = 0
-      for (const dy of [0, 1]) {
-        const c = new Vec3(d[0], d[1] + dy, d[2]); const b = bot.blockAt(c)
-        if (!b || b.boundingBox !== 'block' || /_fence_gate$/.test(b.name)) continue
-        if (eyeOf(bot).distanceTo(c.offset(0.5, 0.5, 0.5)) > 4.5 && !await A.travel(bot, c.offset(0, 0, 0), { range: 2, ms: 20000, stop: api.stop, quiet: true, anyDepth: true })) continue
-        const r = await BL().digBlock(bot, c, { collect: true, requireHarvest: false, allowProtected: true, own: true }).catch(() => ({ ok: false }))
-        if (r && r.ok) opened++
+  // THE WAY OUT IS PART OF THE JOB, AND IT IS A HOLE, NOT A GATE (owner 13:4xZ: "ネザーゲートの周り囲みすぎててハングしてる" —
+  // six scouts reported `stranded {dim:"the_nether"}` INSIDE the room they had walled, at -34..-35,98,-74..-79). Every scout cuts
+  // the four doorways open before its first leg: 2 wide, 2 HIGH, plain air, and a stone landing outside because the gate sits on
+  // a ledge. A hub that keeps mobs out by keeping the army in is worse than no hub — in doubt the wall comes down.
+  async function openDoors (bot, api, N0) {
+    const doors = (N0.hub && Array.isArray(N0.hub.doors)) ? N0.hub.doors : (N0.hub && Array.isArray(N0.hub.door) ? [{ bearing: '?', at: N0.hub.door, out: null }] : [])
+    if (!doors.length) return 0
+    let opened = 0; let landed = 0
+    for (const d of doors) {
+      if (api.stop()) break
+      const a = v(d.at)
+      const lat = [[0, 0], Math.abs(a.x - ((N0.hub.room[0] + N0.hub.room[2]) / 2)) > Math.abs(a.z - ((N0.hub.room[1] + N0.hub.room[3]) / 2)) ? [0, 1] : [1, 0]]
+      for (const [lx, lz] of lat) {
+        for (const dy of [0, 1]) {
+          const c = new Vec3(a.x + lx, a.y + dy, a.z + lz); const b = bot.blockAt(c)
+          if (!b || b.boundingBox !== 'block') continue
+          if (eyeOf(bot).distanceTo(c.offset(0.5, 0.5, 0.5)) > 4.2) { await A.travel(bot, new Vec3(a.x, a.y, a.z), { range: 2, ms: 15000, stop: api.stop, quiet: true, anyDepth: true }); if (eyeOf(bot).distanceTo(c.offset(0.5, 0.5, 0.5)) > 4.5) continue }
+          const r = await BL().digBlock(bot, c, { collect: true, requireHarvest: false, allowProtected: true, own: true }).catch(() => ({ ok: false }))
+          if (r && r.ok) opened++
+        }
+        if (d.out) { // a landing to step onto, or the first step out is a fall
+          const o = new Vec3(d.out[0] + lx, d.out[1] - 1, d.out[2] + lz); const ob = bot.blockAt(o)
+          if (ob && ob.boundingBox !== 'block' && hasRef(bot, o) && eyeOf(bot).distanceTo(o.offset(0.5, 0.5, 0.5)) <= 4.2) { const it = stoneItem(bot); if (it && (await placeStill(bot, api, o, it)).ok) landed++ }
+        }
       }
-      const gate = bot.inventory.items().find(i => /_fence_gate$/.test(i.name))
-      const gc = new Vec3(d[0], d[1], d[2]); const gb = bot.blockAt(gc)
-      if (gate && gb && gb.boundingBox !== 'block' && !/_fence_gate$/.test(gb.name) && hasRef(bot, gc)) { if ((await placeStill(bot, api, gc, gate.name)).ok) opened++ }
-      if (opened) A.result(bot, { ev: 'nether_door', at: d, opened, gate: /_fence_gate$/.test((bot.blockAt(gc) || {}).name || '') })
-      return opened > 0
-    } catch (e_) { swallow('jobs_nether:openDoor', e_); return false }
+    }
+    if (opened || landed) A.result(bot, { ev: 'nether_door', doors: doors.length, opened, landed, at: doors.map(d => d.bearing).join(',') })
+    return opened
   }
   async function explore (bot, job, api, P, until) {
     const N0 = netherOf()
-    await openDoor(bot, api, N0)
+    await openDoors(bot, api, N0)
     const hub = (N0.hub && Array.isArray(N0.hub.outside)) ? N0.hub.outside : (Array.isArray(N0.portal) ? N0.portal : xyz(bot.entity.position))
     const roster = A.settings().roster || []
     const idx = Math.max(0, roster.indexOf(bot.username))
