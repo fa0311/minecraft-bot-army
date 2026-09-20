@@ -1243,41 +1243,6 @@
   "legacyChests": {
    "found": [
     [
-     -366,
-     69,
-     -521
-    ],
-    [
-     -366,
-     70,
-     -521
-    ],
-    [
-     -367,
-     69,
-     -521
-    ],
-    [
-     -367,
-     70,
-     -521
-    ],
-    [
-     -368,
-     70,
-     -521
-    ],
-    [
-     -369,
-     69,
-     -521
-    ],
-    [
-     -369,
-     70,
-     -521
-    ],
-    [
      -370,
      69,
      -521
@@ -1336,7 +1301,7 @@
     98,
     -80
    ],
-   "through": 1789927287093,
+   "through": 1789929050704,
    "scoutRev": 2,
    "hub": {
     "room": [
@@ -1448,8 +1413,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789927287242,
-   "back": 1789927299742,
+   "landingAt": 1789929050915,
+   "back": 1789929063320,
    "lastDeath": 1789924669079,
    "lastDeathBy": "Fuuka",
    "roads": {
@@ -2276,7 +2241,7 @@
    },
    "rev": 10,
    "bots": 1,
-   "restUntil": 1789927063102
+   "restUntil": 1789928984128
   },
   {
    "id": "sleeper",
@@ -2363,7 +2328,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789927414304
+   "restUntil": 1789929144252
   },
   {
    "id": "fill_ring_field2",
@@ -3208,14 +3173,14 @@
    "note": "top model 15:1xZ: 655 OPEN cells (left 3216 minus waiting 2561) - do not lower; ladderWay (fill_wayin) needs builders standing on the RIM to hang the way in",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Misaki",
-    "t": 1789927268618,
+    "by": "Noa",
+    "t": 1789928882266,
     "at": [
-     -325,
-     64,
-     -478
+     -294,
+     62,
+     -479
     ],
-    "drop": 5
+    "drop": 7
    }
   },
   {
@@ -3729,7 +3694,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789926883955
+   "restUntil": 1789929296406
   },
   {
    "id": "nether_landing_2",
@@ -4737,7 +4702,7 @@
     },
     "order": "near"
    },
-   "restUntil": 1789927791482,
+   "restUntil": 1789930384838,
    "way": {
     "by": "Madoka",
     "t": 1789916716021,
@@ -6021,7 +5986,7 @@
     "carry": 320
    },
    "rev": 14,
-   "restUntil": 1789923426555
+   "restUntil": 1789929024273
   },
   {
    "id": "fill_buckets",
@@ -6338,7 +6303,7 @@
     ]
    },
    "rev": 1,
-   "restUntil": 1789927288999
+   "restUntil": 1789929132664
   },
   {
    "id": "mine_sweep",
@@ -6375,7 +6340,7 @@
     "radius": 150,
     "bankAt": 48
    },
-   "restUntil": 1789927193607,
+   "restUntil": 1789929114582,
    "rev": 1
   },
   {
@@ -6510,7 +6475,7 @@
    "type": "build",
    "priority": 57,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 13,
    "site": [
@@ -6535,15 +6500,21 @@
     }
    },
    "rev": 3,
-   "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -402,66,-546",
+   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -402,65,-548",
    "stuckBy": {
     "key": "rev3",
     "bots": [
      "Fuuka",
-     "Aika"
+     "Aika",
+     "Erika"
     ]
    },
-   "restUntil": 1789927675343
+   "restUntil": 1789927675343,
+   "cap": {
+    "id": "cap_base_pen_2_pad",
+    "cols": 435,
+    "t": 1789927911282
+   }
   },
   {
    "id": "base_core_pad",
@@ -6623,7 +6594,56 @@
     "order": "near"
    },
    "note": "needs: dirt (4 cells wait; every cell whose material exists is done or in work)",
-   "restUntil": 1789927399419
+   "restUntil": 1789930271637,
+   "stuckBy": {
+    "key": "rev0",
+    "bots": [
+     "Akari",
+     "Yui"
+    ]
+   }
+  },
+  {
+   "id": "cap_base_pen_2_pad",
+   "type": "build",
+   "priority": 30,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -389,
+    69,
+    -549
+   ],
+   "plan": "the finished level of base_pen_2_pad is bare stone: cap the grade layer y68 of x -403..-375 / z -556..-542 with DIRT (grass spreads by itself). Only where bare stone, gravel or air stands - never paving, a field, a crop or another blueprint of ours - and only out of the dirt SURPLUS over targets.dirt 128",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -389,
+     68,
+     -549
+    ],
+    "args": {
+     "w": 29,
+     "d": 15,
+     "cap": true,
+     "fill": "dirt"
+    },
+    "needStock": {
+     "dirt": 128
+    },
+    "order": "near"
+   },
+   "stuckBy": {
+    "key": "rev0",
+    "bots": [
+     "Erika",
+     "Fuuka",
+     "Kaede"
+    ]
+   },
+   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -402,65,-548"
   }
  ]
 }
