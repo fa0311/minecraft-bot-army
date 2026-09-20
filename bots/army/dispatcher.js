@@ -431,10 +431,10 @@ function tick () {
   const roomFor = job => {
     const held = Math.max(1, (staffed[job.id] || []).length); const head = Math.max(1, headOf(job)); const w = workLeft[job.id]; const y = yieldCap[job.id]
     if (y && y.until > Date.now() && held >= y.cap) return false // a squad the YIELD THROTTLE cut is the last place for another bot
-    // the gate is measured against the job's HEAD-COUNT, not against the bots already on it: a per-bot threshold moves every time somebody joins,
-    // which left 16 bots standing at muster in the dry run while a ravine with 150 open cells was called "full". How many bots the site can really
-    // employ is then MEASURED by the yield throttle above (output per bot), not guessed here.
-    if (w && Date.now() - w.t < 600000) return w.left > 20 * head
+    // 20 open cells per bot ALREADY on the site, because that is what the build handler itself enforces: over-filled, it hands the surplus back
+    // with "build: tail, N cells for M builders" and they bounce to the sponge and straight back (12:34: fill_ravine_s -> tidy_spawn x20 against
+    // tidy_spawn -> fill_ravine_s x23 in ten minutes). Standing holds never re-test this, so the count cannot flap.
+    if (w && Date.now() - w.t < 600000) return w.left > 20 * held
     return producing(job.id) && held < 2 * head // handlers that report no cell count (lumber, light, tidy): never more than double
   }
   // CAPACITY GATES ONLY BAR NEWCOMERS, never the bots already inside (12:00: saturation and the yield cap were tested against the standing holders

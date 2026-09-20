@@ -55,7 +55,10 @@ module.exports = ctx => {
     return mod.geom({ x: P.origin[0], y: P.origin[1], z: P.origin[2] }, P.args || {})
   }
   const netherEdit = patch => A.boardEdit(b => { const S = b.settings = b.settings || {}; S.nether = Object.assign({}, S.nether || {}, patch) })
-  const netherOf = () => A.settings().nether || {}
+  // READ THE BOARD, NOT THE 5-SECOND CACHE (measured 12:30:15Z: Kanade reported `portal_back` at 12:29:54 and crossed straight back
+  // into the Nether — `A.settings()` caches for 5 s, so the `back` this very bot had just written was not there yet and the gate
+  // sent it round again). `settings.nether` is read a handful of times per slice; a fresh read costs nothing.
+  const netherOf = () => { try { return ((A.readJSON(A.F.board, {}) || {}).settings || {}).nether || {} } catch (e_) { swallow('jobs_nether:netherOf', e_); return A.settings().nether || {} } }
 
   // ---------------------------------------------------------------- reading the world back
   const frameGaps = (bot, G) => G.frame.filter(f => { const b = bot.blockAt(v(f.at)); return !b || (f.corner ? !STONE_RE.test(b.name) : b.name !== 'obsidian') })
@@ -400,7 +403,7 @@ module.exports = ctx => {
 
     // ---- 3. GO (one pinned scout, once per rev)
     const N = netherOf()
-    const wanted = P.go === true && (N.scoutRev !== (job.rev || 0) || !N.back)
+    const wanted = P.go === true && st.phase !== 'done' && (N.scoutRev !== (job.rev || 0) || !N.back) // st.phase: the belt to the board's braces - one round trip per rev, whatever a cache says
     if (!wanted) {
       // the gate stands and burns and nobody has to watch it: free the bot (a job that holds a bot for nothing is a planning failure)
       if ((job.names || []).length <= 1 && !P.standing) A.boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (j && (j.rev || 0) === (job.rev || 0) && j.status === 'active') { j.status = 'paused'; j.note = 'auto-paused: the gate is lit' + (P.go === true ? ' and the round trip is done (bump rev to send another expedition)' : '') } })

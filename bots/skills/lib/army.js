@@ -371,6 +371,7 @@ function sensors (bot) {
 const ARMOR_SLOT = { helmet: 'head', chestplate: 'torso', leggings: 'legs', boots: 'feet' }
 const armorOf = name => { const m = /^(\w+)_(helmet|chestplate|leggings|boots)$/.exec(name); return m && C.ARMOR_RANK[m[1]] ? { rank: C.ARMOR_RANK[m[1]], piece: m[2] } : null }
 const weaponOf = name => { const m = /^(\w+)_(sword|axe)$/.exec(name); return m && TIER[m[1]] ? { rank: TIER[m[1]], kind: m[2] } : null }
+const toolOf = name => { const m = /^(\w+)_(pickaxe|shovel|axe|hoe)$/.exec(name); return m && TIER[m[1]] ? { rank: TIER[m[1]], kind: m[2] } : null }
 function wornRank (bot, piece) { const cur = bot.inventory.slots[bot.getEquipmentDestSlot(ARMOR_SLOT[piece])]; const a = cur && armorOf(cur.name); return a ? a.rank : 0 }
 function offHand (bot) { return bot.inventory.slots[bot.getEquipmentDestSlot('off-hand')] || null }
 async function wear (bot) {
@@ -398,16 +399,32 @@ function riskJob (job, phase) { return !!job && (job.risk != null ? !!job.risk :
 // pure decision (offline-testable): mine/stock = {item:count}, others = [{item:count}] of the other live bots -> item names to take, one per kind
 function kitPlan (mine, stock, others, risk) {
   const bestHeld = (m, of, key, val) => Object.keys(m).reduce((r, n) => { const q = of(n); return q && q[key] === val && m[n] > 0 ? Math.max(r, q.rank) : r }, 0)
-  const pickFor = (of, key, val) => { // the best stocked UPGRADE of one kind that the fair-share rule lets this bot take
+  const pickFor = (of, key, val, queue) => { // the best stocked UPGRADE of one kind that the fair-share rule lets this bot take
     const cur = bestHeld(mine, of, key, val)
     const cands = Object.keys(stock).filter(n => stock[n] > 0 && of(n) && of(n)[key] === val && of(n).rank > cur).sort((a, b) => of(b).rank - of(a).rank)
-    return cands.find(n => risk || stock[n] > others.filter(m => bestHeld(m, of, key, val) < of(n).rank).length) || null
+    // ARMOUR: the stock must cover every mate who lacks one as good (a farmer never takes the chestplate a miner needs).
+    // TOOLS (queue=true): the queue is by NEED - only the mates who are WORSE OFF THAN ME are ahead of me; equals are first come, first served.
+    // Measured 09-20 12:45Z: with the armour rule 12 diamond shovels against 45 mates "lacking one" meant NOBODY off a risk job ever upgraded,
+    // and 41 of 50 bots kept digging 10 000 earth cells with a stone shovel while the shelf was full.
+    return cands.find(n => risk || stock[n] > others.filter(m => bestHeld(m, of, key, val) < (queue ? cur : of(n).rank)).length) || null
   }
   const wants = ['chestplate', 'leggings', 'helmet', 'boots'].map(p => pickFor(armorOf, 'piece', p))
   const swordAnywhere = bestHeld(mine, weaponOf, 'kind', 'sword') > 0 || Object.keys(stock).some(n => stock[n] > 0 && (weaponOf(n) || {}).kind === 'sword')
   wants.push(pickFor(weaponOf, 'kind', 'sword') || (swordAnywhere ? null : pickFor(weaponOf, 'kind', 'axe')))
+  // A TOOL IS KIT LIKE ARMOUR (review row 2, measured 09-20 11:45Z: 9 bots dug with WOODEN picks, 8 with stone, 41 of 50 carried a stone shovel while the depot held
+  // 19 diamond pickaxes, 12 diamond shovels and 353 diamonds - because the old loop took the PLAINEST tool and only when the slot was empty. A wooden pick is ~4x
+  // slower on stone than a diamond one and gives nothing from iron ore, and 10 000 cells of earthmoving is the army's main work.)
+  // Same fair share as armour: take the best the depot can spare beyond what the mates who carry something WORSE need — risk jobs (the mine: `delegate`) first.
+  // Floor: bare hands are worse than any fair share, so a bot without a tool of that kind takes the plainest one on the shelf.
+  for (const kind of ['pickaxe', 'shovel', 'axe']) {
+    const up = pickFor(toolOf, 'kind', kind, true)
+    if (up) { wants.push(up); continue }
+    if (bestHeld(mine, toolOf, 'kind', kind)) continue
+    const any = Object.keys(stock).filter(n => stock[n] > 0 && (toolOf(n) || {}).kind === kind).sort((a, b) => toolOf(a).rank - toolOf(b).rank)[0]
+    if (any) wants.push(any)
+  }
   if (!mine.shield && stock.shield > 0 && (risk || stock.shield > others.filter(m => !m.shield).length)) wants.push('shield')
-  return wants.filter(Boolean)
+  return [...new Set(wants.filter(Boolean))] // an axe can be both the weapon and the tool of a bot without a sword: fetch it once
 }
 async function kitUp (bot, opts = {}) {
   if (bot.__armyKitBusy || !bot.entity) return []
@@ -422,16 +439,9 @@ async function kitUp (bot, opts = {}) {
       if (U.cancelled(bot) || (opts.stop && opts.stop())) break
       if (await withdraw(bot, n, 1, { stop: opts.stop, maxDist: opts.maxDist == null ? 96 : opts.maxDist }) > 0) took.push(n)
     }
-    // EVERY BOT CARRIES A PICKAXE, A SHOVEL AND AN AXE (owner 09-20: "つるはしを持っておらず、手で掘るやつが多すぎ" - 15 of 47 bots had no pickaxe at all, the depot held none and
-    // 398 diamonds; escapes, tidy cuts and fills then dig stone BY HAND: 7.5 s a block and no drop). Tools are part of the kit like armour: the plainest one the depot
-    // has (stone first - iron and diamond stay for the miners unless nothing else is there). The quartermaster keeps the shelf filled (targets).
-    { const sm = stockMap(); const mineInv = carried(bot)
-      for (const kind of ['pickaxe', 'shovel', 'axe']) {
-        if (U.cancelled(bot) || (opts.stop && opts.stop())) break
-        if (Object.keys(mineInv).some(k => k.endsWith('_' + kind))) continue
-        const n = ['stone_', 'iron_', 'diamond_', 'golden_', 'wooden_'].map(t => t + kind).find(q => sm[q] > 0); if (!n) continue
-        if (await withdraw(bot, n, 1, { stop: opts.stop, maxDist: opts.maxDist == null ? 96 : opts.maxDist }) > 0) took.push(n)
-      } }
+    // EVERY BOT CARRIES A PICKAXE, A SHOVEL AND AN AXE (owner 09-20: "つるはしを持っておらず、手で掘るやつが多すぎ"), and it carries the BEST one the army can spare:
+    // both rules live in kitPlan above, so the tools come out of the same fair-share loop as the armour. What the upgrade makes redundant goes back into the tools
+    // chest at the next bank visit (bank() keeps one best tool of each kind) or with the next `offload` — never thrown away.
     if (took.length) { await wear(bot); result(bot, { ev: 'kitted', items: took, risk: !!opts.risk, why: opts.why || null }) }
   } catch (e_) { swallow('army:kitUp', e_) } finally { bot.__armyKitBusy = false }
   return took
@@ -1266,7 +1276,6 @@ async function bank (bot, keep = {}, opts = {}) {
 const MATERIAL_RE = /^(cobblestone|cobbled_deepslate|stone|deepslate|andesite|diorite|granite|tuff|dirt|coarse_dirt|gravel|sand|red_sand|sandstone|[a-z_]+_planks|[a-z_]+_log)$/
 const KEEPS_MATERIAL = /^(build|deck|tidy|light|steps|delegate|haul|scan)$/
 const OFF = { allow: 16, near: 24, far: 96, min: 32, every: 180000, overdue: 600000, recheck: 20000 }
-const toolOf = name => { const m = /^(\w+)_(pickaxe|shovel|axe|hoe)$/.exec(name); return m && TIER[m[1]] ? { rank: TIER[m[1]], kind: m[2] } : null }
 function surplusOf (bot) { const m = inv(bot); const out = {}; for (const k of Object.keys(m)) if (MATERIAL_RE.test(k) && m[k] > OFF.allow) out[k] = m[k] - OFF.allow; return out }
 function segDist (c, a, b) { // XZ distance of the chest from the line the bot is about to walk
   const vx = b.x - a.x; const vz = b.z - a.z; const L = vx * vx + vz * vz

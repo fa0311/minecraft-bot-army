@@ -772,14 +772,14 @@
    ],
    "axis": "x",
    "lit": 1789905050111,
-   "by": "Koharu",
+   "by": "Kanade",
    "portal": [
     -37,
     100,
     -76
    ],
-   "through": 1789906285310,
-   "scoutRev": 5,
+   "through": 1789907415118,
+   "scoutRev": 6,
    "hub": [
     -37,
     98,
@@ -795,7 +795,17 @@
    "returnJob": "nether_return",
    "deaths": 0,
    "deathsResetAt": 1789907290056,
-   "deathsResetWhy": "stage 1b: ONE trip with the travel-free landing (top model 12:3xZ)"
+   "deathsResetWhy": "stage 1b: ONE trip with the travel-free landing (top model 12:3xZ)",
+   "landing": [
+    -39,
+    -78,
+    -35,
+    -74
+   ],
+   "landingY": 98,
+   "landingSafe": false,
+   "landingAt": 1789907418647,
+   "back": 1789907451214
   }
  },
  "enlisted": [
@@ -1780,7 +1790,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789907391421
+   "restUntil": 1789907802987
   },
   {
    "id": "fill_ring_field2",
@@ -3405,7 +3415,7 @@
     ]
    },
    "note": "top model 11:4xZ: re-activated after the above-grade sweep went in (fill_flush): the two leftover cells -328,68,-426 / -318,68,-420 were unreachable because one of the y69 filler lines stood ON them",
-   "restUntil": 1789907575916
+   "restUntil": 1789908191265
   },
   {
    "id": "base_field_7",
@@ -4240,7 +4250,7 @@
      "d": 15
     }
    },
-   "note": "foreman 12:2xZ: STALLED 37 min at left 14 (GEMBA), 264 build_passes with done 0 and build_blocked no dirt carried or in stock - the depot holds 0 dirt while 415 sits in bots pockets; crew 4->2 so it stops holding bots, the re-opened base_infill_n252_n558 cut is the dirt supply",
+   "note": "needs: dirt (32 cells wait; every cell whose material exists is done or in work)",
    "rev": 9,
    "restUntil": 1789907532824
   },
@@ -4594,7 +4604,7 @@
    "type": "portal",
    "priority": 97,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 1,
    "shiftMin": 30,
@@ -4622,7 +4632,7 @@
     "landing": true,
     "maxDeaths": 1
    },
-   "note": "STAGE 1b, ONE TRIP: settings.nether.deaths was deliberately reset 0 (was 2) for this crossing only, and maxDeaths is 1 - the first death re-pauses this job. The scout stands still on arrival, seals the lava faces in reach, floors and walls a 5x5 landing at -37,100,-76 with 208 blocks of any stone, lights it, and comes home. No walking before the landing reads safe.",
+   "note": "auto-paused: the gate is lit and the round trip is done (bump rev to send another expedition)",
    "rev": 6,
    "names": [
     "Kanade"
@@ -4874,7 +4884,13 @@
     }
    },
    "rev": 2,
-   "restUntil": 1789907497756
+   "restUntil": 1789908221342,
+   "stuckBy": {
+    "key": "rev2",
+    "bots": [
+     "Akari"
+    ]
+   }
   },
   {
    "id": "base_road_12",
