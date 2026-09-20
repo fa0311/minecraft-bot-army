@@ -6,7 +6,9 @@
 W=/root/workspace
 up () { # up <pgrep pattern> <label> <command...>
   local pat=$1 label=$2; shift 2
-  if pgrep -f "$pat" >/dev/null; then echo "  = $label already running"; else setsid nohup "$@" >/dev/null 2>&1 & echo "  + $label started"; fi
+  # only a process that IS the daemon counts (bash/sh/node/java as the command): a plain `pgrep -f` also matches the caller's own shell line when it names the script
+  # (09-20: the operator daemon stayed down after a restart because the restarting command contained "ops/operator.sh")
+  if pgrep -f "^(/bin/|/usr/bin/)?(bash|sh|node|java)( .*)? [^ ]*$pat" >/dev/null; then echo "  = $label already running"; else setsid nohup "$@" >/dev/null 2>&1 & echo "  + $label started"; fi
 }
 command -v java >/dev/null || { echo "java missing: apt-get install -y openjdk-25-jdk-headless (Paper 26.x needs Java 25)"; exit 1; }
 [ -d $W/bots/node_modules ] || { echo "node_modules missing: (cd $W/bots && npm ci && sh patches/apply.sh)"; exit 1; }

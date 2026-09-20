@@ -19,6 +19,8 @@
 //                    A lit gate spawns zombified piglins in the OVERWORLD outside the mob cap - that is TPS the owner pays for.
 //   maxDeaths:6      deaths IN THE LAST 30 MIN (settings.nether.deathLog) before the job pauses itself. Death is an accepted cost
 //                    of exploring the Nether; a squad wiped in a quarter of an hour is not.
+//   work:'stair'     THE WAY DOWN from a hub doorway to `toY` (blueprint nether_stair): a 2-wide, 3-high, roofed, lit corridor,
+//                    cut through rock and built of carried stone over void. Writes settings.nether.stair / floorHub.
 //   work:'fortress'  4 squads, one per bearing (+x/-x/+z/-z by roster index, or params.bearing), `range` blocks out in `step`
 //                    legs, `nether_scout` every leg, a <=4-cell BRIDGE where the read-only pathfinder finds no way, and the first
 //                    nether brick pulls everybody to `settings.nether.sightings`.
@@ -216,7 +218,7 @@ module.exports = ctx => {
       if (!BL().standable(bot, c)) return false
       const u = bot.blockAt(c.offset(0, -1, 0)); if (!u || u.boundingBox !== 'block' || /lava|magma/.test(u.name)) return false
       for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) for (let dz = -2; dz <= 2; dz++) { const b = bot.blockAt(c.offset(dx, dy, dz)); if (b && /^(lava|fire)$/.test(b.name)) return false }
-      return !!await A.travel(bot, c, { range: 0, ms: 12000, stop: api.stop, quiet: true, anyDepth: true })
+      return !!await nTravel(bot, c, { range: 0, ms: 12000, stop: api.stop })
     } catch (e_) { swallow('jobs_nether:safeStep', e_); return false }
   }
   // Place/clear a list of cells from where the bot stands; when nothing is left in reach, take ONE safe step towards the nearest
@@ -348,6 +350,50 @@ module.exports = ctx => {
     return sealed
   }
 
+  // ---------------------------------------------------------------- HOW A BOT WALKS IN THE NETHER
+  // SIX BOTS "tried to swim in lava" between 13:36 and 13:37Z on one job. Six in two minutes is one cause, not bad luck: lava is
+  // in `blocksToAvoid`, so the pathfinder never routes INTO it — but it happily routes ALONGSIDE it, cuts a diagonal corner over
+  // it, and drops 3-4 onto a ledge beside it, and then a shove, a ghast, or lava that flowed after the path was planned finishes
+  // the job. So over there every walk gets its own rule: any cell with lava or fire within 2 horizontally, 3 below or 2 above is
+  // priced out of the graph, the drop is 1, and there is no parkour, no sprint and no 1x1 tower. `A.travel` re-asserts sprinting
+  // from the larder on every trip, so `allowSprinting` is pinned to false with a property while the bot is off the overworld.
+  let _lava = { t: 0, s: new Set() }
+  function lavaSet (bot, force) {
+    if (!force && Date.now() - _lava.t < 4000) return _lava.s
+    const s2 = new Set()
+    try {
+      const ids = ['lava', 'fire'].map(n => bot.registry.blocksByName[n]).filter(Boolean).map(b => b.id)
+      if (ids.length) for (const q of bot.findBlocks({ matching: ids, maxDistance: 48, count: 900 })) s2.add(q.x + ',' + q.y + ',' + q.z)
+    } catch (e_) { swallow('jobs_nether:lavaSet', e_) }
+    _lava = { t: Date.now(), s: s2 }
+    return s2
+  }
+  const lavaNear = (p, r = 2, below = 3, above = 2) => { const s2 = _lava.s; if (!s2.size) return false; for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) for (let dy = -below; dy <= above; dy++) if (s2.has((p.x + dx) + ',' + (p.y + dy) + ',' + (p.z + dz))) return true; return false }
+  function netherWalkOn (bot) {
+    try {
+      const mv = bot.pathfinder && bot.pathfinder.movements; if (!mv) return null
+      mv.maxDropDown = 1; mv.allowParkour = false; mv.allow1by1towers = false; mv.canDig = false; mv.scafoldingBlocks = []
+      if (!mv.__netherPinned) { mv.__netherPinned = true; try { Object.defineProperty(mv, 'allowSprinting', { get: () => false, set: () => {}, configurable: true }) } catch (e_) { swallow('jobs_nether:pinSprint', e_) } }
+      if (!mv.__netherRule) { const rule = b => (b && b.position && lavaNear(b.position) ? 100 : 0); mv.__netherRule = rule; mv.exclusionAreasStep.push(rule) }
+      return mv
+    } catch (e_) { swallow('jobs_nether:walkOn', e_); return null }
+  }
+  function netherWalkOff (bot) {
+    try {
+      const mv = bot.pathfinder && bot.pathfinder.movements; if (!mv) return
+      if (mv.__netherRule) { mv.exclusionAreasStep = mv.exclusionAreasStep.filter(f => f !== mv.__netherRule); mv.__netherRule = null }
+      if (mv.__netherPinned) { mv.__netherPinned = false; try { delete mv.allowSprinting; mv.allowSprinting = false } catch (e_) { swallow('jobs_nether:unpinSprint', e_) } }
+      mv.maxDropDown = A.DROP && A.DROP.normal ? A.DROP.normal : 3
+    } catch (e_) { swallow('jobs_nether:walkOff', e_) }
+  }
+  // every walk over there goes through here: fresh lava picture, rule on, then the ordinary read-only A.travel
+  async function nTravel (bot, target, opts) {
+    lavaSet(bot, true); netherWalkOn(bot)
+    const mv = bot.pathfinder && bot.pathfinder.movements; if (mv) mv.maxDropDown = 1
+    return await A.travel(bot, target, Object.assign({ anyDepth: true, quiet: true }, opts || {}))
+  }
+  // is where we STAND safe enough to build from? (never bridge off a 1-wide ledge with lava under it)
+  const safeStand = bot => { const p = bot.entity.position.floored(); return !lavaNear(p, 2, 3, 2) && A.walkableArea(bot, 60, 1) >= 8 }
   // ---------------------------------------------------------------- what a pair of eyes sees from where it stands
   const SIGHT = { nether_bricks: 'fortress', nether_brick_fence: 'fortress', nether_brick_stairs: 'fortress', nether_brick_slab: 'fortress', spawner: 'spawner', nether_wart: 'wart', soul_sand: 'soul_sand', ancient_debris: 'debris' }
   function sightNear (bot, r) {
@@ -370,6 +416,7 @@ module.exports = ctx => {
       if (b.boundingBox === 'block') continue
       if (eyeOf(bot).distanceTo(c.offset(0.5, 0.5, 0.5)) > 4.0 || !hasRef(bot, c)) break
       const item = stoneItem(bot); if (!item) break
+      if (b.name === 'lava') { /* a causeway cell OVER lava is exactly what we want to close */ }
       if (!(await placeStill(bot, api, c, item)).ok) break
       n++
     }
@@ -437,8 +484,8 @@ module.exports = ctx => {
         const k = Math.min(hop, len) / len
         const sub = new Vec3(Math.round(me.x + dv.x * k), tgt.y, Math.round(me.z + dv.z * k))
         const q0 = me.clone()
-        let got = await A.travel(bot, sub, { range: 3, ms: 30000, stop: api.stop, anyDepth: true, quiet: true })
-        if (!got) { const nb = await bridgeAhead(bot, api, sub); bridged += nb; if (nb) got = await A.travel(bot, sub, { range: 3, ms: 20000, stop: api.stop, anyDepth: true, quiet: true }) }
+        let got = await nTravel(bot, sub, { range: 3, ms: 30000, stop: api.stop })
+        if (!got && safeStand(bot)) { const nb = await bridgeAhead(bot, api, sub); bridged += nb; if (nb) got = await nTravel(bot, sub, { range: 3, ms: 20000, stop: api.stop }) }
         if (!got && bot.entity.position.distanceTo(q0) < 2) break // this hop is closed even to a bridge
       }
       walked += Math.round(p0.distanceTo(bot.entity.position)); legs++
@@ -495,6 +542,17 @@ module.exports = ctx => {
       box = meta.box
     } else if (work === 'scout') {
       return await lookAround(bot, job, api, P, until)
+    } else if (work === 'stair') {
+      // THE WAY DOWN (top model 13:5xZ): from a hub doorway to the first real floor. The blueprint lists every cell, so the same
+      // job cuts through netherrack where there is rock and builds of carried stone where there is void — no decision needed on
+      // a half-rock slope. `buildCells` digs the `air` cells, places the `stone` ones, and only ever steps inside the stair's box.
+      const N2 = netherOf()
+      const doors = (N2.hub && Array.isArray(N2.hub.doors)) ? N2.hub.doors : []
+      const dr = doors.find(q => q.bearing === (P.bearing || 'z-')) || doors[0]
+      const from = Array.isArray(P.from) ? P.from : dr ? dr.out : null
+      if (!from) return { work, why: 'no start: settings.nether.hub.doors is not set and params.from is missing' }
+      const r2 = bpCells('nether_stair', from, { bearing: P.bearing || (dr && dr.bearing) || 'z-', toY: P.toY == null ? 33 : P.toY, run: P.run || 1 })
+      cells = r2.cells; meta = r2.meta; box = meta.box
     } else if (work === 'fortress') {
       return await explore(bot, job, api, P, until)
     } else return { work, why: 'unknown params.work' }
@@ -520,6 +578,12 @@ module.exports = ctx => {
       const stands = { chest: cellOK(bot, { x: meta.chest[0], y: meta.chest[1], z: meta.chest[2], block: 'chest' }), table: cellOK(bot, { x: meta.table[0], y: meta.table[1], z: meta.table[2], block: 'crafting_table' }) }
       out.chest = stands.chest; out.table = stands.table
       netherEdit({ hub: Object.assign({}, meta, { built: r.left === 0, chestStands: stands.chest, tableStands: stands.table, at: Date.now() }) })
+    }
+    if (work === 'stair' && meta) {
+      const reached = !r.left && !r.unloaded
+      netherEdit({ stair: { from: Array.isArray(P.from) ? P.from : null, bearing: meta.bearing, end: meta.end, toY: meta.toY, box: meta.box, left: r.left, unloaded: r.unloaded, at: Date.now(), done: reached } })
+      if (reached) netherEdit({ floorHub: meta.end })
+      out.bearing = meta.bearing; out.end = meta.end; out.toY = meta.toY
     }
     if (work === 'road' && meta) {
       const roads = Object.assign({}, N.roads || {}); roads[meta.bearing] = { from: Array.isArray(P.from) ? P.from : (N.hub || {}).outside, end: meta.end, length: meta.length, box: meta.box, left: r.left, at: Date.now() }
@@ -562,7 +626,7 @@ module.exports = ctx => {
       const reg = netherOf().portal
       if (!Array.isArray(reg) || reg.length !== 3) { A.result(bot, { ev: 'nether_lost', job: job.id, pos: xyz(bot.entity.position), why: 'no gate in view and settings.nether.portal is not set' }); return 'in the Nether with no gate in view and none on the board' }
       task(bot, 'portal: walking to the far gate ' + reg.join(','))
-      if (!await A.travel(bot, v(reg), { range: 2, ms: 240000, stop: api.stop, anyDepth: true })) {
+      if (!await nTravel(bot, v(reg), { range: 2, ms: 240000, stop: api.stop })) {
         if (!api.stop()) { A.result(bot, { ev: 'nether_lost', job: job.id, pos: xyz(bot.entity.position), to: reg, why: 'no route to the registered far gate' }); A.askHelp(bot, 'nether_lost', 'I am in the Nether at ' + xyz(bot.entity.position).join(',') + ' and cannot reach the gate at ' + reg.join(',')) }
         return 'in the Nether at ' + xyz(bot.entity.position).join(',') + ': no route to the gate'
       }
@@ -572,6 +636,7 @@ module.exports = ctx => {
     const cells = portalBody(bot, far.position, 10).map(p => [p.x, p.y, p.z])
     const to = await stepThrough(bot, api, cells.length ? cells : [xyz(far.position)], Math.min(P.crossS || 45, 120), 'standing in the far gate')
     if (to && !/nether/.test(to)) {
+      netherWalkOff(bot)
       A.result(bot, { ev: 'portal_back', job: job.id, to, pos: xyz(bot.entity.position), from: xyz(far.position) })
       netherEdit({ back: Date.now(), portal: xyz(far.position) })
       st.home = true
@@ -582,6 +647,7 @@ module.exports = ctx => {
 
   // ---------------------------------------------------------------- the far side (also the entry point when a new slice starts over there)
   async function netherSide (bot, job, api, ctx2, st, P) {
+    netherWalkOn(bot)
     task(bot, 'portal: the Nether — waiting for the world')
     for (let w = 0; w < 80 && !bot.world.getColumnAt(bot.entity.position); w++) await sleep(500)
     await sleep(1500)

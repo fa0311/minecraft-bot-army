@@ -575,7 +575,7 @@
    "wool": 150,
    "stone_shovel": 40,
    "stone_axe": 20,
-   "dirt": 2048,
+   "dirt": 256,
    "stone_pickaxe": 16,
    "book": 48,
    "bookshelf": 15,
@@ -772,14 +772,14 @@
    ],
    "axis": "x",
    "lit": 1789910808319,
-   "by": "Sakura",
+   "by": "Yui",
    "portal": [
     -44,
     98,
     -80
    ],
-   "through": 1789911680285,
-   "scoutRev": 3,
+   "through": 1789911888141,
+   "scoutRev": 0,
    "hub": {
     "room": [
      -41,
@@ -879,7 +879,7 @@
    ],
    "shellY": 98,
    "returnJob": "nether_return",
-   "deaths": 1,
+   "deaths": 0,
    "deathsResetAt": 1789910779294,
    "deathsResetWhy": "owner 13:2xZ: death is an accepted cost of exploring the Nether; the brake is 6 in 30 min",
    "landing": [
@@ -890,8 +890,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789911680528,
-   "back": 1789911702449,
+   "landingAt": 1789911888339,
+   "back": 1789911908292,
    "lastDeath": 1789911678325,
    "lastDeathBy": "Hotaru",
    "roads": {
@@ -919,11 +919,29 @@
    },
    "outAt": 1789909945544,
    "outBy": "Honoka",
-   "deathLog": [
-    1789911678325
-   ],
+   "deathLog": [],
    "sightings": [],
-   "fortress": null
+   "fortress": null,
+   "stair": {
+    "from": null,
+    "bearing": "z-",
+    "end": [
+     -37,
+     33,
+     -146
+    ],
+    "toY": 33,
+    "box": [
+     -39,
+     -148,
+     -35,
+     -79
+    ],
+    "left": 840,
+    "unloaded": 0,
+    "at": 1789911907573,
+    "done": false
+   }
   }
  },
  "enlisted": [
@@ -1864,7 +1882,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789911774493
+   "restUntil": 1789911997073
   },
   {
    "id": "fill_ring_field2",
@@ -2248,7 +2266,7 @@
    },
    "shiftMin": 20,
    "rev": 8,
-   "restUntil": 1789911743122,
+   "restUntil": 1789912132197,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "leather"
@@ -2705,7 +2723,7 @@
    "type": "delegate",
    "priority": 87,
    "front": "mine",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "site": [
     -330,
@@ -3056,9 +3074,9 @@
    "type": "build",
    "priority": 70,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 6,
+   "bots": 3,
    "site": [
     -311,
     69,
@@ -3289,7 +3307,7 @@
     },
     "order": "near"
    },
-   "rev": 21,
+   "rev": 23,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check.",
    "note": "top model 13:3xZ: the first stair was swallowed by the fill itself (ramp columns are filled on up to grade) and the front became a 9-high cliff again = no way in, bots dropped in and pillared out (foreman paused it: \"roofing, not filling\"). NEW: a switchback stair from the finished front at z -471 (lane x -300 south 67->61, lane x -301 north 60->54) with  boxes that hold the air above every step open. Fill the stair itself last",
    "restUntil": 1789906650052
@@ -3722,7 +3740,7 @@
     }
    },
    "note": "needs: dirt (32 cells wait; every cell whose material exists is done or in work)",
-   "rev": 13,
+   "rev": 14,
    "restUntil": 1789908774993
   },
   {
@@ -4041,9 +4059,9 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 16,
+   "bots": 13,
    "minBots": 6,
-   "maxBots": 24,
+   "maxBots": 30,
    "site": [
     -504,
     74,
@@ -4067,7 +4085,7 @@
      "h": 22
     }
    },
-   "rev": 4
+   "rev": 6
   },
   {
    "id": "nether_road_xp",
@@ -4113,7 +4131,7 @@
    "type": "portal",
    "priority": 96,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 1,
    "shiftMin": 10,
@@ -4384,6 +4402,78 @@
     }
    },
    "note": "auto-paused: build_runaway - 4 digs of the same cell in one slice (dig/place loop) at -396,67,-489"
+  },
+  {
+   "id": "nether_stair",
+   "type": "portal",
+   "priority": 96,
+   "front": "base",
+   "status": "active",
+   "when": "day",
+   "bots": 4,
+   "shiftMin": 20,
+   "site": [
+    -326,
+    69,
+    -518
+   ],
+   "plan": "zone portal (docs/WORLD.md): THE WAY DOWN. The far gate landed on a ledge (42 of 81 columns within 12 blocks have no floor within 4 below; 10 deaths in 45 min, every fall at y24-38). A 2-wide, 3-high, roofed, lit corridor from the hub's z- doorway at the_nether -37,98,-81 down to y33 - cut through netherrack where there is rock, built of carried stone where there is void, so nobody walks a ledge and no ghast sees in. ONE round trip per slice per bot; lava within 2 of a path cell is priced out of the graph, maxDropDown 1, no sprint, no parkour.",
+   "params": {
+    "blueprint": "nether_portal",
+    "origin": [
+     -326,
+     68,
+     -518
+    ],
+    "args": {
+     "axis": "x"
+    },
+    "buildJob": "base_portal",
+    "go": true,
+    "landing": true,
+    "work": "stair",
+    "bearing": "z-",
+    "toY": 33,
+    "run": 1,
+    "minutes": 7,
+    "cobble": 256,
+    "crossS": 45,
+    "maxDeaths": 6
+   }
+  },
+  {
+   "id": "west_terrace_cut_3",
+   "type": "build",
+   "priority": 65,
+   "front": "works",
+   "status": "active",
+   "when": "any",
+   "bots": 24,
+   "minBots": 6,
+   "maxBots": 24,
+   "site": [
+    -520,
+    74,
+    -480
+   ],
+   "plan": "zone WEST TERRACE (docs/WORLD.md), third bay: the mountain x -528..-513 / z -500..-460 (tops above y93, surveyed from the air 13:0xZ) cut down to the terrace level y73 = dirt for the caps over the filled ravine and the yard (~6000 needed), cobblestone for roads and fills. A terrace, never a pit; whole trees are felled. The always-doable squad job when bay 2 is done",
+   "produces": [
+    "dirt",
+    "cobblestone"
+   ],
+   "params": {
+    "blueprint": "clear_area",
+    "origin": [
+     -520,
+     73,
+     -480
+    ],
+    "args": {
+     "w": 16,
+     "d": 41,
+     "h": 32
+    }
+   }
   }
  ]
 }
