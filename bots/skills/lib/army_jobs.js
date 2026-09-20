@@ -3243,6 +3243,10 @@ async function build (bot, job, api, ctx) {
     if (!mine) return false // a mate is hanging the run right now
     // the column for the run: open from grade down to a floor 4+ below, a SOLID wall on one side for the whole run (every ladder needs the block behind it), and a
     // stand on the rim on top of that wall. Nearest to the deepest open cell first, so the way in lands where the work is.
+    // TWO COLUMNS, NOT ONE - A ZIG-ZAG (measured 14:5xZ, the third failure mode: with a CONTIGUOUS ladder column every cell of it is `physical` to the pathfinder, so a
+    // bot can only ever stand on the TOP rung - "could not step onto the rung at -303,68,-474 (stood at -303,69,-474)" - and the line of sight to the next wall face
+    // below is clipped by the rung directly above it). Rungs alternate between two neighbouring columns ALONG the wall: the cell over every rung stays open, so each
+    // rung is a step of a stair the pathfinder walks down and up, and each new rung is placed diagonally, in clear sight, from the rung above.
     let site = null
     for (let rad = 1; rad <= 16 && !site; rad++) {
       for (let x = Math.max(bx.x1, low.x - rad); x <= Math.min(bx.x2, low.x + rad) && !site; x++) for (let z = Math.max(bx.z1, low.z - rad); z <= Math.min(bx.z2, low.z + rad) && !site; z++) {
@@ -3250,10 +3254,17 @@ async function build (bot, job, api, ctx) {
         let fy = null; for (let y = fillG; y >= fillG - 24; y--) { const q = at(x, y, z); if (!q) break; if (solid(q)) { fy = y + 1; break } }
         if (fy == null || fillG - fy < 4) continue
         for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-          let ok = true
-          for (let y = fy - 1; y <= fillG && ok; y++) { const q = at(x + dx, y, z + dz); if (!q || !solid(q) || U.protectedBlock(q)) ok = false }
-          if (!ok || solid(at(x + dx, fillG + 1, z + dz)) || solid(at(x + dx, fillG + 2, z + dz))) continue // ...and a mate can stand on the wall top to use it
-          site = { x, z, dx, dz, fy }; break
+          const along = dx ? [0, 1] : [1, 0] // the second column sits ALONG the wall, never into it
+          for (const sgn of [1, -1]) {
+            const x2 = x + along[0] * sgn; const z2 = z + along[1] * sgn
+            if (x2 < bx.x1 || x2 > bx.x2 || z2 < bx.z1 || z2 > bx.z2) continue
+            let ok = true
+            for (let y = fy - 1; y <= fillG && ok; y++) for (const [cx, cz] of [[x, z], [x2, z2]]) { const q = at(cx + dx, y, cz + dz); if (!q || !solid(q) || U.protectedBlock(q)) ok = false } // the wall stands behind BOTH columns, all the way down
+            for (let y = fy; y <= fillG && ok; y++) if (solid(at(x2, y, z2)) || solid(at(x, y, z))) ok = false // ...and both columns are open air
+            if (!ok || solid(at(x + dx, fillG + 1, z + dz)) || solid(at(x + dx, fillG + 2, z + dz))) continue // a mate can stand on the wall top to reach the run
+            site = { x, z, x2, z2, dx, dz, fy }; break
+          }
+          if (site) break
         }
       }
     }
@@ -3271,24 +3282,26 @@ async function build (bot, job, api, ctx) {
     // clips the 19 cm shape of our OWN ladder 5 cm before it reaches the face - a trench wall is solid on more than one side, and the server refuses any ladder that
     // cannot survive, so letting placeBlock pick the reference it can SEE costs nothing).
     const faces = [new Vec3(-site.dx, 0, -site.dz), new Vec3(0, -1, 0), new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1)]
-    const hang = async y => { const r = await BL.placeBlock(bot, new Vec3(site.x, y, site.z), 'ladder', { faces, expect: 'ladder', retries: 1, noMove: y < fillG, moveMs: 10000 }).catch(e_ => ({ ok: false, reason: String(e_ && e_.message).slice(0, 30) })); return r }
+    const hang = async (hx, y, hz) => BL.placeBlock(bot, new Vec3(hx, y, hz), 'ladder', { faces, expect: 'ladder', retries: 1, noMove: y < fillG, moveMs: 10000 }).catch(e_ => ({ ok: false, reason: String(e_ && e_.message).slice(0, 30) }))
     // A LADDER IS A STAIR FOR OUR BOTS (PROBED 14:4xZ on Akari: mineflayer reads a ladder as `boundingBox:'block'`, shape [0,0,0,0.1875,1,1] - the pathfinder walks ONTO
     // each rung (physical) and can never enter the cell, and the real physics hold a body that overlaps the 19 cm box). The first three runs all died on the same line,
     // "could not step into the ladder column" at exactly one block ABOVE the top rung: the bot was standing ON it. So the run is built like a staircase - stand on the
     // lowest rung, hang the next one 2 below the feet (eye 3.1 blocks away, well within reach), step down onto it - and that is how the whole crew walks it afterwards.
     let placed = 0; let why = ''
+    const colOf = i => (i % 2 ? [site.x2, site.z2] : [site.x, site.z])
     try {
-      const r0 = await hang(fillG)
-      if (!r0.ok) why = 'the top ladder ' + [site.x, fillG, site.z].join(',') + ': ' + r0.reason
+      const r0 = await hang(site.x, fillG, site.z)
+      if (!r0.ok) why = 'the top rung ' + [site.x, fillG, site.z].join(',') + ': ' + r0.reason
       else {
         placed++
-        for (let y = fillG - 1; y >= site.fy; y--) {
-          const feet = y + 2; const on = () => { const p = bot.entity.position.floored(); return p.x === site.x && p.z === site.z && p.y === feet }
-          if (!on()) { try { await U.withTimeout(bot.pathfinder.goto(new G.GoalBlock(site.x, feet, site.z)), 20000, 'wayStep') } catch (e_) { swallow('army_jobs:wayStep', e_) } }
+        for (let i = 1; fillG - i >= site.fy; i++) {
+          const y = fillG - i; const [px, pz] = colOf(i - 1); const [cx, cz] = colOf(i); const feet = y + 2 // stand on the rung above (its own cell is open: the columns alternate)
+          const on = () => { const q = bot.entity.position.floored(); return q.x === px && q.z === pz && q.y === feet }
+          if (!on()) { try { await U.withTimeout(bot.pathfinder.goto(new G.GoalBlock(px, feet, pz)), 20000, 'wayStep') } catch (e_) { swallow('army_jobs:wayStep', e_) } }
           { const t2 = Date.now() + 3000; while (Date.now() < t2 && !on() && !api.stop()) await sleep(50) }
-          if (!on()) { const p = bot.entity.position.floored(); why = 'could not step onto the rung at ' + [site.x, feet, site.z].join(',') + ' (stood at ' + [p.x, p.y, p.z].join(',') + ')'; break }
-          const r = await hang(y)
-          if (!r.ok) { why = 'ladder ' + [site.x, y, site.z].join(',') + ': ' + r.reason; break }
+          if (!on()) { const q = bot.entity.position.floored(); why = 'could not step onto the rung at ' + [px, feet, pz].join(',') + ' (stood at ' + [q.x, q.y, q.z].join(',') + ')'; break }
+          const r = await hang(cx, y, cz)
+          if (!r.ok) { why = 'rung ' + [cx, y, cz].join(',') + ': ' + r.reason; break }
           placed++
         }
       }

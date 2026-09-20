@@ -485,6 +485,15 @@ function next (bot, tile, world, opts = {}) {
   const st = tileState(map, world, t, now, true)
   if (st.done) return { type: 'wait', why: 'lane ' + t.id + ' stands at grade' }
 
+  // 0. AM I STUCK? (a mate's floor closed around me, or the terrain did). The fill is its own ladder:
+  // place under my feet and rise with it. No headroom over me -> hand myself back, that is a rescue.
+  if (feet.y <= map.grade && walkArea(map, world, feet, null, o.minArea) < o.minArea) {
+    if (!isSolid(world, feet.x, feet.y + 2, feet.z) && have(bot, o.fillItem, o) > 0 && isSolid(world, feet.x, feet.y - 1, feet.z)) {
+      return { type: 'ride_up', cell: feet, item: o.fillItem, why: 'boxed in at ' + K3(feet.x, feet.y, feet.z) + ': riding my own fill up' }
+    }
+    return { type: 'leave', release: true, why: 'boxed in at ' + K3(feet.x, feet.y, feet.z) + ' with no headroom — this needs a rescue, not a plan' }
+  }
+
   // 1. MATERIAL — ONE trip with full pockets, never six little ones
   const laneNeed = Math.min(st.remaining, o.tile * o.tile)
   const needsDrop = st.targets.some(c => map.dropCols.has(K2(c.x, c.z)))
@@ -496,9 +505,10 @@ function next (bot, tile, world, opts = {}) {
     return { type: 'restock', item: o.fillItem, n: o.pocket, why: 'carrying ' + carried + ', this lane needs ' + laneNeed }
   }
 
-  // 2. what may be filled at all this tick without harming anybody
+  // 2. what may be filled at all this tick without harming anybody — MYSELF INCLUDED (measured under
+  // an overhang: a builder filled the floor of a 2-high pocket, rose into a 1-high gap and was stuck)
   const others = mates.filter(m => !same(m, feet))
-  const safe = st.targets.filter(c => safeToPlace(map, world, c, others, o))
+  const safe = st.targets.filter(c => safeToPlace(map, world, c, others.concat([feet]), o))
   if (!safe.length) return { type: 'wait', release: true, why: 'every open cell of ' + t.id + ' is held by a mate standing in it — I take another lane' }
 
   // 3. from where I stand (lava first, then the nearest cell)
@@ -521,7 +531,12 @@ function next (bot, tile, world, opts = {}) {
 
   // 5. the cell under my own feet is the last one of this layer: ride up onto it
   if (safe.some(c => same(c, feet))) {
-    return { type: 'ride_up', cell: feet, item: o.fillItem, why: 'closing the cell I stand in and riding up with the floor' }
+    if (!isSolid(world, feet.x, feet.y + 2, feet.z)) {
+      return { type: 'ride_up', cell: feet, item: o.fillItem, why: 'closing the cell I stand in and riding up with the floor' }
+    }
+    // a roof one block over my head (an overhang): stepping up would wedge me. Someone fills this cell
+    // from the side later — including me, from the next lane.
+    return { type: 'wait', release: true, why: 'the cell I stand in is the last one and there is a roof over me: it is filled from the side' }
   }
 
   // 6. a cell nobody can stand beside: classify it ONCE — a gravity block down its shaft…
