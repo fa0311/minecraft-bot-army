@@ -6,7 +6,8 @@
 // at a distance), creepers beyond melee (A.kill handles the fuse), fights at hp < 8 (eat first: army.js mealReflex), fights underground on a mine job (the miners have
 // their own rules), chases further than 24 blocks from where the bot stood.
 const RANGED = /^(skeleton|stray|bogged|pillager|drowned)$/
-const SKIP = /^(witch|enderman|creeper|phantom|ghast|warden)$/
+// NEUTRAL MOBS ARE NEVER ATTACKED FIRST (13:0xZ: a zombified piglin walked out of our new portal into the base - hit one and every piglin in range turns on the army)
+const SKIP = /^(witch|enderman|creeper|phantom|ghast|warden|zombified_piglin|piglin|piglin_brute|iron_golem|wolf|bee|polar_bear|llama|trader_llama|panda|dolphin)$/
 module.exports = {
   name: 'combat',
   install (bot) { bot.__core_combat = { hp: bot.health, t: 0 } },

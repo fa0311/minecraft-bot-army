@@ -1776,7 +1776,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789909037660
+   "restUntil": 1789909246974
   },
   {
    "id": "fill_ring_field2",
@@ -3702,63 +3702,6 @@
    "note": "auto-paused: 8 cells nobody could do: -396,65,-370 | -396,65,-371"
   },
   {
-   "id": "void_fix_base_infill_n247_n401",
-   "type": "build",
-   "priority": 70,
-   "front": "works",
-   "status": "paused",
-   "when": "any",
-   "bots": 2,
-   "site": [
-    -240,
-    68,
-    -381
-   ],
-   "plan": "void under the finished pad base_infill_n247_n401: 35 columns of x -246..-235 / z -391..-371 are a deck over air (void_under_pad) - fill SOLID from the natural ground up to grade y68, never deck a hole; base_infill_n247_n401 is `after` this job and re-checks the columns when it is done",
-   "params": {
-    "blueprint": "fill_void",
-    "origin": [
-     -240,
-     68,
-     -381
-    ],
-    "unlid": 3,
-    "args": {
-     "box": [
-      -246,
-      -391,
-      -235,
-      -371
-     ],
-     "depth": 5,
-     "fill": "cobblestone",
-     "mats": [
-      "cobbled_deepslate",
-      "cobblestone",
-      "stone",
-      "deepslate",
-      "tuff",
-      "andesite",
-      "diorite",
-      "granite",
-      "dirt",
-      "gravel"
-     ]
-    }
-   },
-   "rev": 3,
-   "restUntil": 1789908221342,
-   "stuckBy": {
-    "key": "rev3",
-    "bots": [
-     "Mei",
-     "Rena",
-     "Botan"
-    ]
-   },
-   "note": "auto-paused: 16 cells nobody could do: -236,65,-373 | -236,65,-374 | -237,65,-373 | -237,65,-374"
-  },
-  {
    "id": "base_road_9",
    "type": "build",
    "priority": 58,
@@ -3803,7 +3746,7 @@
    "type": "portal",
    "priority": 40,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "dim": "the_nether",
    "bots": 1,
@@ -3930,7 +3873,7 @@
    "type": "portal",
    "priority": 95,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 1,
    "names": [
@@ -4002,6 +3945,43 @@
      "d": 41,
      "h": 22
     }
+   }
+  },
+  {
+   "id": "nether_road_xp",
+   "type": "portal",
+   "priority": 94,
+   "front": "base",
+   "status": "active",
+   "when": "day",
+   "bots": 3,
+   "shiftMin": 20,
+   "site": [
+    -326,
+    69,
+    -518
+   ],
+   "plan": "zone portal (docs/WORLD.md): STAGE 2 step 3 — the first Nether ROAD, bearing x+, 64 blocks from the hub door at the_nether -32,98,-76. A 2-wide COVERED walkway (floor, two parapets, stone roof against ghast fireballs, torches every 8): movement stays read-only, so what a squad builds here is a road everybody reuses, never a private tunnel. ONE round trip per slice per bot; the squad's guard is the standing combat reflex (sword + shield in the kit).",
+   "params": {
+    "blueprint": "nether_portal",
+    "origin": [
+     -326,
+     68,
+     -518
+    ],
+    "args": {
+     "axis": "x"
+    },
+    "buildJob": "base_portal",
+    "go": true,
+    "landing": true,
+    "work": "road",
+    "bearing": "x+",
+    "length": 64,
+    "minutes": 6,
+    "cobble": 256,
+    "crossS": 45,
+    "maxDeaths": 2
    }
   }
  ]
