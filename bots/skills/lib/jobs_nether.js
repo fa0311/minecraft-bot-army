@@ -510,6 +510,14 @@ module.exports = ctx => {
   // the bedrock roof, measured 12:30:23Z): cross, work for `params.minutes`, come home. Nobody is ever idle on the far side.
   // `params.work`: 'landing' (finish the 5x5 until it reads safe) · 'hub' (blueprint nether_hub) · 'road' (blueprint nether_road,
   // one bearing) · 'scout' (walk the finished road, look, report sightings). Blocks per bot-minute is in every `nether_pass`.
+  // the area a squad may step inside = its own work plus the way in (a box that does not hold the door is a box nobody reaches)
+  function unionBox (a, b, p) {
+    const out = Array.isArray(a) ? a.slice() : null; if (!out) return null
+    const grow = q => { if (!Array.isArray(q) || q.length !== 4) return; out[0] = Math.min(out[0], q[0], q[2]); out[1] = Math.min(out[1], q[1], q[3]); out[2] = Math.max(out[2], q[0], q[2]); out[3] = Math.max(out[3], q[1], q[3]) }
+    grow(b)
+    if (Array.isArray(p) && p.length === 3) grow([p[0] - 3, p[2] - 3, p[0] + 3, p[2] + 3])
+    return out
+  }
   function bpCells (name, origin, args) {
     const f = require.resolve(path.join(A.DIR, '..', 'blueprints', String(name).replace(/[^a-z0-9_]/gi, '') + '.js'))
     try { const m = fs.statSync(f).mtimeMs; if (_wpM[f] !== m) { delete require.cache[f]; _wpM[f] = m } } catch (e_) { swallow('jobs_nether:bpStat2', e_) }
@@ -532,14 +540,14 @@ module.exports = ctx => {
     } else if (work === 'hub') {
       const o = Array.isArray(P.at) ? P.at : [cx, y0, cz]
       const r = bpCells('nether_hub', o, P.args2 || { door: P.door || 'x+' }); cells = r.cells; meta = r.meta
-      box = meta.room
+      box = unionBox(meta.room, null, xyz(bot.entity.position))
     } else if (work === 'road') {
       const hub = N.hub && N.hub.outside ? N.hub : null
       const from = Array.isArray(P.from) ? P.from : hub ? hub.outside : null
       const bearing = P.bearing || (hub && hub.bearing) || 'x+'
       if (!from) return { work, why: 'no start: settings.nether.hub.outside is not set (build the hub first) and params.from is missing' }
       const r = bpCells('nether_road', from, { bearing, length: P.length || 64 }); cells = r.cells; meta = r.meta
-      box = meta.box
+      box = unionBox(meta.box, (N.hub && N.hub.room), xyz(bot.entity.position))
     } else if (work === 'scout') {
       return await lookAround(bot, job, api, P, until)
     } else if (work === 'stair') {
@@ -552,7 +560,10 @@ module.exports = ctx => {
       const from = Array.isArray(P.from) ? P.from : dr ? dr.out : null
       if (!from) return { work, why: 'no start: settings.nether.hub.doors is not set and params.from is missing' }
       const r2 = bpCells('nether_stair', from, { bearing: P.bearing || (dr && dr.bearing) || 'z-', toY: P.toY == null ? 33 : P.toY, run: P.run || 1 })
-      cells = r2.cells; meta = r2.meta; box = meta.box
+      cells = r2.cells; meta = r2.meta
+      // THE BOX MUST HOLD THE DOOR WE COME IN BY (measured 14:44Z: `left:840, placed:0, steps:0` — the gate is at z -76, the stair
+      // box started at z -79, so every safeStep candidate was outside our own box and the squad could not walk into its own work)
+      box = unionBox(meta.box, N2.hub && N2.hub.room, xyz(bot.entity.position))
     } else if (work === 'fortress') {
       return await explore(bot, job, api, P, until)
     } else return { work, why: 'unknown params.work' }
@@ -705,7 +716,15 @@ module.exports = ctx => {
     // HOME. Never stay: keep_inventory is OFF, a slice is 15 min, and whatever the landing could not reach is the next trip's work.
     if (api.stop()) return 'in the Nether at ' + xyz(me).join(',') + ' (slice over, the return job takes it from here)'
     const r = await comeHome(bot, job, api, ctx2, st, P)
-    if (st.home) { st.phase = 'done'; st.deathsAtGo = null; st.closeDue = true }
+    // A FINISHED TRIP IS NOT A FINISHED JOB (owner 14:0xZ "待機してるやつ何": 27 of 50 bots at muster because the stair, the hub and
+    // the fortress hunt had all auto-paused themselves at "the round trip is done" — the stage-1 SCOUT's completion rule fired for
+    // every `portal` job whatever its `params.work`, the moment any one bot came home, with the stair at 490 of 1330 cells).
+    // An exploratory crossing is done when it has been once; a work job is done when ITS work is done (`workDone`), and until
+    // then every slice crosses again — so the per-trip state is reset here instead of being closed.
+    if (st.home) {
+      st.deathsAtGo = null; st.closeDue = true
+      if (P.work) { st.phase = 'gate'; st.home = false; st.through = 0; st.looked = false; st.landed = false; st.sealed = false; st.worked = false; st.kitted = false } else st.phase = 'done'
+    }
     return r
   }
 
@@ -751,6 +770,18 @@ module.exports = ctx => {
     try { return A.liveBots(600000).some(h => h && h.bot !== self && /nether|end/.test(String(h.dim || ''))) } catch (e_) { swallow('jobs_nether:anyoneOverThere', e_); return true }
   }
 
+  // WHEN IS A WORK JOB FINISHED? Read from the BOARD, never from one bot's memory — the next bot is in another process.
+  // A short human reason when it is done, false while there is work left.
+  function workDone (N, P) {
+    const w = String(P.work || '')
+    if (!w) return false
+    if (w === 'stair') return (N.stair && N.stair.done) ? 'the stair reaches y' + N.stair.toY + ' at ' + (N.stair.end || []).join(',') : false
+    if (w === 'hub') return (N.hub && N.hub.built) ? 'the hub stands, chest and table registered' : false
+    if (w === 'landing') return N.landingSafe ? 'the landing reads safe' : false
+    if (w === 'road') { const r = (N.roads || {})[P.bearing || (N.hub || {}).bearing || 'x+']; return r && r.left === 0 ? 'the road reaches ' + (r.end || []).join(',') : false }
+    if (w === 'fortress') { const f = (N.sightings || []).find(e => e && e.kind === 'fortress'); return f ? 'a fortress is sighted at ' + (f.at || []).join(',') : false }
+    return false // barter and anything else: a standing job that ends when an operator pauses it
+  }
   // ================================================================ the job
   async function portal (bot, job, api, ctx2) {
     const P = job.params || {}
@@ -839,11 +870,13 @@ module.exports = ctx => {
     if (P.close === true) return 'portal: nothing to put out'
     // A SERVER RESTART IS PENDING: no bot crosses (the top model only restarts while nobody is off the overworld)
     if (A.settings().restartPending) { A.decline(bot, job, 5 * 60000, 'settings.restartPending'); return muster(bot, job, api, ctx2, 'portal: a server restart is pending - no crossing until settings.restartPending is cleared') }
-    const wanted = P.go === true && st.phase !== 'done' && (!!P.work || N.scoutRev !== (job.rev || 0) || !N.back) // a `work` job crosses on every rev: the far side is not finished in one trip // st.phase: the belt to the board's braces - one round trip per rev, whatever a cache says
+    const done = workDone(N, P)
+    const wanted = P.go === true && !done && (P.work ? true : (st.phase !== 'done' && (N.scoutRev !== (job.rev || 0) || !N.back)))
     if (!wanted) {
-      // the gate stands and burns and nobody has to watch it: free the bot (a job that holds a bot for nothing is a planning failure)
-      if ((job.names || []).length <= 1 && !P.standing) A.boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (j && (j.rev || 0) === (job.rev || 0) && j.status === 'active') { j.status = 'paused'; j.note = 'auto-paused: the gate is lit' + (P.go === true ? ' and the round trip is done (bump rev to send another expedition)' : '') } })
-      return muster(bot, job, api, ctx2, 'portal: the gate stands and burns (' + lit + '/' + G.inner.length + ' cells)')
+      // nothing left to do here: free the bot, and say WHY it stopped
+      const why = done ? 'auto-paused: ' + P.work + ' is finished (' + done + ')' : 'auto-paused: the gate is lit and the round trip is done (bump rev to send another expedition)'
+      if (!P.standing && (P.work ? !!done : (job.names || []).length <= 1)) A.boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (j && (j.rev || 0) === (job.rev || 0) && j.status === 'active') { j.status = 'paused'; j.note = why } })
+      return muster(bot, job, api, ctx2, 'portal: ' + (done ? P.work + ' is finished (' + done + ')' : 'the gate stands and burns (' + lit + '/' + G.inner.length + ' cells)'))
     }
     // TWO DEATHS AT THIS GATE = NOBODY ELSE GOES (top model 12:15Z). The gate stays lit and the board keeps the count; an operator
     // who has made the arrival safe (or moved the gate) clears `settings.nether.deaths` and re-activates this job.

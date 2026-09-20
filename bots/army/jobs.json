@@ -767,14 +767,14 @@
    ],
    "axis": "x",
    "lit": 1789910808319,
-   "by": "Kotori",
+   "by": "Sayaka",
    "portal": [
     -43,
     98,
     -80
    ],
-   "through": 1789911920260,
-   "scoutRev": 0,
+   "through": 1789915482574,
+   "scoutRev": 2,
    "hub": {
     "room": [
      -41,
@@ -885,7 +885,7 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789911920444,
+   "landingAt": 1789915482904,
    "back": 1789912306490,
    "lastDeath": 1789911678325,
    "lastDeathBy": "Hotaru",
@@ -932,9 +932,9 @@
      -35,
      -79
     ],
-    "left": 840,
-    "unloaded": 0,
-    "at": 1789911991808,
+    "left": 0,
+    "unloaded": 1330,
+    "at": 1789915489823,
     "done": false
    }
   }
@@ -1176,7 +1176,7 @@
    },
    "rev": 61,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
-   "restUntil": 1789909537319
+   "restUntil": 1789915891283
   },
   {
    "id": "farm_1",
@@ -1299,7 +1299,7 @@
     "fuel",
     "cobblestone"
    ],
-   "minBots": 4,
+   "minBots": 14,
    "maxBots": 20,
    "requires": {
     "minHp": 14,
@@ -1315,12 +1315,12 @@
       "z": -500,
       "facing": "north"
      },
-     "level": 48
+     "level": -48
     }
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
-   "bots": 20,
-   "rev": 38
+   "bots": 17,
+   "rev": 41
   },
   {
    "id": "base_dorm",
@@ -1593,7 +1593,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789914981126
+   "restUntil": 1789915769301
   },
   {
    "id": "fill_ring_field2",
@@ -1867,7 +1867,7 @@
    "priority": 95,
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 1,
    "requires": {
     "minHp": 8
    },
@@ -1930,7 +1930,7 @@
      }
     ]
    },
-   "rev": 1
+   "rev": 2
   },
   {
    "id": "fill_hole_field2",
@@ -2503,13 +2503,13 @@
     },
     "order": "near"
    },
-   "rev": 36,
-   "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check.",
+   "rev": 39,
+   "desc": "until `fill_wayin ok:true` (ladder run in work by the engineer) only 3 bots: nobody can reach the trench floor, a bigger crew just stands at the rim - do NOT raise the head-count to hide idle bots",
    "note": "top model 14:1xZ: OPERATORS - DO NOT LOWER. open cells = left 3616 minus waiting 2920 = 696, so ceil(696/8) = 87 builders could work it at once; 20 is the cap. It reads done:0 because the last trench (x -306..-298 / z -461..-482, floor y52-55) has sheer walls and NO walkable entry, so the switchback ramp (x -300/-301, z -472..-478) can never be started: a ramp column is a solid cell built bottom-up and nobody can stand on the floor. It needs a way in built FROM THE TOP (ladder run, or a gravity-block ramp - gravel depot is 0, so fetch gravel first).",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Erika",
-    "t": 1789914797796,
+    "by": "Noa",
+    "t": 1789915146306,
     "at": [
      -330,
      41,
@@ -2787,11 +2787,11 @@
   {
    "id": "fill_ne_valley",
    "type": "build",
-   "priority": 64,
+   "priority": 76,
    "front": "works",
-   "status": "paused",
-   "when": "day",
-   "bots": 1,
+   "status": "active",
+   "when": "any",
+   "bots": 16,
    "site": [
     -257,
     67,
@@ -2829,7 +2829,7 @@
     "order": "near"
    },
    "note": "auto-paused: build complete - BUT 2 cells are left that 3 builders could not do (build_leftover): -277,67,-399 | -278,67,-399",
-   "rev": 4,
+   "rev": 6,
    "stuckBy": {
     "key": "rev4",
     "bots": [
@@ -3588,9 +3588,9 @@
    "type": "portal",
    "priority": 96,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "day",
-   "bots": 4,
+   "bots": 6,
    "shiftMin": 20,
    "site": [
     -326,
@@ -3620,14 +3620,15 @@
     "crossS": 45,
     "maxDeaths": 6
    },
-   "note": "auto-paused: the gate is lit and the round trip is done (bump rev to send another expedition)"
+   "note": "auto-paused: the gate is lit and the round trip is done (bump rev to send another expedition)",
+   "rev": 3
   },
   {
    "id": "west_terrace_cut_3",
    "type": "build",
    "priority": 65,
    "front": "works",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 20,
    "site": [
@@ -3649,8 +3650,9 @@
      "h": 32
     }
    },
-   "rev": 11,
-   "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -512,102,-485"
+   "rev": 14,
+   "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -512,102,-485",
+   "desc": "OWNER-LOCKED 09-20: make-work, do NOT re-activate (owner called it pointless; stone stock is 6x the need)"
   },
   {
    "id": "cap_ravine_nm",
@@ -3659,7 +3661,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 12,
+   "bots": 4,
    "site": [
     -311,
     68,
@@ -3685,13 +3687,14 @@
     "order": "near"
    },
    "note": "needs: dirt (5 cells wait; every cell whose material exists is done or in work)",
-   "rev": 2,
+   "rev": 3,
    "stuckBy": {
     "key": "rev2",
     "bots": [
      "Akari"
     ]
-   }
+   },
+   "restUntil": 1789915715544
   },
   {
    "id": "stray_furnace_344",
@@ -4034,7 +4037,7 @@
     },
     "order": "near"
    },
-   "rev": 1
+   "rev": 3
   },
   {
    "id": "fill_minehead_pits",
@@ -4090,6 +4093,125 @@
     ]
    },
    "rev": 1
+  },
+  {
+   "id": "base_depot_south",
+   "type": "build",
+   "priority": 55,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 6,
+   "site": [
+    -364,
+    69,
+    -517
+   ],
+   "plan": "ONE storage complex, not a second yard (owner 09-20 14:4xZ 「かまどや倉庫を一箇所にしないのか？倉庫を拡張しないのか？」): extend the depot SOUTHWARD into the free flat ground between its food row (z -512) and the furnace row (z -523) - three more `build` rows of DOUBLE chests 3 high at z -521 / -518 / -515, x -371..-358, same aisles, same x lines as the existing rows. 126 chests = 63 doubles = 3402 slots on top of the 14 build chests that are 74 % full. The build job registers every chest in settings.chests.build as it goes.",
+   "params": {
+    "blueprint": "depot_rows",
+    "origin": [
+     -372,
+     68,
+     -521
+    ],
+    "args": {
+     "len": 14,
+     "high": 3,
+     "rows": [
+      "build",
+      "build",
+      "build"
+     ],
+     "torch": true
+    },
+    "order": "near"
+   },
+   "rev": 1
+  },
+  {
+   "id": "cap_north_tiles",
+   "type": "build",
+   "priority": 60,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 4,
+   "site": [
+    -291,
+    68,
+    -544
+   ],
+   "plan": "BASE PLAN zone infill (north tiles x -350..-232 / z -559..-529): DIRT CAP - the cut hills left ~2300 columns of bare stone at grade (audit_surface: infill_n283_n558 630, n252_n558 598, n314_n558 588, n337_n555 504); the grade layer becomes dirt wherever bare stone or gravel stands, paving/fields/other blueprints untouched. Looks: the owner sees grey rubble where grass belongs",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -291,
+     68,
+     -544
+    ],
+    "args": {
+     "w": 119,
+     "d": 31,
+     "cap": true,
+     "fill": "dirt"
+    },
+    "needStock": {
+     "dirt": 128
+    },
+    "order": "near"
+   },
+   "rev": 1
+  },
+  {
+   "id": "ladders_for_ravine",
+   "type": "steps",
+   "priority": 96,
+   "status": "active",
+   "when": "any",
+   "names": [
+    "Mio",
+    "Sayaka"
+   ],
+   "plan": "fill_ravine_s cannot get a crew DOWN: 14:39 Noa fill_wayin ok:false \"no ladders: 0 carried, 0 in the depot, 37 sticks\", plus two \"could not step into the ladder column from the rim\" - 2879 cells of the ravine sit waiting because nobody reaches the floor. Craft the way in: planks -> sticks -> 64 ladders, banked at the depot. No world change.",
+   "params": {
+    "onFail": "continue",
+    "steps": [
+     {
+      "do": "withdraw",
+      "item": "oak_log",
+      "n": 48,
+      "atLeast": 12
+     },
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       69,
+       -523
+      ],
+      "range": 2
+     },
+     {
+      "do": "craft",
+      "item": "oak_planks",
+      "n": 128
+     },
+     {
+      "do": "craft",
+      "item": "stick",
+      "n": 160
+     },
+     {
+      "do": "craft",
+      "item": "ladder",
+      "n": 64
+     },
+     {
+      "do": "bank"
+     }
+    ]
+   }
   }
  ]
 }

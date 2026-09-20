@@ -2572,6 +2572,7 @@ function builtCols (selfId) {
   return cols
 }
 const TERRAIN_JOB = /^(level|clear_area|road|road_path|field_block|platform)$/ // blueprints whose air cells cut natural trees: a trunk in the cut is felled whole
+const FURNITURE_RE = /^(crafting_table|furnace|blast_furnace|smoker|chest|trapped_chest|barrel)$/ // furniture the army OWNS stands in a blueprint cell or in settings (chests/craftTable/furnaces/respawnBeds/nether.hub); anything else of these is litter (tidy, 14:4xZ)
 const WEED_RE = /^(short_grass|tall_grass|fern|large_fern|dead_bush|bush|firefly_bush|leaf_litter|wildflowers|pink_petals|dandelion|poppy|blue_orchid|allium|azure_bluet|oxeye_daisy|cornflower|lily_of_the_valley|sunflower|lilac|rose_bush|peony|.*_tulip|sweet_berry_bush|short_dry_grass|tall_dry_grass)$/ // = WEED in ops/base-audit.js
 const NATURAL_RE = /^(dirt|grass_block|coarse_dirt|rooted_dirt|podzol|mycelium|mud|clay|stone|granite|diorite|andesite|tuff|calcite|deepslate|gravel|sand|red_sand|sandstone|terracotta|moss_block|snow|snow_block|powder_snow|short_grass|tall_grass|fern|large_fern|dead_bush|.*_ore)$/ // what a `natural:true` air cell may take away
 // A TREE IS NOT GROUND: what may stand in a `fillOnly` ground cell and still let it count as filled excludes everything that GREW there (see todo()'s fillOnly rule)
@@ -3227,10 +3228,10 @@ async function build (bot, job, api, ctx) {
   // 1-block move, not a 14-block fall). The run is part of the fill: as the floor rises past a ladder cell it is dug like decor and filled (see the `solid` branch of
   // todo). 16 ladders = 42 sticks = ~11 logs of the 2800 in stock. Movement stays READ-ONLY: this is a built way, the same for everybody, not a private shortcut.
   const ladderWay = async () => {
-    if (!f0 || (st.wayT || 0) > Date.now() - 300000 || depthNow() > 0 || !Number.isFinite(bx.x1)) return false
+    if (!f0 || (st.wayT || 0) > Date.now() - 300000 || depthNow() > 2 || !Number.isFinite(bx.x1)) return false // >2, not >0: a builder standing on the RISEN FLOOR of the box is on ground, not in the pit (14:5xZ: 26 builders on fill_ravine_s, not one attempt in 17 min - they all stand at y68 inside the box)
     st.wayT = Date.now()
     const me = bot.entity.position.floored(); let low = null
-    for (const c of cells) { if (!c.solid || Math.abs(c.x - me.x) > 20 || Math.abs(c.z - me.z) > 20 || c.y > fillG - 5) continue; if (low && c.y >= low.y) continue; if (solid(at(c.x, c.y, c.z))) continue; low = c }
+    for (const c of cells) { if (!c.solid || Math.abs(c.x - me.x) > 20 || Math.abs(c.z - me.z) > 20 || c.y > fillG - 5) continue; if (low && c.y >= low.y) continue; if (solid(at(c.x, c.y, c.z)) || solid(at(c.x, fillG, c.z))) continue; low = c } // ...and its column must be open at GRADE: a sealed cave pocket 27 blocks down (14:33Z: -330,41,-486) is not the pit we cannot get into
     if (!low) return false // no open cell more than 4 below grade near me: no pit to get into
     let G = null; try { G = require('mineflayer-pathfinder').goals } catch (e_) { swallow('army_jobs:wayGoals', e_); return false }
     try { const r = bot.pathfinder.getPathTo(bot.pathfinder.movements, new G.GoalNear(low.x, low.y, low.z, 2), 1500); if (r && r.status === 'success') return false } catch (e_) { swallow('army_jobs:wayPath', e_); return false } // there IS a way in (a ramp, the risen floor, an older run)
@@ -3255,7 +3256,11 @@ async function build (bot, job, api, ctx) {
     }
     if (!site) { A.result(bot, { ev: 'fill_wayin', job: job.id, ok: false, why: 'no column with a solid wall face from grade down to the floor within 16 of ' + K(low) }); return false }
     const n = fillG - site.fy + 1
-    if (A.count(bot, 'ladder') < n) { task(bot, 'build: ' + n + ' ladders for the way into the pit'); await A.obtain(bot, 'ladder', n, { stop: api.stop }).catch(e_ => { swallow('army_jobs:wayObtain', e_) }); task(bot, 'build ' + P.blueprint) }
+    if (A.count(bot, 'ladder') < n) { // the STICKS first: 3 ladders take 7 sticks, and a craft run with 5 in the pockets is the `craft:no result slot ladder` x24 of 14:4xZ
+      task(bot, 'build: ' + n + ' ladders for the way into the pit')
+      if (A.count(bot, 'stick') < Math.ceil(n / 3) * 7) await A.obtain(bot, 'stick', Math.ceil(n / 3) * 7, { stop: api.stop }).catch(e_ => { swallow('army_jobs:waySticks', e_) })
+      await A.obtain(bot, 'ladder', n, { stop: api.stop }).catch(e_ => { swallow('army_jobs:wayObtain', e_) }); task(bot, 'build ' + P.blueprint)
+    }
     if (A.count(bot, 'ladder') < 2) { A.result(bot, { ev: 'fill_wayin', job: job.id, ok: false, why: 'no ladders: ' + A.count(bot, 'ladder') + ' carried, ' + A.stockOf('ladder') + ' in the depot, ' + A.stockOf('stick') + ' sticks' }); return false }
     task(bot, 'build: hanging the way into the pit')
     if (!await A.travel(bot, { x: site.x + site.dx, y: fillG + 1, z: site.z + site.dz }, { range: 1, ms: 120000, stop: api.stop })) { A.result(bot, { ev: 'fill_wayin', job: job.id, ok: false, why: 'cannot reach the rim stand ' + [site.x + site.dx, fillG + 1, site.z + site.dz].join(',') }); return false }
@@ -3920,6 +3925,13 @@ async function tidy (bot, job, api, ctx) {
     else if (nb.every(n => n - g >= 1) && !/^(grass_block|water|ice|sand|gravel|podzol|snow_block)$/.test(top.name)) fixes.push({ kind: 'hole', put: new Vec3(x, g + 1, z), item: 'dirt' })
     // litter: crafting tables dropped all over the map (kept: within 3 blocks of a params.keepTables entry or of a registered depot chest)
     if (top.name === 'crafting_table' && !keepTables.some(c => Math.hypot(c[0] - x, c[2] - z) < 3)) fixes.push({ kind: 'float', dig: new Vec3(x, g, z), high: 0, litter: true })
+    // FURNITURE LITTER IS A SECOND DEPOT SOMEBODY STARTED (owner 09-20 14:4xZ 「かまどや倉庫を一箇所にしないのか？倉庫を拡張しないのか？」). MEASURED by the census: an
+    // UNREGISTERED 2x2 furnace cluster at -345..-344,70,-461..-460 with a crafting table floating one block over grade at -346,70,-460, and loose tables at -359,69,-501 ·
+    // -329,69,-520 · -359,69,-538 · -321,69,-450 · -264,68,-403 · -307,57,-436 - while the army's 20 furnaces stand in ONE row at z -523 and its chests in ONE block.
+    // A furnace/table/chest/barrel that is no cell of a blueprint of ours and in no `settings` list is emptied (the contents come home in the pockets), dug and banked.
+    // Never within 1 block of anything registered: the census reads the SECOND HALF of every double chest of ours as "not in our books", and a pen's furniture is the
+    // herder's. `A.ourBlock` keeps every mine-head, hub and depot piece that stands where its blueprint put it.
+    else if (FURNITURE_RE.test(top.name) && !keepTables.some(c => Math.abs(c[0] - x) <= 1 && Math.abs(c[2] - z) <= 1) && !A.ourBlock(new Vec3(x, g, z), top.name) && !A.penAt(x, g, z)) fixes.push({ kind: 'float', dig: new Vec3(x, g, z), high: 0, litter: true, empty: !/crafting_table/.test(top.name) })
     for (let y = g + 2; y <= g + 14; y++) { // floating junk above the ground
       const b = bot.blockAt(new Vec3(x, y, z)); if (!b || !solid(b)) continue
       const isLog = /_log$/.test(b.name)
@@ -3952,7 +3964,11 @@ async function tidy (bot, job, api, ctx) {
     let r
     if (f.dig) {
       if (f.kind === 'float' && f.high > 4) { await A.travel(bot, { x: f.dig.x, y: null, z: f.dig.z }, { range: 1, ms: 30000, stop: api.stop, quiet: true }); await BL.pillarUp(bot, Math.min(8, f.high - 3), {}).catch(e_ => swallow('army_jobs:tidyUp', e_)) }
+      // a littered CONTAINER is emptied into the pockets first (what it holds goes into the depot on the next bank trip; a broken container drops its contents on the
+      // ground and the drops scatter and despawn). Best effort: a container that will not open is dug anyway and what falls out is picked up below.
+      if (f.empty) { const w = await A.openChest(bot, f.dig, { stop: api.stop }).catch(e_ => { swallow('army_jobs:litterOpen', e_); return null }); if (w) { try { for (const it of w.containerItems()) { if (U.freeSlots(bot) <= 2) break; try { await U.withTimeout(w.withdraw(it.type, null, it.count), 6000, 'litterEmpty') } catch (e_) { swallow('army_jobs:litterEmpty', e_) } await sleep(80) } } finally { A.closeWin(w); await sleep(200) } } }
       r = await BL.digBlock(bot, f.dig, { collect: true, requireHarvest: false, allowProtected: !!f.litter }).catch(e => ({ ok: false, reason: String(e && e.message) })) // a littered crafting table is 'protected' for every other job, but picking it up is exactly this job's work
+      if (f.litter) await A.pickup(bot, 4, 2500).catch(e_ => { swallow('army_jobs:litterPickup', e_) })
       if (f.kind === 'float' && f.high > 4) await BL.removeScaffold(bot).catch(e_ => swallow('army_jobs:tidyDown', e_))
     } else r = await A.placeHard(bot, f.put, f.item, { stop: api.stop })
     if (r && r.ok) done[f.kind]++; else { failed++; const p0 = f.dig || f.put; const ck = p0.x + ',' + p0.y + ',' + p0.z; badCells[ck] = (badCells[ck] || 0) + 1; if (!firstFail) firstFail = f.kind + ' @' + ck + ': ' + String(r && r.reason || '?').slice(0, 50) }

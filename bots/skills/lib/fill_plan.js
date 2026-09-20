@@ -1,53 +1,62 @@
 'use strict'
 // fill_plan.js — PLANNER for filling a hole SOLID up to one grade (ravine, trench, crater, pit).
 //
-// Pure: no mineflayer, no files, no clock of its own. Everything it knows comes from
-//   world  = { get(x,y,z) -> 'solid'|'air'|'water'|'lava'|'plant'|'ladder'|…, sky(x,z) -> y of the topmost solid block }
-//   box    = {x1,z1,x2,z2, y1}   (y1 = lowest layer of the fill; grade = the finished ground level)
-//   crew   = [{id, pos:{x,y,z}, carrying}]  (carrying = a number of fill blocks, or {item: n})
+// Pure: no mineflayer, no files, no clock of its own. Everything it knows comes from its arguments
+//   world = { get(x,y,z) -> 'solid'|'air'|'water'|'lava'|'plant'|'ladder'|…, sky(x,z) -> y of the topmost solid block }
+//   box   = {x1,z1,x2,z2,y1}   (y1 = lowest layer of the fill, grade = the finished ground level)
+//   crew  = [{id, pos:{x,y,z}, carrying}]   (carrying = a number of fill blocks, or {item: n})
 // and it answers with ONE action per builder: place / dig / move / descend / restock / ride_up / wait / leave.
-// Deterministic: same inputs -> same actions (crew is sorted by id, every tie-break is on coordinates).
+// Deterministic: same inputs -> same actions (the crew is sorted by id, every tie-break is on coordinates).
 //
-// PULL MODEL (owner 09-20: "気づいたら気づいたbotがやる"): there is no crew list and no head-count.
-// The box is cut into TILES of `tile` x `tile` columns; a tile is the unit of work and of ownership.
-// Any builder asks `openTiles()` what is open near it, `claim()`s one tile (small, expiring), works it
-// with `next()` and `release()`s it. Two claimed tiles never share an edge, so two builders can never
-// target the same or a face-adjacent cell — no locks, no fights, no supervisor.
+// PULL MODEL (owner 09-20 「気づいたら気づいたbotがやる、でいい気がする」): no crew list, no head-count, no
+// supervisor. The box is cut into TILES of `tile` x `tile` columns; a tile is the unit of work AND of
+// ownership. Any builder asks openTiles() what is open near it, claim()s one (small, expiring), works it
+// with next(), release()s it when it is at grade. Two claimed tiles never share an edge, so two builders
+// can never target the same or a face-adjacent cell — no locks, no lock fights, nobody to be "assigned".
+// A builder that vanishes mid-fill loses its claim by timeout; the next one that notices takes the lane.
 //
-// The algorithm a good player uses (docs/FILL.md has the long version):
-//   * bottom-up per tile: layer L = the lowest open cell of the tile that has a SOLID block under it;
-//     the whole layer of the tile is closed before L rises, so a pinhole cannot be left behind;
-//   * the builder stands ON the finished layer, places the cells of L around itself (reach 4.5),
-//     and closes the cell under its own feet last by riding up onto it (ride_up);
-//   * it never places at or above a mate's feet+1 within one column, never into a mate's body and
-//     never into a mate's last way out — nobody is walled in;
-//   * a pit deeper than 3 with no walkable way in gets a LADDER run down a wall face, built top-down
-//     by the first builder that needs it (no digging, no block hangs in the air, it is an exit too);
-//   * cells nobody can stand beside are classified ONCE as `drop` (a gravity block down their shaft)
-//     or `sealed` (rock pocket, never work) — a classified cell never blocks the layer order again;
-//   * plants/torches in a cell are dug before it is filled; lava is quenched first and nobody stands
-//     within 2 of it; a column that hangs over air below the box is reported, never decked.
+// The algorithm a good player uses (docs/FILL.md has the long version and the reasons):
+//   * per lane, bottom-up: layer L = the lowest open cell of the lane WITH A SOLID BLOCK UNDER IT; the
+//     whole layer of the lane is closed before L rises, so a pinhole can never be left behind;
+//   * the builder stands ON the finished layer and places the cells of L around itself (reach 4.5);
+//     the cell under its own feet is closed last, by riding up onto it (ride_up);
+//   * it never places at or above a mate's feet+1 in the neighbouring columns, never into a mate's body,
+//     never where a mate would be left with fewer than 4 walkable cells — nobody is walled in;
+//   * a pit deeper than 3 with no walkable way in gets a LADDER down a wall face, built top-down by the
+//     first builder that needs it: nothing is dug, no block hangs in the air, and it is the way OUT for a
+//     restock trip too. Its lower rungs are simply buried as the floor rises;
+//   * a cell nobody can stand beside is classified ONCE — `drop` (a gravity block down its shaft, which
+//     also breaks the flower at the bottom) or `sealed` (rock pocket) — and never blocks the layer again;
+//   * plants and torches in a cell are dug before it is filled; lava is quenched first and no builder ever
+//     stands within 2 of it; a column that hangs over air below the box is reported, never decked.
 
 const DEFAULTS = {
-  tile: 3, // columns per lane; one builder at a time, so its whole layer is within reach (2.83 < 4.5)
-  K: 40, // one builder per K open cells: crew size emerges from the work, nobody is assigned
+  tile: 3, // columns per lane; one builder at a time, so the whole lane is within its reach (2.83 < 4.5)
+  K: 40, // one builder per K open cells — the crew size EMERGES from the work, nobody is assigned
   reach: 4.5,
   pocket: 1024, // one restock trip = full pockets (16 stacks)
-  claimMs: 60000, // a claim expires: a builder that vanishes mid-fill frees its tile by itself
-  entryGrid: 16, // one ladder per 16 blocks of box edge, built on demand
+  claimMs: 60000, // claims expire: a builder that vanishes frees its lane by itself
+  entryGrid: 16, // one entry ladder per 16 blocks of box edge, built on demand
   fillItem: 'cobblestone',
   gravityItem: 'gravel',
-  maxDrop: 3, // how far a builder may walk down (pathfinder rule; never a planned fall)
-  scan: 32, // how many candidate tiles a claiming builder looks at
-  strict: false // true: plan() throws when two actions target the same or a face-adjacent cell (tests)
+  maxDrop: 3, // how far a builder may step down (A.travel's rule) — never a planned fall
+  scan: 40, // how many candidate lanes a claiming builder looks at
+  minArea: 4, // a builder must always keep at least this many walkable cells
+  strict: false // true: plan() throws when two actions touch the same or a face-adjacent cell (tests)
 }
 
 const K3 = (x, y, z) => x + ',' + y + ',' + z
 const K2 = (x, z) => x + ',' + z
+const SIDES = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+const AROUND = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]
 const flr = p => ({ x: Math.floor(p.x), y: Math.floor(p.y), z: Math.floor(p.z) })
+const same = (a, b) => a && b && a.x === b.x && a.y === b.y && a.z === b.z
 
 function kindAt (world, x, y, z) { return world.get(x, y, z) || 'air' }
-function isSolid (world, x, y, z) { return kindAt(world, x, y, z) === 'solid' }
+function isSolid (world, x, y, z, blocked) {
+  if (blocked && blocked.has(K3(x, y, z))) return true
+  return kindAt(world, x, y, z) === 'solid'
+}
 function isLitter (k) { return k === 'plant' || k === 'torch' }
 function isLava (world, x, y, z) { return kindAt(world, x, y, z) === 'lava' }
 
@@ -71,12 +80,17 @@ function workMap (world, box, grade, opts = {}) {
   const o = Object.assign({}, DEFAULTS, opts)
   const b = normBox(box, grade, o)
   const map = {
-    o, box: b, grade, world,
-    tiles: new Map(), // id -> tile
-    sealed: new Set(), // cells the sky flood never reached, plus cells classified unreachable later
+    o,
+    box: b,
+    grade,
+    tiles: new Map(),
+    sealed: new Set(), // cells the sky flood never reached + cells later classified unreachable
     voidBelow: new Set(), // "x,z": the bottom of the box hangs over air — reported, never decked
-    state: new Map(), // id -> cached tile state
-    cache: { count: 0, countAt: -1e9, reach: new Map(), reachAt: -1e9 }
+    dropCols: new Set(), // "x,z": columns that can only be closed by a gravity drop
+    lava: new Set(), // every lava cell of the box; it only ever shrinks (quenched), never grows
+    floor: new Map(), // "x,z" -> the lowest open cell (monotonic: the fill only ever rises)
+    state: new Map(), // tile id -> cached state
+    count: { n: 0, at: -1e9 }
   }
   for (let tx = 0; tx * o.tile <= b.x2 - b.x1; tx++) {
     for (let tz = 0; tz * o.tile <= b.z2 - b.z1; tz++) {
@@ -89,21 +103,24 @@ function workMap (world, box, grade, opts = {}) {
         x2: Math.min(b.x2, b.x1 + tx * o.tile + o.tile - 1),
         z2: Math.min(b.z2, b.z1 + tz * o.tile + o.tile - 1)
       }
-      t.cx = (t.x1 + t.x2) / 2; t.cz = (t.z1 + t.z2) / 2
+      t.cx = (t.x1 + t.x2) / 2
+      t.cz = (t.z1 + t.z2) / 2
       map.tiles.set(t.id, t)
     }
   }
   sealFlood(map, world)
-  for (let x = b.x1; x <= b.x2; x++) {
-    for (let z = b.z1; z <= b.z2; z++) {
+  for (let x = b.x1 - 2; x <= b.x2 + 2; x++) {
+    for (let z = b.z1 - 2; z <= b.z2 + 2; z++) {
+      for (let y = b.y1 - 2; y <= b.y2 + 2; y++) if (isLava(world, x, y, z)) map.lava.add(K3(x, y, z))
+      if (x < b.x1 || x > b.x2 || z < b.z1 || z > b.z2) continue
       if (!isSolid(world, x, b.y1, z) && !isSolid(world, x, b.y1 - 1, z)) map.voidBelow.add(K2(x, z))
     }
   }
   return map
 }
 
-// Air that is connected to the open sky INSIDE the box is work; a pocket sealed in the rock is not.
-// Flooded once: filling from the bottom up can never cut a higher cell off from the sky.
+// Air connected to the open sky INSIDE the box is work; a pocket sealed in the rock is not. Flooded
+// once at the start: filling strictly bottom-up can never cut a higher cell off from the sky.
 function sealFlood (map, world) {
   const b = map.box; const open = new Set(); const q = []
   for (let x = b.x1; x <= b.x2; x++) {
@@ -125,35 +142,39 @@ function sealFlood (map, world) {
   }
   for (let x = b.x1; x <= b.x2; x++) {
     for (let z = b.z1; z <= b.z2; z++) {
-      for (let y = b.y1; y <= b.y2; y++) {
-        if (!isSolid(world, x, y, z) && !open.has(K3(x, y, z))) map.sealed.add(K3(x, y, z))
-      }
+      for (let y = b.y1; y <= b.y2; y++) if (!isSolid(world, x, y, z) && !open.has(K3(x, y, z))) map.sealed.add(K3(x, y, z))
     }
   }
 }
 
-// ---------------------------------------------------------------- tile state (what is open, where)
+// ---------------------------------------------------------------- what is open, per column and lane
 
-function fillable (map, world, x, y, z) {
+function placeable (map, world, x, y, z) {
   if (isSolid(world, x, y, z)) return false
   if (map.sealed.has(K3(x, y, z))) return false
   if (map.voidBelow.has(K2(x, z)) && y === map.box.y1) return false
-  return isSolid(world, x, y - 1, z) // SOLID FILL: never a block with air under it
+  return isSolid(world, x, y - 1, z) // SOLID FILL: no block is ever placed with air beneath it
 }
 
-// the lowest cell of a column that is still open (sealed pockets skipped) — null = filled to grade
+// The lowest cell of a column that is still work — null when the column stands at grade.
+// Memoised: the floor only ever rises, so the scan resumes where it stopped last time.
 function firstOpen (map, world, x, z) {
-  for (let y = map.box.y1; y <= map.grade; y++) {
+  const k = K2(x, z)
+  let y = map.floor.has(k) ? map.floor.get(k) : map.box.y1
+  if (y == null) return null
+  for (; y <= map.grade; y++) {
     if (isSolid(world, x, y, z)) continue
     if (map.sealed.has(K3(x, y, z))) continue
-    if (map.voidBelow.has(K2(x, z)) && y === map.box.y1) continue
+    if (map.voidBelow.has(k) && y === map.box.y1) continue
+    map.floor.set(k, y)
     return y
   }
+  map.floor.set(k, null)
   return null
 }
 
-// LAYER = the lowest open cell of the whole tile; its targets are every cell of the tile at that height
-// that already has a solid block underneath. The layer is closed before it rises: no pinholes.
+// LAYER = the lowest open cell of the whole lane; its targets are the cells of the lane at that height
+// that already have a solid block underneath. The layer is closed before it rises: no pinholes, ever.
 function tileState (map, world, tile, now, fresh) {
   const cached = map.state.get(tile.id)
   if (cached && !fresh && now - cached.t < 2000) return cached
@@ -170,11 +191,10 @@ function tileState (map, world, tile, now, fresh) {
   if (layerY != null) {
     for (let x = tile.x1; x <= tile.x2; x++) {
       for (let z = tile.z1; z <= tile.z2; z++) {
-        if (!fillable(map, world, x, layerY, z)) continue
+        if (!placeable(map, world, x, layerY, z)) continue
         targets.push({ x, y: layerY, z, lava: isLava(world, x, layerY, z), litter: isLitter(kindAt(world, x, layerY, z)) })
       }
     }
-    // lava first (it is quenched before anybody works within 2 of it), then west-to-east for a stable order
     targets.sort((a, b) => (b.lava ? 1 : 0) - (a.lava ? 1 : 0) || a.x - b.x || a.z - b.z)
   }
   const st = { t: now, id: tile.id, layerY, targets, remaining, done: layerY == null }
@@ -182,38 +202,39 @@ function tileState (map, world, tile, now, fresh) {
   return st
 }
 
-// ---------------------------------------------------------------- claims (small, expiring, per tile)
+// ---------------------------------------------------------------- claims: small, expiring, per lane
+// 't…' = a lane, 'e…' = the entry ladder of one box edge. Nothing else is ever claimed.
 
 function expire (claims, now, claimMs) {
   for (const id of Object.keys(claims)) if (now - claims[id].t > claimMs) delete claims[id]
 }
-function heldBy (claims, botId) {
-  for (const id of Object.keys(claims)) if (claims[id].bot === botId) return id
+function heldBy (claims, botId, prefix = 't') {
+  for (const id of Object.keys(claims)) if (claims[id].bot === botId && id[0] === prefix) return id
   return null
 }
-function neighbourIds (tile) {
-  return [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([a, b]) => 't' + (tile.tx + a) + ',' + (tile.tz + b))
-}
+function laneCount (claims) { return Object.keys(claims).filter(id => id[0] === 't').length }
+function neighbourIds (tile) { return SIDES.map(([a, b]) => 't' + (tile.tx + a) + ',' + (tile.tz + b)) }
 function claimable (map, claims, tile, botId) {
   const mine = claims[tile.id]
   if (mine && mine.bot !== botId) return false
   for (const n of neighbourIds(tile)) { const c = claims[n]; if (c && c.bot !== botId) return false }
   return true
 }
-function claim (claims, tileId, botId, now, map) {
-  const tile = map ? map.tiles.get(tileId) : null
+function claim (claims, id, botId, now, map) {
+  const tile = map && id[0] === 't' ? map.tiles.get(id) : null
   if (tile && !claimable(map, claims, tile, botId)) return false
-  claims[tileId] = { bot: botId, t: now }
+  if (claims[id] && claims[id].bot !== botId) return false
+  claims[id] = { bot: botId, t: now }
   return true
 }
-function release (claims, tileId, botId) {
-  if (claims[tileId] && (!botId || claims[tileId].bot === botId)) delete claims[tileId]
+function release (claims, id, botId) {
+  if (claims[id] && (!botId || claims[id].bot === botId)) delete claims[id]
 }
 
-// ---------------------------------------------------------------- what is open right now
+// ---------------------------------------------------------------- the work map, seen from outside
 
-// tiles a builder standing at `from` could take, nearest first. Each carries what it NEEDS
-// (blocks, and whether it still wants a way in) and how much is left in it.
+// Every lane a builder standing at `from` could take, nearest first, with what it needs and how much
+// is left in it. This is the whole "board" a filling job needs — no jobs, no crews, no priorities.
 function openTiles (world, box, grade, opts = {}) {
   const map = opts.map || workMap(world, box, grade, opts)
   const o = map.o
@@ -241,33 +262,40 @@ function openTiles (world, box, grade, opts = {}) {
       entry: grade - st.layerY > o.maxDrop,
       dist: Math.hypot(t.cx - from.x, t.cz - from.z)
     })
-    if (out.length >= (opts.limit || 999)) break
+    if (out.length >= (opts.limit || 1e9)) break
   }
   return out
 }
 
-// how many cells the whole box has open in its working layers (the number that sets the crew size)
+// how many cells the whole box has open in its working layers — the number that sets the crew size
 function countOpen (map, world, now) {
-  if (now - map.cache.countAt < 5000) return map.cache.count
+  if (now - map.count.at < 5000) return map.count.n
   let n = 0
-  for (const t of map.tiles.values()) { const st = tileState(map, world, t, now, false); n += st.targets.length }
-  map.cache.count = n; map.cache.countAt = now
+  for (const t of map.tiles.values()) n += tileState(map, world, t, now, true).targets.length
+  map.count = { n, at: now }
   return n
 }
 
-// ---------------------------------------------------------------- geometry: stands, reach, walking
+// ---------------------------------------------------------------- geometry: standing, reach, walking
 
-function canStand (map, world, x, y, z, mates) {
-  if (!isSolid(world, x, y - 1, z)) return false
-  if (isSolid(world, x, y, z) || isSolid(world, x, y + 1, z)) return false
-  if (kindAt(world, x, y, z) === 'lava' || kindAt(world, x, y - 1, z) === 'lava') return false
-  for (let dx = -2; dx <= 2; dx++) {
-    for (let dy = -2; dy <= 2; dy++) {
-      for (let dz = -2; dz <= 2; dz++) if (isLava(world, x + dx, y + dy, z + dz)) return false
-    }
-  }
+function canStand (map, world, x, y, z, mates, blocked) {
+  if (!isSolid(world, x, y - 1, z, blocked)) return false
+  if (isSolid(world, x, y, z, blocked) || isSolid(world, x, y + 1, z, blocked)) return false
+  if (lavaWithin(map, world, x, y, z, 2)) return false // nobody works within 2 of lava until it is quenched
   if (mates) for (const m of mates) if (m.x === x && m.z === z && Math.abs(m.y - y) <= 1) return false
   return true
+}
+
+// the lava index: small, shrinks as cells are quenched, and saves a 5x5x5 world scan per stand
+function lavaWithin (map, world, x, y, z, r) {
+  if (!map.lava || !map.lava.size) return false
+  for (const k of map.lava) {
+    const [lx, ly, lz] = k.split(',').map(Number)
+    if (Math.abs(lx - x) > r || Math.abs(ly - y) > r || Math.abs(lz - z) > r) continue
+    if (isLava(world, lx, ly, lz)) return true
+    map.lava.delete(k)
+  }
+  return false
 }
 
 function los (world, from, to) {
@@ -285,63 +313,58 @@ function los (world, from, to) {
 }
 
 function canPlaceFrom (world, stand, cell, reach) {
-  const d = Math.hypot(stand.x - cell.x, (stand.y + 1.6) - (cell.y + 0.5), stand.z - cell.z)
-  if (d > reach) return false
+  if (Math.hypot(stand.x - cell.x, (stand.y + 1.6) - (cell.y + 0.5), stand.z - cell.z) > reach) return false
   return los(world, stand, cell)
 }
 
-// read-only walking, exactly like A.travel: step up 1, drop at most maxDrop, ladders climbed
-function reachSet (map, world, start, limit = 2500) {
+// read-only walking, exactly like A.travel: step up 1, drop at most maxDrop, ladders climbed, nothing dug
+function reachSet (map, world, start, blocked, limit = 800) {
+  const o = map.o
   const seen = new Set([K3(start.x, start.y, start.z)])
   const q = [start]
-  const o = map.o
   while (q.length && seen.size < limit) {
     const p = q.shift()
-    const onLadder = kindAt(world, p.x, p.y, p.z) === 'ladder'
-    if (onLadder) {
+    if (kindAt(world, p.x, p.y, p.z) === 'ladder') {
       for (const dy of [1, -1]) {
         const ny = p.y + dy
-        if (kindAt(world, p.x, ny, p.z) !== 'ladder' && !(dy < 0 && canStand(map, world, p.x, ny, p.z))) continue
-        const k = K3(p.x, ny, p.z); if (seen.has(k)) continue
-        seen.add(k); q.push({ x: p.x, y: ny, z: p.z })
+        const onLadder = kindAt(world, p.x, ny, p.z) === 'ladder'
+        if (!onLadder && !canStand(map, world, p.x, ny, p.z, null, blocked)) continue
+        const k = K3(p.x, ny, p.z)
+        if (!seen.has(k)) { seen.add(k); q.push({ x: p.x, y: ny, z: p.z }) }
       }
     }
-    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+    for (const [dx, dz] of SIDES) {
       const nx = p.x + dx; const nz = p.z + dz
       for (let dy = 1; dy >= -o.maxDrop; dy--) {
         const ny = p.y + dy
-        if (kindAt(world, nx, ny, nz) === 'ladder') { const k = K3(nx, ny, nz); if (!seen.has(k)) { seen.add(k); q.push({ x: nx, y: ny, z: nz }) } break }
-        if (!canStand(map, world, nx, ny, nz)) continue
-        if (dy === 1 && isSolid(world, p.x, p.y + 2, p.z)) break // no headroom to step up
-        const k = K3(nx, ny, nz); if (!seen.has(k)) { seen.add(k); q.push({ x: nx, y: ny, z: nz }) }
-        break // the first standable height in this column wins
+        if (dy === 1 && isSolid(world, p.x, p.y + 2, p.z, blocked)) break // no headroom to step up
+        if (kindAt(world, nx, ny, nz) === 'ladder') {
+          const k = K3(nx, ny, nz)
+          if (!seen.has(k)) { seen.add(k); q.push({ x: nx, y: ny, z: nz }) }
+          break
+        }
+        if (!canStand(map, world, nx, ny, nz, null, blocked)) continue
+        const k = K3(nx, ny, nz)
+        if (!seen.has(k)) { seen.add(k); q.push({ x: nx, y: ny, z: nz }) }
+        break // the first standable height in that column wins
       }
     }
   }
   return seen
 }
 
+// how much room a builder has to walk — the simulator's "not entombed" test and ours
+function walkArea (map, world, p, blocked, cap = 8) { return reachSet(map, world, flr(p), blocked, cap).size }
+
 // ---------------------------------------------------------------- safety: nobody is walled in
 
-function freeAround (map, world, p, extra) {
-  let n = 0
-  for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
-    for (let dy = 1; dy >= -1; dy--) {
-      const x = p.x + dx; const y = p.y + dy; const z = p.z + dz
-      if (extra && extra.x === x && extra.y === y && extra.z === z) continue
-      if (canStand(map, world, x, y, z)) { n++; break }
-    }
-  }
-  return n
-}
-
-// a cell may be filled only when it harms no builder standing nearby (mine or a mate's)
-function safeToPlace (map, world, cell, mates) {
+function safeToPlace (map, world, cell, mates, o) {
   for (const m of mates) {
     if (m.x === cell.x && m.z === cell.z && (cell.y === m.y || cell.y === m.y + 1)) return false // its body
     if (Math.abs(m.x - cell.x) <= 1 && Math.abs(m.z - cell.z) <= 1 && cell.y >= m.y + 1) return false // a 2-high wall beside it
-    if (Math.abs(m.x - cell.x) <= 2 && Math.abs(m.z - cell.z) <= 2 && Math.abs(m.y - cell.y) <= 2) {
-      if (freeAround(map, world, m, cell) < 4) return false // it would be entombed
+    if (Math.abs(m.x - cell.x) <= 2 && Math.abs(m.y - cell.y) <= 2 && Math.abs(m.z - cell.z) <= 2) {
+      const blocked = new Set([K3(cell.x, cell.y, cell.z)])
+      if (walkArea(map, world, m, blocked, o.minArea) < o.minArea) return false // it would be entombed
     }
   }
   return true
@@ -349,67 +372,50 @@ function safeToPlace (map, world, cell, mates) {
 
 // ---------------------------------------------------------------- entry: a ladder down a wall face
 
-// One ladder per `entryGrid` blocks of box edge, on the box column nearest the tile whose OUTSIDE
-// neighbour is a solid wall all the way down. Built top-down from the rim: the builder places a rung,
-// hangs on it, places the next. Nothing is dug, nothing hangs in the air, and it is the way out too
-// (a restock trip uses it). Its lower rungs are simply buried as the floor rises.
+// One ladder per `entryGrid` blocks of box edge, on the box column nearest the lane whose OUTSIDE
+// neighbour is solid wall all the way down. Built top-down from the rim: place a rung, hang on it,
+// place the next. Nothing is dug, no block hangs in the air, and it is the way OUT for a restock trip.
 function entryColumn (map, world, tile) {
   const b = map.box; const o = map.o
   const sides = []
   for (let x = b.x1; x <= b.x2; x++) { sides.push({ x, z: b.z1, ox: 0, oz: -1 }); sides.push({ x, z: b.z2, ox: 0, oz: 1 }) }
   for (let z = b.z1; z <= b.z2; z++) { sides.push({ x: b.x1, z, ox: -1, oz: 0 }); sides.push({ x: b.x2, z, ox: 1, oz: 0 }) }
-  const snap = v => Math.round(v / o.entryGrid) * o.entryGrid
   const good = sides.filter(s => {
     const floor = firstOpen(map, world, s.x, s.z)
     if (floor == null) return false
-    for (let y = floor; y <= map.grade - 1; y++) if (!isSolid(world, s.x + s.ox, y, s.z + s.oz)) return false
-    return canStand(map, world, s.x + s.ox, map.grade + 1, s.z + s.oz) || canStand(map, world, s.x + s.ox, map.grade, s.z + s.oz)
+    for (let y = floor; y <= map.grade; y++) if (!isSolid(world, s.x + s.ox, y, s.z + s.oz)) return false
+    return canStand(map, world, s.x + s.ox, map.grade + 1, s.z + s.oz)
   })
   if (!good.length) return null
-  const wantX = snap(tile.cx); const wantZ = snap(tile.cz)
-  good.sort((a, c) =>
-    Math.hypot(a.x - wantX, a.z - wantZ) - Math.hypot(c.x - wantX, c.z - wantZ) || a.x - c.x || a.z - c.z)
+  const snap = v => Math.round(v / o.entryGrid) * o.entryGrid
+  const wx = snap(tile.cx); const wz = snap(tile.cz)
+  good.sort((a, c) => Math.hypot(a.x - wx, a.z - wz) - Math.hypot(c.x - wx, c.z - wz) || a.x - c.x || a.z - c.z)
   return good[0]
-}
-
-function ladderRun (map, world, col) {
-  const floor = firstOpen(map, world, col.x, col.z)
-  const cells = []
-  if (floor == null) return cells
-  for (let y = map.grade - 1; y >= floor; y--) cells.push({ x: col.x, y, z: col.z })
-  return cells
 }
 
 function entryAction (map, world, bot, tile, o) {
   const col = entryColumn(map, world, tile)
   if (!col) return { type: 'wait', why: 'no wall face to hang an entry ladder on' }
-  const run = ladderRun(map, world, col)
+  const floor = firstOpen(map, world, col.x, col.z)
   const feet = flr(bot.pos)
   const rim = { x: col.x + col.ox, y: map.grade + 1, z: col.z + col.oz }
-  const rimStand = canStand(map, world, rim.x, rim.y, rim.z) ? rim : { x: rim.x, y: map.grade, z: rim.z }
-  // the first rung that is missing, top down
-  const missing = run.find(c => kindAt(world, c.x, c.y, c.z) !== 'ladder')
-  if (!missing) {
-    const bottom = run[run.length - 1]
-    return { type: 'descend', target: bottom, why: 'down the entry ladder at ' + K2(col.x, col.z) }
+  let lowest = null
+  for (let y = map.grade; y >= floor; y--) { if (kindAt(world, col.x, y, col.z) !== 'ladder') break; lowest = y }
+  const rung = lowest == null ? map.grade : lowest - 1
+  const tag = 'e' + K2(col.x, col.z)
+  if (rung < floor) return { type: 'descend', target: { x: col.x, y: floor, z: col.z }, entry: tag, why: 'down the entry ladder at ' + K2(col.x, col.z) }
+  if (have(bot, 'ladder', o) < 1) return { type: 'restock', item: 'ladder', n: 16, entry: tag, why: 'ladders for the way into the pit at ' + K2(col.x, col.z) }
+  const from = lowest == null ? rim : { x: col.x, y: lowest, z: col.z }
+  if (!same(feet, from)) {
+    if (lowest == null) return { type: 'move', target: rim, entry: tag, why: 'to the rim to start the entry ladder' }
+    return { type: 'descend', target: from, entry: tag, why: 'down to the last rung' }
   }
-  if (have(bot, 'ladder', o) < 1) return { type: 'restock', item: 'ladder', n: 16, why: 'an entry ladder for the pit at ' + K2(col.x, col.z) }
-  const from = kindAt(world, feet.x, feet.y, feet.z) === 'ladder' ? feet : rimStand
-  if (!(feet.x === from.x && feet.y === from.y && feet.z === from.z)) {
-    // hang on the lowest rung that stands, else walk to the rim
-    const lowest = run.filter(c => kindAt(world, c.x, c.y, c.z) === 'ladder').pop()
-    if (lowest && Math.abs(feet.y - lowest.y) <= 1 && feet.x === lowest.x && feet.z === lowest.z) { /* already there */ } else if (lowest && kindAt(world, feet.x, feet.y, feet.z) !== 'ladder' && feet.y > lowest.y) {
-      return { type: 'descend', target: lowest, why: 'down to the end of the entry ladder' }
-    } else if (!lowest) {
-      return { type: 'move', target: rimStand, why: 'to the rim to start the entry ladder' }
-    }
-  }
-  return { type: 'place', cell: missing, item: 'ladder', entry: true, why: 'entry ladder rung ' + missing.y }
+  return { type: 'place', cell: { x: col.x, y: rung, z: col.z }, item: 'ladder', entry: tag, why: 'entry ladder rung y' + rung }
 }
 
 // ---------------------------------------------------------------- the one decision: next()
 
-// bot = {id, pos, carrying}; tile = a tile object (from openTiles) or its id; opts = {map, mates, now}
+// bot = {id, pos, carrying}; tile = a lane or its id; opts = {map, mates, now}
 function next (bot, tile, world, opts = {}) {
   const map = opts.map
   const o = map.o
@@ -418,65 +424,63 @@ function next (bot, tile, world, opts = {}) {
   const mates = (opts.mates || []).map(flr)
   const feet = flr(bot.pos)
   const st = tileState(map, world, t, now, true)
-  if (st.done) return { type: 'wait', why: 'tile ' + t.id + ' is at grade' }
+  if (st.done) return { type: 'wait', why: 'lane ' + t.id + ' stands at grade' }
 
-  // 1. MATERIAL — one trip with full pockets, never six little ones
+  // 1. MATERIAL — ONE trip with full pockets, never six little ones
   const laneNeed = Math.min(st.remaining, o.tile * o.tile)
-  const drops = st.targets.filter(c => map.dropCells && map.dropCells.has(K3(c.x, c.y, c.z)))
-  if (drops.length && have(bot, o.gravityItem, o) < 1) {
-    return { type: 'restock', item: o.gravityItem, n: 64, why: drops.length + ' cells can only be closed by a gravity block down their shaft' }
+  const needsDrop = st.targets.some(c => map.dropCols.has(K2(c.x, c.z)))
+  if (needsDrop && have(bot, o.gravityItem, o) < 1) {
+    return { type: 'restock', item: o.gravityItem, n: 64, why: 'a shaft in ' + t.id + ' can only be closed by a gravity block' }
   }
-  if (have(bot, o.fillItem, o) < laneNeed && have(bot, o.fillItem, o) < st.remaining) {
-    return { type: 'restock', item: o.fillItem, n: o.pocket, why: 'carrying ' + have(bot, o.fillItem, o) + ', the lane needs ' + laneNeed }
+  const carried = have(bot, o.fillItem, o)
+  if (carried < laneNeed && carried < st.remaining) {
+    return { type: 'restock', item: o.fillItem, n: o.pocket, why: 'carrying ' + carried + ', this lane needs ' + laneNeed }
   }
 
-  // 2. what may be filled at all, this tick, without harming anybody
-  const safe = st.targets.filter(c => safeToPlace(map, world, c, mates.filter(m => !(m.x === feet.x && m.y === feet.y && m.z === feet.z))))
-  if (!safe.length) return { type: 'wait', why: 'every open cell of ' + t.id + ' is beside a builder — it steps up first' }
+  // 2. what may be filled at all this tick without harming anybody
+  const others = mates.filter(m => !same(m, feet))
+  const safe = st.targets.filter(c => safeToPlace(map, world, c, others, o))
+  if (!safe.length) return { type: 'wait', why: 'every open cell of ' + t.id + ' stands beside a builder — it steps up first' }
 
   // 3. from where I stand (lava first, then the nearest cell)
-  const here = safe.filter(c => !(c.x === feet.x && c.z === feet.z && c.y === feet.y) && canPlaceFrom(world, feet, c, o.reach))
-  if (here.length && canStand(map, world, feet.x, feet.y, feet.z)) {
-    const c = pick(here, feet)
-    if (c.litter) return { type: 'dig', cell: c, why: 'a plant in the cell is not a filled cell' }
-    return { type: 'place', cell: c, item: o.fillItem, why: 'layer y' + st.layerY + ' of ' + t.id }
+  if (canStand(map, world, feet.x, feet.y, feet.z)) {
+    const here = safe.filter(c => !same(c, feet) && canPlaceFrom(world, feet, c, o.reach))
+    if (here.length) {
+      const c = pick(here, feet)
+      if (c.litter) return { type: 'dig', cell: c, why: 'a plant in the cell is not a filled cell' }
+      return { type: 'place', cell: c, item: o.fillItem, why: 'layer y' + st.layerY + ' of ' + t.id }
+    }
   }
 
-  // 4. a stand inside my own lane (± 2 columns, where a 1-high overhang leaves no room in the lane)
-  const stands = standsFor(map, world, t, st, safe, mates, o)
-  const reach = reachSet(map, world, feet)
-  const walkable = stands.filter(s => reach.has(K3(s.x, s.y, s.z)))
-  if (walkable.length) {
-    const s = pick(walkable, feet)
-    if (s.x === feet.x && s.y === feet.y && s.z === feet.z) return { type: 'wait', why: 'nothing in reach of this stand' }
-    return { type: 'move', target: s, why: 'onto the finished floor beside layer y' + st.layerY }
+  // 4. a stand in my own lane (+-3 columns, for cells under a 1-high overhang and around lava)
+  const stands = standsFor(map, world, t, st, safe, others, o)
+  if (stands.length) {
+    const reach = reachSet(map, world, feet)
+    const walkable = stands.filter(s => reach.has(K3(s.x, s.y, s.z)) && !same(s, feet))
+    if (walkable.length) return { type: 'move', target: pick(walkable, feet), why: 'onto the finished floor beside layer y' + st.layerY }
   }
 
   // 5. the cell under my own feet is the last one of this layer: ride up onto it
-  if (safe.some(c => c.x === feet.x && c.y === feet.y && c.z === feet.z)) {
-    return { type: 'ride_up', cell: { x: feet.x, y: feet.y, z: feet.z }, item: o.fillItem, why: 'closing the cell I stand in and riding up with the floor' }
+  if (safe.some(c => same(c, feet))) {
+    return { type: 'ride_up', cell: feet, item: o.fillItem, why: 'closing the cell I stand in and riding up with the floor' }
   }
 
-  // 6. a cell nobody can stand beside: classify it ONCE — a gravity block down its shaft, or sealed
-  const shaft = safe.map(c => dropFor(map, world, c, feet, o)).find(Boolean)
-  if (shaft) {
-    map.dropCells = map.dropCells || new Set()
-    map.dropCells.add(K3(shaft.cell.x, shaft.cell.y, shaft.cell.z))
-    if (have(bot, o.gravityItem, o) < 1) return { type: 'restock', item: o.gravityItem, n: 64, why: 'a gravity block for the shaft at ' + K2(shaft.cell.x, shaft.cell.z) }
-    if (!(feet.x === shaft.from.x && feet.y === shaft.from.y && feet.z === shaft.from.z)) {
-      if (reach.has(K3(shaft.from.x, shaft.from.y, shaft.from.z))) return { type: 'move', target: shaft.from, why: 'over the shaft at ' + K2(shaft.cell.x, shaft.cell.z) }
-    } else {
-      return { type: 'place', cell: shaft.cell, item: o.gravityItem, drop: true, why: 'gravity block down the 1x1 shaft at ' + K2(shaft.cell.x, shaft.cell.z) }
-    }
+  // 6. a cell nobody can stand beside: classify it ONCE — a gravity block down its shaft…
+  for (const c of safe) {
+    const d = dropFor(map, world, c, o)
+    if (!d) continue
+    map.dropCols.add(K2(c.x, c.z))
+    if (have(bot, o.gravityItem, o) < 1) return { type: 'restock', item: o.gravityItem, n: 64, why: 'a gravity block for the shaft at ' + K2(c.x, c.z) }
+    if (same(feet, d.from)) return { type: 'place', cell: d.place, item: o.gravityItem, drop: true, lands: d.lands, why: 'gravity block down the shaft at ' + K2(c.x, c.z) }
+    if (reachSet(map, world, feet).has(K3(d.from.x, d.from.y, d.from.z))) return { type: 'move', target: d.from, why: 'beside the mouth of the shaft at ' + K2(c.x, c.z) }
   }
 
   // 7. no way in: the pit is deeper than a walkable step
   if (map.grade - st.layerY > o.maxDrop) return entryAction(map, world, bot, t, o)
 
-  // 8. nothing reaches it and it is not a shaft — declare it sealed, once, and let the layer move on
-  for (const c of safe) {
-    if (!dropFor(map, world, c, feet, o)) map.sealed.add(K3(c.x, c.y, c.z))
-  }
+  // 8. …else it is sealed. Said once, and the layer order is never held up by it again.
+  for (const c of safe) map.sealed.add(K3(c.x, c.y, c.z))
+  map.floor.delete(K2(safe[0].x, safe[0].z))
   map.state.delete(t.id)
   return { type: 'wait', why: 'classified ' + safe.length + ' cells of ' + t.id + ' as unreachable (sealed)' }
 }
@@ -489,15 +493,15 @@ function pick (list, feet) {
 }
 
 // where a builder may stand to work this lane: on the finished floor, in the lane or just beside it,
-// never in the way of a mate, never within 2 of lava, and only where it actually reaches a target.
+// never in a mate's cell, never within 2 of lava, and only where it really reaches a cell of the lane.
 function standsFor (map, world, tile, st, targets, mates, o) {
   const out = []
-  for (let x = tile.x1 - 2; x <= tile.x2 + 2; x++) {
-    for (let z = tile.z1 - 2; z <= tile.z2 + 2; z++) {
+  for (let x = tile.x1 - 3; x <= tile.x2 + 3; x++) {
+    for (let z = tile.z1 - 3; z <= tile.z2 + 3; z++) {
       for (const y of [st.layerY, st.layerY + 1]) {
         if (!canStand(map, world, x, y, z, mates)) continue
         const s = { x, y, z }
-        if (!targets.some(c => !(c.x === x && c.z === z && c.y === y) && canPlaceFrom(world, s, c, o.reach))) continue
+        if (!targets.some(c => !same(c, s) && canPlaceFrom(world, s, c, o.reach))) continue
         out.push(s); break
       }
     }
@@ -505,20 +509,25 @@ function standsFor (map, world, tile, st, targets, mates, o) {
   return out
 }
 
-// a 1x1 shaft (or a cell under an overhang) with a clear column of air above it: a gravity block
-// dropped from a stand over its mouth lands on its floor and closes it — and breaks the flower in it.
-function dropFor (map, world, cell, feet, o) {
-  for (let y = cell.y + 1; y <= map.grade + 2; y++) {
-    if (isSolid(world, cell.x, y, cell.z)) return null
-    if (!canStand(map, world, cell.x, y, cell.z)) continue
-    const from = { x: cell.x, y, z: cell.z }
-    if (y - cell.y < 2) return null // not a shaft: an ordinary cell, it just has no stand yet
-    return { cell, from }
+// A 1x1 shaft (or a cell under an overhang): from a stand beside its MOUTH a gravity block is dropped
+// in, falls to the floor of the shaft and closes it — and breaks the flower standing down there.
+function dropFor (map, world, cell, o) {
+  for (let y = cell.y + 1; y <= map.grade; y++) {
+    if (isSolid(world, cell.x, y, cell.z)) return null // roofed: not a shaft
+    for (const [dx, dz] of SIDES) {
+      for (const sy of [y, y - 1]) {
+        const s = { x: cell.x + dx, y: sy, z: cell.z + dz }
+        if (!canStand(map, world, s.x, s.y, s.z)) continue
+        const mouth = { x: cell.x, y, z: cell.z }
+        if (!canPlaceFrom(world, s, mouth, o.reach)) continue
+        return { place: mouth, from: s, lands: cell }
+      }
+    }
   }
   return null
 }
 
-// ---------------------------------------------------------------- plan(): one action for every builder
+// ---------------------------------------------------------------- plan(): one action per builder
 
 function plan (world, box, grade, crew, opts = {}) {
   const map = opts.map || workMap(world, box, grade, opts)
@@ -529,18 +538,15 @@ function plan (world, box, grade, crew, opts = {}) {
   const openCells = countOpen(map, world, now)
   const capacity = Math.max(1, Math.ceil(openCells / o.K))
   const sorted = crew.slice().sort((a, b) => (String(a.id) < String(b.id) ? -1 : String(a.id) > String(b.id) ? 1 : 0))
+  const everyone = sorted.concat(opts.others || [])
   const actions = []
   for (const bot of sorted) {
-    const mates = sorted.filter(m => m.id !== bot.id).map(m => m.pos)
+    const mates = everyone.filter(m => m.id !== bot.id).map(m => m.pos)
     let tileId = heldBy(claims, bot.id)
-    if (tileId) {
-      const st = tileState(map, world, map.tiles.get(tileId), now, true)
-      if (st.done) { release(claims, tileId, bot.id); tileId = null }
-    }
+    if (tileId && tileState(map, world, map.tiles.get(tileId), now, true).done) { release(claims, tileId, bot.id); tileId = null }
     if (!tileId) {
-      const held = Object.keys(claims).length
-      if (held >= capacity) {
-        actions.push({ id: bot.id, action: { type: 'leave', why: openCells + ' cells open: ' + held + ' builders are the whole crew this needs' } })
+      if (laneCount(claims) >= capacity) {
+        actions.push({ id: bot.id, action: { type: 'leave', why: openCells + ' cells open: ' + laneCount(claims) + ' builders are the whole crew this needs' } })
         continue
       }
       const t = openTiles(world, box, grade, { map, claims, now, from: bot.pos, botId: bot.id, limit: 1 })[0]
@@ -551,8 +557,14 @@ function plan (world, box, grade, crew, opts = {}) {
       claim(claims, t.id, bot.id, now, map)
       tileId = t.id
     }
-    claims[tileId].t = now // a working builder renews its claim; a vanished one lets it expire
-    actions.push({ id: bot.id, action: next(bot, tileId, world, { map, mates, now }) })
+    claims[tileId].t = now // a working builder renews its claim; a vanished one lets it lapse
+    let action = next(bot, tileId, world, { map, mates, now })
+    // the entry ladder is shared by every lane of that box edge: one builder builds it, the rest wait
+    if (action.entry && !claim(claims, action.entry, bot.id, now, map)) {
+      action = { type: 'wait', why: 'another builder is building the entry ladder ' + action.entry }
+    }
+    if (!action.entry) release(claims, heldBy(claims, bot.id, 'e'), bot.id)
+    actions.push({ id: bot.id, action })
   }
   if (o.strict) assertDisjoint(actions)
   return { actions, claims, capacity, open: openCells, map }
@@ -560,7 +572,7 @@ function plan (world, box, grade, crew, opts = {}) {
 
 // two builders must never touch the same cell, nor two cells that share a face, in one tick
 function assertDisjoint (actions) {
-  const cells = actions.map(a => a.action.cell || a.action.target).filter(Boolean)
+  const cells = actions.map(a => a.action.cell).filter(Boolean)
   for (let i = 0; i < cells.length; i++) {
     for (let j = i + 1; j < cells.length; j++) {
       const d = Math.abs(cells[i].x - cells[j].x) + Math.abs(cells[i].y - cells[j].y) + Math.abs(cells[i].z - cells[j].z)
@@ -574,11 +586,28 @@ function assertDisjoint (actions) {
 function summary (map, world, now = 0) {
   let open = 0; let left = 0
   for (const t of map.tiles.values()) { const st = tileState(map, world, t, now, true); open += st.targets.length; left += st.remaining }
-  return { open, left, sealed: map.sealed.size, voidBelow: [...map.voidBelow], tiles: map.tiles.size }
+  return { open, left, sealed: map.sealed.size, voidBelow: [...map.voidBelow], tiles: map.tiles.size, drops: map.dropCols.size }
 }
 
 module.exports = {
-  DEFAULTS, workMap, openTiles, claim, release, heldBy, expire, next, plan, summary,
-  // exported for the simulator and for the live adapter's own checks
-  firstOpen, fillable, canStand, canPlaceFrom, reachSet, los, freeAround, tileState, countOpen
+  DEFAULTS,
+  workMap,
+  openTiles,
+  claim,
+  release,
+  heldBy,
+  expire,
+  next,
+  plan,
+  summary,
+  // used by the simulator and by the live adapter's own checks
+  firstOpen,
+  placeable,
+  canStand,
+  canPlaceFrom,
+  reachSet,
+  walkArea,
+  los,
+  tileState,
+  countOpen
 }
