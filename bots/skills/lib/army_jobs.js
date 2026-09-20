@@ -3215,9 +3215,9 @@ async function build (bot, job, api, ctx) {
       const dk = K(c); st.dug = st.dug || {}
       const outside = !allKeys.has(dk) && !c.roof
       st.dug[dk] = (st.dug[dk] || 0) + 1
-      if (outside || st.dug[dk] > 3) {
+      if (outside || st.dug[dk] > 6) { // 6, not 3 (14:0xZ: `cap_ravine_nm` tripped it at 4 - a cap legitimately digs a cell again when its dirt place failed; a loop digs it 120 times a pass)
         const why = outside ? 'a cell that is not in this blueprint' : st.dug[dk] + ' digs of the same cell in one slice (dig/place loop)'
-        A.result(bot, { ev: 'build_runaway', job: job.id, at: [c.x, c.y, c.z], dug: st.dug[dk], allowed: 3, why })
+        A.result(bot, { ev: 'build_runaway', job: job.id, at: [c.x, c.y, c.z], dug: st.dug[dk], allowed: 6, why })
         A.boardEdit(b => { const q = (b.jobs || []).find(z => z.id === job.id); if (q && q.status === 'active') { q.status = 'paused'; q.note = 'auto-paused: build_runaway - ' + why + ' at ' + dk } })
         return muster(bot, job, api, ctx, 'build: runaway dig stopped (' + why + ')')
       }

@@ -83,7 +83,7 @@ async function watch (seconds = 60) {
     const s = st[r.job] = st[r.job] || { cells: 0, out: 0, left: null, passes: 0, fails: 0 }
     const c = CELLS[r.ev]; if (c) { s.cells += +c(r) || 0; s.passes++ }
     if (u > 0) s.out += u
-    if (r.ev === 'build_pass') { if (r.left != null) s.left = r.left; for (const k in (r.fails || {})) if (k !== 'last') s.fails += r.fails[k] }
+    if (r.ev === 'build_pass') { if (r.left != null) { s.left = r.left; s.open = Math.max(0, r.left - (r.waiting || 0) - (r.gaveUp && !r.waiting ? r.gaveUp : 0)) } for (const k in (r.fails || {})) if (k !== 'last') s.fails += r.fails[k] }
   }
   const useless = Object.values(h1).filter(h => !(outBot[h.bot] > 0) && !excusedJob(jobs[h.job]))
     .map(h => ({ bot: h.bot, job: h.job, task: String(h.task || '').replace(/^army:/, '').slice(0, 40), pos: (h.pos || []).map(Math.round).join(',') }))
@@ -138,6 +138,16 @@ async function watch (seconds = 60) {
 
   if (total && stillBad.length > total / 4) {
     const g = clump(stillBad).slice(0, 3).map(([k, v]) => v.length + 'x ' + k + ' ' + v.slice(0, 3).join(' '))
+  // WORK THAT CANNOT TAKE HANDS (owner 09-20: "手が空いてないのに手が空いてるって出てるのが問題だろ / 全然人手足りてないでしょ"): idle bots never mean "nothing to do" here - they mean the
+  // board cannot hand the work out. Every job with cells LEFT whose open (placeable now) cells are near zero, or that is paused/resting with work left, is named with
+  // the number, so the reader fixes THE WAY IN (ramp/ladder, material, a pause somebody set) instead of looking for something to keep bots busy.
+  { const blocked = []
+    for (const j of board.jobs || []) { if (j.type !== 'build') continue; const s0 = st[j.id]; const ring = (R.ring || {})[j.id]; const left = s0 && s0.left != null ? s0.left : (ring && ring.length ? ring[ring.length - 1][1] : null); if (!(left > 20)) continue
+      const n = (byJob[j.id] || []).length; const open = s0 && s0.open != null ? s0.open : null
+      if (j.status !== 'active') blocked.push(j.id + ' ' + left + ' cells left, job ' + j.status)
+      else if (open != null && open < 8 * Math.max(1, n) && left > 50) blocked.push(j.id + ' ' + left + ' left but only ' + open + ' placeable now (' + n + ' bots): NO WAY IN / waiting cells') }
+    const idle = (byJob.muster || []).length
+    if (blocked.length && (idle > 3 || blocked.length > 2)) bangs.unshift({ kind: 'slow_job', key: 'blocked_work', text: 'WORK THAT CANNOT TAKE HANDS (' + idle + ' bots on muster are NOT spare): ' + blocked.slice(0, 6).join(' · '), look: '' }) }
     bangs.push({ kind: 'army_still', key: 'army_still', text: 'STILL ' + stillBad.length + ' of ' + total + ' bots did not move 1.5 blocks in ' + secs + ' s (excused ' + (still.length - stillBad.length) + '): ' + g.join(' · '), look: eyes([stillBad[0].bot]) })
   }
   if (useless.length >= 8) {

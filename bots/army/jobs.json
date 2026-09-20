@@ -2799,11 +2799,9 @@
    "note": "top model 14:0xZ: re-activated with the head-count its OPEN columns can use (base audit 13:59Z audit_fill). Pinholes are now CLOSED by the builder (dig the cap, gravity drop, place from the rim) and a tail nobody can reach ENDS after 3 rounds instead of declining for ever",
    "rev": 3,
    "stuckBy": {
-    "key": "rev1",
+    "key": "rev3",
     "bots": [
-     "Sakura",
-     "Mashiro",
-     "Yukina"
+     "Mashiro"
     ]
    }
   },
@@ -3087,7 +3085,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789912931144
+   "restUntil": 1789914399155
   },
   {
    "id": "nether_landing_2",
@@ -3644,7 +3642,7 @@
    "type": "build",
    "priority": 65,
    "front": "works",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 16,
    "site": [
@@ -3666,14 +3664,15 @@
      "h": 32
     }
    },
-   "rev": 7
+   "rev": 7,
+   "note": "auto-paused: build_runaway - 4 digs of the same cell in one slice (dig/place loop) at -512,102,-485"
   },
   {
    "id": "cap_ravine_nm",
    "type": "build",
    "priority": 72,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 12,
    "site": [
@@ -3700,7 +3699,8 @@
     },
     "order": "near"
    },
-   "note": "auto-paused: build_runaway - 4 digs of the same cell in one slice (dig/place loop) at -324,68,-448"
+   "note": "top model 14:0xZ: build_runaway tripped at 4 digs of -324,68,-448; the guard is a LOOP detector, not a repair counter - threshold raised to 6 and the cap re-activated",
+   "rev": 1
   },
   {
    "id": "stray_furnace_344",
@@ -3824,7 +3824,7 @@
    "type": "build",
    "priority": 38,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 2,
    "site": [
@@ -3850,14 +3850,15 @@
      "dirt": 128
     },
     "order": "near"
-   }
+   },
+   "note": "auto-paused: build complete"
   },
   {
    "id": "cap_fill_ring_field2",
    "type": "build",
    "priority": 38,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 4,
    "site": [
@@ -3883,7 +3884,8 @@
      "dirt": 128
     },
     "order": "near"
-   }
+   },
+   "note": "auto-paused: build complete"
   },
   {
    "id": "cap_fill_pen4_void",
@@ -3923,7 +3925,7 @@
    "type": "build",
    "priority": 70,
    "front": "works",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 6,
    "site": [
@@ -3968,7 +3970,8 @@
     "bots": [
      "Erika"
     ]
-   }
+   },
+   "note": "auto-paused: build_runaway - 4 digs of the same cell in one slice (dig/place loop) at -368,68,-489"
   },
   {
    "id": "cap_base_yard_pad",
