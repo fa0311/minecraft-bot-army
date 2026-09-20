@@ -42,6 +42,11 @@ async function noBranch (bot, M, o) {
 // level 0, 220 blocks from the hub) - and a level the miners opened themselves (growLevel) is exactly such a board level.
 const BAND = [-16, 48]
 const rich = lv => lv >= BAND[0] && lv <= BAND[1]
+// BY YIELD, NOT BY DEPTH AND NOT BY THE BOOK (owner 09-20: "ブランチマイニングのアルゴリズム悪いのでは？"). What a level pays is MEASURED - iron ore
+// blocks per 100 cells advanced, from the branch ledger (I.levelYield). Until a level has been driven 400 cells the book stands in for it: iron peaks at
+// y16 and falls off roughly linearly to nothing at y-24 and y56, scaled so the peak reads ~4 ore per 100 cells - the same unit, so the two compare.
+const bookIron = lv => 4 * Math.max(0, 1 - Math.abs(lv - 16) / 40)
+function ironYield (M, lv) { try { const q = I.levelYield((M.st.lv || {})[String(lv)]); return q.iron == null ? bookIron(lv) : q.iron } catch (e) { return bookIron(lv) } }
 // WHICH LEVEL? The miners decide it themselves among the levels whose stairs are dug (09-19 23:37Z the job pointed at the worked-out level 16 while 66
 // branches of level -54 lay open; 09-20 03:00Z iron stood at 8/224 while the squad was sent to y-48): while the army is short of IRON (stock group `iron`
 // under settings.targets.iron) the iron-rich levels come first (nearest y16: 16, 0, -16 ...); else the board's level, then the deep ones (diamonds,
@@ -56,7 +61,7 @@ async function pickLevel (bot, M, args, rank) {
   const skip = bot.__ironLvSkip = bot.__ironLvSkip || {} // a level that just refused us (claimBranch null although the outlook said free): not again for a minute
   // THE BOARD'S LEVEL FIRST WHEN IT IS IRON-RICH ITSELF (09-20 09:4xZ: levels 16/0/-16 at the cap of 160 branches x 256, the operator opened y32 - and the tie
   // |32-16| = |0-16| sent every miner back to the 6 last branches of level 0, 220 blocks from the hub): a fresh landing in the iron BAND beats old far ends.
-  const order = M.levels.slice().sort((a, b) => iron ? ((((b === board && rich(b)) ? 1 : 0) - ((a === board && rich(a)) ? 1 : 0)) || (Math.abs(a - 16) - Math.abs(b - 16))) : (((b === board) - (a === board)) || (rank >= 3 ? a - b : b - a)))
+  const order = M.levels.slice().sort((a, b) => iron ? ((((b === board && rich(b)) ? 1 : 0) - ((a === board && rich(a)) ? 1 : 0)) || (ironYield(M, b) - ironYield(M, a)) || (Math.abs(a - 16) - Math.abs(b - 16))) : (((b === board) - (a === board)) || (rank >= 3 ? a - b : b - a)))
   for (const lv of order) {
     if ((lv < -32 && !deepOk) || (skip[lv] || 0) > Date.now() || !M.G.levels[lv] || M.st.dug < M.G.levels[lv].g || !I.branchOutlook(bot, M, rank, lv).free) continue
     if (lv === M.level) return M

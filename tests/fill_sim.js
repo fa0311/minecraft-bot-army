@@ -159,15 +159,12 @@ function simulate (sc, opts = {}) {
     // (only once the first builder has actually used it: before that there is nothing to keep open)
     if (map.entry && map.entry.kind !== 'walk' && map.entry.kind !== 'drop' && entryFirst != null && t - entryFirst > 5 && t - lastEntryCheck > 4) {
       lastEntryCheck = t
-      let deepest = null
-      for (const tile of map.tiles.values()) { const q = FP.tileState(map, world, tile, now, false); if (q.targets.length && (deepest == null || q.layerY < deepest)) deepest = q.layerY }
-      if (deepest != null && sc.grade - deepest > map.o.maxDrop) {
-        const c = map.entry.col
+      const c = map.entry.col
+      const floor = FP.firstOpen(map, world, c.x, c.z)
+      if (floor != null && sc.grade - floor > map.o.maxDrop) {
         const rim = { x: c.x + c.ox, y: sc.grade + 1, z: c.z + c.oz }
         const d = bfs(map, world, rim)
-        let ok = false
-        for (const k of d.keys()) { if (+k.split(',')[1] <= deepest + 1) { ok = true; break } }
-        if (!ok) err('entry-cut', 'the ' + map.entry.kind + ' entry no longer reaches the open layer y' + deepest)
+        if (!d.has(K3(c.x, floor, c.z))) err('entry-cut', 'the ' + map.entry.kind + ' entry no longer reaches its own landing at ' + K3(c.x, floor, c.z))
       }
     }
     // "something happened" = a block moved OR the planner wrote a cell off (both are progress)
@@ -483,6 +480,11 @@ function main () {
   const names = Object.keys(SCEN).filter(k => !want.length || want.includes(k))
   const rows = []
   let bad = 0
+  const pad0 = (s2, n) => String(s2).padEnd(n)
+  const num0 = (v, n, d = 1) => String(typeof v === 'number' ? v.toFixed(d) : v).padStart(n)
+  console.log('')
+  console.log(pad0('scenario', 40) + num0('cells', 7) + num0('peak', 6) + num0('quit', 6) + num0('min', 7) + num0('c/min/bot', 10) + num0('trips', 6) + num0('drops', 6) + num0('gaveUp', 7) + num0('falls', 6) + '  result')
+  console.log('-'.repeat(110))
   for (const k of names) {
     const sc = SCEN[k]()
     const t0 = Date.now()
@@ -492,14 +494,7 @@ function main () {
     rows.push(r)
     if (r.ok && sc.check) { const why = sc.check(r); if (why) { r.ok = false; r.errs = [why] } }
     if (!r.ok) bad++
-  }
-  const pad = (s, n) => String(s).padEnd(n)
-  const num = (v, n, d = 1) => String(typeof v === 'number' ? v.toFixed(d) : v).padStart(n)
-  console.log('')
-  console.log(pad('scenario', 40) + num('cells', 7) + num('peak', 6) + num('quit', 6) + num('min', 7) + num('c/min/bot', 10) + num('trips', 6) + num('drops', 6) + num('gaveUp', 7) + num('falls', 6) + '  result')
-  console.log('-'.repeat(103))
-  for (const r of rows) {
-    console.log(pad(r.name, 40) + num(r.cells, 7, 0) + num(r.peak, 6, 0) + num(r.left, 6, 0) + num(r.minutes, 7) + num(r.perBotMin, 10) + num(r.trips, 6, 0) + num(r.drops, 6, 0) + num(r.abandoned, 7, 0) + num(r.falls, 6, 0) + '  ' + (r.ok ? 'PASS' : 'FAIL'))
+    console.log(pad0(r.name, 40) + num0(r.cells, 7, 0) + num0(r.peak, 6, 0) + num0(r.left, 6, 0) + num0(r.minutes, 7) + num0(r.perBotMin, 10) + num0(r.trips, 6, 0) + num0(r.drops, 6, 0) + num0(r.abandoned, 7, 0) + num0(r.falls, 6, 0) + '  ' + (r.ok ? 'PASS' : 'FAIL'))
     if (!r.ok) for (const e of r.errs) console.log('      ! ' + e)
   }
   console.log('')

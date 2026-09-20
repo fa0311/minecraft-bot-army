@@ -615,10 +615,12 @@ async function main () {
     }
   } else if (cmd === 'rescue') {
     if (names.length !== 1) return console.log('usage: rescue <bot>')
-    const code = 'for(const k of Object.keys(require.cache))if(k.includes("/skills/lib/army"))delete require.cache[k];const A=require("/root/workspace/bots/skills/lib/army.js");return {area:A.walkableArea(bot),inv:A.inv(bot),pos:bot.entity.position.floored(),hp:bot.health}'
+    const code = 'for(const k of Object.keys(require.cache))if(k.includes("/skills/lib/army"))delete require.cache[k];const A=require("/root/workspace/bots/skills/lib/army.js");return {area:A.walkableArea(bot),inv:A.inv(bot),pos:bot.entity.position.floored(),hp:bot.health,dim:String(bot.game&&bot.game.dimension)}'
     const r = JSON.parse(await post('/cmd', { bots: names, action: 'eval', args: { code } }, 4000) || '[]')[0]
     if (!r || !r.ok) return console.log('cannot probe', names[0], r && r.error)
     const { area, inv, pos } = r.result
+    // NEVER off the overworld (09-20: two Nether scouts, 51 iron + 26 diamonds + 14 obsidian, were killed by `rescue` on the 8-cell arrival shelf - a small island IS the Nether's normal): the return job brings a bot home
+    if (!/overworld/.test(r.result.dim || 'overworld')) return console.log('REFUSED: ' + names[0] + ' is in ' + r.result.dim + '. A kill there loses the whole kit for ever (no recovery run reaches it in 5 min). The Nether engineer\'s return job brings it home; if that fails, file it in docs/BUGS.md.')
     const valuable = Object.keys(inv).filter(k => /iron|diamond|gold|fishing_rod|bucket|shield|bow$|_wool|string|emerald|lapis/.test(k))
     console.log(names[0], 'pos', [pos.x, pos.y, pos.z].join(','), 'walkable area', area, 'valuables', valuable.join(',') || 'none')
     // OWNER'S RULE (09-19): no forced respawns. The ONLY permitted kill is the "hand of god" (server console) on a bot that is really HUNG:

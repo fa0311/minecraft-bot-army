@@ -609,7 +609,11 @@ function entryAction (map, world, bot, tile, o) {
     const fall = rim.y - 1 - floor
     const hp = bot.hp == null ? 20 : bot.hp
     if (fall - o.maxDrop > hp - o.keepHp) return { type: 'wait', entry: tag, why: 'a ' + fall + '-block drop would leave me under ' + o.keepHp + ' hp — waiting for the floor to rise' }
-    if (isLava(world, landing.x, landing.y, landing.z) || !isSolid(world, landing.x, landing.y - 1, landing.z)) return { type: 'wait', entry: tag, why: 'the landing at ' + K2(col.x, col.z) + ' is not solid and clear' }
+    // never jump into a hole you cannot work from: the landing must be standable, clear of lava and
+    // have room to walk (a builder that lands boxed in has to be rescued, which costs more than a ladder)
+    if (!canStand(map, world, landing.x, landing.y, landing.z) || walkArea(map, world, landing, null, o.minArea) < o.minArea) {
+      return { type: 'wait', entry: tag, why: 'the landing at ' + K2(col.x, col.z) + ' is not a place to stand and work' }
+    }
     return { type: 'descend', target: landing, mode: 'drop', fall, entry: tag, why: 'stepping off the rim: ' + Math.max(0, fall - o.maxDrop) + ' hp for a way in that costs nothing to build' }
   }
 

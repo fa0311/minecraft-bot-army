@@ -176,12 +176,18 @@ module.exports = ctx => {
     try {
       gateSet(bot, force)
       const mv = bot.pathfinder && bot.pathfinder.movements; if (!mv) return
+      // A COST IS NOT A WALL (measured 16:04:15Z: priced at 400 the portal was still the cheapest way across a 9-cell pocket, and
+      // the bot was sent home 14 s after it arrived). A portal block belongs in blocksToAvoid: the graph then has no edge through
+      // the gate at all, and the one deliberate entry takes it out again for as long as it needs.
+      try { const id = bot.registry.blocksByName.nether_portal && bot.registry.blocksByName.nether_portal.id; if (id != null && mv.blocksToAvoid && !mv.blocksToAvoid.has(id)) { mv.blocksToAvoid.add(id); mv.__gateAvoid = id } } catch (e2_) { swallow('jobs_nether:gateAvoid', e2_) }
       if (!mv.__gateRule) { const r = b => (b && b.position && gateCell(bot, b.position) ? 400 : 0); mv.__gateRule = r; mv.exclusionAreasStep.push(r) }
     } catch (e_) { swallow('jobs_nether:gateGuardOn', e_) }
   }
   function gateGuardOff (bot) {
     try {
-      const mv = bot.pathfinder && bot.pathfinder.movements; if (!mv || !mv.__gateRule) return
+      const mv = bot.pathfinder && bot.pathfinder.movements; if (!mv) return
+      if (mv.__gateAvoid != null) { try { mv.blocksToAvoid.delete(mv.__gateAvoid) } catch (e2_) { swallow('jobs_nether:gateAvoidOff', e2_) } mv.__gateAvoid = null }
+      if (!mv.__gateRule) return
       mv.exclusionAreasStep = mv.exclusionAreasStep.filter(f => f !== mv.__gateRule); mv.__gateRule = null
     } catch (e_) { swallow('jobs_nether:gateGuardOff', e_) }
   }
@@ -224,8 +230,9 @@ module.exports = ctx => {
         bot.pathfinder.setGoal(null); bot.clearControlStates()
         await bot.lookAt(c.offset(0.5, 1.2, 0.5), true)
         bot.setControlState('forward', true)
+        if (c.y > bot.entity.position.y + 0.4) bot.setControlState('jump', true) // a step UP out of the frame is a jump, not a walk
         for (let t = 0; t < 12 && inGateNow(bot) && !api.stop(); t++) await sleep(250)
-        bot.setControlState('forward', false)
+        bot.setControlState('forward', false); bot.setControlState('jump', false)
       } catch (e_) { swallow('jobs_nether:walkOut', e_) }
       if (!inGateNow(bot)) return true
     }
@@ -358,6 +365,10 @@ module.exports = ctx => {
     // 1330` — the chunks of the stair had simply not arrived yet, ~14 s after the gate spat the bot out). Up to 20 s, then work.
     for (let w = 0; w < 40 && !api.stop() && Date.now() < until && !cells.some(c => loadedAt(bot, c)); w++) { task(bot, 'nether ' + what + ': waiting for the world'); await sleep(500) }
     for (let round = 0; round < 120 && Date.now() < until && !api.stop(); round++) {
+      // PACING IS NOT WORKING (measured 16:19:08Z: `steps 118, placed 2` — the cells left were pockets sealed under the shelf's
+      // own rock, so every round walked to another one and placed nothing). Forty steps without a block is this pass's answer:
+      // the trip has a walk to retry and a gate to catch.
+      if (steps >= 40 && placed + dug === 0) break
       const todo = cells.filter(c => !done.has(c.x + ',' + c.y + ',' + c.z) && loadedAt(bot, c) && !cellOK(bot, c))
       if (!todo.length) break
       const me = bot.entity.position
@@ -387,6 +398,15 @@ module.exports = ctx => {
       for (let dx = -3; dx <= 3; dx++) for (let dz = -3; dz <= 3; dz++) for (const dy of [0, 1, -1]) { const c2 = new Vec3(t.x + dx, t.y + dy + 1, t.z + dz); if (!c2.equals(here) && c2.distanceTo(tp) < d0 - 0.2) cands.push(c2) }
       cands.sort((a, b) => a.distanceTo(tp) - b.distanceTo(tp))
       for (const s2 of cands.slice(0, 20)) { if (api.stop()) break; if (await safeStep(bot, api, s2, box)) { moved = true; steps++; break } }
+      // WALK THE ROAD WE HAVE ALREADY BUILT (measured 16:13:31Z: `placed 0, dug 0, steps 3, left 54` on a causeway whose first
+      // half stands — every stand candidate above is within 3 cells of the TARGET, and over a void those cells ARE the void that
+      // is still to be bridged. The way to the head of the work is the finished part of it: our own floor, walked read-only.)
+      if (!moved) {
+        const road = cells.filter(c => c.block === 'stone' && cellOK(bot, c)).map(c => new Vec3(c.x, c.y + 1, c.z))
+          .filter(s2 => s2.distanceTo(bot.entity.position) > 1.5 && BL().standable(bot, s2))
+          .sort((a, b) => a.distanceTo(tp) - b.distanceTo(tp))
+        for (const s2 of road.slice(0, 6)) { if (api.stop()) break; if (await safeStep(bot, api, s2, box)) { moved = true; steps++; break } }
+      }
       if (!moved) { tried.push([t.x, t.y, t.z]); if (!why[t.x + ',' + t.y + ',' + t.z]) why[t.x + ',' + t.y + ',' + t.z] = 'no safe stand of ours within reach of it'; done.add(t.x + ',' + t.y + ',' + t.z); continue } // this one cannot be reached from our own floor: leave it, take the next
     }
     const left = cells.filter(c => loadedAt(bot, c) && !cellOK(bot, c))
@@ -727,20 +747,26 @@ module.exports = ctx => {
   // outer rim so nobody is shoved off, 3 cells of headroom, laid at the ARRIVAL level in an L (z first, then x). It is generated
   // as a plain cell list so `buildCells` lays it from safe stands of its own and reports what it could not reach.
   function causewayCells (from, to, y) {
-    const cells = []; const seen = new Set()
-    const add = (x, yy, z, block) => { const k = x + ',' + yy + ',' + z; if (seen.has(k)) return; seen.add(k); cells.push({ x, y: yy, z, block }) }
+    const cells = []; const seen = new Set(); const legCells = []
+    let cur = null
+    const add = (x, yy, z, block, rim) => { const k = x + ',' + yy + ',' + z; if (seen.has(k)) return; seen.add(k); const c = { x, y: yy, z, block, rim: !!rim }; cells.push(c); if (cur) cur.push(c) }
     const legs = []
     let cx = Math.floor(from[0]); let cz = Math.floor(from[2])
     while (cz !== Math.floor(to[2]) && legs.length < 96) { cz += Math.sign(Math.floor(to[2]) - cz); legs.push([cx, cz, 'z']) }
     while (cx !== Math.floor(to[0]) && legs.length < 128) { cx += Math.sign(Math.floor(to[0]) - cx); legs.push([cx, cz, 'x']) }
     for (const [px, pz, axis] of legs) {
+      cur = []; legCells.push(cur)
       for (let o = -2; o <= 2; o++) {
         const x = axis === 'z' ? px + o : px; const z = axis === 'z' ? pz : pz + o
-        if (Math.abs(o) <= 1) { add(x, y - 1, z, 'stone'); for (let k = 0; k < 3; k++) add(x, y + k, z, 'air') } else add(x, y, z, 'stone') // rail on the rim
+        // A RAIL NEEDS SOMETHING TO STAND ON (measured 16:15:09Z: `left 54, placed 0`, and the first cell named was a rail at
+        // -45,98,-74 — over the void a rim block at walking height has no face to be placed against, so it could never go in).
+        // The floor is 5 wide, the walkway is the middle 3, and the two outer columns carry the rail.
+        add(x, y - 1, z, 'stone', Math.abs(o) === 2)
+        if (Math.abs(o) <= 1) { for (let k = 0; k < 3; k++) add(x, y + k, z, 'air') } else add(x, y, z, 'stone')
       }
     }
     const xs = cells.map(c => c.x); const zs = cells.map(c => c.z)
-    return { cells, box: [Math.min(...xs) - 1, Math.min(...zs) - 1, Math.max(...xs) + 1, Math.max(...zs) + 1], len: legs.length }
+    return { cells, legs: legCells, box: [Math.min(...xs) - 1, Math.min(...zs) - 1, Math.max(...xs) + 1, Math.max(...zs) + 1], len: legs.length }
   }
   async function pairGate (bot, job, api, P, until) {
     const at = P.at || [-41, null, -65]
@@ -783,10 +809,26 @@ module.exports = ctx => {
     // partner column. It is built with carried stone from safe stands only, and then the same read-only walk is tried again.
     if (!reached && !netherHere(bot)) return { work: 'pair', at: [tx, y0, tz], groundY, reached: false, why: 'the gate sent me back to the overworld during the walk - nothing is built from here' }
     if (!reached && stoneCarried(bot) >= 32) {
-      const from0 = xyz(bot.entity.position)
+      // ONE ROAD, NOT ONE PER TRIP: the causeway is anchored at the GATE and written to the board, so every trip carries on with
+      // the same 3-wide walkway instead of starting a fresh L from wherever this bot happened to stop (16:11:45Z: 158 of 212
+      // cells laid in the first pass — that progress is only worth anything if the next pass continues it).
+      const N0 = netherOf()
+      const saved = N0.pairRoad && Array.isArray(N0.pairRoad.from) && N0.pairRoad.to && N0.pairRoad.to[0] === tx && N0.pairRoad.to[2] === tz && N0.pairRoad.y === y0 ? N0.pairRoad.from : null
+      const from0 = saved || (Array.isArray(N0.portal) ? [N0.portal[0], y0, N0.portal[2]] : xyz(bot.entity.position))
+      if (!saved) netherEdit({ pairRoad: { from: from0, to: [tx, y0, tz], y: y0, at: Date.now() } })
       const cw = causewayCells(from0, [tx, y0, tz], y0)
-      const rb = await buildCells(bot, job, api, cw.cells, cw.box, Math.min(until, Date.now() + 240000), 'pair-bridge')
-      bridged = { len: cw.len, placed: rb.placed, dug: rb.dug, steps: rb.steps, left: rb.left, unloaded: rb.unloaded, of: rb.of, leftAt: rb.leftAt }
+      // WORK THE HEAD OF THE ROAD, NOT THE WHOLE OF IT (measured 16:19:08Z: `steps 118, placed 2` — the nearest unfinished cell
+      // was always a pocket sealed under the shelf BEHIND the bot, so the pass paced the finished part instead of extending it).
+      // A pass takes the first leg that is not finished and the five after it; the next trip starts where this one stopped.
+      let head = cw.legs.findIndex(L => L.some(c => loadedAt(bot, c) && !cellOK(bot, c)))
+      if (head < 0) head = 0
+      // A FLOOR UNDER A BLOCK THAT ALREADY STANDS IS NOBODY'S HOLE: where the causeway runs through the shelf's own rock, the
+      // rim columns need no floor laid under them (16:19-16:22Z: the cell -45,97,-78 was named pass after pass - a sealed pocket
+      // one layer under rock the bot walks on, unreachable and pointless).
+      const seg = cw.legs.slice(head, head + 6).reduce((a, L) => a.concat(L), [])
+        .filter(c => !(c.rim && c.block === 'stone' && c.y === y0 - 1 && (b2 => b2 && b2.boundingBox === 'block')(bot.blockAt(new Vec3(c.x, y0, c.z)))))
+      const rb = await buildCells(bot, job, api, seg, cw.box, Math.min(until, Date.now() + 240000), 'pair-bridge')
+      bridged = { len: cw.len, leg: head + 1, placed: rb.placed, dug: rb.dug, steps: rb.steps, left: rb.left, unloaded: rb.unloaded, of: rb.of, leftAt: rb.leftAt }
       A.result(bot, Object.assign({ ev: 'pair_bridge', job: job.id, from: from0, to: [tx, y0, tz] }, bridged))
       reached = await walk()
     }
@@ -989,6 +1031,12 @@ module.exports = ctx => {
     const to = await stepThrough(bot, api, cells.length ? cells : [xyz(far.position)], Math.min(P.crossS || 45, 120), 'walking into the far gate', cells)
     if (to && !/nether/.test(to)) {
       netherWalkOff(bot); gateGuardOn(bot, true) // home: the guard now holds the HOME gate cells, so no later walk of this bot wanders into it
+      // AND STEP OUT OF THE HOME GATE (measured 16:15:57Z: `portal: cannot reach the gate at -327,68,-518` — the bot was standing
+      // IN it at -326,69,-518, and a cell the pathfinder must avoid is no place to plan a route from; left there it would also be
+      // taken back the moment the cooldown ran out).
+      for (let w = 0; w < 20 && biomeOf(bot) === '?' && !api.stop(); w++) await sleep(250)
+      const here = bot.findBlock({ matching: b => !!b && b.name === 'nether_portal', maxDistance: 6 })
+      await clearOfGate(bot, api, here ? portalBody(bot, here.position, 6) : [], 2)
       A.result(bot, { ev: 'portal_back', job: job.id, to, pos: xyz(bot.entity.position), from: xyz(far.position) })
       netherEdit({ back: Date.now(), portal: xyz(far.position) })
       st.home = true
@@ -1003,6 +1051,12 @@ module.exports = ctx => {
     // column, because the crossing had double-transferred her through a stray gate and back out, while `dimOf` sampled inside
     // `stepThrough` had briefly read `the_nether`. Every number after that was Nether coordinates measured on overworld ground).
     // Nothing on this side of the code runs unless the bot is standing in the Nether, checked here and again before each work.
+    // THE CLIENT LAGS THE WORLD AFTER A TRANSFER (measured 16:07:58Z: Aoi was standing at the far gate — `nether_look at
+    // -43,98,-80` with six portal cells in view — while `bot.entity.position` still read an overworld cell 300 blocks away and
+    // `game.dimension` still said overworld, so the far-side work refused itself and a whole trip was wasted; she then came home
+    // correctly at -326,69,-518). The first act of an arrival is therefore to WAIT until the ground under our feet can be read at
+    // all, and only then ask which world we are in.
+    for (let w = 0; w < 40 && biomeOf(bot) === '?' && !api.stop(); w++) await sleep(250)
     if (!netherHere(bot)) {
       netherWalkOff(bot); gateGuardOff(bot)
       A.result(bot, { ev: 'portal_bounced', job: job.id, at: xyz(bot.entity.position), dim: dimOf(bot), biome: biomeOf(bot), why: 'the world under my feet is not the Nether (the gate sent me back, or the dimension packet lagged) - no far-side work runs from here' })
@@ -1010,6 +1064,14 @@ module.exports = ctx => {
       return 'bounced back to ' + dimOf(bot) + ' at ' + xyz(bot.entity.position).join(',') + ': the gates are not paired'
     }
     netherWalkOn(bot); gateGuardOn(bot, true)
+    // A SCOUT AT A GATE IS NOT A STRANDED BOT (measured today: BOTH scouts of this shift were killed by an operator's `rescue`
+    // within 3 minutes of arriving — Ichika 15:51:49 and Hazuki 16:04:15, "was killed", two full kits and 14 obsidian lost. The
+    // arrival pocket of the far gate is 8 cells wide, so `walkableArea` reads boxed-in, army.js files `stranded` (its only move
+    // off the overworld), and the digest tells an operator to rescue = KILL. A portal trip reports for itself — `portal_through`,
+    // `gate_stuck`, `nether_lost`, `nether_pass` — and it always ends at the gate, so the generic alarm is held down for the trip
+    // (army.js's own 10-minute throttle field; nothing in army.js is changed). armyctl's `rescue` refusing off-overworld bots is
+    // the real fix and is filed in docs/BUGS.md.
+    bot.__armyStrandedT = Date.now()
     // OFF THE ARRIVAL CELLS FIRST — before the wait for the world, before the look (owner 15:3xZ: from inside a portal cell a bot
     // can place nothing, and that is what every rescue was about). The bot's OWN column is there the moment the gate spits it out;
     // the rest of the world may arrive while it stands beside the gate rather than in it. `offCellS` is measured, not assumed.
@@ -1307,6 +1369,25 @@ module.exports = ctx => {
       if (!A.count(bot, 'shield') && !(bot.inventory.slots[45] || {}).name) await A.obtain(bot, 'shield', 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:shield', e_))
       if (!bot.registry.foodsByName || !bot.inventory.items().some(i => bot.registry.foodsByName[i.name])) await A.obtain(bot, 'bread', 16, { stop: api.stop }).catch(e_ => swallow('jobs_nether:food', e_))
       await A.equipBest(bot, 'sword').catch(e_ => swallow('jobs_nether:sword', e_))
+      // ONE OF EACH, AND NOTHING ELSE (recover engineer 16:2xZ: TWO Nether deaths were 54 % of all the iron the army lost in half
+      // an hour, and no recovery run reaches another dimension inside the five minutes an item lives on the ground. Aoi was
+      // carrying 3 diamond pickaxes, 2 diamond swords and 2 diamond axes on a trip that needs one of each). `A.bank` already keeps
+      // the best of every tool class and the armour that is worn, so this list only has to name what THIS TRIP needs; everything
+      // else goes back in the depot where the next bot can use it, instead of onto the floor of the Nether.
+      const spareTools = bot.inventory.items().filter(i => /_(pickaxe|axe|sword|shovel|hoe)$/.test(i.name)).reduce((n, i) => n + i.count, 0)
+      const spareArmour = bot.inventory.items().filter(i => /_(helmet|chestplate|leggings|boots)$/.test(i.name)).reduce((n, i) => n + i.count, 0) // worn pieces are not in items()
+      const treasure = ['diamond', 'emerald', 'gold_ingot', 'iron_ingot', 'netherite_ingot'].reduce((n, k) => n + (P.work === 'barter' && k === 'gold_ingot' ? 0 : A.count(bot, k)), 0)
+      if (spareTools > 5 || spareArmour > 0 || treasure > 0) {
+        const keep = { torch: 64, shield: 1, flint_and_steel: 1, bread: 16, cooked_beef: 16, cooked_mutton: 16, cooked_porkchop: 16, cooked_cod: 16, cooked_chicken: 16, baked_potato: 16 }
+        for (const k of SHELL_STONE) keep[k] = Math.max(64, P.cobble || 128)
+        if (P.work === 'pair') keep.obsidian = Math.max(10, P.obsidian || 14)
+        if (P.work === 'hub') { keep.chest = 1; keep.crafting_table = 1; keep.oak_fence_gate = 1; keep.spruce_fence_gate = 1; keep.birch_fence_gate = 1 }
+        if (P.work === 'barter') { keep.gold_ingot = P.ingots || 64; keep.golden_helmet = 1 }
+        if (P.work === 'fortress') { keep.bow = 1; keep.arrow = 64 }
+        task(bot, 'portal: banking what this trip does not need')
+        await A.bank(bot, keep, { job: job.id, stop: api.stop }).catch(e_ => swallow('jobs_nether:trim', e_))
+        A.result(bot, { ev: 'portal_kit', job: job.id, work: P.work || 'cross', tools: bot.inventory.items().filter(i => /_(pickaxe|axe|sword|shovel|hoe)$/.test(i.name)).reduce((n, i) => n + i.count, 0), spareArmour: bot.inventory.items().filter(i => /_(helmet|chestplate|leggings|boots)$/.test(i.name)).reduce((n, i) => n + i.count, 0), stone: stoneCarried(bot), obsidian: A.count(bot, 'obsidian'), why: 'a bot that dies over there drops everything and nothing of ours can fetch it back' })
+      }
       const short = []
       if (stoneCarried(bot) < 32) short.push('stone to build with ' + stoneCarried(bot) + '/32 (depot: ' + SHELL_STONE.map(k => k + ' ' + A.stockOf(k)).join(', ') + ')')
       if (!A.bestOf(bot, 'sword')) short.push('no sword')

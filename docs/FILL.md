@@ -24,6 +24,18 @@
 | `dig_stair` 2-high staircase cut through the wall outside the box | — | — | — | — | **not working**, same cause. The owner's favourite and the right long-term default: walkable both ways, never buried, serves refill trips |
 `walk` (nothing to build) is chosen whenever the floor is within 3 of the rim or the terrain slopes in. A planned fall is refused if it would leave under `keepHp` (6) or the landing is not solid, clear and lava-free.
 
+## Scenarios (`node tests/fill_sim.js`) — cells, wall-clock minutes of simulated time, cells/min/bot
+| # | case | cells | peak crew | min | c/min/bot | notes |
+|---|---|---|---|---|---|---|
+| a | 20x20x6 pit with a ramp, 6 builders | 1980 | 6 | 6.4 | 92 | walks in, no entry needed |
+| b | the live trench 7x21x15, 12 builders | 2277 | 7 | 10.9 | 83 | `drop` entry, 22 falls, 0 deaths |
+| c | overhangs + three 1x1 shafts 12 deep | 1720 | 8 | — | — | **OPEN**: finishes in 7.8 min with `entry:'ladder'`, stalls with `drop` — the roofed pocket and the drop entry interact (see the log line `stalled … 311 cells left`) |
+| d | pit with a 4x4 lava pool | 1536 | 8 | 3.8 | 68 | quenched first, nobody stands touching lava |
+| e | the whole ravine 46x79, 10-28 deep, 30 builders | ~69k | — | — | — | long run; numbers in the suite output |
+| f | 150-cell tail, 25 builders | 150 | 10 | 0.9 | 68 | 39 `leave`s: the surplus is spent elsewhere |
+| g | the same trench while builders join and vanish | 2277 | 5 | 26.4 | 84 | a vanished owner's lane is reclaimed by timeout |
+`K` is the one throughput knob (measured on (b), 12 builders available): K 40 → 1 builder, 27.6 min · K 9 → 5, 16.5 · **K 8 → 6, 12.8** · K 6 → 7, 10.1 · K 4 → 10, 10.8 (crowded, each slower).
+
 ## Running the tests
 `node tests/fill_sim.js` (no server, ~2 min) — a voxel world, builders with pockets, hit points and a busy clock, place 4/s, walk 4 b/s, restock = distance/4 + 10 s, gravity for blocks and for bodies. `node tests/fill_sim.js b e` runs single scenarios, `--trace` / `--tail` print actions, `--dump` prints the lane table at a stall. Scenario (h) is a measurement, not a gate.
 

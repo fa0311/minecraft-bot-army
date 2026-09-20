@@ -1,0 +1,124 @@
+// bots/skills/lib/moves.js — PLAYER TECHNIQUES, one place (owner 09-20: "バケツ降りが100%出来るなら基本動作として組み込んでいいだろ",
+// "抽象化とか出来てないスパゲッティコードだからこうするしか無いのか？"). Jobs used to grow their own way down / up / in / out (dropIn, rideUp, ladderWay,
+// stairUp, clearOfGate …). A technique lives HERE, takes (bot, target, opts), VERIFIES the world afterwards and returns
+//   { ok, how, lost (hp), tookMs, why, … }            — jobs call it, they do not re-implement it.
+// Contract for everything in this file: never digs or places terrain (water it pours is taken back), overworld only where water is involved
+// (water evaporates in the Nether), one technique at a time per bot (`bot.__moveBusy`).
+//
+// MEASURED (09-20, Yuzu, ravine S, Paper 26.2 via ViaBackwards): a water-bucket landing is NOT lag-sensitive, it is ORDER-sensitive.
+//  - mineflayer emits `physicsTick` BEFORE it sends that tick's position packet (plugins/physics.js tickPhysics): a `use_item` sent from the handler
+//    reaches the server while it still holds the PREVIOUS tick's position = ~1.1 blocks higher at a 9-block fall -> eye-to-floor 5.2 > reach 4.5 ->
+//    no water, full damage (trials 1+2: lost 5 / 5.3). `setImmediate` puts the use AFTER the position packet: trial 3, 9 blocks, lost 0, one use, scooped.
+//  - reach is measured from the EYE (feet + 1.62): fire at feet-to-floor <= 2.8.
+//  - repeat the use every tick ONLY while the hand still holds `water_bucket` and the landing cell is not water yet: a blind second use with the
+//    emptied bucket scoops the water back up (owner: "設置連打で良いのでは" - yes, guarded).
+const { Vec3 } = require('vec3')
+const sleep = ms => new Promise(r => setTimeout(r, ms))
+const FIRE_AT = 2.8 // feet above the landing cell's floor
+
+const solid = b => !!b && b.boundingBox === 'block'
+const isWater = b => !!b && b.name === 'water'
+const bucketOf = (bot, name) => bot.inventory.items().find(i => i.name === name)
+const overworld = bot => /overworld/.test(String(bot.game && bot.game.dimension))
+
+// the column under a point: first solid block below `from` (<= max down) -> { y: feet level on it, on: block name, wet: a water cell on the way }
+function groundBelow (bot, x, z, fromY, max = 48) {
+  for (let y = Math.floor(fromY); y >= fromY - max; y--) {
+    const b = bot.blockAt(new Vec3(x, y, z)); if (!b) return null
+    if (isWater(b) || b.name === 'lava' || b.name === 'cobweb' || b.name === 'powder_snow') return { y: y, on: b.name, soft: true }
+    if (solid(b)) return { y: y + 1, on: b.name, soft: /^(slime_block|hay_block|honey_block)$/.test(b.name) }
+  }
+  return null
+}
+
+// the landing itself: call while falling. Arms a per-tick trigger, resolves when the bot stands/swims at the bottom. Returns { shots }
+function armLanding (bot, landY, lx, lz, state) {
+  const land = new Vec3(lx, landY, lz)
+  const onTick = () => {
+    const e = bot.entity; if (!e || e.onGround || e.velocity.y > -0.08) return
+    const dy = e.position.y - landY; if (dy > FIRE_AT || dy < 0.05) return
+    const h = bot.heldItem; if (!h || h.name !== 'water_bucket') return
+    if (isWater(bot.blockAt(land))) return
+    if (state.shots === 0) state.firedAt = +dy.toFixed(2)
+    state.shots++
+    setImmediate(() => { try { bot.activateItem() } catch {} }) // AFTER this tick's position packet (see header)
+  }
+  bot.on('physicsTick', onTick)
+  return () => bot.removeListener('physicsTick', onTick)
+}
+
+async function scoop (bot, near, tries = 3) {
+  for (let i = 0; i < tries; i++) {
+    const b = bucketOf(bot, 'bucket'); if (!b) return !!bucketOf(bot, 'water_bucket')
+    const src = bot.findBlocks({ matching: x => isWater(x) && x.metadata === 0, maxDistance: 4, count: 6, point: near })[0]; if (!src) return false
+    try { await bot.equip(b, 'hand'); await bot.lookAt(src.offset(0.5, 0.5, 0.5), true); await sleep(200); bot.activateItem(); await sleep(600) } catch {}
+    if (bucketOf(bot, 'water_bucket') && !isWater(bot.blockAt(src))) return true
+  }
+  return !!bucketOf(bot, 'water_bucket')
+}
+
+// DELIBERATE DESCENT: step off a rim onto `land` = [x, y, z] (the FEET cell of the landing, i.e. floor y + 1) with a water-bucket landing.
+// The bot must stand on the rim next to that column (<= 1.6 horizontally from its centre). opts: { maxDrop = 60, scoop = true, stop }
+async function waterDrop (bot, landArr, opts = {}) {
+  const t0 = Date.now(); const fail = (why, x = {}) => ({ ok: false, how: 'water_drop', why, tookMs: Date.now() - t0, ...x })
+  if (bot.__moveBusy) return fail('another technique is running'); if (!overworld(bot)) return fail('water does not exist here (' + (bot.game && bot.game.dimension) + ')')
+  const [lx, ly, lz] = landArr; const land = new Vec3(lx, ly, lz); const c = new Vec3(lx + 0.5, ly, lz + 0.5)
+  const p0 = bot.entity.position.clone(); const drop = Math.floor(p0.y) - ly
+  if (drop < 4) return fail('a drop of ' + drop + ' needs no water'); if (drop > (opts.maxDrop || 60)) return fail('drop ' + drop + ' over the limit')
+  if (Math.hypot(p0.x - c.x, p0.z - c.z) > 1.6) return fail('not on the rim next to the landing column', { d: +Math.hypot(p0.x - c.x, p0.z - c.z).toFixed(2) })
+  const floor = bot.blockAt(land.offset(0, -1, 0)); if (!solid(floor)) return fail('the landing has no solid floor (' + (floor && floor.name) + ')')
+  for (let y = ly; y <= Math.floor(p0.y) + 1; y++) { const b = bot.blockAt(new Vec3(lx, y, lz)); if (!b || (b.name !== 'air' && b.name !== 'cave_air')) return fail('the shaft is not open at y' + y + ' (' + (b && b.name) + ')') }
+  for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const b = bot.blockAt(land.offset(dx, 0, dz)); if (b && b.name === 'lava') return fail('lava beside the landing') }
+  const wb = bucketOf(bot, 'water_bucket'); if (!wb) return fail('no water_bucket carried')
+  bot.__moveBusy = 'water_drop'; const prev = bot.heldItem && bot.heldItem.name; const hp0 = bot.health; const st = { shots: 0, firedAt: null }; let disarm = null
+  try {
+    try { bot.pathfinder && bot.pathfinder.setGoal(null) } catch {}
+    await bot.equip(wb, 'hand')
+    const yaw = Math.atan2(-(c.x - p0.x), -(c.z - p0.z)); await bot.look(yaw, -Math.PI / 2, true)
+    disarm = armLanding(bot, ly, lx, lz, st)
+    // walk to the CENTRE of the landing column and let go the moment the feet leave the rim (trial 4: holding `forward` carried the bot across a 1-wide shaft)
+    bot.setControlState('forward', true)
+    await new Promise(resolve => { const iv = setInterval(() => { const e = bot.entity; const d = Math.hypot(e.position.x - c.x, e.position.z - c.z); if (d < 0.22 || e.velocity.y < -0.1 || e.position.y < p0.y - 0.4) bot.setControlState('forward', false); if ((e.position.y <= ly + 1.2 && (e.onGround || e.isInWater)) || Date.now() - t0 > 12000 || (opts.stop && opts.stop())) { clearInterval(iv); resolve() } }, 10) })
+    bot.setControlState('forward', false)
+    await sleep(500)
+    const at = bot.entity.position; const down = at.y <= ly + 1.2; const lost = +(hp0 - bot.health).toFixed(1)
+    let scooped = null; if (opts.scoop !== false) scooped = await scoop(bot, land)
+    const left = bot.findBlocks({ matching: b => isWater(b) && b.metadata === 0, maxDistance: 5, count: 8, point: land }).length // SOURCES: flowing cells drain by themselves in seconds (trial 6 counted 7 of them)
+    if (prev && prev !== 'water_bucket') { const it = bucketOf(bot, prev); if (it) await bot.equip(it, 'hand').catch(() => {}) }
+    return { ok: down && lost <= 0.5, how: 'water_drop', drop, lost, shots: st.shots, firedAt: st.firedAt, scooped, waterLeft: left, at: [Math.floor(at.x), Math.floor(at.y), Math.floor(at.z)], tookMs: Date.now() - t0, why: !down ? 'did not reach the landing' : lost > 0.5 ? 'took fall damage (water late or not placed)' : undefined }
+  } catch (e) { return fail('error: ' + (e && e.message)) } finally { if (disarm) disarm(); bot.setControlState('forward', false); bot.__moveBusy = null }
+}
+
+// REFLEX (owner: "落下死しそうだったらアルゴリズム的に水を置くことは出来ないのか？"): installed once per bot. A fall that was NOT planned (knock-back off a
+// rim, a floor dug away) and would cost >= `minDamage` hp gets the same landing, when a water_bucket is carried. Results are reported through `report`.
+const LOADED = Date.now() // a hot reload of this file re-installs the reflex once; repeated calls from the heartbeat are free
+function fallGuard (bot, report = () => {}, opts = {}) {
+  if (bot.__fallGuard && bot.__fallGuardV === LOADED) return
+  if (bot.__fallGuard) bot.removeListener('physicsTick', bot.__fallGuard)
+  bot.__fallGuardV = LOADED
+  const minDamage = opts.minDamage || 4; const S = { lastGroundY: null, armed: null, busy: false }
+  const onTick = () => {
+    const e = bot.entity; if (!e) return
+    if (e.onGround || e.isInWater) { if (!S.armed) S.lastGroundY = e.position.y; return }
+    if (S.busy || S.armed || bot.__moveBusy || S.lastGroundY == null || e.velocity.y > -0.55 || !overworld(bot)) return // -0.55 ~ 2.5 blocks fallen
+    const wb = bucketOf(bot, 'water_bucket'); if (!wb) return
+    const x = Math.floor(e.position.x); const z = Math.floor(e.position.z); const g = groundBelow(bot, x, z, e.position.y); if (!g || g.soft) return
+    const fall = S.lastGroundY - g.y; if (fall - 3 < minDamage) return
+    S.busy = true; const hp0 = bot.health; const t0 = Date.now(); const prev = bot.heldItem && bot.heldItem.name; const st = { shots: 0, firedAt: null }
+    const disarm = armLanding(bot, g.y, x, z, st); S.armed = true
+    ;(async () => {
+      try {
+        try { bot.pathfinder && bot.pathfinder.setGoal(null) } catch {}
+        if (!bot.heldItem || bot.heldItem.name !== 'water_bucket') await bot.equip(wb, 'hand') // a hotbar bucket = one packet; from the backpack it may be too late - the result says so
+        await bot.look(e.yaw, -Math.PI / 2, true)
+        const tEnd = Date.now() + 8000; while (Date.now() < tEnd && !(bot.entity.onGround || bot.entity.isInWater)) await sleep(20)
+        await sleep(450); const lost = +(hp0 - bot.health).toFixed(1); const scooped = await scoop(bot, new Vec3(x, g.y, z))
+        if (prev && prev !== 'water_bucket') { const it = bucketOf(bot, prev); if (it) await bot.equip(it, 'hand').catch(() => {}) }
+        report({ ev: 'fall_saved', ok: lost <= 0.5, fall, wouldLose: fall - 3, lost, shots: st.shots, firedAt: st.firedAt, scooped, at: [x, g.y, z], tookMs: Date.now() - t0 })
+      } catch (err) { report({ ev: 'fall_saved', ok: false, fall, why: String(err && err.message) }) } finally { disarm(); S.armed = null; S.busy = false; S.lastGroundY = bot.entity.position.y }
+    })()
+  }
+  bot.__fallGuard = onTick; bot.on('physicsTick', onTick)
+}
+
+module.exports = { waterDrop, fallGuard, groundBelow, scoop }

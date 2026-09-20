@@ -397,9 +397,13 @@ function liveBots (maxAge = 600000) { // fresh heartbeats of the whole army (fil
 // jobs that meet mobs or rock: their bots kit up first and have first call on scarce gear. A job may also say `risk:true|false` itself.
 const RISK_TYPES = /^(guard|hunt|ores|scout|delegate|haul|sleeper)$/
 function riskJob (job, phase) { return !!job && (job.risk != null ? !!job.risk : (RISK_TYPES.test(job.type) || phase === 'night' || !!(job.params && job.params.needsNight))) }
-// pure decision (offline-testable): mine/stock = {item:count}, others = [{item:count}] of the other live bots -> item names to take, one per kind
-function kitPlan (mine, stock, others, risk) {
-  const bestHeld = (m, of, key, val) => Object.keys(m).reduce((r, n) => { const q = of(n); return q && q[key] === val && m[n] > 0 ? Math.max(r, q.rank) : r }, 0)
+// pure decision (offline-testable): mine/stock = {item:count}, others = [{item:count}] of the other live bots -> item names to take, one per kind.
+// `ench` = {item: enchant levels} for what THIS bot carries: an ENCHANTED tool outranks a plain one of the same kind (half a tier), so the bot neither
+// queues ahead of a mate for a tool it effectively already has nor treats its own Fortune pick as the worse one. Names are all the depot index knows,
+// so the enchanted pick itself is fetched by kitUp below, not here.
+function kitPlan (mine, stock, others, risk, ench) {
+  const bonus = n => ((ench && ench[n]) ? 0.5 : 0)
+  const bestHeld = (m, of, key, val) => Object.keys(m).reduce((r, n) => { const q = of(n); return q && q[key] === val && m[n] > 0 ? Math.max(r, q.rank + (m === mine ? bonus(n) : 0)) : r }, 0)
   const pickFor = (of, key, val, queue) => { // the best stocked UPGRADE of one kind that the fair-share rule lets this bot take
     const cur = bestHeld(mine, of, key, val)
     const cands = Object.keys(stock).filter(n => stock[n] > 0 && of(n) && of(n)[key] === val && of(n).rank > cur).sort((a, b) => of(b).rank - of(a).rank)
@@ -427,6 +431,38 @@ function kitPlan (mine, stock, others, risk) {
   if (!mine.shield && stock.shield > 0 && (risk || stock.shield > others.filter(m => !m.shield).length)) wants.push('shield')
   return [...new Set(wants.filter(Boolean))] // an axe can be both the weapon and the tool of a bot without a sword: fetch it once
 }
+function fortuneOf (bot, it) { try { return require('./iron_core').fortuneOf(bot, it) } catch (e_) { swallow('army:fortuneOf', e_); return 0 } } // ONE reader of the enchant data (iron_core)
+async function takeFortunePick (bot, opts, took) {
+  try {
+    for (const cp of chestsOf('tools')) {
+      if (U.cancelled(bot) || (opts.stop && opts.stop())) return
+      if (cp.distanceTo(bot.entity.position) > (opts.maxDist == null ? 96 : opts.maxDist)) continue
+      const w = await openChest(bot, cp, { stop: opts.stop })
+      if (!w) continue
+      let got = null
+      try {
+        const picks = w.containerItems().filter(i => /_pickaxe$/.test(i.name))
+        const best = picks.map(i => ({ i, f: fortuneOf(bot, i) })).sort((a, b) => b.f - a.f)[0]
+        if (best && best.f > 0) {
+          const same = picks.filter(i => i.type === best.i.type)
+          const before = U.count(bot, best.i.name)
+          await U.withTimeout(w.withdraw(best.i.type, null, Math.min(6, same.length)), 8000, 'fortunePick')
+          await sleep(200)
+          // keep the enchanted ones; the plain duplicates THIS call took go straight back on the shelf (never the bot's own working pick)
+          let back = Math.max(0, U.count(bot, best.i.name) - before)
+          for (const i of bot.inventory.items().filter(q => q.type === best.i.type)) {
+            if (fortuneOf(bot, i) > 0) { got = i.name; continue }
+            if (back <= 0) continue
+            const n = Math.min(i.count, back)
+            try { await U.withTimeout(w.deposit(i.type, null, n), 8000, 'fortuneBack'); back -= n } catch (e_) { swallow('army:fortuneBack', e_) }
+          }
+        }
+        record(bot, cp, w)
+      } catch (e_) { swallow('army:fortunePick', e_) } finally { closeWin(w); await sleep(150) }
+      if (got) { took.push(got); return }
+    }
+  } catch (e_) { swallow('army:takeFortunePick', e_) }
+}
 async function kitUp (bot, opts = {}) {
   if (bot.__armyKitBusy || !bot.entity) return []
   bot.__armyKitBusy = true; const took = []
@@ -435,11 +471,18 @@ async function kitUp (bot, opts = {}) {
     if (!overworldBot(bot)) { offWorld(bot, 'kit'); return took }
     if (opts.fetch === false || Date.now() - (bot.__armyKitT || 0) < (opts.force ? 0 : 300000)) return took
     bot.__armyKitT = Date.now()
-    const wants = kitPlan(carried(bot), stockMap(), liveBots().filter(h => h.bot !== bot.username).map(h => h.inv || {}), !!opts.risk)
+    const myEnch = {}
+    for (const i of bot.inventory.items()) { const f = fortuneOf(bot, i); if (f > 0) myEnch[i.name] = Math.max(myEnch[i.name] || 0, f) }
+    const wants = kitPlan(carried(bot), stockMap(), liveBots().filter(h => h.bot !== bot.username).map(h => h.inv || {}), !!opts.risk, myEnch)
     for (const n of wants) {
       if (U.cancelled(bot) || (opts.stop && opts.stop())) break
       if (await withdraw(bot, n, 1, { stop: opts.stop, maxDist: opts.maxDist == null ? 96 : opts.maxDist }) > 0) took.push(n)
     }
+    // A FORTUNE PICK BELONGS AT THE FACE (enchant engineer, 09-20). The chest index counts items by NAME, so a Fortune IRON pickaxe is invisible to the
+    // fair share above and loses to every plain DIAMOND pickaxe - it never left the tools chest. So a bot on a RISK job (the mine is a `delegate` job)
+    // that carries no enchanted pick opens the tools chest itself, takes the pickaxes of the best Fortune stack and puts the plain ones straight back;
+    // iron_core.bestPick then digs ORE with the Fortune pick and rock with the plain one. Nobody else touches it, so it reaches a miner and stays there.
+    if (opts.risk && !Object.keys(myEnch).some(n => /_pickaxe$/.test(n))) await takeFortunePick(bot, opts, took)
     // EVERY BOT CARRIES A PICKAXE, A SHOVEL AND AN AXE (owner 09-20: "つるはしを持っておらず、手で掘るやつが多すぎ"), and it carries the BEST one the army can spare:
     // both rules live in kitPlan above, so the tools come out of the same fair-share loop as the armour. What the upgrade makes redundant goes back into the tools
     // chest at the next bank visit (bank() keeps one best tool of each kind) or with the next `offload` — never thrown away.
@@ -516,6 +559,7 @@ function heartbeat (bot, extra) {
   // reflex never reach a running bot
   if (bot.__armyGuard && (bot.__armyGuardT || 0) < LOADED_AT) { bot.__armyGuardT = LOADED_AT; startGuard(bot) }
   mealReflex(bot)
+  try { require('./moves').fallGuard(bot, r => result(bot, r)) } catch (e_) { swallow('army:fallGuard', e_) } // owner 09-20: an unplanned fall that would hurt gets a water-bucket landing when a bucket is carried (lib/moves.js)
   try { spotAnimals(bot) } catch (e_) { swallow('army:243', e_) }
   wear(bot).catch(e_ => swallow('army:wearTick', e_))
   try { watchdog(bot, extra) } catch (e_) { swallow('army:245', e_) }
@@ -739,8 +783,10 @@ function walkableArea (bot, limit = 120, maxDrop = 3) { return walkCells(bot, li
 const TRAP_ISLAND = 40
 function islandOf (bot, from) { return walkCells(bot, TRAP_ISLAND + 8, 1, from) }
 function inFill (bot) { const m = bot.__armyInFill; return !!(m && m.until > Date.now() && (!bot.__armyJob || bot.__armyJob === m.job)) }
-// really stuck, by BOTH measures - the reversible island AND the one-way area armyctl's `rescue` reads. Nothing that can walk is ever called `stranded`.
-function stuckNow (bot) { try { return islandOf(bot).size < TRAP_ISLAND && walkableArea(bot) < 60 } catch (e_) { swallow('army:stuckNow', e_); return false } }
+// really stuck, by BOTH measures - the reversible island AND the one-way area armyctl's `rescue` reads - AND stuck for MINUTES. `stranded` is the word an operator
+// answers with a kill, and half the bots that are boxed in for twenty seconds put themselves there: a fill rides its own floor up, the cavity job cuts a shaft and
+// fills it behind itself (Ume 16:00Z: `pit_filled blocks:7`, boxed 15 s, killed on an earlier report of exactly this kind). Escaping is fast, crying for help is slow.
+function stuckNow (bot) { try { return islandOf(bot).size < TRAP_ISLAND && walkableArea(bot) < 60 && bot.__armyTrapT > 0 && Date.now() - bot.__armyTrapT >= 180000 } catch (e_) { swallow('army:stuckNow', e_); return false } }
 function trapped (bot, target) {
   try {
     if (!bot.entity || bot.isSleeping || !overworldBot(bot) || inFill(bot) || /^iron:/.test(String((bot.state && bot.state.task) || ''))) { bot.__armyTrapT = 0; return null }
@@ -1553,6 +1599,33 @@ const MATERIAL_RE = /^(cobblestone|cobbled_deepslate|stone|deepslate|andesite|di
 const KEEPS_MATERIAL = /^(build|deck|tidy|light|steps|delegate|haul|scan|portal)$/ // + `portal`: a bot going through the gate carries 128 stone on purpose (docs/NETHER.md safety)
 const OFF = { allow: 16, near: 24, far: 96, min: 32, every: 180000, overdue: 600000, recheck: 20000 }
 function surplusOf (bot) { const m = inv(bot); const out = {}; for (const k of Object.keys(m)) if (MATERIAL_RE.test(k) && m[k] > OFF.allow) out[k] = m[k] - OFF.allow; return out }
+// KIT IS ONE OF EACH KIND (owner 09-20: "鉄装備2セット持ってるやつとかいるぞ"; measured the same minute: 164 pickaxes on 50 bots, 133 of them stone,
+// Honoka 28 and Chino 27 AT THE MUSTER, 28 bots with more than one pickaxe, Aoi with 3 diamond pickaxes + 2 diamond swords + 2 diamond axes - and
+// everything a bot carries is lost when it dies, 267 deaths ate ~1300 iron). So: the BEST `allow` of each tool kind is kit, the rest is surplus and
+// goes back on the shelf; a miner's spare pickaxe is kit, a toolsmith's crafted stack and a quartermaster's deliveries are CARGO, not kit. Armour in
+// the POCKETS (bot.inventory.items() never holds the worn slots) is a spare once something at least as good is worn - `wear()` runs before this.
+const TOOL_CARGO = /^(steps|scan)$/
+function kitAllow (job) { return { pickaxe: /^(delegate|ores)$/.test(String(job && job.type)) ? 2 : 1, shovel: 1, axe: 1, hoe: 1, sword: 1 } }
+function surplusTools (bot, job) {
+  const out = {}
+  if (TOOL_CARGO.test(String(job && job.type))) return out
+  const allow = kitAllow(job)
+  const held = {}
+  const rankOf = n => { const t = toolOf(n) || weaponOf(n); return t ? t.rank : 0 }
+  for (const i of bot.inventory.items().slice().sort((a, b) => rankOf(b.name) - rankOf(a.name))) {
+    const t = toolOf(i.name) || weaponOf(i.name)
+    if (!t) continue
+    const keep = Math.min(i.count, Math.max(0, (allow[t.kind] || 1) - (held[t.kind] || 0)))
+    held[t.kind] = (held[t.kind] || 0) + keep
+    if (i.count > keep) out[i.name] = (out[i.name] || 0) + (i.count - keep)
+  }
+  for (const i of bot.inventory.items()) {
+    const ar = armorOf(i.name)
+    if (ar && ar.rank <= wornRank(bot, ar.piece)) out[i.name] = (out[i.name] || 0) + i.count
+    else if (i.name === 'shield' && offHand(bot)) out[i.name] = (out[i.name] || 0) + i.count
+  }
+  return out
+}
 function segDist (c, a, b) { // XZ distance of the chest from the line the bot is about to walk
   const vx = b.x - a.x; const vz = b.z - a.z; const L = vx * vx + vz * vz
   const t = L ? Math.max(0, Math.min(1, ((c.x - a.x) * vx + (c.z - a.z) * vz) / L)) : 0
@@ -1564,24 +1637,26 @@ async function offload (bot, target, opts = {}) {
   if (now - (bot.__armyOffT || 0) < OFF.every || now - (bot.__armyOffCheckT || 0) < OFF.recheck) return false
   bot.__armyOffCheckT = now
   const sur = surplusOf(bot); const n = Object.values(sur).reduce((a, b) => a + b, 0)
-  if (n < OFF.min) { bot.__armyOffHold = 0; return false }
   const job = (assignment(bot) || {}).job || {}
-  if (KEEPS_MATERIAL.test(String(job.type))) { bot.__armyOffHold = 0; bot.__armyOffJob = job.id; return false }
+  const surT = surplusTools(bot, job); const nT = Object.values(surT).reduce((a, b) => a + b, 0)
+  // MATERIAL surplus is held by the jobs that consume filler; a duplicate TOOL is surplus on every job (it is dead weight the bot drops when it dies)
+  const mats = n >= OFF.min && !KEEPS_MATERIAL.test(String(job.type))
+  if (!mats && nT < 2) { bot.__armyOffHold = 0; if (KEEPS_MATERIAL.test(String(job.type))) bot.__armyOffJob = job.id; return false }
   if (bot.__armyOffJob !== job.id) { bot.__armyOffJob = job.id; bot.__armyOffHold = now - OFF.overdue } // ON A JOB CHANGE the load is surplus at once: a detour is allowed
   if (!bot.__armyOffHold) bot.__armyOffHold = now
   const fy = surfaceFloor(bot); if (fy != null && bot.entity.position.y < fy) return false // underground: the mine hauls its own stone up
   const me = bot.entity.position
-  const cp = chestsOf('build').sort((a, b) => a.distanceTo(me) - b.distanceTo(me))[0]; if (!cp) return false
+  const cp = (mats ? chestsOf('build') : chestsOf('tools').concat(chestsOf('build'))).sort((a, b) => a.distanceTo(me) - b.distanceTo(me))[0]; if (!cp) return false
   if (segDist(cp, me, { x: target.x, z: target.z }) > (now - bot.__armyOffHold > OFF.overdue ? OFF.far : OFF.near)) return false
   bot.__armyOffBusy = true; bot.__armyOffT = now
   try {
-    // everything else stays in the pockets (this is not a bank visit): keep = what the bot carries, capped at ALLOW for the materials — and a
-    // tool a better one of its kind makes redundant goes back into the tools chest in the same visit (owner: never throw a tool away)
-    const best = {}
-    for (const i of bot.inventory.items()) { const t = toolOf(i.name) || weaponOf(i.name); if (t) best[t.kind] = Math.max(best[t.kind] || 0, t.rank) }
+    // everything else stays in the pockets (this is not a bank visit): keep = what the bot carries, minus the KIT surplus (duplicate tools, spare
+    // armour, a second shield - surplusTools above) and capped at ALLOW for the materials. Nothing is thrown away: it all goes back on the shelf.
+    await wear(bot)
     const keep = {}
-    for (const i of bot.inventory.items()) { const t = toolOf(i.name) || weaponOf(i.name); if (t && t.rank < best[t.kind]) continue; keep[i.name] = (keep[i.name] || 0) + i.count }
-    for (const k of Object.keys(sur)) keep[k] = OFF.allow
+    for (const i of bot.inventory.items()) keep[i.name] = (keep[i.name] || 0) + i.count
+    for (const [k, v] of Object.entries(surplusTools(bot, job))) keep[k] = Math.max(0, (keep[k] || 0) - v)
+    if (mats) for (const k of Object.keys(sur)) keep[k] = OFF.allow
     const moved = await bank(bot, keep, { job: (job.id || 'idle') + ' (surplus)', stop: opts.stop })
     bot.__armyOffHold = 0
     return Object.keys(moved || {}).length > 0

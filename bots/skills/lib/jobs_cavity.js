@@ -361,7 +361,15 @@ function planSets (A, box, fresh) {
       // TERRAIN BLUEPRINTS ARE GROUND, NOT PLAN (measured 09-20: with `level`/`fill_void` cells counted as planned, 96 % of the base was off
       // limits for a shaft and the census found 3 targets against 33 holes right under the pads). A pad is ground a shaft may go through and be
       // closed again; a wall, a road, a field or a house is not.
-      if (A.TERRAIN_BP.test(String(j.params.blueprint))) continue
+      // ...but a crew that is WORKING a terrain job right now owns its columns: two jobs in one column is exactly the dig/place runaway of
+      // 09-20 14:4xZ. An ACTIVE build job of any blueprint keeps this front out of its box until it pauses itself.
+      if (A.TERRAIN_BP.test(String(j.params.blueprint))) {
+        // ...but an ACTIVE `fill_void` owns the very thing this front works on - a void. Two jobs in one column is the dig/place runaway of
+        // 09-20 14:4xZ, so its own cells are off limits while it runs. (`level`/`clear_area` cap the GRADE: a shaft that is opened and closed
+        // again inside one slice does not fight them, and blocking their boxes would blanket the whole base.)
+        if (j.status === 'active' && j.params.blueprint === 'fill_void') for (const c of cells) if (inBox(c.x, c.z)) blockedCols.add(c.x + ',' + c.z)
+        continue
+      }
       for (const c of cells) {
         if (!inBox(c.x, c.z)) continue
         planned.add(c.x + ',' + c.y + ',' + c.z)
@@ -482,13 +490,13 @@ async function waterDescent (bot, opts = {}) {
   const rim = vv(opts.rim || bot.entity.position.floored())
   const cx = opts.column ? opts.column[0] : rim.x; const cz = opts.column ? opts.column[1] : rim.z
   const at = (x, y, z) => bot.blockAt(new Vec3(x, y, z))
+  let floorY = opts.floorY
   const out = (ok, why, extra) => {
-    const r = Object.assign({ ok, how: 'column', from: xyzOf(rim), to: xyzOf(bot.entity.position), drop: rim.y - (opts.floorY == null ? rim.y : opts.floorY), lost: Math.max(0, Math.round((hp0 - bot.health) * 10) / 10), tookS: Math.round((Date.now() - t0) / 1000), scooped: false, source: null, sources: 0, why: why || null }, extra || {})
+    const r = Object.assign({ ok, how: 'column', from: xyzOf(rim), to: xyzOf(bot.entity.position), drop: floorY == null ? 0 : Math.max(0, rim.y - floorY - 1), lost: Math.max(0, Math.round((hp0 - bot.health) * 10) / 10), tookS: Math.round((Date.now() - t0) / 1000), scooped: false, source: null, sources: 0, why: why || null }, extra || {})
     try { A.result(bot, { ev: 'water_descent', from: r.from, to: r.to, drop: r.drop, lost: r.lost, scooped: r.scooped, ok: r.ok, why: r.why }) } catch (e_) { swallow('jobs_cavity:wdResult', e_) }
     return r
   }
   // ---- 1. READ THE COLUMN. A falling column of water needs an open shaft and a landing that is not lava.
-  let floorY = opts.floorY
   if (floorY == null) { for (let y = rim.y - (opts.openBelow ? 2 : 1); y >= rim.y - 40; y--) { const b = at(cx, y, cz); if (!b) break; if (isSolidB(b)) { floorY = y; break } } }
   if (floorY == null) return out(false, 'no floor within 40 blocks under ' + [cx, rim.y, cz].join(','))
   const land = at(cx, floorY, cz)
@@ -505,39 +513,85 @@ async function waterDescent (bot, opts = {}) {
   // ---- 2. THE BUCKET IS CARRIED, NEVER FETCHED FROM HERE (15:55Z: the withdraw walked Ume 66 blocks to the depot and it then poured at a
   // rim it no longer stood on). The caller stocks up before it walks out; `fill` at a pond turns an empty bucket into a full one.
   if (!A.count(bot, 'water_bucket')) return out(false, 'no water_bucket carried (depot holds ' + A.stockOf('water_bucket') + '; fill an empty one at water first: verb `fill`)')
-  // ---- 3. POUR AGAINST THE TOP OF THE WALL (the owner's words): the source goes into the cell the bot STANDS IN, clicked on the top face of
-  // the block under its own feet. From there the water runs over the rim and falls the whole column - one rule for a 1x1 shaft (four solid
-  // walls) and for a rim beside an open pit (no wall at all), which the wall-face-only version could not do.
-  const srcCell = rim.clone()
-  const poured = await pourInto(bot, srcCell, opts.stop)
-  if (!poured) return out(false, 'the bucket would not go into ' + xyzOf(srcCell).join(',') + ' (nothing solid under or beside the rim to click)')
-  // ---- 4. the caller opens the last block under the rim, from inside the water
-  if (opts.openBelow) { const ok = await opts.openBelow(); if (!ok) return out(false, 'the cell under the rim could not be opened', { source: xyzOf(srcCell) }) }
-  await sleep(700)
-  // ---- 5. STEP IN and SINK. Head under control: never more than 20 s under water, and never below 6 bubbles.
-  const tIn = Date.now(); let lastY = bot.entity.position.y; let still = 0
-  while (!stop() && Date.now() - tIn < 40000) {
-    const p = bot.entity.position
-    if (Math.floor(p.y) <= floorY + 1 && bot.entity.onGround) break
-    if (bot.oxygenLevel != null && bot.oxygenLevel <= 6) { try { bot.setControlState('jump', true); await sleep(600); bot.setControlState('jump', false) } catch (e_) { swallow('jobs_cavity:wdAir', e_) } }
-    if (Date.now() - tIn > 20000 && bot.oxygenLevel != null && bot.oxygenLevel < 20) break // 20 s of head time is the budget
-    if (Math.floor(p.x) !== cx || Math.floor(p.z) !== cz) { // step IN: face the column and walk one step
-      try { await bot.lookAt(new Vec3(cx + 0.5, p.y, cz + 0.5), true); bot.setControlState('forward', true); await sleep(400); bot.setControlState('forward', false) } catch (e_) { swallow('jobs_cavity:wdIn', e_) }
-      await sleep(300); continue
+  // ---- 3. OPEN THE COLUMN FROM BESIDE IT, then pour against the TOP OF THE WALL (the owner's words). Two shapes, one rule:
+  //   * the bot stands ON the plug over an open drop  -> it steps off first, the caller opens the cell from the side (no 18-block fall),
+  //     and the source goes into the shaft's own top cell, whose four walls hold the water in a falling column.
+  //   * the bot is already INSIDE a 1x1 shaft (no free cell beside it) -> the source goes into its own cell; the same four walls hold it,
+  //     and the water follows the bot down as the caller opens the floor.
+  // Measured 16:0xZ on an 18-block shaft: with the source on OPEN GROUND at the rim the flow simply washed the bot 4 blocks sideways.
+  let srcCell = null; let steppedOff = false
+  const standable = c => { const f = at(c.x, c.y - 1, c.z); const a = at(c.x, c.y, c.z); const h = at(c.x, c.y + 1, c.z); return isSolidB(f) && !/lava|magma/.test(f.name) && isAirB(a) && isAirB(h) }
+  if (opts.openBelow) {
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [-1, -1], [1, -1], [-1, 1]]) {
+      const c = new Vec3(rim.x + dx, rim.y, rim.z + dz)
+      if (!standable(c)) continue
+      if (await A.travel(bot, c, { range: 0, ms: 15000, stop: opts.stop, quiet: true })) { steppedOff = true; break }
     }
-    if (Math.abs(p.y - lastY) < 0.05) { still++; if (still > 6) { try { bot.setControlState('sneak', true); await sleep(400); bot.setControlState('sneak', false) } catch (e_) { swallow('jobs_cavity:wdSink', e_) } ; still = 0 } } else still = 0
+    if (!steppedOff) { // inside the shaft: pour first, the water comes down with us
+      srcCell = rim.clone()
+      if (!await pourInto(bot, srcCell, opts.stop)) return out(false, 'the bucket would not go into ' + xyzOf(srcCell).join(',') + ' (nothing solid under or beside the rim to click)')
+    }
+    if (!await opts.openBelow()) return out(false, 'the cell under the rim could not be opened', { source: srcCell ? xyzOf(srcCell) : null })
+    await sleep(500)
+  }
+  if (!srcCell) { // the column is open: the source goes into its highest air cell at or below the rim
+    // the TOP OF THE WALL, not the open air over it: the highest cell of the column that still has walls around it (>= 3 solid sides).
+    // A source on open ground washes the bot sideways instead of falling (measured 16:0xZ, the bot ended 4 blocks away).
+    const walls = y => [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(([dx, dz]) => isSolidB(at(cx + dx, y, cz + dz))).length
+    const open = y => { const b = at(cx, y, cz); return !!b && (isAirB(b) || b.name === 'water') } // water left by an earlier descent is an OPEN column, not a wall
+    let ty = null
+    for (let y = rim.y; y > floorY; y--) if (open(y) && walls(y) >= 3) { ty = y; break }
+    if (ty == null) for (let y = rim.y; y > floorY; y--) if (open(y)) { ty = y; break }
+    if (ty == null) return out(false, 'the column has no open cell under ' + [cx, rim.y, cz].join(','))
+    srcCell = new Vec3(cx, ty, cz)
+    const already = at(cx, ty, cz)
+    if (!(already && already.name === 'water' && already.metadata === 0) && !await pourInto(bot, srcCell, opts.stop)) return out(false, 'the bucket would not go into ' + xyzOf(srcCell).join(',') + ' (no face of a wall beside it that the eye can see)')
+  }
+  await sleep(700)
+  // ---- 4/5. STEP IN and SINK. A player does not fall through water, he SWIMS DOWN: sneak is held for the whole descent (1.13+ makes a
+  // sneaking swimmer descend; measured 15:59Z without it: the bot floated at the top of the column for 40 s and went down 1 block).
+  // Head under control: at most 20 s under water, and a jump for air whenever the bubbles run low.
+  const inCol = () => { const p = bot.entity.position; return Math.floor(p.x) === cx && Math.floor(p.z) === cz }
+  // ONE loop: step in, and stay in. Short 120 ms pulses, because a 250 ms pulse carried the bot straight ACROSS the 1-wide column and out
+  // the other side (measured 16:1xZ). The instant the bot is over the column the legs stop and sneak takes over - that is the swim down.
+  const tIn = Date.now(); let lastY = bot.entity.position.y; let still = 0; let air = 0; let pushes = 0
+  while (!stop() && Date.now() - tIn < 45000) {
+    const p = bot.entity.position
+    if (Math.floor(p.y) <= floorY + 1) break
+    if (!inCol()) {
+      if (++pushes > 24) break
+      try { bot.setControlState('forward', false); bot.setControlState('sneak', false) } catch (e_) { swallow('jobs_cavity:wdSn0', e_) }
+      // WALK IN, do not charge in: the step down into the column is one block, which the read-only pathfinder does by itself. Raw forward
+      // pulses carried the bot clean ACROSS the 1-wide column twice (16:1xZ, it ended one block past it on both tries).
+      if (pushes <= 2) { if (await A.travel(bot, new Vec3(cx, srcCell.y, cz), { range: 0, ms: 12000, stop: opts.stop, quiet: true }) || inCol()) continue }
+      if (Math.hypot(p.x - (cx + 0.5), p.z - (cz + 0.5)) > 3.5) { await A.travel(bot, { x: cx, y: null, z: cz }, { range: 2, ms: 15000, stop: opts.stop, quiet: true }); continue }
+      // CREEP in and stop the LEGS the instant the body is over the column. A 110 ms pulse plus a poll carried the bot clean across the
+      // 1-wide shaft (measured 16:1xZ: it crossed x -307 in 0.5 s at 69.4 and walked out the other side, sinking all the while).
+      try {
+        await bot.lookAt(new Vec3(cx + 0.5, p.y + 1.4, cz + 0.5), true)
+        bot.setControlState('forward', true)
+        for (let t = 0; t < 30 && !inCol() && !stop(); t++) await sleep(50)
+      } catch (e_) { swallow('jobs_cavity:wdIn', e_) }
+      try { bot.setControlState('forward', false) } catch (e_) { swallow('jobs_cavity:wdIn2', e_) }
+      await sleep(150)
+      continue
+    }
+    try { bot.setControlState('forward', false); bot.setControlState('sneak', true) } catch (e_) { swallow('jobs_cavity:wdSneak', e_) }
+    if (bot.oxygenLevel != null && bot.oxygenLevel <= 6) { air++; try { bot.setControlState('sneak', false); bot.setControlState('jump', true); await sleep(700); bot.setControlState('jump', false) } catch (e_) { swallow('jobs_cavity:wdAir', e_) } ; if (air > 3) break }
+    if (Date.now() - tIn > 20000 && bot.oxygenLevel != null && bot.oxygenLevel < 20) break // 20 s of head time is the budget
+    if (Math.abs(p.y - lastY) < 0.02) { still++; if (still > 25) break } else still = 0 // it sinks ~0.6 blocks/s; 5 s without movement is a stall
     lastY = p.y
-    await sleep(300)
+    await sleep(200)
   }
   try { bot.clearControlStates() } catch (e_) { swallow('jobs_cavity:wdClear', e_) }
-  await sleep(400)
+  await sleep(600)
   const landed = Math.floor(bot.entity.position.y) <= floorY + 2
   // ---- 6. the LAST user takes the source back; then READ BACK whether any source is left (a forgotten source floods a fill site)
   let scooped = false
   if (opts.scoop) scooped = await scoopSource(bot, srcCell, opts.stop)
-  let sources = 0
-  for (let y = floorY; y <= rim.y + 1; y++) for (const [x, z] of [[cx, cz], [rim.x, rim.z]]) { const b = at(x, y, z); if (b && b.name === 'water' && b.metadata === 0) sources++ }
-  return out(landed, landed ? null : 'did not reach the floor ' + [cx, floorY, cz].join(','), { drop, scooped, source: xyzOf(srcCell), sources })
+  const seenSrc = new Set()
+  for (let y = floorY; y <= rim.y + 1; y++) for (const [x, z] of [[cx, cz], [rim.x, rim.z]]) { const b = at(x, y, z); if (b && b.name === 'water' && b.metadata === 0) seenSrc.add(x + ',' + y + ',' + z) }
+  return out(landed, landed ? null : 'did not reach the floor ' + [cx, floorY, cz].join(','), { drop, scooped, source: xyzOf(srcCell), sources: seenSrc.size })
 }
 // put a liquid from the bucket INTO `cell`: click the face of a solid neighbour that points at the cell, then trust only what the server shows
 async function pourInto (bot, cell, stop) {
@@ -606,6 +660,11 @@ module.exports = ctx => {
       try { return col.getBlockStateId({ x: x & 15, y, z: z & 15 }) } catch (e_) { return null }
     }
   }
+  // THE POCKET TIDY BANKS OUR FILLER (army_jobs.js handover, ~line 4319: every 2 min a bot within 150 of the depot, above ground, carrying
+  // `bulk > 96` gives back everything outside `keep`, and `keep.cobblestone` is 64 only for build/deck/tidy/light - for `cavity` it is 0).
+  // Measured 16:2xZ: Riko stood in a 276-cell hole with an empty inventory and placed nothing for a whole slice. Until `cavity` is in that
+  // regex (REQUESTED from the army_jobs.js owner), this front postpones the tidy while it is carrying its own load - it never disables it.
+  const holdPockets = bot => { try { bot.__armyPocketT = Date.now() } catch (e_) { swallow('jobs_cavity:hold', e_) } }
   const paramsBox = P => Array.isArray(P.box) && P.box.length === 4 ? P.box.slice() : baseBox(A)
   const paramsYMin = P => Number.isFinite(P.yMin) ? P.yMin : 30
   const paramsYTop = P => Number.isFinite(P.yTop) ? P.yTop : baseY(A) + 52
@@ -733,7 +792,13 @@ module.exports = ctx => {
       if (w) { task(bot, 'cavity: filling the bucket at ' + [w.x, w.y, w.z].join(',')); await VERBS.fill(bot, { at: [w.x, w.y, w.z] }, api).catch(e_ => swallow('jobs_cavity:fillBucket', e_)) }
     }
     if (!A.bestOf(bot, 'pickaxe')) await A.obtain(bot, 'stone_pickaxe', 1, { stop: api.stop })
-    return fillerIn(bot, filler)
+    // GO OUT LOADED OR DO NOT GO (16:1xZ: a bot stood in a 155-cell cavity with `placed:0` because its pockets held one stray block): the
+    // walk out is 60-150 blocks, so a half-empty trip is a wasted slice, not a partial fill.
+    const it = fillerIn(bot, filler)
+    holdPockets(bot)
+    const have = FILLERS.reduce((n, k) => n + A.count(bot, k), 0)
+    if (!it || have < 32) { A.result(bot, { ev: 'cavity_no_filler', want, have, depot: A.stockOf(filler) }); A.decline(bot, job, 300000, 'cavity: only ' + have + ' filler blocks came out of the depot'); return null }
+    return it
   }
 
   // ---- THE SHAFT: stand on the top cell, read the two cells under the feet before every dig, go down
@@ -743,12 +808,15 @@ module.exports = ctx => {
     if (!await A.travel(bot, { x, y: sy + 1, z }, { range: 0, ms: 120000, stop: api.stop, quiet: true }) &&
         !await A.travel(bot, { x, y: null, z }, { range: 3, ms: 90000, stop: api.stop })) return { ok: false, why: 'no_route to the surface cell ' + top.at.join(',') }
     await sleep(300)
-    let source = null
-    for (let guard = 0; guard < 48 && !api.stop(); guard++) {
+    let source = null; let off = 0; let dug = 0
+    for (let guard = 0; guard < 64 && !api.stop(); guard++) {
+      holdPockets(bot)
       const feet = bot.entity.position.floored()
       if (feet.y <= feetY) return { ok: true, source }
       if (feet.x !== x || feet.z !== z) {
-        if (!await A.travel(bot, { x, y: feet.y, z }, { range: 0, ms: 15000, stop: api.stop, quiet: true })) return { ok: false, why: 'stepped off the shaft column at ' + xyzOf(feet).join(','), source }
+        off++
+        if (off > 6 || !await A.travel(bot, { x, y: feet.y, z }, { range: 0, ms: 15000, stop: api.stop, quiet: true })) return { ok: false, why: 'stepped off the shaft column at ' + xyzOf(feet).join(','), source }
+        await B.centreOn(bot, new Vec3(x, bot.entity.position.floored().y, z)).catch(e_ => swallow('jobs_cavity:centre', e_))
         continue
       }
       const below = feet.offset(0, -1, 0)
@@ -792,10 +860,10 @@ module.exports = ctx => {
       // allowUnderFeet: a 1x1 shaft IS dug from on top of it - and it is only safe because the two cells below were READ first (above)
       const r = await B.digBlock(bot, below, { collect: true, requireHarvest: false, allowUnderFeet: true })
       if (!r.ok) return { ok: false, why: 'dig ' + b.name + ' at ' + xyzOf(below).join(',') + ': ' + r.reason, source }
-      log.push(keyOf(below))
+      log.push(keyOf(below)); dug++
       await sleep(400)
     }
-    return { ok: false, why: 'the shaft did not reach y ' + feetY + ' in 48 steps', source }
+    return { ok: false, why: 'the shaft stopped at y ' + bot.entity.position.floored().y + ' short of ' + feetY + ' (' + dug + ' cells dug)', source }
   }
   // 1-3 cells of tunnel at depth, when the ground straight over the hole is a building, a field, a pen or a road
   async function digTunnel (bot, api, cells) {
@@ -814,20 +882,26 @@ module.exports = ctx => {
   }
 
   // ---- THE FILL: lowest cell first, from inside, standing on its own fill (a player never decks a hole)
-  async function fillCells (bot, api, want, item0, deadline) {
-    let item = item0; let placed = 0
+  async function fillCells (bot, api, want, item0, deadline, opts) {
+    let item = item0; let placed = 0; let dry = 0
     const fails = new Map()
     const bump = (p, n) => fails.set(keyOf(p), (fails.get(keyOf(p)) || 0) + (n || 1))
     const bad = p => (fails.get(keyOf(p)) || 0) >= 3
     while (!api.stop() && Date.now() < deadline) {
+      holdPockets(bot)
       for (const [k, p] of [...want]) { const b = bot.blockAt(p); if (b && isSolidB(b)) want.delete(k) }
       if (!want.size) break
-      if (A.count(bot, item) < 1) { const nx = fillerIn(bot); if (!nx) break; item = nx }
+      if (A.count(bot, item) < 1) {
+        const nx = fillerIn(bot)
+        if (nx) item = nx
+        else if (opts && opts.refill && await opts.refill()) { item = fillerIn(bot) || item; if (A.count(bot, item) < 1) break } else break
+      }
       const me = bot.entity.position; const eye = me.offset(0, 1.62, 0); const feet = me.floored()
       const list = [...want.values()].sort((a, b) => a.y - b.y || a.distanceTo(me) - b.distanceTo(me))
       const open = list.filter(p => !bad(p)); if (!open.length) break
       const lowest = open[0].y
       let did = false
+      if (dry > 12) break // twelve passes in a row that changed nothing in the world: the rest of this hole is out of reach from in here
       // the cell I stand in, and it is the lowest work left: jump, place under the feet, ride up with it
       const mineCell = open.find(p => p.x === feet.x && p.z === feet.z && p.y === feet.y && p.y <= lowest)
       if (mineCell) {
@@ -857,9 +931,26 @@ module.exports = ctx => {
         for (const s of stands.slice(0, 4)) { if (api.stop()) break; if (await A.travel(bot, s, { range: 0, ms: 20000, stop: api.stop, quiet: true })) { moved = true; break } }
         if (!moved) bump(tgt, 3)
       }
+      dry = did ? 0 : dry + 1
       await sleep(60)
     }
     return { placed, left: want.size, item }
+  }
+
+  // RIDE THE SHAFT OUT (the owner's 埋めながら上まで上がる): place under the feet, rise with the block, repeat. fillCells does this too, but only
+  // while the shaft cell is the LOWEST work left - a cavity whose last cells sit beside the shaft foot left 1-2 shaft cells open (16:07Z Ume).
+  async function rideOut (bot, api, col, topY, item) {
+    let n = 0
+    for (let guard = 0; guard < 48 && !api.stop(); guard++) {
+      const feet = bot.entity.position.floored()
+      if (feet.y >= topY) break
+      if (feet.x !== col[0] || feet.z !== col[1]) { if (!await A.travel(bot, { x: col[0], y: feet.y, z: col[1] }, { range: 0, ms: 15000, stop: api.stop, quiet: true })) break; continue }
+      const b = bot.blockAt(feet); if (b && isSolidB(b)) break
+      const it = INSIDE_FILL_RE.test(item) ? item : (fillerIn(bot) || item)
+      if (!it || !await A.fillInside(bot, feet, it, { stop: api.stop })) break
+      n++
+    }
+    return n
   }
 
   // ---------------------------------------------------------------- PART 2: FIX — one bot, one cavity, the owner's algorithm
@@ -874,7 +965,9 @@ module.exports = ctx => {
     const tops0 = (ent.tops || []).map(t => t.at)
     const to = tops0[0] || [ent.at[0], ent.at[1], ent.at[2]]
     task(bot, 'cavity: walking to ' + to.join(','))
-    if (!await A.travel(bot, { x: to[0], y: null, z: to[2] }, { range: 4, ms: 300000, stop: api.stop })) return { ok: false, why: 'no_route to ' + to.join(',') }
+    holdPockets(bot)
+    if (!await A.travel(bot, { x: to[0], y: null, z: to[2] }, { range: 4, ms: 300000, stop: api.stop, onHop: () => holdPockets(bot) })) return { ok: false, why: 'no_route to ' + to.join(',') }
+    holdPockets(bot)
     await sleep(600)
     // 3. re-read the hole in the world. A NECK carries its own cell list (it was cut out of a cave component the bot must not flood-fill).
     let comp
@@ -923,11 +1016,16 @@ module.exports = ctx => {
       const PS = planSets(A, paramsBox(P))
       const tops = (ent.tops || []).filter(t => !PS.blockedCol(t.at[0], t.at[2]))
       if (!tops.length) return { ok: false, why: 'no free surface cell over ' + ent.at.join(',') + ' (building / field / pen / road / furniture)' }
-      let got = null
-      for (const t of tops.slice(0, 3)) {
+      let got = null; const sCache = new Map(); const skipped = []
+      for (const t0 of tops.slice(0, 4)) {
         if (api.stop()) break
+        // THE SURFACE MOVES while we walk: the cap crews lay dirt over the base all day, so the census's y is a hint and the world is the
+        // truth (16:2xZ: `no shaft could be cut` x6 because every candidate's recorded top cell now read `air`).
+        const sy = topOpaqueAt(bot, t0.at[0], t0.at[2], sCache)
+        if (sy === NOTOP || sy <= t0.entryY) { skipped.push(t0.at.join(',') + ':no ground'); continue }
+        const t = Object.assign({}, t0, { at: [t0.at[0], sy, t0.at[2]], shaft: sy - t0.entryY })
         const sb = bot.blockAt(vv(t.at))
-        if (!sb || !isSolidB(sb) || GRAVITY_RE.test(sb.name) || HARD_RE.test(sb.name) || A.ourBlock(vv(t.at), sb.name) || A.penAt(t.at[0], t.at[1], t.at[2], bot)) continue
+        if (!sb || !isSolidB(sb) || GRAVITY_RE.test(sb.name) || HARD_RE.test(sb.name) || A.ourBlock(vv(t.at), sb.name) || A.penAt(t.at[0], t.at[1], t.at[2], bot)) { skipped.push(t.at.join(',') + ':' + (sb ? sb.name : 'not loaded')); continue }
         task(bot, 'cavity: shaft at ' + t.at.join(',') + ' down to ' + t.entryY + (t.tunnel && t.tunnel.length ? ' + ' + t.tunnel.length + ' tunnel cells' : ''))
         const r = await digShaft(bot, job, api, t, log)
         source = r.source || source
@@ -935,7 +1033,7 @@ module.exports = ctx => {
         if (r.ok) { got = Object.assign({ name: sb.name }, t); break }
         A.result(bot, { ev: 'cavity_shaft_failed', at: t.at, why: String(r.why).slice(0, 90) })
       }
-      if (!got) return { ok: false, why: 'no shaft could be cut over ' + ent.at.join(','), source }
+      if (!got) return { ok: false, why: 'no shaft could be cut over ' + ent.at.join(',') + (skipped.length ? ' (' + skipped.slice(0, 4).join(' ') + ')' : ''), source }
       for (let y = got.at[1] - 1; y >= got.entryY; y--) { const q = new Vec3(got.at[0], y, got.at[2]); want.set(keyOf(q), q) } // the shaft is filled too
       for (const c of got.tunnel || []) { const q = vv(c); want.set(keyOf(q), q) } // ...and so is the tunnel
       restoreList.push({ at: vv(got.at), name: got.name }) // ...and its top cell gets the surface material back
@@ -944,7 +1042,25 @@ module.exports = ctx => {
     try { if (A.count(bot, 'torch')) await B.placeTorch(bot, bot.entity.position.floored(), { stop: api.stop }).catch(e_ => swallow('jobs_cavity:torch', e_)) } catch (e_) { swallow('jobs_cavity:torch2', e_) }
     // 7. FILL, bottom-up, from the inside
     task(bot, 'cavity: filling ' + want.size + ' cells at ' + ent.at.join(','))
-    const r1 = await fillCells(bot, api, want, item0, deadline)
+    // ONE walk back for more when the pockets run dry mid-hole (a player does exactly that); after it the loop walks itself back to the work
+    let refills = 0
+    const refill = async () => {
+      if (refills >= 1 || Date.now() > deadline - 180000 || api.stop()) return false
+      refills++
+      const f = P.filler || 'cobblestone'
+      task(bot, 'cavity: back to the depot for more ' + f)
+      const n = await A.withdraw(bot, f, 256, { stop: api.stop })
+      A.result(bot, { ev: 'cavity_refill', item: f, n, at: ent.at })
+      return n > 0
+    }
+    let r1 = await fillCells(bot, api, want, item0, deadline, { refill })
+    // 7b. whatever is left of the shaft column is ridden out from the inside, then one more pass for anything that fell behind
+    for (const q of restoreList) {
+      if (api.stop() || Date.now() > deadline) break
+      const rose = await rideOut(bot, api, [q.at.x, q.at.z], q.at.y, r1.item)
+      if (rose) { r1.placed += rose; for (const k of [...want.keys()]) { const p = want.get(k); const bb = bot.blockAt(p); if (bb && isSolidB(bb)) want.delete(k) } }
+    }
+    if (want.size) { const r2 = await fillCells(bot, api, want, r1.item, deadline, { refill }); r1 = { placed: r1.placed + r2.placed, left: r2.left, item: r2.item } }
     // 8. the surface cells, as they were
     const restored = []
     for (const q of restoreList) {
@@ -1019,8 +1135,11 @@ module.exports = ctx => {
       A.decline(bot, job, 600000, 'cavity: every target is claimed by a mate')
       return muster(bot, job, api, ctx2, 'cavity: nothing free to fill')
     }
+    // SMALL AND NEAR FIRST: a bot has ~12 min, and one 275-cell hole spends it all while nine 15-cell holes beside it keep spawning mobs.
+    // The big ones are still taken - they just wait until the cheap ones are gone (and each pass leaves them smaller).
     const me = bot.entity.position
-    free.sort((a, b) => Math.hypot(a.at[0] - me.x, a.at[2] - me.z) - Math.hypot(b.at[0] - me.x, b.at[2] - me.z))
+    const cost = e => Math.hypot(e.at[0] - me.x, e.at[2] - me.z) + e.cells * 1.5 - e.spawnable * 0.5
+    free.sort((a, b) => cost(a) - cost(b))
     let ent = null
     for (const e of free.slice(0, 6)) { if (await claimTake(bot, e.id, 16 * 60000)) { ent = e; break } }
     if (!ent) return muster(bot, job, api, ctx2, 'cavity: a mate took every target first')

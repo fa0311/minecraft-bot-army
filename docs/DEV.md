@@ -177,6 +177,14 @@ Command blocks are enabled on the server (`enable-command-block=true`); the bots
   move rows already dug is refused by the miners (`mine_level_refused`, the squad keeps its level); levels lie ≥ 3 apart. `wait` digests all of these.
   The miners also open the NEXT landing THEMSELVES (`mine_level_opened`, at most one per hour) when every dug level of the iron band y-16..48 is EXHAUSTED — every trunk
   mouth taken, every branch at 256, none open — and write it to the board like `mine level` does; `armyctl.js mine` marks such a level `EXHAUSTED` and prints the mean blocks out.
+- **Veins, caves and the choice of level (owner 09-20 "鉄って何個も連なって出るでしょ？"):** a face that shows ore is followed as the WHOLE connected body —
+  26-neighbour connectivity (a diagonal touch is one vein), `raw_iron_block` counts as iron ore, and the cap is SAFETY (no cell that touches lava/water, never
+  more than 16 blocks from the face, `VEIN_MAX` 320), not a count. A body with a raw block or ≥ 8 ore in it is a GIANT vein of 1.18+: its tuff is opened as a
+  corridor (`VEIN_FILLER` 96), it is announced (`mine_vein`) and written to `settings.mine.veins` `[{at,kind,seen,raw}]` so an operator can send head-count there.
+  A CAVE is not the end of the rock: the branch bridges it walled and lit for up to 16 cells (`cave_bridged`), and a branch that was closed at one is handed out
+  again up to 3 times (`caveTry`) — so a level counts as EXHAUSTED only when its cave branches are used up too. `I.levelYield(L)` = ore / iron ore per 100 cells
+  advanced from the branch ledger (`ore`, `iron` per branch); while iron is the deficit the squad works the level with the best MEASURED iron yield, the book
+  (peak y16, linear to 0 at y-24/y56) standing in only for levels under 400 cells driven.
 - **Chat:** `bots/chatter.js` (haiku, thinking off) answers PLAYERS in character and can do nothing else (no actuator); `speak()` in `lib/army.js` is the LLM-free work chatter.
 
 ## 8. New world (`ops/new-world.sh <seed>`; seed candidates: `ops/seed-gacha.js [n]` → `server-gacha/results.json`)

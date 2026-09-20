@@ -49,6 +49,8 @@ const K_MAX = 80              // THE LIMIT of a level: branch pairs = a 243-bloc
                               // (`kStop`). Everything at its limit on every level -> `mine_exhausted` (iron_miner, once an hour).
 const TRUNK_LEN = FIRST_OFF + SPACING * (K_MAX - 1) + 1
 const TORCH_EVERY = 9         // branches
+const CAVE_TRIES = 3          // how often a cave-closed branch is handed out again (each try bridges up to CAVE_BRIDGE cells further)
+const CAVE_BRIDGE = 16        // cells a branch may cross a cave, walled and lit, before it gives up on that line (a cave is not the end of the rock)
 const CLAIM_MS = 8 * 60 * 1000
 const FILL = ['cobblestone', 'cobbled_deepslate', 'andesite', 'diorite', 'granite', 'tuff', 'dirt', 'stone', 'deepslate']
 const JUNK_RE = /^(andesite|diorite|granite|tuff|gravel|dirt|cobbled_deepslate|flint|calcite|smooth_basalt|dripstone_block|pointed_dripstone|snowball|snow_block|clay_ball|clay|rotten_flesh|bone|arrow|string|gunpowder|spider_eye|.*_sapling|.*_seeds)$/
@@ -477,24 +479,27 @@ function pickRank (n) { return /^(diamond|netherite)/.test(n) ? 4 : /^iron/.test
 // which also spends the enchanted tool's durability only on the blocks that pay it back. `b` = the block about to be dug (digCell passes
 // it); called without a block the old rule stands unchanged: best tier, most worn first.
 const FORTUNE_RE = /_ore$|^ancient_debris$/
+// how many levels of Fortune sit on an item (26.1: `item.enchants` = {enchantments:[{id,level}]}, the same data under `components`). THE one reader:
+// army.js kitUp asks it too, because the chest index counts by NAME and cannot tell an enchanted pick from a plain one.
+function fortuneOf (bot, it) {
+  try {
+    if (!it) return 0
+    let raw = it.enchants
+    if (raw && !Array.isArray(raw) && Array.isArray(raw.enchantments)) raw = raw.enchantments
+    if (!Array.isArray(raw) || !raw.length) { const c = ((it.components || []).find(q => q && /enchantments$/.test(String(q.type))) || {}).data; raw = (c && c.enchantments) || (Array.isArray(c) ? c : []) }
+    if (!Array.isArray(raw) || !raw.length) return 0
+    const fid = (((bot.registry || {}).enchantmentsByName || {}).fortune || {}).id
+    for (const e of raw) {
+      if (!e) continue
+      const nm = typeof e.id === 'string' ? String(e.id).replace(/^minecraft:/, '') : (fid != null && e.id === fid ? 'fortune' : null)
+      if (nm === 'fortune') return e.level || e.lvl || 1
+    }
+  } catch (e_) { swallow('iron_core:fortune', e_) }
+  return 0
+}
 function bestPick (bot, b) {
   const ps = pickaxes(bot).filter(i => durLeft(bot, i) > 0)
-  // how many levels of Fortune sit on this pick (26.1: `item.enchants` = {enchantments:[{id,level}]}, the same data under `components`)
-  const fortune = it => {
-    try {
-      let raw = it.enchants
-      if (raw && !Array.isArray(raw) && Array.isArray(raw.enchantments)) raw = raw.enchantments
-      if (!Array.isArray(raw) || !raw.length) { const c = ((it.components || []).find(q => q && /enchantments$/.test(String(q.type))) || {}).data; raw = (c && c.enchantments) || (Array.isArray(c) ? c : []) }
-      if (!Array.isArray(raw) || !raw.length) return 0
-      const fid = (((bot.registry || {}).enchantmentsByName || {}).fortune || {}).id
-      for (const e of raw) {
-        if (!e) continue
-        const nm = typeof e.id === 'string' ? String(e.id).replace(/^minecraft:/, '') : (fid != null && e.id === fid ? 'fortune' : null)
-        if (nm === 'fortune') return e.level || e.lvl || 1
-      }
-    } catch (e_) { swallow('iron_core:fortune', e_) }
-    return 0
-  }
+  const fortune = it => fortuneOf(bot, it)
   const ore = !!b && FORTUNE_RE.test(b.name)
   ps.sort((p, q) => (ore ? fortune(q) - fortune(p) : fortune(p) - fortune(q)) || pickRank(q.name) - pickRank(p.name) || durLeft(bot, p) - durLeft(bot, q))
   return ps[0] || null
@@ -1235,37 +1240,61 @@ async function sweep (bot, ms = 1500, radius = 3) {
 }
 
 // ------------------------------------------------------------------ ore (no x-ray)
-function oreFamily (name) { const m = ORE_RE.exec(name); return m ? m[2] : null }
+// A RAW BLOCK IS ORE (owner 09-20: "鉄って何個も連なって出るでしょ？"). The GIANT ORE VEINS of 1.18+ are one connected body of iron ore +
+// raw_iron_block embedded in TUFF, y -60..-8, hundreds of blocks - one of them is worth more than fifty branches. So `raw_iron_block` belongs to
+// the iron family everywhere a face is read, and the tuff between the ore is the body of that vein, dug as a corridor (veinOf).
+function oreFamily (name) { if (name === 'raw_iron_block') return 'iron'; const m = ORE_RE.exec(name); return m ? m[2] : null }
+const VEIN_MAX = 320          // a vein is followed to its END, not to a count (the old cap of 24 cut every giant vein off after 24 blocks)
+const VEIN_FILLER = 96        // tuff cells a CONFIRMED giant vein may be opened as a corridor to reach the rest of its body
+const VEIN_BIG = 8            // ore blocks (or one raw block) that make a body a "giant vein": worth the corridor and a line on the board
+const VEIN_R = 24             // a vein body is never followed further than this from the block that was seen: the branch stays the way home
 function exposedOre (bot, cells) {
   const out = []
   const seen = new Set()
   for (const c of cells) {
     for (const d of FACES) {
       const b = blk(bot, c[0] + d[0], c[1] + d[1], c[2] + d[2])
-      if (!b || !ORE_RE.test(b.name)) continue
+      if (!b || !oreFamily(b.name)) continue
       const k = U.kpos(b.position)
       if (!seen.has(k)) { seen.add(k); out.push(b) }
     }
   }
   return out
 }
-function veinOf (bot, first, max = 24) {
+// THE WHOLE CONNECTED BODY, the way a player mines it: 26-neighbour connectivity (a diagonal touch is one vein in Minecraft). The cap is SAFETY,
+// not a count: the six faces of every cell are read before it is taken, and a cell that touches lava or water is neither taken nor expanded
+// through. A body with a raw block or >= VEIN_BIG ore in it is a giant vein: its TUFF is opened too (up to VEIN_FILLER cells), because the rest of
+// its ore sits inside that tuff. -> array of positions, with `.raw` (raw blocks in it) and `.big` set on it.
+function veinOf (bot, first, max = VEIN_MAX, opts = {}) {
   const fam = oreFamily(first.name)
-  const seen = new Set([U.kpos(first.position)])
-  const out = [first.position]
-  const q = [first.position]
-  while (q.length && out.length < max) {
-    const p = q.shift()
-    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) {
-      if (!dx && !dy && !dz) continue
-      const n = p.offset(dx, dy, dz)
-      const k = U.kpos(n)
-      if (seen.has(k)) continue
-      seen.add(k)
-      const b = bot.blockAt(n)
-      if (b && oreFamily(b.name) === fam) { out.push(n); q.push(n) }
+  const o = first.position
+  let seen = new Set([U.kpos(o)])
+  const out = [o]
+  let raw = first.name === 'raw_iron_block' ? 1 : 0
+  const far = p => Math.abs(p.x - o.x) > VEIN_R || Math.abs(p.y - o.y) > VEIN_R || Math.abs(p.z - o.z) > VEIN_R
+  const hot = p => FACES.some(d => isLiquid(bot.blockAt(p.offset(d[0], d[1], d[2]))))
+  const walk = (q, take, lim) => {
+    while (q.length && out.length < lim) {
+      const p = q.shift()
+      for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) {
+        if ((!dx && !dy && !dz) || out.length >= lim) continue
+        const n = p.offset(dx, dy, dz)
+        const k = U.kpos(n)
+        if (seen.has(k) || far(n)) continue
+        seen.add(k)
+        const b = bot.blockAt(n)
+        if (!b || !take(b) || hot(n)) continue
+        if (b.name === 'raw_iron_block') raw++
+        out.push(n); q.push(n)
+      }
     }
   }
+  walk([o], b => oreFamily(b.name) === fam, max)
+  const big = raw > 0 || out.length >= VEIN_BIG
+  // the tuff of a giant iron vein is filler, not rock: open it and every ore inside it joins the body (y -60..-8 is where these veins generate)
+  // (a fresh `seen`: the first pass has already looked at - and written off - every tuff cell around the ore body)
+  if (big && fam === 'iron' && o.y <= -8 && opts.filler !== false) { seen = new Set(out.map(U.kpos)); walk(out.slice(), b => b.name === 'tuff' || oreFamily(b.name) === fam, Math.min(max, out.length + VEIN_FILLER)) }
+  out.raw = raw; out.big = big; out.capped = out.length >= max
   return out
 }
 
@@ -1278,23 +1307,30 @@ async function mineVein (bot, first, level, anchor, gen, opts = {}) {
     if (fam === 'diamond' || fam === 'gold' || fam === 'redstone' || fam === 'emerald') recordOre(bot, first)
     return 0
   }
-  let todo = veinOf(bot, first)
+  const vein = veinOf(bot, first)
+  let todo = vein.slice()
+  const big = vein.big
+  const member = b => !!b && (oreFamily(b.name) === fam || (big && b.name === 'tuff'))
+  if (big) await recordVein(bot, first, fam, vein)
   let got = 0
   let moves = 0
-  const maxMoves = opts.maxMoves == null ? 8 : opts.maxMoves
+  // a big body is worth walking INSIDE: the old 8 moves / 60 turns stopped at the first 24 blocks in reach (owner 09-20: veins are the iron)
+  const maxMoves = opts.maxMoves == null ? (big ? 40 : 10) : opts.maxMoves
   const trail = []
-  for (let guard = 0; guard < 60 && todo.length; guard++) {
+  for (let guard = 0; guard < (big ? 400 : 60) && todo.length; guard++) {
     await sleep(10)
     if (stale(bot, gen)) break
     const f = feet(bot)
-    todo = todo.filter(p => { const b = bot.blockAt(p); return b && oreFamily(b.name) === fam })
+    todo = todo.filter(p => member(bot.blockAt(p)))
     if (!todo.length) break
-    todo.sort((a, b) => eyeDist(bot, a) - eyeDist(bot, b))
+    // ORE BEFORE FILLER: the tuff of a giant vein is only a corridor, so it is dug last and never counted as ore
+    todo.sort((a, b) => ((bot.blockAt(a) || {}).name === 'tuff' ? 1 : 0) - ((bot.blockAt(b) || {}).name === 'tuff' ? 1 : 0) || eyeDist(bot, a) - eyeDist(bot, b))
     // diggable from here: in reach, not straight above our column, not the block under our feet
     const pick = todo.find(p => eyeDist(bot, p) <= 4.4 && !(p.x === f.x && p.z === f.z))
     if (pick) {
+      const filler = (bot.blockAt(pick) || {}).name === 'tuff'
       const r = await digCell(bot, pick)
-      if (r === 'ok') { got++; bump(bot, 'ore_' + fam) } else { todo = todo.filter(p => p !== pick) }
+      if (r === 'ok') { if (!filler) { got++; bump(bot, 'ore_' + fam) } else bump(bot, 'vein_filler') } else { todo = todo.filter(p => p !== pick) }
       continue
     }
     // own column (above head / below feet): step back onto the trail/anchor and retry from there
@@ -1341,7 +1377,7 @@ async function mineVein (bot, first, level, anchor, gen, opts = {}) {
   }
   return got
 }
-const VALUABLE_RE = /^(raw_iron|raw_gold|raw_copper|coal|diamond|emerald|lapis_lazuli|redstone|flint)$/
+const VALUABLE_RE = /^(raw_iron|raw_iron_block|raw_gold|raw_copper|coal|diamond|emerald|lapis_lazuli|redstone|flint)$/ // a raw_iron_block IS the drop of a giant vein (9 iron): never left lying in the cavity
 function dropName (e) {
   try { const it = e.getDroppedItem && e.getDroppedItem(); if (it) return it.name } catch (e_) { swallow('iron_core:q13', e_) }
   return null
@@ -1399,6 +1435,26 @@ function recordOre (bot, b) {
     fs.writeFileSync(f + '.tmp', JSON.stringify(l.slice(-500)))
     fs.renameSync(f + '.tmp', f)
   } catch (e_) { swallow('iron_core:oreLog', e_) }
+}
+// A GIANT VEIN GOES ON THE BOARD, because it is worth more than fifty branches and the squad has to be able to go there: `settings.mine.veins`
+// = the last 24 bodies found {at:[x,y,z], kind, seen, raw, by, t, level}, deduped per 8-block cell, plus the event `mine_vein` for the operator's
+// digest. Nobody is re-assigned by code: the operator reads the line and moves head-count (CLAUDE.md rule 1a).
+async function recordVein (bot, first, fam, vein) {
+  const at = [first.position.x, first.position.y, first.position.z]
+  const key = at.map(q => Math.floor(q / 8)).join(',') + '/' + fam
+  try {
+    if ((bot.__ironVeins = bot.__ironVeins || {})[key]) return
+    bot.__ironVeins[key] = 1
+    army().boardEdit(b => {
+      b.settings = b.settings || {}
+      const m = b.settings.mine = b.settings.mine || {}
+      const l = m.veins = Array.isArray(m.veins) ? m.veins : []
+      if (l.some(v => v && v.key === key)) return
+      l.push({ key, at, kind: fam, seen: vein.length, raw: vein.raw || 0, by: bot.username, t: Date.now() })
+      m.veins = l.slice(-24)
+    })
+  } catch (e_) { swallow('iron_core:recordVein', e_) }
+  say(bot, { ev: 'mine_vein', kind: fam, at, seen: vein.length, raw: vein.raw || 0, note: 'giant ' + fam + ' vein: ' + vein.length + ' blocks connected (' + (vein.raw || 0) + ' raw blocks) - followed whole; it stands in settings.mine.veins' })
 }
 // back to the anchor cell of our own line after a vein excursion: a LEVEL 1x2 line (walkLine keeps the level, floors gaps, climbs out of a hole).
 // World 1 used the pathfinder here as a fallback - underground it digs and places, which is how private diagonals appeared beside the branches.
@@ -1665,6 +1721,14 @@ async function claimBranch (bot, M) {
       for (const b of Object.values(L.branches)) if (b.done && !b.why && (b.len || 0) < L.branchLen) { b.done = false; b.owner = null; b.t = 0 }
       got = tryClaim()
     }
+    // THE CAVES ARE THE LEVEL'S UNMINED ROCK (measured from the ledger 09-20: 959 of 1280 branches closed `cave` at a mean 81 of 256 cells - 68 % of
+    // the footprint of every level untouched while `armyctl.js mine` read EXHAUSTED; y16, the best iron level in the game, was dug to 11 % in 15 min).
+    // mineBranch bridges a cave now, so such a branch is work again - re-opened at most CAVE_TRIES times, and only when the level has nothing else.
+    if (!got) {
+      let re = 0
+      for (const b of Object.values(L.branches)) if (b.done && b.why === 'cave' && (b.len || 0) < MAX_BRANCH && (b.caveTry || 0) < CAVE_TRIES) { b.done = false; b.why = null; b.caveTry = (b.caveTry || 0) + 1; b.owner = null; b.t = 0; re++ }
+      if (re) got = tryClaim()
+    }
     return got
   })
 }
@@ -1678,7 +1742,7 @@ function branchOutlook (bot, M, rank, level = M.level) {
   for (let k = 0; k < Math.min(K_MAX, L.kStop != null ? L.kStop : K_MAX); k++) {
     for (const side of [1, -1]) {
       const key = k + ':' + side; const b = L.branches[key]
-      if (b && b.done) { if (grows && !b.why && (b.len || 0) < MAX_BRANCH) o.free++; continue }
+      if (b && b.done) { if ((grows && !b.why && (b.len || 0) < MAX_BRANCH) || reopenable(b)) o.free++; continue }
       if (b && (b.need || 0) > rank) { o.needPick++; continue }
       if (skip(key) || (b && b.hazard)) continue // a hazard branch is a repair, not work to go down for
       if (b && b.owner && b.owner !== bot.username && now - b.t < CLAIM_MS) { o.busy++; continue }
@@ -1691,7 +1755,17 @@ async function saveBranch (M, key, patch) { return update(M.E, d => { const b = 
 // EXHAUSTED: the level is at ITS limit - every mouth of the trunk taken (kStop/K_MAX), every branch at MAX_BRANCH, none open. Neither a claim nor the
 // level's own growth (claimBranch) can do anything here any more. ONE definition, used by iron_miner's growth guard and by `armyctl.js mine`.
 function levelCap (L) { return 2 * Math.min(K_MAX, L && L.kStop != null ? L.kStop : K_MAX) }
-function exhausted (L) { const bs = Object.values((L && L.branches) || {}); return bs.length >= levelCap(L) && ((L && L.branchLen) || BRANCH_LEN) >= MAX_BRANCH && !bs.some(b => !b.done) }
+// a branch closed at a CAVE is not finished rock: it may be re-opened and bridged (claimBranch), so it counts as work and keeps the level alive
+function reopenable (b) { return !!b && b.done && b.why === 'cave' && (b.len || 0) < MAX_BRANCH && (b.caveTry || 0) < CAVE_TRIES }
+function exhausted (L) { const bs = Object.values((L && L.branches) || {}); return bs.length >= levelCap(L) && ((L && L.branchLen) || BRANCH_LEN) >= MAX_BRANCH && !bs.some(b => !b.done || reopenable(b)) }
+// WHAT THIS LEVEL REALLY PAYS: ore blocks per 100 cells advanced, measured from the branch ledger (`iron` = iron ore alone, recorded per branch since
+// 09-20). `n` = cells the level has been driven - under ~400 the number is noise and the caller falls back to the book (iron peaks at y16).
+function levelYield (L) {
+  const bs = Object.values((L && L.branches) || {})
+  let adv = 0; let ore = 0; let iron = 0; let ironAdv = 0
+  for (const b of bs) { adv += b.len || 0; ore += b.ore || 0; if (b.iron != null) { iron += b.iron; ironAdv += b.len || 0 } }
+  return { n: adv, ore: adv ? 100 * ore / adv : 0, iron: ironAdv >= 400 ? 100 * iron / ironAdv : null, ironN: ironAdv }
+}
 // mean COMMUTE of the open branches: blocks from the hub to their working ends. The operator must see "6 open branches, 220 blocks out" before he staffs a
 // level (09-20 09:25Z: 11 miners walked to the far ends of y0 - 256-long branches, 0 m/5 min - because the board only showed "open 6").
 function commute (L) { const o = Object.values((L && L.branches) || {}).filter(b => !b.done && Number.isFinite(b.k)); return o.length ? Math.round(o.reduce((n, b) => n + branchOff(b.k) + (b.len || 0), 0) / o.length) : null }
@@ -1872,7 +1946,9 @@ async function mineBranch (bot, M, br, gen, opts = {}) {
   const y = hub.y
   let len = br.len
   let ore = 0
+  let oreIron = 0                // measured per level: iron ore per 100 cells advanced is what decides where the squad works (levelYield)
   let fails = 0
+  let bridged = 0                // cells of the current cave crossing (reset as soon as the line is back in rock)
   const hotSt = { plugs: 0 }
   const t0 = Date.now()
   const maxMs = opts.maxMs || 20 * 60000
@@ -1912,9 +1988,20 @@ async function mineBranch (bot, M, br, gen, opts = {}) {
       if (len % 8 === 0) { await saveBranch(M, br.key, { len }); hb(bot, { phase: 'relearn', branch: br.key, len, stats: bot.__ironStats }) }
       continue
     }
+    if (!isOpen(a0) && !isOpen(a1)) bridged = 0 // back in rock
+    // A CAVE IS NOT THE END OF THE ROCK (measured 09-20 from the ledger: 959 of 1280 branches were closed `cave` at a mean 81 cells of 256 - 68 % of
+    // every level's footprint never touched, y16 dug to 11 % and then called EXHAUSTED). A player walls the line through the cave and goes on, so the
+    // branch BRIDGES: lava first (clearHot), then the ordinary openCell floors the cell, sealSides walls it and a torch goes in every 3rd cell. At
+    // most CAVE_BRIDGE cells per crossing and only with filler in the pack - if rock has not come back by then, the line is sealed and the branch ends.
     if (isOpen(a0) && isOpen(a1) && isOpen(b0) && !/torch/.test(a0.name)) {
-      for (const dy of [0, 1]) { const it = fillItem(bot); if (it) await placeAt(bot, it, new Vec3(nx, y + dy, nz)) }
-      why = 'cave'; len = Math.max(len, 1); await saveBranch(M, br.key, Object.assign({ len, done: true, ore: (br.ore || 0) + ore, why }, lavaAhead(bot, M, br, len))); return { why, ore, len }
+      const hz = await clearHot(bot, face, d, y, hotSt, gen)
+      if (hz === 'plugged') continue
+      if (hz === 'lava') { why = 'lava'; await saveBranch(M, br.key, Object.assign({ len, ore: (br.ore || 0) + ore, iron: (br.iron || 0) + oreIron }, lavaAhead(bot, M, br, len))); await markHazard(bot, M.E, M.level, br.key, { kind: hotSt.kind || 'lava', at: hotSt.at, close: true, walled: hotSt.walled, len: len - 3 }); return { why, ore, len } }
+      if (bridged >= CAVE_BRIDGE || cobbleCount(bot) < 8) {
+        for (const dy of [0, 1]) { const it = fillItem(bot); if (it) await placeAt(bot, it, new Vec3(nx, y + dy, nz)) }
+        why = 'cave'; len = Math.max(len, 1); await saveBranch(M, br.key, Object.assign({ len, done: true, ore: (br.ore || 0) + ore, iron: (br.iron || 0) + oreIron, why }, lavaAhead(bot, M, br, len))); return { why, ore, len }
+      }
+      bridged++; bump(bot, 'cave_bridged')
     }
     const r = await openCell(bot, nx, y, nz)
     if (r === 'notool') { why = 'notool'; break }
@@ -1925,14 +2012,14 @@ async function mineBranch (bot, M, br, gen, opts = {}) {
       const hard = [0, 1].map(dy => blk(bot, nx, y + dy, nz)).find(b => b && b.harvestTools) || null
       const need = hard && /obsidian|ancient_debris|netherite/.test(hard.name) ? 4 : 3
       why = 'needpick'
-      await update(M.E, dd => { const b = lvState(dd, M.level).branches[br.key]; if (b) Object.assign(b, { len, ore: (br.ore || 0) + ore, need, owner: null, t: 0 }) })
+      await update(M.E, dd => { const b = lvState(dd, M.level).branches[br.key]; if (b) Object.assign(b, { len, ore: (br.ore || 0) + ore, iron: (br.iron || 0) + oreIron, need, owner: null, t: 0 }) })
       U.note(bot, 'info', 'branch ' + br.key + ' needs pick rank ' + need + ' @' + len + (hard ? ' (' + hard.name + ')' : ''))
       return { why, ore, len, need }
     }
     if (r !== 'ok') {
       U.note(bot, 'info', 'branch ' + br.key + ' ' + r + ' @' + len)
       for (const dy of [0, 1]) { const b = blk(bot, nx, y + dy, nz); if (b && !isSolid(b)) { const it = fillItem(bot); if (it) await placeAt(bot, it, b.position) } }
-      why = r; await saveBranch(M, br.key, Object.assign({ len, done: true, ore: (br.ore || 0) + ore, why }, lavaAhead(bot, M, br, len))); return { why, ore, len }
+      why = r; await saveBranch(M, br.key, Object.assign({ len, done: true, ore: (br.ore || 0) + ore, iron: (br.iron || 0) + oreIron, why }, lavaAhead(bot, M, br, len))); return { why, ore, len }
     }
     await sealSides(bot, nx, [y + 1, y], nz, dirIdx)
     const cells = [[nx, y + 1, nz], [nx, y, nz]]
@@ -1951,23 +2038,26 @@ async function mineBranch (bot, M, br, gen, opts = {}) {
     for (const o of exposedOre(bot, cells)) {
       if (stale(bot, gen)) break
       const b = bot.blockAt(o.position)
-      if (!b || !ORE_RE.test(b.name)) continue
-      ore += await mineVein(bot, b, y, { x: nx, y, z: nz }, gen)
+      const fam = b && oreFamily(b.name)
+      if (!fam) continue
+      const n = await mineVein(bot, b, y, { x: nx, y, z: nz }, gen)
+      ore += n; if (fam === 'iron') oreIron += n
     }
-    if (len % TORCH_EVERY === 2) { if (U.count(bot, 'torch') < 2) await ensureTorches(bot, 12); await torchNear(bot, nx, y, nz, dirIdx) }
+    // a bridged cave is dark and full of mobs: light it every 3rd cell, not every 9th
+    if (len % TORCH_EVERY === 2 || (bridged && len % 3 === 0)) { if (U.count(bot, 'torch') < 2) await ensureTorches(bot, 12); await torchNear(bot, nx, y, nz, dirIdx) }
     // (no toss while digging on: a pile in the branch lies on the miner's own way out and comes home in its pockets - a stint's stone fits the pack;
     //  the pack is emptied at the FACE when the miner leaves, I.toSurface, and thrown behind only when it is full, above)
-    if (len % 4 === 0) { await sweep(bot, 500, 2.5); await saveBranch(M, br.key, { len, ore: (br.ore || 0) + ore, need: 0 }); hb(bot, { phase: 'branch', branch: br.key, len, stats: bot.__ironStats }) } // need: 0 = the hard face is behind us
+    if (len % 4 === 0) { await sweep(bot, 500, 2.5); await saveBranch(M, br.key, { len, ore: (br.ore || 0) + ore, iron: (br.iron || 0) + oreIron, need: 0 }); hb(bot, { phase: 'branch', branch: br.key, len, stats: bot.__ironStats }) } // need: 0 = the hard face is behind us
   }
   refresh(M)
   // A FACE THIS MINER CANNOT ENTER is handed back AT ONCE and not taken again for 10 min (else claimBranch gives the bot its own branch back every 20 s:
   // 12:3xZ gemba "USELESS 10 min: 9x mine_iron, Aoi iron:to-face 56:1 standing 27 min"). The SECOND miner that sticks at it closes the branch for good.
   if (why === 'stuck') {
-    await update(M.E, dd => { const b = lvState(dd, M.level).branches[br.key]; if (!b) return; b.len = len; b.ore = (br.ore || 0) + ore; b.stuck = (b.stuck || 0) + 1; b.owner = null; b.t = 0; if (b.stuck >= 2) { b.done = true; b.why = 'stuck' } })
+    await update(M.E, dd => { const b = lvState(dd, M.level).branches[br.key]; if (!b) return; b.len = len; b.ore = (br.ore || 0) + ore; b.iron = (br.iron || 0) + oreIron; b.stuck = (b.stuck || 0) + 1; b.owner = null; b.t = 0; if (b.stuck >= 2) { b.done = true; b.why = 'stuck' } })
     ;(bot.__ironSkip = bot.__ironSkip || {})[M.level + '/' + br.key] = Date.now() + 10 * 60000
     return { why, ore, len }
   }
-  await saveBranch(M, br.key, Object.assign({ len, ore: (br.ore || 0) + ore, done: len >= branchLen(M) }, len > br.len ? { need: 0 } : {}))
+  await saveBranch(M, br.key, Object.assign({ len, ore: (br.ore || 0) + ore, iron: (br.iron || 0) + oreIron, done: len >= branchLen(M) }, len > br.len ? { need: 0 } : {}))
   return { why, ore, len }
 }
 
@@ -2478,8 +2568,8 @@ module.exports = {
   pickaxes, durLeft, bestPick, stonePickCount, cobbleCount, woodUnits, canCraftPick, withTable, ensurePick, ensureTorches,
   digCell, openCell, sealSides, torchNear, stepTo, settle, walkLine, pillarOne, blocked, sweep, returnTo,
   auditStairs, repairStairs, walkRoute, nearestWp, treadState, layTreads, stairItem, STAIR_RE, isSupport, supportChain, placeSupported,
-  exposedOre, veinOf, mineVein, threat, defend, wallOff, eat, tossJunk,
-  claimStairs, digStairs, claimBranch, branchOutlook, exhausted, levelCap, commute, nextLanding, claimGrowth, sayMine, pickRank, stoneWanted, saveBranch, gotoBranchFace, mineBranch, walkTrunk,
+  exposedOre, veinOf, mineVein, fortuneOf, threat, defend, wallOff, eat, tossJunk,
+  claimStairs, digStairs, claimBranch, branchOutlook, exhausted, levelCap, levelYield, reopenable, commute, nextLanding, claimGrowth, sayMine, pickRank, stoneWanted, saveBranch, gotoBranchFace, mineBranch, walkTrunk,
   rawIron, lootScore, needHaul, foodUnits, pickUses, readiness, exitReason, reconnect, toSurface, toEntrance,
   // lava on record + the obsidian trip
   cur: () => CUR, markHazard, branchAt, isHot, hotAhead, clearHot,

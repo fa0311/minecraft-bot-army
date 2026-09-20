@@ -344,24 +344,37 @@ module.exports = ctx => {
 
     if (st.phase === 'trade') {
       if (P.farmChest) await collectFarm(bot, { at: P.farmChest }, api).catch(e_ => swallow('jobs_industry:farmChest', e_))
-      const want = (Array.isArray(P.buy) && P.buy.length ? P.buy.map(b => ({ re: new RegExp(b.re), want: b.want || 1 })) : BUY.map(b => ({ re: b.re, want: b.want })))
+      const want = buyList(P)
       const sold = {}; const bought = {}
+      const absorb = {} // what this village could still take, learned from the offers — next trip's cargo size
       let n = 0
       let asleep = 0
-      for (const e of villagersNear(bot, P.radius || 48)) {
-        if (api.stop()) break
-        if (A.hostiles(bot, 12).length) { task(bot, 'trade: mobs near — not trading'); await sleep(3000); continue } // the combat module fights them; a trader does not
-        if (!e.isValid) continue
-        if (isAsleep(bot, e)) { asleep++; continue }
-        const r = await dealWith(bot, e, job, api, want)
-        if (r.sold) for (const [k, q] of Object.entries(r.sold)) sold[k] = (sold[k] || 0) + q
-        if (r.bought) for (const [k, q] of Object.entries(r.bought)) bought[k] = (bought[k] || 0) + q
-        if (Object.keys(r.sold || {}).length || Object.keys(r.bought || {}).length) n++
-        // nothing left to sell and nothing left to buy: stop walking the village
-        if (!cargoInPockets(bot) && !want.some(w => w.want > 0)) break
+      const seen = new Set()
+      // SEVERAL PASSES. 624 blocks each way is the cost of the trip, so the trip is not over while a buyer is still unserved:
+      // villagers walk away mid-visit, one is out of reach on a roof, one is asleep at dusk and awake ten minutes later. A pass
+      // that trades nothing new ends the visit (measured 16:18Z: 3 of 9 villagers served in a one-pass visit).
+      for (let pass = 0; pass < (P.passes || 3) && !api.stop(); pass++) {
+        let did = 0
+        for (const e of villagersNear(bot, P.radius || 48)) {
+          if (api.stop()) break
+          if (A.hostiles(bot, 12).length) { task(bot, 'trade: mobs near — not trading'); await sleep(3000); continue } // the combat module fights them; a trader does not
+          if (!e.isValid || seen.has(e.id)) continue
+          if (isAsleep(bot, e)) { asleep++; continue }
+          const r = await dealWith(bot, e, job, api, want, absorb)
+          if (r.dry) seen.add(e.id) // nothing left on either side with this one: never open him again this visit
+          if (r.sold) for (const [k, q] of Object.entries(r.sold)) sold[k] = (sold[k] || 0) + q
+          if (r.bought) for (const [k, q] of Object.entries(r.bought)) bought[k] = (bought[k] || 0) + q
+          if (Object.keys(r.sold || {}).length || Object.keys(r.bought || {}).length) { n++; did++ }
+          // nothing left to sell and nothing left to buy: stop walking the village
+          if (!cargoInPockets(bot) && !want.some(w => w.want > 0)) { pass = 99; break }
+        }
+        if (!did) break
       }
       st.sold = sold; st.bought = bought
-      if (n) A.result(bot, { ev: 'trade_done', job: job.id, villagers: n, sold, bought, emeralds: A.count(bot, 'emerald') })
+      if (Object.keys(absorb).length) industryEdit({ absorb, absorbT: Date.now() })
+      const mins = st.t0 ? (Date.now() - st.t0) / 60000 : 0
+      const em = Object.values(sold).length ? A.count(bot, 'emerald') : 0
+      if (n) A.result(bot, { ev: 'trade_done', job: job.id, villagers: n, sold, bought, emeralds: em, tripMin: Math.round(mins * 10) / 10, emPerBotHour: mins > 1 ? Math.round(em / mins * 60) : null, absorb })
       else A.result(bot, { ev: 'trade_none', job: job.id, at: xyz(bot.entity.position), villagers: villagersNear(bot, P.radius || 48).length, asleep, carrying: Object.keys(cargoNames(bot)).join(',') || 'nothing' })
       // everybody was in bed: hold the goods and try again rather than walking 624 blocks home with a full load
       if (!n && asleep) { await sleep(20000); return 'trade: ' + asleep + ' villagers asleep — waiting for morning' }

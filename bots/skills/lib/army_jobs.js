@@ -3426,7 +3426,10 @@ async function build (bot, job, api, ctx) {
     if (byWater && A.count(bot, 'water_bucket') > 0) { // READ AGAIN AT THE RIM: waterDescent fetches a bucket from the depot when the pocket is empty, and that walk ends the descent before it starts (measured 15:55Z, Ume: `rim -302,69,-481` but the pour was tried from the depot at -368,69,-508, "no visible wall face")
       // the LAST man down takes the source back: nobody else of the crew is standing above grade near this rim any more
       const others = crowd().filter(q => q.y >= fillG && !(q.x === me.x && q.z === me.z) && Math.abs(q.x - best.x) <= 24 && Math.abs(q.z - best.z) <= 24).length
-      const r = await WD(bot, { rim: [best.stand.x, best.stand.y, best.stand.z], column: [best.x, best.z], floorY: best.fy - 1, stop: api.stop, scoop: others === 0 }).catch(e => ({ ok: false, why: String(e && e.message).slice(0, 60) }))
+      // ONE technique, lib/moves.js `waterDrop` (proven 09-20: 9/11/16 blocks, 0 hp lost, one use, water taken back by the same bot - no shared column to guard); the poured column of jobs_cavity stays the fallback
+      const MV = (() => { try { return require('./moves') } catch (e_) { swallow('army_jobs:movesLoad', e_); return null } })()
+      let r = MV ? await MV.waterDrop(bot, [best.x, best.fy, best.z], { stop: api.stop }).catch(e => ({ ok: false, why: String(e && e.message).slice(0, 60) })) : null
+      if (!r || (!r.ok && /not on the rim|shaft is not open|no solid floor/.test(String(r.why)))) r = await WD(bot, { rim: [best.stand.x, best.stand.y, best.stand.z], column: [best.x, best.z], floorY: best.fy - 1, stop: api.stop, scoop: others === 0 }).catch(e => ({ ok: false, why: String(e && e.message).slice(0, 60) }))
       const p2 = bot.entity.position.floored(); const okW = !!(r && r.ok) && p2.y <= fillG - 3
       A.result(bot, Object.assign({ ev: 'fill_dropped_in', job: job.id, how: 'water', ok: okW, at: [p2.x, p2.y, p2.z], want: [best.x, best.fy, best.z], drop: best.drop, hp: bot.health, lost: (r && r.lost) || 0, scooped: !!(r && r.scooped) }, r && r.why ? { why: r.why } : {}))
       if (r && r.scooped) A.boardEdit(b => { const j = (b.jobs || []).find(z => z.id === job.id); if (j && j.way && j.way.water) delete j.way }) // the column is gone: the next builder pours a fresh one

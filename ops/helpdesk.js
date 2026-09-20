@@ -15,8 +15,10 @@ const log = (...a) => console.log(new Date().toISOString().slice(11, 19), ...a)
 const VERBS = ['goto', 'bank', 'withdraw', 'stash', 'unstash', 'place', 'dig', 'collect', 'fell', 'craft', 'smelt', 'kill', 'pickup', 'shear', 'till', 'equip', 'eat', 'sleep', 'wait', 'fill', 'pour']
 function ask (prompt) {
   return new Promise(resolve => {
-    const p = spawn('claude', ['-p', prompt, '--model', MODEL, '--max-turns', '1', '--disallowedTools', 'Bash', 'Read', 'Edit', 'Write', 'Agent', 'Task', 'WebFetch', 'WebSearch', 'Grep', 'Glob'], { cwd: '/tmp', stdio: ['ignore', 'pipe', 'pipe'] })
-    let out = ''; p.stdout.on('data', d => { out += d }); const k = setTimeout(() => p.kill(), 120000)
+    // owner 09-20: "ハングしたらsonnetに判断…sonnet5はそこそこコンテクストあるぞ" - the desk gets EYES: read-only armyctl (look/bot/ground/stock/recipe/howto; ARMY_READONLY=1
+    // makes every board write refuse itself) and a few turns to look before it answers. Still one fresh session per NEW failure signature, answers cached and scored.
+    const p = spawn('claude', ['-p', prompt, '--model', MODEL, '--max-turns', '8', '--allowedTools', 'Bash(node bots/army/armyctl.js:*)', 'Read', '--disallowedTools', 'Edit', 'Write', 'Agent', 'Task', 'WebFetch', 'WebSearch'], { cwd: '/root/workspace', env: Object.assign({}, process.env, { ARMY_READONLY: '1' }), stdio: ['ignore', 'pipe', 'pipe'] })
+    let out = ''; p.stdout.on('data', d => { out += d }); const k = setTimeout(() => p.kill(), 300000)
     p.on('close', () => { clearTimeout(k); resolve(out) })
   })
 }
@@ -25,6 +27,7 @@ function promptFor (t) {
   return `You are the help desk of a Minecraft survival bot army (mineflayer). A bot's algorithm failed and asks what to do. Answer with ONE JSON object only, no prose.
 Rules of this world: legit survival; movement never digs/places; never stand in sweet berry bushes; water only into closed holes; keep_inventory is OFF; depot (chests/barrels${Array.isArray(table) ? ', crafting table at ' + table.join(',') : ''}) is where items come from ("withdraw" knows the stock index).
 Already automatic (do NOT escalate these, answer with steps or decline): a boxed-in or roofed-in bot escapes by itself (fills a 1x1 pit, pillars straight up with filler blocks, or cuts a staircase) and a truly hung bot is rescued by the operator; hungry bots eat at the depot canteen; full chests are expanded by the quartermaster. If the bot lacks filler blocks for the pillar escape and stands on dirt/stone, a useful answer is steps like dig{at: a block beside its feet} to collect filler, then wait.\nVerbs the bot can run (each step is {"do":verb,...}): goto{to:[x,y|null,z],range} withdraw{item,n} bank{keep:{}} place{block,at:[x,y,z]} dig{at:[x,y,z]} collect{block,n,radius} fell{radius,replant} craft{item,n} smelt{item,n} kill{kinds:[],n,radius} pickup{radius} till{at,seed} equip{item} eat sleep wait{s} fill{at} pour{at} shear{n}.
+You have EYES - use them before you answer when the ticket alone does not settle it (at most 5 commands, all read-only, from /root/workspace): 'node bots/army/armyctl.js look <bot> 10' (terrain + exact coordinates), 'bot <bot>' (inventory, boxed-in check, last reports), 'ground <bot> x,z …', 'stock <regex>', 'recipe <item>', 'howto <thing>', 'events 15 <bot>'. Think like a competent player standing where the bot stands: what would you do with what it carries? Your LAST message must be the ONE JSON object and nothing else.
 Answer schema: {"action":"steps","steps":[...<=8],"reusable":true|false,"note":"why, <=100 chars"}  or {"action":"decline","note":"..."} (give the job back, e.g. the target is pointless)  or {"action":"escalate","note":"what the CODE OWNER must fix, with coordinates"}.
 Use only coordinates that appear in the ticket (pos, why, look.things) — the look map is an ASCII top view around the bot: '@' bot, '.' same level, digits higher, letters lower, '~' water, 'T' tree, 'C' chest; north is up, top_left = [x,z] of the first character. "reusable": true only if the same steps would fix ANY ticket with this signature (no ticket-specific coordinates).
 TICKET: ${JSON.stringify(t)}`
