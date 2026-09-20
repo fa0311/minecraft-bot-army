@@ -3440,6 +3440,9 @@ async function build (bot, job, api, ctx) {
     } else if (byWater) { task(bot, 'build ' + P.blueprint); return false } // the bucket went home between the choice and the rim: no step-off over its relaxed depth limit
     const hp0 = bot.health
     try {
+      const MV2 = (() => { try { return require('./moves') } catch (e_) { swallow('army_jobs:movesLoad', e_); return null } })()
+      if (MV2 && MV2.stepOff) { const so = await MV2.stepOff(bot, [best.x, best.fy, best.z], { stop: api.stop }).catch(e_ => ({ ok: false, why: String(e_ && e_.message) })); if (!so.ok) swallow('army_jobs:stepOff', new Error(String(so.why))) } // ONE technique (lib/moves.js): stops at the CENTRE of the shaft - the old walk below carried bots ACROSS 1-wide shafts (-301,57,-474: three builders, three misses)
+      else {
       await bot.lookAt(new Vec3(best.x + 0.5, best.fy + 0.5, best.z + 0.5), true).catch(e_ => { swallow('army_jobs:dropLook', e_) })
       bot.setControlState('forward', true)
       // walk until the FEET LEAVE THE RIM, not until the centre crosses the block line (measured 15:2xZ, Mio -294,68,-480 and Aoi -305,68,-461: both stopped ON the
@@ -3450,6 +3453,7 @@ async function build (bot, job, api, ctx) {
       const t2 = Date.now() + 8000
       while (Date.now() < t2 && !bot.entity.onGround) await sleep(50)
       await sleep(400)
+      }
     } finally { bot.setControlState('forward', false) }
     const p1 = bot.entity.position.floored()
     const ok = p1.y <= fillG - 3

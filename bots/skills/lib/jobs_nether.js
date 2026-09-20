@@ -820,7 +820,10 @@ module.exports = ctx => {
       // WORK THE HEAD OF THE ROAD, NOT THE WHOLE OF IT (measured 16:19:08Z: `steps 118, placed 2` — the nearest unfinished cell
       // was always a pocket sealed under the shelf BEHIND the bot, so the pass paced the finished part instead of extending it).
       // A pass takes the first leg that is not finished and the five after it; the next trip starts where this one stopped.
-      let head = cw.legs.findIndex(L => L.some(c => loadedAt(bot, c) && !cellOK(bot, c)))
+      // THE HEAD OF THE ROAD IS THE WALKWAY, NOT THE RAIL (16:24:24Z: the head stuck on leg 2 for pass after pass over two
+      // rim cells at -45,97,-77/-78 that read "out of reach" every time, while eight legs of actual road were missing). The rails
+      // stay in the segment and go in when the bot is beside them; they never decide where the work is.
+      let head = cw.legs.findIndex(L => L.some(c => !c.rim && loadedAt(bot, c) && !cellOK(bot, c)))
       if (head < 0) head = 0
       // A FLOOR UNDER A BLOCK THAT ALREADY STANDS IS NOBODY'S HOLE: where the causeway runs through the shelf's own rock, the
       // rim columns need no floor laid under them (16:19-16:22Z: the cell -45,97,-78 was named pass after pass - a sealed pocket

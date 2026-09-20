@@ -976,7 +976,7 @@
     98,
     -80
    ],
-   "through": 1789921426416,
+   "through": 1789921575000,
    "scoutRev": 5,
    "hub": {
     "room": [
@@ -1089,7 +1089,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789918122175,
-   "back": 1789921355482,
+   "back": 1789921486340,
    "lastDeath": 1789920279821,
    "lastDeathBy": "Hazuki",
    "roads": {
@@ -1686,7 +1686,8 @@
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 12,
-   "rev": 49
+   "rev": 50,
+   "restUntil": 1789922076785
   },
   {
    "id": "base_dorm",
@@ -1961,7 +1962,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789921457226
+   "restUntil": 1789921690862
   },
   {
    "id": "fill_ring_field2",
@@ -2228,77 +2229,6 @@
     ]
    },
    "rev": 3
-  },
-  {
-   "id": "toolsmith_picks_fix",
-   "type": "steps",
-   "priority": 95,
-   "status": "active",
-   "when": "any",
-   "bots": 1,
-   "requires": {
-    "minHp": 8
-   },
-   "plan": {
-    "zone": "no world change - the REAL depot crafting table -337,69,-460 (LOOKED: settings.craftTable -346,70,-460 is a solid block beside the furnaces, no table stands there)",
-    "why": "foreman 01:20: mine_not_ready missing pick_spare + obtain_failed storm crafted 0/1 x28/30min, because every toolsmith plan walks to -346,70,-460 where there is no table. Craft spare stone picks/axes at the table that really exists."
-   },
-   "params": {
-    "repeat": true,
-    "onFail": "continue",
-    "steps": [
-     {
-      "do": "withdraw",
-      "item": "cobblestone",
-      "n": 48
-     },
-     {
-      "do": "withdraw",
-      "item": "stick",
-      "n": 32
-     },
-     {
-      "do": "goto",
-      "to": [
-       -345,
-       69,
-       -523
-      ],
-      "range": 2
-     },
-     {
-      "do": "craft",
-      "item": "stone_pickaxe",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "stone_pickaxe",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "stone_pickaxe",
-      "n": 2
-     },
-     {
-      "do": "craft",
-      "item": "stone_pickaxe",
-      "n": 2
-     },
-     {
-      "do": "bank",
-      "keep": {
-       "torch": 16
-      }
-     },
-     {
-      "do": "wait",
-      "s": 30
-     }
-    ]
-   },
-   "rev": 2
   },
   {
    "id": "fill_hole_field2",
@@ -2640,7 +2570,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 6,
    "site": [
     -311,
     69,
@@ -2871,19 +2801,19 @@
     },
     "order": "near"
    },
-   "rev": 51,
-   "desc": "way in PROVEN 15:26Z: dropIn (step off the rim, fall-3 damage, hp>=18) - 4 builders on the floor, left 3216->2379 in 18 min. Crew follows the measured rate: lower it again if gemba shows builders standing at the rim",
+   "rev": 52,
+   "desc": "MEASURED 16:3xZ by probe: 44 columns (444 cells) still open to the sky = this job (narrow deep shafts: step off / water drop in, pillar out = the column is filled); 3172 air cells lie UNDER the crust below grade = NOT reachable from above, they belong to the cavity job (owner algorithm: shaft down, fill riding up). `left` counts both - do not judge this job by `left`, and do not raise the crew over the number of open shafts",
    "note": "top model 15:1xZ: 655 OPEN cells (left 3216 minus waiting 2561) - do not lower; ladderWay (fill_wayin) needs builders standing on the RIM to hang the way in",
    "restUntil": 1789906650052,
    "way": {
     "by": "Ichika",
-    "t": 1789921360204,
+    "t": 1789921459848,
     "at": [
-     -299,
-     59,
-     -468
+     -301,
+     60,
+     -477
     ],
-    "drop": 10
+    "drop": 9
    }
   },
   {
@@ -5374,7 +5304,7 @@
    "type": "portal",
    "priority": 97,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 1,
    "shiftMin": 20,
@@ -5800,7 +5730,7 @@
    "priority": 71,
    "status": "active",
    "when": "any",
-   "bots": 6,
+   "bots": 5,
    "site": [
     -310,
     68,
@@ -5821,7 +5751,7 @@
     "maxAgeMin": 90,
     "maxCells": 400
    },
-   "rev": 4
+   "rev": 6
   },
   {
    "id": "fill_buckets",

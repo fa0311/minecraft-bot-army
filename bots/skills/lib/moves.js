@@ -57,6 +57,31 @@ async function scoop (bot, near, tries = 3) {
   return !!bucketOf(bot, 'water_bucket')
 }
 
+// walk to the CENTRE of the landing column and let go the moment the feet leave the rim. Holding `forward` until "not on the ground" carries a walking body ACROSS a
+// 1-wide shaft (trial 4, and fill_ravine_s 16:01-16:11Z: Aika, Himari, Kaede `fill_dropped_in ok:false at -300,68,-474 want -301,57,-474` = they crossed it three times)
+function walkIn (bot, c, ly, p0, t0, stop) {
+  bot.setControlState('forward', true)
+  return new Promise(resolve => { const iv = setInterval(() => { const e = bot.entity; const d = Math.hypot(e.position.x - c.x, e.position.z - c.z); if (d < 0.22 || e.velocity.y < -0.1 || e.position.y < p0.y - 0.4) bot.setControlState('forward', false); if ((e.position.y <= ly + 1.2 && (e.onGround || e.isInWater)) || Date.now() - t0 > 12000 || (stop && stop())) { clearInterval(iv); bot.setControlState('forward', false); resolve() } }, 10) })
+}
+
+// STEP OFF A RIM AND TAKE THE DAMAGE (fall - 3): the entry for a bot without a bucket. Refuses what would leave it under `keepHp` (default 8).
+async function stepOff (bot, landArr, opts = {}) {
+  const t0 = Date.now(); const fail = (why, x = {}) => ({ ok: false, how: 'step_off', why, tookMs: Date.now() - t0, ...x })
+  if (bot.__moveBusy) return fail('another technique is running')
+  const [lx, ly, lz] = landArr; const land = new Vec3(lx, ly, lz); const c = new Vec3(lx + 0.5, ly, lz + 0.5); const p0 = bot.entity.position.clone(); const drop = Math.floor(p0.y) - ly
+  if (Math.hypot(p0.x - c.x, p0.z - c.z) > 1.6) return fail('not on the rim next to the landing column'); if (bot.health - Math.max(0, drop - 3) < (opts.keepHp || 8)) return fail('drop ' + drop + ' would leave ' + (bot.health - (drop - 3)) + ' hp')
+  if (!solid(bot.blockAt(land.offset(0, -1, 0)))) return fail('the landing has no solid floor')
+  for (let y = ly; y <= Math.floor(p0.y) + 1; y++) { const b = bot.blockAt(new Vec3(lx, y, lz)); if (!b || solid(b) || b.name === 'lava') return fail('the shaft is not open at y' + y) }
+  bot.__moveBusy = 'step_off'; const hp0 = bot.health
+  try {
+    try { bot.pathfinder && bot.pathfinder.setGoal(null) } catch {}
+    await bot.lookAt(new Vec3(c.x, p0.y + 1, c.z), true).catch(() => {})
+    await walkIn(bot, c, ly, p0, t0, opts.stop); await sleep(400)
+    const at = bot.entity.position; const down = at.y <= ly + 1.2
+    return { ok: down, how: 'step_off', drop, lost: +(hp0 - bot.health).toFixed(1), at: [Math.floor(at.x), Math.floor(at.y), Math.floor(at.z)], tookMs: Date.now() - t0, why: down ? undefined : 'did not reach the landing' }
+  } catch (e) { return fail('error: ' + (e && e.message)) } finally { bot.setControlState('forward', false); bot.__moveBusy = null }
+}
+
 // DELIBERATE DESCENT: step off a rim onto `land` = [x, y, z] (the FEET cell of the landing, i.e. floor y + 1) with a water-bucket landing.
 // The bot must stand on the rim next to that column (<= 1.6 horizontally from its centre). opts: { maxDrop = 60, scoop = true, stop }
 async function waterDrop (bot, landArr, opts = {}) {
@@ -77,9 +102,7 @@ async function waterDrop (bot, landArr, opts = {}) {
     const yaw = Math.atan2(-(c.x - p0.x), -(c.z - p0.z)); await bot.look(yaw, -Math.PI / 2, true)
     disarm = armLanding(bot, ly, lx, lz, st)
     // walk to the CENTRE of the landing column and let go the moment the feet leave the rim (trial 4: holding `forward` carried the bot across a 1-wide shaft)
-    bot.setControlState('forward', true)
-    await new Promise(resolve => { const iv = setInterval(() => { const e = bot.entity; const d = Math.hypot(e.position.x - c.x, e.position.z - c.z); if (d < 0.22 || e.velocity.y < -0.1 || e.position.y < p0.y - 0.4) bot.setControlState('forward', false); if ((e.position.y <= ly + 1.2 && (e.onGround || e.isInWater)) || Date.now() - t0 > 12000 || (opts.stop && opts.stop())) { clearInterval(iv); resolve() } }, 10) })
-    bot.setControlState('forward', false)
+    await walkIn(bot, c, ly, p0, t0, opts.stop)
     await sleep(500)
     const at = bot.entity.position; const down = at.y <= ly + 1.2; const lost = +(hp0 - bot.health).toFixed(1)
     let scooped = null; if (opts.scoop !== false) scooped = await scoop(bot, land)
@@ -121,4 +144,4 @@ function fallGuard (bot, report = () => {}, opts = {}) {
   bot.__fallGuard = onTick; bot.on('physicsTick', onTick)
 }
 
-module.exports = { waterDrop, fallGuard, groundBelow, scoop }
+module.exports = { waterDrop, stepOff, fallGuard, groundBelow, scoop }

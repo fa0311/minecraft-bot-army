@@ -431,6 +431,20 @@ function kitPlan (mine, stock, others, risk, ench) {
   if (!mine.shield && stock.shield > 0 && (risk || stock.shield > others.filter(m => !m.shield).length)) wants.push('shield')
   return [...new Set(wants.filter(Boolean))] // an axe can be both the weapon and the tool of a bot without a sword: fetch it once
 }
+// INTO THE HOTBAR: selecting a hotbar slot is one packet, so the fall reflex can reach the bucket in the same tick it decides to use it. The slot
+// swapped out is the least useful one that is not a tool, a weapon, food or a block the bot is building with.
+async function toHotbar (bot, name) {
+  try {
+    const it = bot.inventory.items().find(i => i.name === name)
+    if (!it || (it.slot >= 36 && it.slot <= 44)) return false
+    const busy = new Set(bot.inventory.items().filter(i => i.slot >= 36 && i.slot <= 44 && (toolOf(i.name) || weaponOf(i.name) || /^(bread|cooked_|torch|water_bucket|shield)/.test(i.name))).map(i => i.slot))
+    let dest = -1
+    for (let q = 44; q >= 36; q--) if (!busy.has(q)) { dest = q; break }
+    if (dest < 0) return false
+    await U.withTimeout(bot.moveSlotItem(it.slot, dest), 4000, 'toHotbar')
+    return true
+  } catch (e_) { swallow('army:toHotbar', e_); return false }
+}
 function fortuneOf (bot, it) { try { return require('./iron_core').fortuneOf(bot, it) } catch (e_) { swallow('army:fortuneOf', e_); return 0 } } // ONE reader of the enchant data (iron_core)
 async function takeFortunePick (bot, opts, took) {
   try {
@@ -483,6 +497,16 @@ async function kitUp (bot, opts = {}) {
     // that carries no enchanted pick opens the tools chest itself, takes the pickaxes of the best Fortune stack and puts the plain ones straight back;
     // iron_core.bestPick then digs ORE with the Fortune pick and rock with the plain one. Nobody else touches it, so it reaches a miner and stays there.
     if (opts.risk && !Object.keys(myEnch).some(n => /_pickaxe$/.test(n))) await takeFortunePick(bot, opts, took)
+    // ONE WATER BUCKET FOR THE JOBS THAT FALL (`lib/moves.js`: `waterDrop` = a deliberate descent, `fallGuard` = the reflex that turns an unplanned
+    // fall of >= 4 hp into a water landing). Builders, miners, deck crews and hole-fillers work over drops all day, so the bucket is KIT - and it is
+    // moved into the HOTBAR, because from the backpack the reflex needs an inventory shuffle and the ground arrives first. Never off the overworld
+    // (kitUp returns above): water evaporates in the Nether. Only a bucket the depot already holds FILLED is taken - a fill trip is a walk to open
+    // water this function cannot price, so an empty `bucket` is left for the jobs that know where the water is.
+    const jt = String(((assignment(bot) || {}).job || {}).type || '')
+    if (/^(build|delegate|deck|cavity)$/.test(jt) && !U.count(bot, 'water_bucket') && stockOf('water_bucket') > 0) {
+      if (await withdraw(bot, 'water_bucket', 1, { stop: opts.stop, maxDist: opts.maxDist == null ? 96 : opts.maxDist }) > 0) took.push('water_bucket')
+    }
+    if (U.count(bot, 'water_bucket')) await toHotbar(bot, 'water_bucket')
     // EVERY BOT CARRIES A PICKAXE, A SHOVEL AND AN AXE (owner 09-20: "つるはしを持っておらず、手で掘るやつが多すぎ"), and it carries the BEST one the army can spare:
     // both rules live in kitPlan above, so the tools come out of the same fair-share loop as the armour. What the upgrade makes redundant goes back into the tools
     // chest at the next bank visit (bank() keeps one best tool of each kind) or with the next `offload` — never thrown away.

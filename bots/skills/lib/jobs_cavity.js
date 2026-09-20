@@ -671,7 +671,13 @@ module.exports = ctx => {
 
   // ---------------------------------------------------------------- PART 1: SEE
   async function survey (bot, job, api, P) {
-    const box = paramsBox(P); const yMin = paramsYMin(P); const yTop = paramsYTop(P)
+    const full = paramsBox(P); const yMin = paramsYMin(P); const yTop = paramsYTop(P)
+    // A BOT IS NOT A CAMERA. The whole base box is 3.1 M cells: reading it in one go blocks the shard's event loop for seconds (the shard
+    // watchdog kills a hung API), and a bot only has ~12 chunks loaded anyway. So a bot surveys its OWN window and the merge in
+    // writeCensus keeps what other eyes saw; full coverage of the box is `node ops/cavity-census.js` (SkyEye, 17 s, one process).
+    const me = bot.entity.position; const r = Math.max(16, Math.min(P.radius || 80, 128))
+    const box = [Math.max(full[0], Math.floor(me.x) - r), Math.max(full[1], Math.floor(me.z) - r), Math.min(full[2], Math.floor(me.x) + r), Math.min(full[3], Math.floor(me.z) + r)]
+    if (box[0] > box[2] || box[1] > box[3]) return 'cavity: this bot stands outside the surveyed box ' + full.join(',')
     task(bot, 'cavity: surveying x ' + box[0] + '..' + box[2] + ' / z ' + box[1] + '..' + box[3] + ' y ' + yMin + '..' + yTop)
     const t0 = Date.now()
     const G = newGrid(box, yMin, yTop)
@@ -683,7 +689,7 @@ module.exports = ctx => {
     const doc = writeCensus(A, G, list, bot.username)
     const worst = doc.list.filter(isTarget).slice(0, 5).map(e => ({ at: e.at, cells: e.cells, depth: e.depth }))
     A.result(bot, { ev: 'cavity_census', n: doc.targets, cells: doc.list.filter(isTarget).reduce((n, e) => n + e.cells, 0), spawnable: doc.spawnable, coverage: doc.coverage, counts: doc.counts, worst, ms: Date.now() - t0 })
-    return 'cavity: census ' + doc.targets + ' targets (' + doc.spawnable + ' spawnable cells), coverage ' + doc.coverage + ' % of the box'
+    return 'cavity: census ' + doc.targets + ' targets (' + doc.spawnable + ' spawnable cells) from x ' + box[0] + '..' + box[2] + ' / z ' + box[1] + '..' + box[3]
   }
 
   // ---------------------------------------------------------------- claims: two bots are never on one cavity
@@ -886,7 +892,7 @@ module.exports = ctx => {
     let item = item0; let placed = 0; let dry = 0
     const fails = new Map()
     const bump = (p, n) => fails.set(keyOf(p), (fails.get(keyOf(p)) || 0) + (n || 1))
-    const bad = p => (fails.get(keyOf(p)) || 0) >= 3
+    const bad = p => (fails.get(keyOf(p)) || 0) >= 5 // a cell is given up on only after five real tries: 16:3xZ a 9-cell hole was left with ONE cell open
     while (!api.stop() && Date.now() < deadline) {
       holdPockets(bot)
       for (const [k, p] of [...want]) { const b = bot.blockAt(p); if (b && isSolidB(b)) want.delete(k) }
@@ -901,7 +907,7 @@ module.exports = ctx => {
       const open = list.filter(p => !bad(p)); if (!open.length) break
       const lowest = open[0].y
       let did = false
-      if (dry > 12) break // twelve passes in a row that changed nothing in the world: the rest of this hole is out of reach from in here
+      if (dry > 20) break // twelve passes in a row that changed nothing in the world: the rest of this hole is out of reach from in here
       // the cell I stand in, and it is the lowest work left: jump, place under the feet, ride up with it
       const mineCell = open.find(p => p.x === feet.x && p.z === feet.z && p.y === feet.y && p.y <= lowest)
       if (mineCell) {
@@ -929,7 +935,7 @@ module.exports = ctx => {
         }
         stands.sort((a, b) => a.distanceTo(me) - b.distanceTo(me))
         for (const s of stands.slice(0, 4)) { if (api.stop()) break; if (await A.travel(bot, s, { range: 0, ms: 20000, stop: api.stop, quiet: true })) { moved = true; break } }
-        if (!moved) bump(tgt, 3)
+        if (!moved) bump(tgt, 2)
       }
       dry = did ? 0 : dry + 1
       await sleep(60)
