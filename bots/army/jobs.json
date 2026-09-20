@@ -771,7 +771,7 @@
     -518
    ],
    "axis": "x",
-   "lit": 1789905050111,
+   "lit": false,
    "by": "Erika",
    "portal": [
     -38,
@@ -861,7 +861,9 @@
      "left": 0,
      "at": 1789909643817
     }
-   }
+   },
+   "outAt": 1789909945544,
+   "outBy": "Honoka"
   }
  },
  "enlisted": [
@@ -1131,7 +1133,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 10,
+   "bots": 2,
    "site": [
     -367,
     69,
@@ -1167,7 +1169,7 @@
      ]
     ]
    },
-   "rev": 50,
+   "rev": 52,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789909537319
   },
@@ -1312,8 +1314,8 @@
     }
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
-   "bots": 14,
-   "rev": 28
+   "bots": 10,
+   "rev": 29
   },
   {
    "id": "base_dorm",
@@ -1801,7 +1803,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789909834819
+   "restUntil": 1789910235503
   },
   {
    "id": "fill_ring_field2",
@@ -2230,7 +2232,7 @@
    },
    "shiftMin": 20,
    "rev": 9,
-   "restUntil": 1789909731939,
+   "restUntil": 1789910460882,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "feather"
@@ -2995,7 +2997,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 3,
+   "bots": 1,
    "site": [
     -311,
     69,
@@ -3192,7 +3194,7 @@
     },
     "order": "near"
    },
-   "rev": 17,
+   "rev": 18,
    "desc": "OWNER ORDER 09-20: fill the ravine and the old quarry pits solid. DO NOT PAUSE: builders waiting on a ledge are by design (strict bottom-up: the floor rises to them); a bot that starves on a ledge -> armyctl.js rescue after its own check.",
    "note": "top model 12:4xZ (gemba: 32 bots, not one cell in 10 min, no_los 229 / unreachable 129): the rest is a trench 14-16 deep with sheer walls and the new rule never drops into a pit - it had NO way in. WALK-IN STAIR first: ramp x -301/-300, z -461..-475 from the finished middle segment (y68) down to the floor y53. 12 bots: the trench is 7 wide",
    "restUntil": 1789906650052
@@ -3771,7 +3773,7 @@
    "type": "portal",
    "priority": 40,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "dim": "the_nether",
    "bots": 1,
@@ -3782,7 +3784,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789907800362
+   "restUntil": 1789910718602
   },
   {
    "id": "nether_landing_2",
@@ -3872,7 +3874,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 2,
    "site": [
     -259,
     68,
@@ -3892,7 +3894,8 @@
      "clear": 14
     }
    },
-   "restUntil": 1789910066206
+   "restUntil": 1789910066206,
+   "rev": 1
   },
   {
    "id": "nether_hub",
@@ -3946,7 +3949,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 24,
+   "bots": 14,
    "minBots": 6,
    "maxBots": 24,
    "site": [
@@ -3971,7 +3974,8 @@
      "d": 41,
      "h": 22
     }
-   }
+   },
+   "rev": 1
   },
   {
    "id": "nether_road_xp",
@@ -4011,6 +4015,36 @@
    },
    "rev": 3,
    "note": "auto-paused: the gate is lit and the round trip is done (bump rev to send another expedition)"
+  },
+  {
+   "id": "nether_gate_out",
+   "type": "portal",
+   "priority": 96,
+   "front": "base",
+   "status": "paused",
+   "when": "day",
+   "bots": 1,
+   "shiftMin": 10,
+   "site": [
+    -326,
+    69,
+    -518
+   ],
+   "plan": "zone portal (docs/WORLD.md): PUT THE GATE OUT between trips. A lit portal spawns zombified piglins in the OVERWORLD outside the mob cap - the owner measured 74 of them round the base and the TPS it costs. One frame obsidian out with a diamond pickaxe, the six inner cells read back as air, the obsidian straight back in. Nothing is fought; the gate is simply not left burning.",
+   "params": {
+    "blueprint": "nether_portal",
+    "origin": [
+     -326,
+     68,
+     -518
+    ],
+    "args": {
+     "axis": "x"
+    },
+    "buildJob": "base_portal",
+    "go": false,
+    "close": true
+   }
   }
  ]
 }

@@ -40,11 +40,45 @@ Keep this under 80 lines. Machine truth: `bots/army/jobs.json → settings.nethe
 | 2 | `lib/army.js` | (a) `dimOf(bot)`; (b) `travel({dim})` refuses `wrong_dim` without pathing; (c) KEEP-OUT rule + homeward bias overworld-only; (d) `bank`/`withdraw`/`chestsOf`/`scanChests` refuse off-overworld; (e) **`skyAbove`/`digOut`/`stepDown` must not run off the overworld** — under the Nether's bedrock roof every bot reads "roofed in" and cuts a staircase (measured 12:30:23Z); (f) `ours()`/`ourBlock()` key cells by `x,y,z` alone, so an overworld cell matches a Nether position. *(`portal` in `STILL_OK`: done.)* |
 | 3 | `lib/army_jobs.js` | **Done 12:2xZ (by me, in the three places I was given):** `overworld(bot)` helper; `muster` stands still off-overworld instead of walking to the muster slot; `withHandover` skips bedtime, canteen, pocket-banking, handover-banking, the respawn-bed click and `upTheStairs` off-overworld. Proven live: Kanade banked **nothing** between 12:30:15 and 12:30:51 in the Nether and banked 208 cobblestone at 12:30:58, seven seconds after coming home. |
 
-## STAGE 2 — board-ready (write these jobs when items 1-2 above are in)
-**Carry list for every Nether job** (fire resistance does not exist before blaze powder, so it is armour and distance): iron or diamond helmet/chestplate/leggings/boots, **shield**, best sword, bow + 64 arrows, 16 cooked food, **128+ blocks of any stone**, 32 torches, a pickaxe, flint and steel. Bank everything else first — keep_inventory is OFF and a ghast's knock-back is what kills, not its damage.
+## THE GATE IS OUT BETWEEN TRIPS (owner 13:0xZ, low TPS)
+A lit portal spawns zombified piglins **in the overworld**, outside the mob cap, and the bots rightly never attack a neutral mob —
+74 of them stood round the base. So the gate burns only while a trip is out. `closeGate` takes ONE frame obsidian out with a
+diamond pickaxe (the whole surface goes out at once), reads the six inner cells back as **air**, and puts the obsidian straight
+back, so the next trip only has to strike it. Water does not put a portal out and nothing can be placed inside a portal block;
+this is the only move that can be proved from the world. `settings.nether.lit` is the truth, never an intention.
+* automatic: the bot that comes home **last** does it — while any heartbeat still reads `dim: the_nether` the gate stays lit, because it is somebody's way back (`anyoneOverThere`). `params.closeGate:false` keeps a gate burning on purpose.
+* by hand: job `nether_gate_out` (`params.close:true`), paused on the board, re-activate to put it out at any time.
+* **verified 13:12:25Z:** `portal_out {was:6, cells:0, frameBack:true, gaps:0}`; probe: all six inner cells `air`, 14/14 frame cells right, 1 piglin left within view of the gate.
+* **`settings.restartPending`:** while it is true no bot crosses (decline 5 min) — the code owner sets it right before a server restart and clears it after.
 
-1. **`nether_landing_2`** (type `portal`, `dim:"the_nether"`, 1 bot, `params {landing:true, origin/args as base_portal_go}`) — a second, cheap pass at the arrival: the 2 remaining floor holes at x -39..-35 / z -78..-74, y97, from the other side of the gate. Only if it still reads unsafe is a **relocation** right: a second overworld gate **128+ blocks away in x or z** (base-plan slot near x -200 or z -650) puts its Nether exit **16+ blocks off** the present one, on different ground. Do not break the far obsidian first — a broken gate re-links the overworld side somewhere unknown.
-2. **`nether_road_<bearing>`** (type `build`, `dim:"the_nether"`, blueprint `road` on a Nether origin, 4-6 bots) — **movement stays read-only, so what is built is a reusable road, not a tunnel a bot dug for itself**: a 2-wide walled walkway 2 high, floor + both parapets at head height, torches every 8, running from the landing on one bearing. Every corridor the army will use twice gets one; `no_route` is reported, never dug around.
-3. **`nether_fortress`** (type `scout`-like, in `jobs_nether.js`, `dim:"the_nether"`, 4 bots on +x/-x/+z/-z) — walk the finished road, then the frontier at portal level; `nether_bricks` within 64 is the signal, the hit is written to `settings.nether.fortress` and the road job is extended towards it. Never within 4 of an open ledge; a ghast in view = stone between us and it first.
-4. **`nether_blaze`** (`dim:"the_nether"`, 4-6 bots, `produces:['blaze_rod']`, target ≥12) — a spawner is a 9x9x9 box: wall it down to a 1-wide slit from outside, fight from behind stone with the bow, bank every trip through the gate. Blaze rods → blaze powder → a brewing stand (3 stone + 1 blaze rod) and the eyes of ender of P6.
-5. **`nether_wart`** — the fortress stairs; wart + a brewing stand + water bottles (glass = sand, smelted) is the first fire resistance the army will ever have. Gold armour makes piglins neutral and is cheaper: the mine already banks gold.
+## STAGE 2 — what is BUILT, what is measured, what is next
+All four works are one job type (`portal`, `params.work`), one round trip per slice, and nobody is ever left on the far side:
+cross → seal → landing → work for `params.minutes` → **home**. The dispatcher exempts type `portal` from its `dim` filter, so a
+squad is safe on a `work` job; an exploratory crossing (`go` without `work`) still needs exactly one pinned bot.
+
+| step | job | result (MEASURED, read back from the world) |
+|---|---|---|
+| 1 landing | `nether_landing_2` (paused, done) | **`safe:true`** at 12:49:43Z. Box x -39..-35 / z -78..-74, y97-99: 0 open holes, 0 lava or fire within 5, 4 torches, `coveredVoids 2`. 4 trips, 0 deaths, ~4 s away per trip |
+| 2 hub | `nether_hub` (paused, built) | **`left:0` of 413 cells**, `placed 22, dug 11`, **76.6 blocks/bot-min**, 26 s away. 9x9x5 walled + roofed + lit room (7x7 floor = 8 bots) around the gate; **chest `-37,98,-79` and crafting table `-37,98,-73` STAND** (`chestStands`/`tableStands` read back) and are registered under `settings.nether.hub` ONLY. **1 death** (Kanade, "fell from a high place") — cause found and fixed, see below |
+| 3 road | `nether_road_xp` (PAUSED) | bearing x+, 64 blocks from the hub door `-32,98,-76` to `31,98,-76`, 768 cells. First squad pass: 0 blocks, **1 death** (Erika, "was killed" — a mob, inside the gate room). Two flaws found and fixed; not re-run |
+| 4 scout | not yet run | `work:'scout'` walks the finished road inside its own box, looks 96 blocks and writes `settings.nether.sightings`. **No fortress sighted yet** — the road it is meant to walk does not exist |
+
+**Three bugs this stage paid for, all fixed:**
+1. **`A.placeHard` walks.** Its remedy loop (`noref` → build a support column, `unreachable` → reposition, high cell → pillar + scaffold) sits OUTSIDE the `place:{noMove:true}` it forwards to blocks.js. Kanade died at 12:55:43Z with `steps:0` — she never took a step of ours. The Nether now uses `placeStill` = `blocks.placeBlock(..., {noMove:true})` and nothing else.
+2. **The landing step clobbered the hub.** It wrote `settings.nether.hub = [x,y,z]` over the hub's whole record, and the road squad arrived to "hub.outside is not set". The landing writes `landing*` keys only.
+3. **An unloaded cell read as a finished cell.** `bot.blockAt` gives null outside loaded chunks and null read as "already right", so the first road squad came home with `left:0` on a road it had not laid one block of. Passes now report `done / left / unloaded / of`.
+
+**Open on the road:** a bot standing in the gate room was killed by a mob. The hub has ONE door gap and no gate; before the road is re-run the hub wants a **fence gate or a 2-block dog-leg at its door**, and the road squad wants the same at every 16 blocks. That is the next change in `nether_hub.js`, not a reason to send another squad first.
+
+## BOARD-READY — the blaze job, for the moment a fortress is sighted
+Not yet on the board: `settings.nether.sightings` is empty, because step 4 needs step 3. When a scout reports `nether_sighting kind:'fortress'`, put this and tell the code owner — blaze rods are the owner's next milestone.
+```json
+{"id":"nether_blaze","type":"portal","priority":93,"front":"base","status":"active","when":"day","bots":4,"shiftMin":20,
+ "site":[-326,69,-518],"produces":["blaze_rod"],"minBots":2,"maxBots":6,
+ "plan":"zone portal: blaze rods (>=12) from the fortress spawner at <x,y,z from settings.nether.sightings>. Wall the 9x9x9 spawner box down to a 1-wide slit from OUTSIDE, fight from behind stone with the bow, bank every trip through the gate.",
+ "params":{"blueprint":"nether_portal","origin":[-326,68,-518],"args":{"axis":"x"},"buildJob":"base_portal",
+           "go":true,"landing":true,"work":"blaze","at":"<spawner x,y,z>","minutes":6,"cobble":256,"crossS":45,"maxDeaths":2}}
+```
+`work:'blaze'` is the one handler still to write in `jobs_nether.js` (same pattern as `hub`: a blueprint `nether_slit` of the wall cells, `buildCells`, then a bow loop from the slit). **Carry list for every Nether job** — fire resistance does not exist before blaze powder, so it is armour and distance: iron/diamond helmet, chestplate, leggings, boots, **shield**, best sword, bow + 64 arrows, 16 cooked food, **128+ blocks of any stone**, 32 torches, a pickaxe. Bank everything else first: keep_inventory is OFF and a ghast kills by knock-back, not by damage.
+
+Then: blaze rods → blaze powder → a brewing stand (3 stone + 1 blaze rod) + nether wart from the fortress stairs = the army's first fire resistance, and the eyes of ender of P6. Gold armour makes piglins neutral and is cheaper: the mine already banks gold.

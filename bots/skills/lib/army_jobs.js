@@ -2668,11 +2668,16 @@ async function build (bot, job, api, ctx) {
   const DECOR = /^(torch|wall_torch|redstone_torch|redstone_wall_torch|soul_torch|soul_wall_torch|.*_button)$/
   const at = (x, y, z) => bot.blockAt(new Vec3(x, y, z))
   const skyOpen = () => {
+    // ...and the flood itself is cached for 3 s (measured 13:2xZ: on fill_ravine_s ONE bot made 5.1 M `bot.blockAt` calls in 45 s = 14.9 s of CPU per minute, most of
+    // it this flood over every air cell of a 33 000-cell box, rebuilt on every walk). Stale for at most 3 s means at worst a cell that has just become sky-connected
+    // waits one walk; a cell that has become solid is dropped by the `solid(b)` test above the flood anyway, so nothing is ever placed on stale information.
+    if (st.skyT && Date.now() - st.skyT < 3000 && st.sky) return st.sky
     const air = new Map(); for (const c of cells) if (c.solid) { const b = at(c.x, c.y, c.z); if (b && !solid(b)) air.set(K(c), c) }
     const open = new Set(); const q = []
     for (const c of air.values()) if (c.y === c.g) { open.add(K(c)); q.push(c) }
     while (q.length) { const c = q.pop(); for (const [dx, dy, dz] of [[0, -1, 0], [0, 1, 0], [1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1]]) { const k = (c.x + dx) + ',' + (c.y + dy) + ',' + (c.z + dz); if (air.has(k) && !open.has(k)) { open.add(k); q.push(air.get(k)) } } }
     open.sealed = [...air.keys()].filter(k => !open.has(k))
+    st.skyT = Date.now(); st.sky = open
     return open
   }
   // NOBODY IS BURIED ALIVE (owner 09-20 11:0xZ "渓谷埋めで埋まってるbotいっぱいいる": Mio, Riko and Nagisa stood at y64 in the ravine box with walkableArea 1 - their mates had
@@ -2753,8 +2758,16 @@ async function build (bot, job, api, ctx) {
   const waterBook = () => { if (!waterKeys.size) return {}; if (Date.now() - (st.wbT || 0) > 5000) { st.wbT = Date.now(); const j = ((A.readJSON(A.F.board, {}) || {}).jobs || []).find(q => q.id === job.id); st.wb = (j && j.water && j.water.key === revKey && j.water.cells) || {} } return st.wb || {} }
   const waterClaimed = c => { const e = waterBook()[K(c)]; return !!(e && e.by && e.by !== bot.username && Date.now() - (e.t || 0) < 360000) }
   const waterEdit = fn => { const ok = A.boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (!j) return; if (!j.water || j.water.key !== revKey) j.water = { key: revKey, cells: {} }; fn(j.water.cells) }); st.wbT = 0; return ok }
-  const todo = (all) => {
-    const me = bot.entity.position; const dig = []; const put = []; let wait = 0; const deep = []
+  const todo = (all, wide) => {
+    // MAKE THE BOTS CHEAP (owner 13:0xZ "tps低いらしい"; MEASURED 13:1xZ with a temporary eval-installed wrapper on Akari/Hinata, 45 s each: **1.17 M and 1.72 M
+    // `bot.blockAt` calls** = 3793 and 4497 ms of CPU per MINUTE per bot, plus 747 k / 887 k `A.ourBlock` = 842-958 ms/min - the two of them are ~8 % of a core PER BOT,
+    // about 4 cores of the 7 the 17 shards were burning while MSPT sat at 105 ms). One `todo()` walk reads the same neighbour column three to five times (softBelow,
+    // groundUnder, shallow, side, the sky flood); there is no `await` anywhere inside this function, so the world cannot change during it and ONE memo per walk is
+    // exact, not an approximation.
+    const _bm = new Map()
+    const _at = (x, y, z) => { const k = x + ',' + y + ',' + z; if (_bm.has(k)) return _bm.get(k); const b = bot.blockAt(new Vec3(x, y, z)); _bm.set(k, b); return b }
+    const at = _at
+    const me = bot.entity.position; const dig = []; const put = []; let wait = 0; const deep = []; let far = 0
     const matSeen = {}; const haveMat = c => { const k = c.block + '|' + (c.wood || '') + '|' + (exact(c) ? 'x' : ''); if (matSeen[k] == null) matSeen[k] = pickList(c).some(n => A.count(bot, n) > 0 || A.stockOf(n) > 0) || (!exact(c) && !!craftPick(c)); return matSeen[k] }
     const open = cells.some(c => c.solid) ? skyOpen() : null; const roofs = new Set(); const mates = open ? mateBlocked() : null; const lavaOn = !!open && lavaSet().size > 0
     // NEVER A LID (owner: never deck a hole; main 09-19 19:5xZ: base_field_1_pad / base_yard_pad "complete - BUT 7/10 columns are a deck over air", core pad
@@ -2766,7 +2779,12 @@ async function build (bot, job, api, ctx) {
     const shallow = g => { for (let y = g.y; y >= g.y - 3; y--) { const q = at(g.x, y, g.z); if (!q || /^(water|lava)$/.test(q.name)) return false; if (solid(q)) return true } return false }
     const softBelow = c => { const q = at(c.x, c.y - 1, c.z); return !!q && !solid(q) && !/^(water|lava)$/.test(q.name) && !bodyKeys.has(c.x + ',' + (c.y - 1) + ',' + c.z) && !waterKeys.has(c.x + ',' + (c.y - 1) + ',' + c.z) }
     const stairs = stairCols(); let _built = null; const built = () => _built || (_built = builtCols(job.id))
+    // A WORKING WALK LOOKS AT THE COLUMNS AROUND THE BOT (same measurement): a builder cannot reach a cell 200 blocks away this second, but it walked all 33 000 of them
+    // to find the eight it can do. `all` (the closing walk that decides `left` and "complete") still reads every cell, and a near walk that finds NOTHING is redone
+    // without the limit at once - so the same cells get built, in the same order, just without reading the far half of the box forty times a second.
+    const R = (all || wide) ? 0 : (+P.walkRadius || 24)
     for (const c of cells) {
+      if (R && (Math.abs(c.x - me.x) > R || Math.abs(c.z - me.z) > R)) { far++; continue }
       if ((c.fillOnly || c.solid) && c.block !== 'air' && stairs.has(c.x + ',' + c.z) && c.y > stairs.get(c.x + ',' + c.z)) continue // the mine's stairwell: never filled, never counted as left (see stairCols)
       if (!all && ((st.bad[K(c)] || 0) >= 2 || (st.lockSkip && st.lockSkip[K(c)] > Date.now()) || (c.solid && st.colSkip && st.colSkip[c.x + ',' + c.z] > Date.now()))) continue
       const b = bot.blockAt(new Vec3(c.x, c.y, c.z)); if (!b) continue
@@ -2774,7 +2792,10 @@ async function build (bot, job, api, ctx) {
       // mode: bare stone, gravel or air becomes dirt; paving, a crop, a chest, soil that is already soil are none of the cap's business)
       if (c.only && !c.only.includes(b.name)) continue
       // A BLOCK THAT STANDS WHERE ANOTHER BLUEPRINT OF OURS PUT IT IS NEVER THIS JOB'S TO DIG (a pad's headroom inside the dorm walls, a road shoulder in the hall): not work, not `left`
-      const foreign = (() => { if (b.name === 'air') return false; const oc = A.ourBlock(b.position, b.name); return !!oc && oc.job !== job.id })()
+      // ...and this was an IIFE run for EVERY cell of the blueprint although only the four branches below ever read it: 747 k - 887 k `A.ourBlock` calls in 45 s on one
+      // bot. Lazy, memoised per cell: same answer, called only where it decides something.
+      let _fg = null
+      const foreign = () => { if (_fg === null) { const oc = b.name === 'air' ? null : A.ourBlock(b.position, b.name); _fg = !!oc && oc.job !== job.id } return _fg }
       if (c.facing && c.half != null && b.name === c.block && /chest$/.test(b.name)) { const w = chestWrong(c, b); if (w) { if (!all && redoClaimed(c)) wait++; else put.push(Object.assign({}, c, { redo: w })) } continue } // a pair that is not a DOUBLE chest is not built (see placeChest)
       if (c.solid) { // strict bottom-up: only on a solid block (lowest layer of the job: a side neighbour will do) -> nothing placed ever has air under it
         if (solid(b)) continue
@@ -2816,12 +2837,12 @@ async function build (bot, job, api, ctx) {
       if (c.fillOnly && !c.solid && c.block !== 'air' && softBelow(c) && !(c.unlid && !solid(b) && !shallow(c))) { // the column under this ground cell is open (a road over a CAVE MOUTH, deeper than 3: no ground-up fill - sub-base + paving go in from the rim as a 2-thick bridge)
         const gy = groundUnder(c); const lid = solid(b)
         if (gy == null) { if (!lid) deep.push(K(c)); continue } // bottomless for us: no lid is put over it (a lid that stands is reported by the void audit below)
-        if (lid) { if (!foreign && !U.protectedBlock(b) && !U.protectedBlock(at(c.x, c.y + 1, c.z))) dig.push({ x: c.x, y: c.y, z: c.z, block: 'air', unlid: true }); continue } // a deck (ours or an overhang): taken off, the column is then filled from its floor
+        if (lid) { if (!foreign() && !U.protectedBlock(b) && !U.protectedBlock(at(c.x, c.y + 1, c.z))) dig.push({ x: c.x, y: c.y, z: c.z, block: 'air', unlid: true }); continue } // a deck (ours or an overhang): taken off, the column is then filled from its floor
         put.push(Object.assign({}, c, { y: gy, under: true, g: c.y, deepFill: c.y - gy >= 3 })); continue // deepFill: the floor of a 1x1 shaft 3+ deep is out of reach from the rim (09-20, hall column -342,64..67,-516: 10 builders spun on `put:locked`, 3 reported hung) -> fillCell drops a gravity block down it
       }
       // `natural:true` air (a road's terraced shoulder, 09-20): only NATURAL ground is cut - the hall, fence or field beside the road is not terrain - and never the block something stands on (a torch, a chest, a fence, a TREE: a trunk left hanging over a terrace is tidy work we made ourselves)
       if (c.block === 'air' && c.natural && (!NATURAL_RE.test(b.name) || built().has(c.x + ',' + c.z) || (solid(b) && !/^(air|cave_air)$/.test((at(c.x, c.y + 1, c.z) || { name: 'air' }).name) && !NATURAL_RE.test((at(c.x, c.y + 1, c.z) || {}).name)))) continue
-      if (c.block === 'air') { if (!foreign && b.name !== 'air' && b.name !== 'cave_air' && !(/_leaves$/.test(b.name) && c.y > o.y + 3) && !/^(water|lava|wheat|carrots|potatoes|beetroots|sweet_berry_bush|sugar_cane)$/.test(b.name) && !U.protectedBlock(b) && (bot.blockAt(new Vec3(c.x, c.y - 1, c.z)) || {}).name !== 'water') dig.push(c) } else if (b.name !== c.block) {
+      if (c.block === 'air') { if (!foreign() && b.name !== 'air' && b.name !== 'cave_air' && !(/_leaves$/.test(b.name) && c.y > o.y + 3) && !/^(water|lava|wheat|carrots|potatoes|beetroots|sweet_berry_bush|sugar_cane)$/.test(b.name) && !U.protectedBlock(b) && (bot.blockAt(new Vec3(c.x, c.y - 1, c.z)) || {}).name !== 'water') dig.push(c) } else if (b.name !== c.block) {
         // A TREE IS NOT GROUND (MEASURED 12:37Z by the `level_skipped` line this very pass prints: base_infill_n232_n400 col -232,-377 reads 4 BELOW grade for the
         // camera while the block standing AT grade is an `oak_log` - a trunk growing out of the hole made the fillOnly ground cell look "already solid", so the tile
         // declared itself complete over a 4-deep pit with a tree in it and the dispatcher went on walking bots there, travel_fail x57/30 min). A trunk, stem, leaves,
@@ -2839,7 +2860,7 @@ async function build (bot, job, api, ctx) {
         // OUR OWN small decoration (a torch of the light job, a button) inside a cell that wants a solid block is MOVED: dug (allowProtected), the block placed, a torch put back on top
         if (DECOR.test(b.name) && solidItem(c.block)) { dig.push(Object.assign({}, c, { block: 'air', then: c, decor: b.name })); continue }
         // ... and only when the block that goes in EXISTS (09-19: field paths were cut out of the grass with 0 cobblestone in the world = a net of trenches)
-        if (solid(b) && !BL.isReplaceable(b)) { if (!U.protectedBlock(b) && !foreign) { if (haveMat(c)) dig.push(Object.assign({}, c, { block: 'air', then: c })); else { wait++; st.missing = { item: c.block, t: Date.now() } } } continue } // wrong block in the way (chests/beds/torches are never dug)
+        if (solid(b) && !BL.isReplaceable(b)) { if (!U.protectedBlock(b) && !foreign()) { if (haveMat(c)) dig.push(Object.assign({}, c, { block: 'air', then: c })); else { wait++; st.missing = { item: c.block, t: Date.now() } } } continue } // wrong block in the way (chests/beds/torches are never dug)
         // NOTHING IS PLACED ON A GROUND CELL THAT IS STILL OPEN (road paving / a wall over the blueprint's own `fillOnly` ground cell): with a side neighbour as support the
         // paving went in first = a deck over air (09-19: road 2, cobblestone y68 over air y67-66 on its whole centre line). It waits until the column is filled from the
         // natural ground up; over water/lava or a drop of 7+ (groundUnder null, reported as void) it is placed as before (a deck over water is a bridge).
@@ -2882,7 +2903,7 @@ async function build (bot, job, api, ctx) {
     put.sort((a, b) => ((b.ramp ? 1 : 0) - (a.ramp ? 1 : 0)) || ((b.hot ? 1 : 0) - (a.hot ? 1 : 0)) || ((a.redo ? 1 : 0) - (b.redo ? 1 : 0)) ||
       (fillOrder ? ((tier(a) - tier(b)) || (band2(a) - band2(b)) || (a.y - b.y)) : ((near ? band(a) - band(b) : 0) || (a.y - b.y) || ((a.block === 'water') - (b.block === 'water')))) ||
       (me.distanceTo(new Vec3(a.x, a.y, a.z)) - me.distanceTo(new Vec3(b.x, b.y, b.z))))
-    return { dig, put, wait, deep, sealed: open ? open.sealed : [] }
+    return { dig, put, wait, deep, far, sealed: open ? open.sealed : [] }
   }
   let done = 0; let streak = 0; let lockSpins = 0; let dropped = 0; const fails = {}
   // SOLID FILL placing: plain placeBlock (no scaffolds, no pillars, no support columns - the fill itself is the floor the builder rides up on).
@@ -3155,8 +3176,19 @@ async function build (bot, job, api, ctx) {
   }
   const needNote = (miss, nWait) => { st.miss = st.miss || {}; st.miss[miss] = Date.now(); const all = Object.keys(st.miss).filter(k => Date.now() - st.miss[k] < 600000).sort().join(', '); A.boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (j && j.status === 'active' && !(j.note || '').startsWith('needs: ' + all + ' ')) j.note = 'needs: ' + all + ' (' + nWait + ' cells wait; every cell whose material exists is done or in work)' }) }
   task(bot, 'build ' + P.blueprint)
+  // ONE WALK OF THE BLUEPRINT SERVES A BATCH (same measurement: the loop ran `todo()` again after EVERY single block, so a 30 000-cell fill was walked once per placed
+  // block, three times per pass counting the two closing walks). The list is now reused for up to 8 cells or 6 s, and a queued cell is re-read once right before it is
+  // worked and dropped when the world already satisfies it - so a mate's block is never placed twice and exactly the same cells get built.
+  let qDig = []; let qPut = []; let qUsed = 0; let qT = 0
+  const satisfied = (c, cb) => { if (!cb || c.redo || c.block === 'water') return false; if (c.block === 'air') return cb.name === 'air' || cb.name === 'cave_air'; if (c.solid) return solid(cb); if (c.fillOnly && !c.solid) return solid(cb) && !GROUND_TREE_RE.test(cb.name); return cb.name === c.block || !!(c.mats && c.mats.includes(cb.name) && !exact(c)) }
   while (!api.stop() && streak < 8 && done < 120) {
-    const { dig, put } = todo()
+    if (qUsed >= 8 || Date.now() - qT > 6000 || (!qDig.length && !qPut.length)) {
+      if (Date.now() - qT < 250) await sleep(250 - (Date.now() - qT)) // a walk that yields nothing must not spin: at most four walks a second
+      let t = todo()
+      if (!t.dig.length && !t.put.length && t.far) t = todo(0, true) // nothing within reach: read the whole box once, as before
+      qDig = t.dig; qPut = t.put; qT = Date.now(); qUsed = 0
+    }
+    const dig = qDig; const put = qPut
     if (!dig.length && !put.length) break
     if (streak >= 2 && Date.now() - (st.poleT || 0) > 60000) { st.poleT = Date.now(); if (await offThePole(bot, job)) { streak = 0; continue } }
     if (f0) { const d = depthNow(); if (d > 2 && fillMats() <= d + 2) { await climbOut(); if (!await restock()) { A.result(bot, { ev: 'build_blocked', job: job.id, why: 'no filler carried or in stock (' + matsOf(f0).slice(0, 4).join('/') + ' ...)' }); A.decline(bot, job, 180000, 'build: no filler in the depot'); return muster(bot, job, api, ctx, 'build: no filler') } continue } else if (d <= 2 && fillMats() < 256 && !(st.restockAt > Date.now() - 120000) && matsOf(f0).some(m => A.stockOf(m) > 0)) { st.restockAt = Date.now(); await restock() } }
@@ -3167,6 +3199,8 @@ async function build (bot, job, api, ctx) {
     }
     const feet = bot.entity.position.floored(); const notUnderMe = q => !(q.x === feet.x && q.z === feet.z && q.y === feet.y - 1) // digBlock refuses the block we stand on: another builder takes it, it is not a failure of the cell
     let c = dig.length ? (dig.find(notUnderMe) || (put.length ? put[0] : dig[0])) : put[0]
+    { const i = qDig.indexOf(c); if (i >= 0) qDig.splice(i, 1); else { const j = qPut.indexOf(c); if (j >= 0) qPut.splice(j, 1) } qUsed++ } // taken out of the batch: never worked twice
+    if (satisfied(c, bot.blockAt(new Vec3(c.x, c.y, c.z)))) continue // a mate got there first while this batch was running
     let r
     // STONE IS NEVER PUNCHED (world 2, 09-19: requireHarvest:false dug stone by hand = 7 s a block and NO drop while the army owned 1 cobblestone): a cell that needs a
     // pickaxe gets one first (getPick: depot -> stone -> the day-one wooden one). A pit (quarry) without a pickaxe is pointless: the builder is handed back.

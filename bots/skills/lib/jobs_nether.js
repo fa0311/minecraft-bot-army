@@ -14,6 +14,9 @@
 //                    STRICTLY without walking (arm's reach from where the gate put the bot). `false` switches it off.
 //   return:true      THE RETURN JOB (`dim:"the_nether"`, its id in `settings.nether.returnJob`): the one job a bot that is in the
 //                    Nether with nothing to do there may hold. No origin needed; a no-op in the overworld.
+//   close:true       put the gate OUT and stop (no crossing): one frame obsidian out with a diamond pickaxe, the six inner cells
+//                    read back as air, the obsidian straight back in. `closeGate:false` keeps a gate burning between trips.
+//                    A lit gate spawns zombified piglins in the OVERWORLD outside the mob cap - that is TPS the owner pays for.
 //   maxDeaths:2      scouts that may die at this gate before the crossing job pauses itself (count on the board, `settings.nether.deaths`)
 //   work             STAGE 2, one round trip per slice: 'landing' (finish the 5x5 until it reads safe) · 'hub' (blueprint
 //                    nether_hub: walled, roofed, lit room for 8 + chest + crafting table, registered under settings.nether ONLY)
@@ -22,7 +25,7 @@
 //   minutes:6 · at/from/bearing/length/door — where the work is; the road defaults to settings.nether.hub.outside + its bearing
 //   cobble:128 (blocks of stone to carry, any sort) · crossS:90 (seconds to stand in the portal, both ways)
 // EVENTS (all verified): portal_frame_incomplete · flint_knapped · portal_lit · portal_light_failed · portal_through · nether_sealed ·
-//   nether_look · nether_landing · nether_unsafe · nether_pass · nether_sighting · portal_back · nether_lost · portal_scout_died · portal_unsafe · portal_scout_missing
+//   nether_look · nether_landing · nether_unsafe · nether_pass · nether_sighting · portal_back · portal_out · nether_lost · portal_scout_died · portal_unsafe · portal_scout_missing
 // BOARD: settings.nether = {gate:[x,y,z] overworld, lit, portal:[x,y,z] NETHER coords, hub, through, back, scoutRev, returnJob, deaths}
 //
 // WHAT THIS FILE MUST NOT DO: no cheats (no /give, /tp, no creative), no new state file, no new daemon. A bot that dies over
@@ -522,8 +525,50 @@ module.exports = ctx => {
     // HOME. Never stay: keep_inventory is OFF, a slice is 15 min, and whatever the landing could not reach is the next trip's work.
     if (api.stop()) return 'in the Nether at ' + xyz(me).join(',') + ' (slice over, the return job takes it from here)'
     const r = await comeHome(bot, job, api, ctx2, st, P)
-    if (st.home) { st.phase = 'done'; st.deathsAtGo = null }
+    if (st.home) { st.phase = 'done'; st.deathsAtGo = null; st.closeDue = true }
     return r
+  }
+
+  // ---------------------------------------------------------------- PUT THE GATE OUT BETWEEN TRIPS
+  // A LIT PORTAL IS A COST WE PAY ALL DAY (owner 13:0xZ, low TPS: 74 zombified piglins standing around the base — a lit gate
+  // spawns them in the OVERWORLD, they ignore the mob cap, and the bots rightly never attack a neutral mob). So the gate burns
+  // only while a trip is out. The cheap, reversible, VERIFIABLE way is a player's way: take ONE obsidian out of the frame with a
+  // diamond pickaxe — the whole surface goes out at once — read the six inner cells back as air, then put the obsidian straight
+  // back so the frame is whole and the next trip only has to strike it. Water does not put a portal out, and nothing can be
+  // placed inside a portal block; this is the only move that can be proved from the world. `settings.nether.lit` is the truth.
+  async function closeGate (bot, job, api, G) {
+    const lit0 = litCells(bot, G.inner).length
+    if (!lit0) { netherEdit({ lit: false, outAt: Date.now() }); return { ok: true, was: 0, note: 'already out' } }
+    const pick = A.bestOf(bot, 'pickaxe')
+    if (!pick || !/diamond|netherite/.test(pick.name)) { if (!await A.obtain(bot, 'diamond_pickaxe', 1, { stop: api.stop }).catch(() => false)) return { ok: false, why: 'no diamond pickaxe: obsidian cannot be mined with ' + ((pick || {}).name || 'bare hands') } }
+    const ref = G.floor[0] // the bottom row: flush in the apron, a stand on every side, and the easiest cell to put back
+    const q = v(ref)
+    for (const stnd of G.stands) {
+      if (api.stop()) break
+      if (litCells(bot, G.inner).length === 0) break
+      if (!await A.travel(bot, v(stnd), { range: 0, ms: 45000, stop: api.stop, quiet: true })) continue
+      await A.equipBest(bot, 'pickaxe').catch(e_ => swallow('jobs_nether:closePick', e_))
+      await BL().digBlock(bot, q, { collect: true, requireHarvest: true, allowProtected: true, own: true }).catch(e_ => swallow('jobs_nether:closeDig', e_))
+      await sleep(800)
+    }
+    const left = litCells(bot, G.inner).length
+    // PUT THE FRAME BACK whatever happened: a gate with a hole in it is not a gate, and the next trip must only have to strike it
+    let back = !!(bot.blockAt(q) && bot.blockAt(q).name === 'obsidian')
+    for (let t = 0; t < 3 && !back && !api.stop(); t++) {
+      if (!A.count(bot, 'obsidian') && !await A.obtain(bot, 'obsidian', 1, { stop: api.stop }).catch(() => false)) break
+      await A.placeHard(bot, q, 'obsidian', { stop: api.stop }).catch(e_ => swallow('jobs_nether:closePut', e_))
+      back = !!(bot.blockAt(q) && bot.blockAt(q).name === 'obsidian')
+    }
+    const gaps = frameGaps(bot, G).length
+    const out = { ok: left === 0, was: lit0, cells: left, frameBack: back, gaps, at: ref }
+    netherEdit({ lit: left > 0, outAt: Date.now(), outBy: bot.username })
+    A.result(bot, Object.assign({ ev: left === 0 ? 'portal_out' : 'portal_out_failed', job: job.id }, out))
+    if (gaps) A.result(bot, { ev: 'portal_frame_incomplete', job: job.id, missing: gaps, at: [ref.join(',')], note: 'left behind by putting the gate out - the next trip re-places it, or ' + (job.params || {}).buildJob })
+    return out
+  }
+  // is anybody of ours still off the overworld? (heartbeats carry `dim`) — the gate stays lit while one bot is over there
+  function anyoneOverThere (self) {
+    try { return A.liveBots(600000).some(h => h && h.bot !== self && /nether|end/.test(String(h.dim || ''))) } catch (e_) { swallow('jobs_nether:anyoneOverThere', e_); return true }
   }
 
   // ================================================================ the job
@@ -597,6 +642,19 @@ module.exports = ctx => {
 
     // ---- 3. GO (one pinned scout, once per rev)
     const N = netherOf()
+    // PUT IT OUT BETWEEN TRIPS (owner: low TPS, 74 zombified piglins round the base from a gate that burned all day). The bot that
+    // comes home last does it; while any heartbeat is still off the overworld the gate stays lit, because it is somebody's way back.
+    if ((st.closeDue || P.close === true) && P.closeGate !== false) {
+      if (anyoneOverThere(bot.username)) { if (P.close === true) return 'portal: leaving the gate lit - a bot is still on the far side' } else {
+        st.closeDue = false
+        const c = await closeGate(bot, job, api, G)
+        lit = litCells(bot, G.inner).length
+        if (P.close === true) return 'portal: gate out (' + lit + '/' + G.inner.length + ' cells burning, frame back: ' + (c.frameBack !== false) + ')'
+      }
+    }
+    if (P.close === true) return 'portal: nothing to put out'
+    // A SERVER RESTART IS PENDING: no bot crosses (the top model only restarts while nobody is off the overworld)
+    if (A.settings().restartPending) { A.decline(bot, job, 5 * 60000, 'settings.restartPending'); return muster(bot, job, api, ctx2, 'portal: a server restart is pending - no crossing until settings.restartPending is cleared') }
     const wanted = P.go === true && st.phase !== 'done' && (!!P.work || N.scoutRev !== (job.rev || 0) || !N.back) // a `work` job crosses on every rev: the far side is not finished in one trip // st.phase: the belt to the board's braces - one round trip per rev, whatever a cache says
     if (!wanted) {
       // the gate stands and burns and nobody has to watch it: free the bot (a job that holds a bot for nothing is a planning failure)

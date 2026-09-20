@@ -148,63 +148,9 @@ execute positioned ~-4 ~ ~4 positioned over world_surface run summon spider ~ ~ 
 execute positioned ~5 ~ ~ positioned over world_surface run summon spider ~ ~ ~ {Tags:["prank"],attributes:[{id:"minecraft:max_health",base:8.0d}],Health:8f}
 execute positioned ~ ~ ~5 positioned over world_surface run summon spider ~ ~ ~ {Tags:["prank"],attributes:[{id:"minecraft:max_health",base:8.0d}],Health:8f}
 P
-# HANDS OFF THE ARMY'S STORES (owner 09-20, from the terminal: "nakasyou_bot が軍のチェストやかまどなどにインタラクトした際にkillするようにして欲しい ... マイクラの仕様を壊すが、
-# 外部のAIで動かしている nakasyou_bot がアイテムを取るからである"): a player of team guests who USES a container / furnace inside the base box dies on the spot (keepInventory is off:
-# what it carried drops right there and the army picks it up). Vanilla datapack only: advancement trigger any_block_use -> reward function; no plugin. Humans are spectators
-# and cannot use blocks; our bots are not in team guests. The box = the base site (the tidy sponge's box on the board), +8.
-BOX=$(node -p "const b=require('$W/bots/army/jobs.json');const t=(b.jobs.find(j=>j.id===b.settings.fallback)||{params:{}}).params.box||[-408,-559,-230,-369];[t[0]-8,t[1]-8,t[2]+8,t[3]+8].join(' ')")
-set -- $BOX
-mkdir -p $D/data/modes/advancement
-cat > $D/data/modes/advancement/guest_touch.json <<P
-{"criteria":{"use":{"trigger":"minecraft:any_block_use","conditions":{"player":[{"condition":"minecraft:entity_properties","entity":"this","predicate":{"team":"guests"}}],"location":[{"condition":"minecraft:location_check","predicate":{"position":{"x":{"min":$1,"max":$3},"z":{"min":$2,"max":$4}},"block":{"blocks":["minecraft:chest","minecraft:trapped_chest","minecraft:barrel","minecraft:furnace","minecraft:blast_furnace","minecraft:smoker","minecraft:hopper","minecraft:dropper","minecraft:dispenser","minecraft:brewing_stand","minecraft:crafting_table","minecraft:enchanting_table","minecraft:anvil"]}}}]}}},"rewards":{"function":"modes:guest_kill"}}
-P
-cat > $F/guest_kill.mcfunction <<'P'
-# as the guest that used one of the army's containers (advancement modes:guest_touch). Revoke first: the next touch must fire again.
-# ONLY team guests die here, whoever runs this function (11:02Z: the top model granted the advancement to the owner as a load test and the reward killed him)
-advancement revoke @s only modes:guest_touch
-execute if entity @s[team=guests] run tellraw @a [{"text":"HANDS OFF ","color":"red","bold":true},{"selector":"@s"},{"text":" touched the army's stores and paid for it","color":"gray","bold":false}]
-execute if entity @s[team=guests] run kill @s
-P
-# /trigger nether (owner 09-20: "スペクテイターがネザー行けるコマンド作って"): a spectator toggles between the overworld and the Nether at the MATCHING spot (x,z / 8 going down,
-# x 8 coming back - where a portal built here would lead), y 90 in the Nether / y 120 in the overworld; a spectator flies through rock, so any landing is fine. From the End: to the overworld spawn.
-rm -f $F/nether_go.mcfunction   # `/trigger nether` was folded into `/trigger dim` the same hour (owner: "じゃあtrigger nether いらないよね"); nether_down/up stay: the dim menu uses them
-cat > $F/nether_down.mcfunction <<'P'
-execute store result storage modes:tmp x int 1 run data get entity @s Pos[0] 0.125
-execute store result storage modes:tmp z int 1 run data get entity @s Pos[2] 0.125
-data modify storage modes:tmp y set value 90
-data modify storage modes:tmp dim set value "minecraft:the_nether"
-function modes:dim_tp with storage modes:tmp
-tellraw @s {"text":"Nether (x,z / 8). /trigger dim = back; /trigger tp jumps to any player in any dimension","color":"gray"}
-P
-cat > $F/nether_up.mcfunction <<'P'
-execute store result storage modes:tmp x int 1 run data get entity @s Pos[0] 8
-execute store result storage modes:tmp z int 1 run data get entity @s Pos[2] 8
-data modify storage modes:tmp y set value 120
-data modify storage modes:tmp dim set value "minecraft:overworld"
-function modes:dim_tp with storage modes:tmp
-P
-# /trigger dim (owner 09-20: "他のディメンションに移動できるようにして欲しい"): a clickable menu [Overworld] [Nether] [End] for spectators. Overworld <-> Nether keep the matching spot
-# (x,z / 8 and x 8); the End = above the main island; from the End back to the overworld = above the base. Spectators cannot touch anything there (no dragon aggro, no portals used).
-cat > $F/dim_go.mcfunction <<'P'
-execute if score @s dim matches 1..10 run tellraw @s [{"text":"DIMENSION ","color":"gold","bold":true},{"text":"[Overworld] ","color":"green","bold":false,"click_event":{"action":"run_command","command":"/trigger dim set 11"}},{"text":"[Nether] ","color":"red","bold":false,"click_event":{"action":"run_command","command":"/trigger dim set 12"}},{"text":"[End]","color":"light_purple","bold":false,"click_event":{"action":"run_command","command":"/trigger dim set 13"}}]
-execute if score @s dim matches 1..10 run return 0
-execute if score @s dim matches 11 run return run function modes:to_overworld
-execute if score @s dim matches 12 run return run function modes:to_nether
-execute if score @s dim matches 13 in minecraft:the_end run tp @s 0 90 0
-P
-cat > $F/to_overworld.mcfunction <<'P'
-execute if dimension minecraft:overworld run return run tellraw @s {"text":"you are in the overworld","color":"gray"}
-execute if dimension minecraft:the_nether run return run function modes:nether_up
-execute in minecraft:overworld run tp @s -320 120 -448
-P
-cat > $F/to_nether.mcfunction <<'P'
-execute if dimension minecraft:the_nether run return run tellraw @s {"text":"you are in the Nether","color":"gray"}
-execute if dimension minecraft:overworld run return run function modes:nether_down
-execute in minecraft:the_nether run tp @s -40 90 -56
-P
-cat > $F/dim_tp.mcfunction <<'P'
-$execute in $(dim) run tp @s $(x) $(y) $(z)
-P
+# THE ARMY'S STORES: guests cannot OPEN or BREAK containers / furnaces / tables inside the base box - BotGuard plugin (`stores` in its config), verified 09-20 13:16Z with a test
+# account (no window opens). The first answer, a datapack advancement that KILLED a guest on touch, is gone (owner: "空けられないようにするとか出来る？"): remove its files.
+rm -rf $D/data/modes/advancement $F/guest_kill.mcfunction
 node $W/bots/rcon.js "reload" >/dev/null; sleep 2
 # ORDER MATTERS: the reloaded tick function recognises bots by their pid score; only THEN may the bots leave the old `army` team - with the old
 # function still loaded a bot outside team army would be forced into spectator.
