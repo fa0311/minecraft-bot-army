@@ -1714,7 +1714,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789894971003
+   "restUntil": 1789895712081
   },
   {
    "id": "guard_muster",
@@ -2105,7 +2105,7 @@
    },
    "shiftMin": 20,
    "rev": 11,
-   "restUntil": 1789894627803,
+   "restUntil": 1789895594101,
    "note": "09-20 05:40Z top model: 82 sheep stand OUTSIDE pen 1 (escaped 03:42-05:30Z over step blocks an escape routine left on the pen floor - removed, pen_litter rule live). want 30 + 4 herders until the flock is back; then want 10-24 / minBots 1 again",
    "desc": "OPERATORS: do NOT pause - since 09-20 02:00Z the herd job itself SHEARS the woolly sheep and CULLS the adults beyond want inside the pen (event pen_harvest); a full pen is its work, not a dead end (BUGS 105 fixed)",
    "produces": [
@@ -2150,7 +2150,7 @@
    },
    "shiftMin": 20,
    "rev": 5,
-   "restUntil": 1789894986366,
+   "restUntil": 1789895898708,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "leather"
@@ -2195,7 +2195,7 @@
    },
    "shiftMin": 20,
    "rev": 4,
-   "restUntil": 1789894891959,
+   "restUntil": 1789895806380,
    "desc": "OPERATORS: do NOT pause because the pen is full - the herd job breeds up to params.max (adults+babies), SHEARS and CULLS the grown surplus back to want adults inside the shut pen (event pen_harvest = leather/beef/feathers/wool banked); it rests itself (restUntil) when there is nothing to do",
    "produces": [
     "feather"
@@ -2996,7 +2996,7 @@
    "type": "build",
    "priority": 88,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 8,
    "site": [
@@ -3030,7 +3030,7 @@
    "type": "build",
    "priority": 62,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 6,
    "site": [
@@ -3485,7 +3485,7 @@
    "front": "works",
    "status": "active",
    "when": "day",
-   "bots": 14,
+   "bots": 3,
    "site": [
     -257,
     67,
@@ -3520,7 +3520,127 @@
       "deepslate"
      ]
     }
+   },
+   "note": "tail: 76 cells around the pond (put:occupied) - 3 bots are enough",
+   "rev": 1,
+   "stuckBy": {
+    "key": "rev1",
+    "bots": [
+     "Sakura",
+     "Mashiro"
+    ]
    }
+  },
+  {
+   "id": "base_mine_pad",
+   "type": "build",
+   "priority": 96,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 10,
+   "site": [
+    -330,
+    69,
+    -500
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone mine x -338..-322 / z -508..-492 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. mine head: hut, haul chests and light AROUND the stair mouth (zone centre); the stairwell itself is dug and owned by the miners",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -330,
+     68,
+     -500
+    ],
+    "args": {
+     "w": 15,
+     "d": 17
+    }
+   },
+   "rev": 10,
+   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -324,68,-505",
+   "stuckBy": {
+    "key": "rev10",
+    "bots": [
+     "Erika",
+     "Yui",
+     "Karin"
+    ]
+   }
+  },
+  {
+   "id": "fill_void_mine_pad",
+   "type": "build",
+   "priority": 72,
+   "front": "works",
+   "status": "paused",
+   "when": "day",
+   "bots": 6,
+   "site": [
+    -334,
+    68,
+    -502
+   ],
+   "plan": "base: 32 air cells under the finished mine pad (-337..-331,65..66,-506..-500): fill solid, never deck a hole",
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -334,
+     68,
+     -503
+    ],
+    "args": {
+     "box": [
+      -338,
+      -507,
+      -330,
+      -499
+     ],
+     "depth": 6,
+     "fill": "cobbled_deepslate",
+     "mats": [
+      "cobblestone",
+      "cobbled_deepslate",
+      "dirt"
+     ]
+    }
+   },
+   "note": "auto-paused: build complete - BUT 50 air cells stay sealed under it (void_under_pad): -338,64,-507 | -338,65,-507 | -338,66,-507 | -338,67,-507 | -338,63,-506 | -338,64,-506"
+  },
+  {
+   "id": "base_infill_n314_n527",
+   "type": "build",
+   "priority": 62,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 5,
+   "site": [
+    -310,
+    69,
+    -512
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone infill x -314..-306 / z -527..-497 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): INFILL between the zones: the whole base is ONE level - cut what stands above y68, fill dents from the natural ground up, 4 headroom; nothing is built on it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -310,
+     68,
+     -512
+    ],
+    "args": {
+     "w": 9,
+     "d": 31
+    }
+   },
+   "rev": 2,
+   "note": "auto-paused: build complete - BUT 35 columns are a deck over air (void_under_pad): -311,68,-522 | -314,65,-511 | -314,66,-510 | -313,66,-510 | -313,66,-509 | -312,65,-522"
   }
  ]
 }

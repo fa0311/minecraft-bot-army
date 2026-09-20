@@ -1602,7 +1602,12 @@ function mealReflex (bot) {
     try {
       if (!bot.entity || bot.health <= 0 || bot.__armyEating || bot.food == null) return
       if (!(bot.food <= 12 || (bot.health < 20 && bot.food <= 17)) || bot.targetDigBlock || bot.currentWindow) return
-      const FEED = require('./feed'); if (!FEED.edibleCount(bot)) return
+      const FEED = require('./feed')
+      if (!FEED.edibleCount(bot)) { // STARVING WITH EMPTY POCKETS inside a long slice (09-20 09:1xZ: 10 bots at food 0-10, 2993 bread in the depot - the canteen runs at slice START only):
+        // end the slice through the core's alert queue (an alert nobody handles is dropped); the next slice starts with the canteen walk. Once per 3 min, only while the depot has food.
+        if (bot.food <= 6 && bot.__core && Array.isArray(bot.__core.alerts) && Date.now() - (bot.__armyMealAlertT || 0) > 180000 && Object.entries(stockMap()).some(([k, v]) => v > 0 && /^(bread|cooked_|baked_potato)/.test(k))) { bot.__armyMealAlertT = Date.now(); bot.__core.alerts.push({ t: Date.now(), prio: 50, ms: 1000, kind: 'hungry', by: 'mealReflex' }) }
+        return
+      }
       bot.__armyEating = true; const held = bot.heldItem
       FEED.eat(bot, {}).then(async n => { if (n && held && !bot.targetDigBlock && !bot.currentWindow) { const it = bot.inventory.items().find(i => i.type === held.type); if (it) await bot.equip(it, 'hand') } })
         .catch(e_ => swallow('army:mealReflex', e_)).finally(() => { bot.__armyEating = false })
