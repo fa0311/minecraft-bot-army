@@ -1082,8 +1082,8 @@
    "shield": 16,
    "bucket": 8,
    "shears": 4,
-   "bow": 8,
-   "arrow": 256,
+   "bow": 16,
+   "arrow": 512,
    "diamond_chestplate": 10,
    "diamond_leggings": 10,
    "iron_helmet": 30,
@@ -1243,16 +1243,6 @@
   "legacyChests": {
    "found": [
     [
-     -361,
-     69,
-     -521
-    ],
-    [
-     -361,
-     70,
-     -521
-    ],
-    [
      -362,
      70,
      -521
@@ -1370,14 +1360,14 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Nanami",
+   "by": "Hotaru",
    "portal": [
     -44,
-    100,
+    98,
     -80
    ],
-   "through": 1789924730961,
-   "scoutRev": 10,
+   "through": 1789925441402,
+   "scoutRev": 2,
    "hub": {
     "room": [
      -41,
@@ -1488,8 +1478,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789924641474,
-   "back": 1789925010269,
+   "landingAt": 1789925442746,
+   "back": 1789925455773,
    "lastDeath": 1789924669079,
    "lastDeathBy": "Fuuka",
    "roads": {
@@ -2404,7 +2394,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789924990203
+   "restUntil": 1789925524400
   },
   {
    "id": "fill_ring_field2",
@@ -2769,7 +2759,7 @@
     -500
    ],
    "shiftMin": 60,
-   "bots": 0,
+   "bots": 1,
    "requires": {
     "minHp": 14,
     "minFood": 14
@@ -2796,7 +2786,7 @@
      ]
     }
    },
-   "rev": 6,
+   "rev": 7,
    "note": "03:10Z engineer: 40 obsidian banked (want reached) - paused. Re-activate with a higher params.args.want when more is needed; open spot on record: -54/29:-1 (37 cast obsidian left)",
    "restUntil": 1789920160291,
    "names": []
@@ -3013,7 +3003,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 1,
+   "bots": 2,
    "site": [
     -311,
     69,
@@ -3244,19 +3234,19 @@
     },
     "order": "near"
    },
-   "rev": 58,
+   "rev": 60,
    "desc": "MEASURED 16:3xZ by probe: 44 columns (444 cells) still open to the sky = this job (narrow deep shafts: step off / water drop in, pillar out = the column is filled); 3172 air cells lie UNDER the crust below grade = NOT reachable from above, they belong to the cavity job (owner algorithm: shaft down, fill riding up). `left` counts both - do not judge this job by `left`, and do not raise the crew over the number of open shafts",
    "note": "top model 15:1xZ: 655 OPEN cells (left 3216 minus waiting 2561) - do not lower; ladderWay (fill_wayin) needs builders standing on the RIM to hang the way in",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Sakura",
-    "t": 1789924275142,
+    "by": "Aoi",
+    "t": 1789925419618,
     "at": [
-     -322,
-     58,
-     -479
+     -301,
+     62,
+     -476
     ],
-    "drop": 11
+    "drop": 7
    }
   },
   {
@@ -3770,7 +3760,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789924581346
+   "restUntil": 1789926883955
   },
   {
    "id": "nether_landing_2",
@@ -4839,7 +4829,7 @@
    "type": "build",
    "priority": 60,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 6,
    "site": [
@@ -4867,8 +4857,16 @@
     "order": "near"
    },
    "rev": 11,
-   "note": "needs: dirt (17 cells wait; every cell whose material exists is done or in work)",
-   "restUntil": 1789922783977
+   "note": "auto-paused: 52 cells nobody could do: -269,68,-559 | -268,68,-559 | -267,68,-559 | -266,68,-559 | -265,68,-559 | -264,68,-559",
+   "restUntil": 1789922783977,
+   "stuckBy": {
+    "key": "rev11",
+    "bots": [
+     "Fuuka",
+     "Rena",
+     "Akari"
+    ]
+   }
   },
   {
    "id": "ladders_for_ravine",
@@ -4972,9 +4970,9 @@
    "type": "portal",
    "priority": 92,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "day",
-   "bots": 4,
+   "bots": 2,
    "shiftMin": 20,
    "site": [
     -326,
@@ -5002,8 +5000,9 @@
     "crossS": 45,
     "maxDeaths": 6
    },
-   "desc": "EYE OF ENDER chain (owner 09-20 17:2xZ 「ネザーにeye来てないでしょ」): 1291 gold = ~12-20 ender pearls by bartering. Activate as soon as golden_boots are in stock (craft_gold_boots) and the barter squad wears one",
-   "rev": 1
+   "desc": "EYE OF ENDER, pearl half (owner: eyes are missing after 22 h): 1291 gold in the depot, 4 golden_boots exist. Bartering stands at the hub - it does NOT walk the open Nether, so it runs before the fortress road. 2 bots, maxDeaths 2: measure pearls per gold before it grows",
+   "rev": 2,
+   "maxDeaths": 2
   },
   {
    "id": "nether_gate_spare_n607",
@@ -6052,7 +6051,7 @@
     ],
     "carry": 320
    },
-   "rev": 13,
+   "rev": 14,
    "restUntil": 1789923426555
   },
   {
@@ -6484,6 +6483,90 @@
     ]
    },
    "note": "auto-paused: plan finished"
+  },
+  {
+   "id": "dragon_beds",
+   "type": "steps",
+   "priority": 94,
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "no zone: ENDER DRAGON kit (the mid-term goal). A bed detonated on the dragon perch is the classic weapon - the End has no sleeping, so a bed explodes: ~10 beds kill the dragon with a stack to spare. 8 047 gray wool idle in the depot; 2 bakers x 64 beds",
+   "params": {
+    "steps": [
+     {
+      "do": "withdraw",
+      "item": "gray_wool",
+      "n": 192,
+      "atLeast": 96
+     },
+     {
+      "do": "withdraw",
+      "item": "oak_planks",
+      "n": 192,
+      "atLeast": 96
+     },
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       69,
+       -523
+      ],
+      "range": 3
+     },
+     {
+      "do": "craft",
+      "item": "gray_bed",
+      "n": 8
+     },
+     {
+      "do": "craft",
+      "item": "gray_bed",
+      "n": 8
+     },
+     {
+      "do": "craft",
+      "item": "gray_bed",
+      "n": 8
+     },
+     {
+      "do": "craft",
+      "item": "gray_bed",
+      "n": 8
+     },
+     {
+      "do": "craft",
+      "item": "gray_bed",
+      "n": 8
+     },
+     {
+      "do": "craft",
+      "item": "gray_bed",
+      "n": 8
+     },
+     {
+      "do": "craft",
+      "item": "gray_bed",
+      "n": 8
+     },
+     {
+      "do": "craft",
+      "item": "gray_bed",
+      "n": 8
+     },
+     {
+      "do": "bank",
+      "keep": {
+       "torch": 16
+      }
+     }
+    ]
+   },
+   "note": "auto-paused: plan failed"
   }
  ]
 }
