@@ -4365,7 +4365,10 @@ async function tidyAudit (bot, job, api, ctx, env) {
   open.sort((p, q) => p.d - q.d)
   let unit = null
   for (const u of open.slice(0, 60)) { if (BL.acquire(bot, u.lock, 12 * 60000)) { unit = u; break } }
-  if (!unit) return null
+  if (!unit) { // WHY THE CAMERA'S LIST GAVE THIS BOT NOTHING (09-21 18:5xZ: 62 units / 1 961 open columns listed, 16 sponge slots, 6 units taken in 13 min): once per bot per 10 min
+    if (Date.now() - (bot.__tidyEmptyT || 0) > 600000) { bot.__tidyEmptyT = Date.now(); A.result(bot, { ev: 'tidy_audit_empty', job: job.id, work: a.work.length, units: units.length, closedByMe: units.filter(u => _tidyClosed.get(u.key) === a.t).length, resting: units.filter(u => resting(u.key)).length, outOfBox: units.filter(u => !inB(box, u.x, u.z)).length, open: open.length, auditAgeMin: Math.round((Date.now() - a.t) / 60000) }) }
+    return null
+  }
   bot.__tidyUnit = unit.key
   const close = () => { _tidyClosed.set(unit.key, a.t); BL.acquire(bot, unit.lock, Math.max(60000, a.t + 40 * 60000 - Date.now())); bot.__tidyUnit = null } // held until the next audit re-measures it
   task(bot, 'tidy ' + unit.kind + ' ' + unit.x + ',' + unit.z + ' (audit)')

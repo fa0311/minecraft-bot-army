@@ -1362,14 +1362,14 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Kotori",
+   "by": "Nozomi",
    "portal": [
-    -48,
+    -47,
     98,
     -77
    ],
-   "through": 1790016096734,
-   "scoutRev": 0,
+   "through": 1790017774862,
+   "scoutRev": 1,
    "hub": {
     "room": [
      -41,
@@ -1481,7 +1481,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789969045309,
-   "back": 1790016112269,
+   "back": 1790017717590,
    "lastDeath": 1790012273059,
    "lastDeathBy": "Yukina",
    "roads": {
@@ -1919,7 +1919,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1790015596476,
+   "gatesAt": 1790017392221,
    "pairRoad": {
     "from": [
      -43,
@@ -2299,11 +2299,11 @@
     ],
     "y": 98,
     "h": 4,
-    "left": 173,
+    "left": 127,
     "unloaded": 0,
     "done": false,
-    "at": 1790014076976,
-    "by": "Nanami"
+    "at": 1790017705453,
+    "by": "Nozomi"
    }
   },
   "industry": {
@@ -2434,7 +2434,7 @@
       28
      ]
     },
-    "t": 1790013933238
+    "t": 1790017714920
    },
    "absorb": {
     "gray_wool": 288,
@@ -3914,7 +3914,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 16,
+   "bots": 1,
    "site": [
     -367,
     69,
@@ -3950,9 +3950,9 @@
      ]
     ]
    },
-   "rev": 99,
+   "rev": 102,
    "note": "06:35Z mine engineer: the sponge held 16 of 49 bots at priority 60 while mine_iron (92, deficit 0.96 of iron 31/800) stood at ZERO staffed. A sponge exists so nobody idles, not to starve the roadmap: 16 -> 4. Raise it again when iron is met",
-   "restUntil": 1790010797084
+   "restUntil": 1790017182427
   },
   {
    "id": "farm_1",
@@ -4095,7 +4095,7 @@
    "note": "06:3xZ mine engineer: readiness no longer hands a WELL-FED miner back when the depot cannot give 8 food units (48 mine_not_ready from 24 bots in 20 min left the squad at ZERO); caves at a branch face are now harvested, not walled off. rev bump voids the stale not-ready declines",
    "bots": 4,
    "rev": 92,
-   "restUntil": 1790016602214
+   "restUntil": 1790017842454
   },
   {
    "id": "base_dorm",
@@ -4275,7 +4275,7 @@
    },
    "rev": 30,
    "bots": 0,
-   "restUntil": 1790016174053
+   "restUntil": 1790017637373
   },
   {
    "id": "sleeper",
@@ -4363,7 +4363,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1790016249106
+   "restUntil": 1790017967091
   },
   {
    "id": "fill_ring_field1",
@@ -5574,7 +5574,7 @@
     "crossS": 45
    },
    "rev": 5,
-   "restUntil": 1789995238546,
+   "restUntil": 1790018252804,
    "exclude": []
   },
   {
@@ -6562,7 +6562,7 @@
     "bare": true
    },
    "rev": 18,
-   "restUntil": 1790016227082
+   "restUntil": 1790019247736
   },
   {
    "id": "nether_gate_old_down",
@@ -6881,7 +6881,7 @@
      ]
     ]
    },
-   "restUntil": 1790016247089,
+   "restUntil": 1790019392790,
    "rev": 3
   },
   {
@@ -8208,7 +8208,7 @@
     "target": 16,
     "bare": true
    },
-   "restUntil": 1790016567207,
+   "restUntil": 1790018065103,
    "rev": 1
   },
   {
@@ -9060,7 +9060,7 @@
     "bare": true
    },
    "rev": 1,
-   "restUntil": 1790014688996
+   "restUntil": 1790016917324
   },
   {
    "id": "nether_bridge_roof",
@@ -9762,7 +9762,7 @@
    "type": "build",
    "priority": 66,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 1,
    "site": [
@@ -9789,21 +9789,18 @@
     ]
    },
    "after": "base_field_4_pad",
-   "rev": 12,
+   "rev": 16,
    "water": {
     "key": "rev12",
     "cells": {}
    },
    "desc": "re-activated 14:3xZ by the top model: base audit - 9 WATER cells of the field read dirt (-381/-390/-399,68,-516 ...), 59 soil tiles untilled; the build job IS the repair",
-   "note": "auto-paused: 18 cells nobody could do: -390,69,-516 | -381,69,-516 | -399,69,-516 | -390,69,-507 | -381,69,-507 | -399,69,-507",
+   "note": "auto-paused: 16 cells nobody could do: -390,69,-516 | -381,69,-516 | -399,69,-516 | -390,69,-507 | -381,69,-507 | -399,69,-507",
    "stuckBy": {
-    "key": "rev12",
+    "key": "rev16",
     "bots": [
-     "Iroha",
-     "Kurumi",
-     "Erika",
-     "Hazuki",
-     "Honoka"
+     "Karin",
+     "Chino"
     ]
    }
   },
@@ -10430,7 +10427,7 @@
      }
     }
    },
-   "rev": 6,
+   "rev": 10,
    "desc": "re-activated 15:4xZ by the top model: 8 WATER cells read dirt (the void_fix pad fill laid its skin on them) - the build job is the repair",
    "note": "auto-paused: 16 cells nobody could do: -288,69,-516 | -279,69,-516 | -297,69,-516 | -288,69,-507 | -279,69,-507 | -297,69,-507",
    "stuckBy": {
@@ -11513,7 +11510,7 @@
    "type": "portal",
    "priority": 97,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "shiftMin": 20,

@@ -252,6 +252,26 @@ async function settle (bot, ms = 1200) {
   while (!bot.entity.onGround && Date.now() < end) { ck(bot); await sleep(50) }
   return bot.entity.onGround
 }
+// ARRIVED = in the stand's column with the feet within 1/16 BELOW its y: a stand on FARMLAND (15/16 tall; soul sand, dirt path alike) has the feet at y-0.0625, and
+// GoalBlock (floored feet) never ends there. MEASURED 09-21 18:4xZ: every cap over a field water cell failed `put:unreachable` for 3 h (base_field_2/4 paused) -
+// all its stands are farmland; Honoka stood IN the stand at 68.94, the stuck timer fired and moveTo said "not reached".
+function arrivedAt (bot, cell) { const p = bot.entity.position; return Math.floor(p.x) === cell.x && Math.floor(p.z) === cell.z && p.y >= cell.y - 0.07 && p.y < cell.y + 0.5 }
+// goto THAT WAITS FOR THE REAL OUTCOME. pathfinder's own goto resolves on ANY path_update whose path is empty - also the PARTIAL result of the first 12 ms planning
+// tick (our movements expand ~3-6 nodes/ms, so a stand behind a field edge often has an empty best-so-far): "I have not planned yet" came back as "arrived".
+// Here: resolved only by goal_reached; rejected by a final noPath/timeout, a goal change, a stop, or `ms`. A partial update just lets the pathfinder go on.
+function gotoStrict (bot, goal, ms) {
+  return new Promise((resolve, reject) => {
+    let t = null
+    const done = (err) => { clearTimeout(t); bot.removeListener('goal_reached', onOk); bot.removeListener('path_update', onUpd); bot.removeListener('goal_updated', onChg); bot.removeListener('path_stop', onStop); if (err) reject(err); else resolve() }
+    const onOk = () => done(); const onStop = () => done(new Error('path stopped'))
+    const onUpd = (r) => { if (r && (r.status === 'noPath' || r.status === 'timeout')) done(new Error(r.status)) }
+    const onChg = (g) => { if (g !== goal) done(new Error('goal changed')) }
+    bot.on('goal_reached', onOk); bot.on('path_update', onUpd); bot.on('path_stop', onStop)
+    t = setTimeout(() => done(new Error('timeout:moveTo')), ms)
+    try { bot.pathfinder.setGoal(goal) } catch (e) { done(e); return }
+    bot.on('goal_updated', onChg) // after our own setGoal: its goal_updated is ours
+  })
+}
 async function moveTo (bot, cell, ms = 12000) {
   ck(bot)
   const st = S(bot); st.moves++
@@ -261,19 +281,29 @@ async function moveTo (bot, cell, ms = 12000) {
     try {
       if (!bot.entity) return
       if (bot.state && bot.state.cancel) { bot.pathfinder.setGoal(null); return }
+      if (arrivedAt(bot, cell) && bot.entity.onGround) { bot.pathfinder.setGoal(null); return }
       const p = bot.entity.position
       if (p.distanceTo(last) > 0.4) { last = p.clone(); lastT = Date.now(); return }
       if (Date.now() - lastT > 4000 && !bot.targetDigBlock) { stuck = true; bot.pathfinder.setGoal(null) }
     } catch (e_) { swallow('blocks:231', e_) }
   }, 500)
+  // A STAND ON FARMLAND (the cap over a field's water cell has ONLY farmland stands): `farmland` is in blocksToAvoid (safeMovements: no route across a field)
+  // and a body on farmland has its feet IN that cell, so the pathfinder never entered the plot - 3 h of `put:unreachable` on base_field_2/4 (09-21 18:5xZ,
+  // Erika: 6 stands, 0 reached, 311 ms). For this one short walk to that one stand the veto is lifted (walking does not trample; the fieldCost weight stays).
+  const mv = bot.pathfinder.movements; const fl = bot.registry.blocksByName.farmland; const below = bot.blockAt(cell.offset(0, -1, 0)); const inCell = bot.blockAt(cell)
+  const lift = !!(mv && fl && mv.blocksToAvoid && mv.blocksToAvoid.has(fl.id) && ((below && below.type === fl.id) || (inCell && inCell.type === fl.id)))
+  if (lift) mv.blocksToAvoid.delete(fl.id)
   try {
-    await withTimeout(bot.pathfinder.goto(new goals.GoalBlock(cell.x, cell.y, cell.z)), ms, 'moveTo')
-    return true
+    await gotoStrict(bot, new goals.GoalBlock(cell.x, cell.y, cell.z), ms)
+    // pathfinder's goto RESOLVES when the planner returns an EMPTY path (lib/goto.js checks `path.length === 0` before `noPath`): "no path at all" came back as
+    // success - MEASURED 09-21 19:2xZ, Mashiro in base_field_4: 3 stands "reached" in 37-68 ms from 22 blocks away, then `no_los` on all 17 caps. Arrival is checked.
+    return arrivedAt(bot, cell) || bot.entity.position.distanceTo(cell.offset(0.5, 0, 0.5)) < 0.9
   } catch (e) {
+    bot.__moveErr = String(e && e.message).slice(0, 60) // why: probe-readable
     try { bot.pathfinder.setGoal(null) } catch (e_) { swallow('blocks:237', e_) }
     ck(bot)
-    return bot.entity.position.distanceTo(cell.offset(0.5, 0, 0.5)) < 0.9 && !stuck
-  } finally { clearInterval(timer); st.moveMs += Date.now() - t0 }
+    return arrivedAt(bot, cell) || (bot.entity.position.distanceTo(cell.offset(0.5, 0, 0.5)) < 0.9 && !stuck)
+  } finally { clearInterval(timer); st.moveMs += Date.now() - t0; if (lift) mv.blocksToAvoid.add(fl.id) }
 }
 
 // SQUARE ON THE STAND: the pathfinder's GoalBlock is met anywhere inside the cell; what findStands promised was seen from its centre (or its `.lean` point). Sneaking, so the
@@ -297,9 +327,11 @@ async function centreOn (bot, cell, ms = 1300) {
 // at most 3 stands are walked to, 30 s in all.
 async function standAndAim (bot, stands, aimNow, moveMs) {
   let reached = 0; const end = Date.now() + 30000
+  const log = bot.__standLog = [] // why: probe-readable record of the last stand walk (09-21 no_los investigation)
   for (const cell of stands) {
     if (reached >= 3 || Date.now() > end) break
-    if (!await moveTo(bot, cell, moveMs || 12000)) continue
+    const t1 = Date.now(); const ok = await moveTo(bot, cell, moveMs || 12000); const e = bot.entity.position; log.push([cell.x, cell.y, cell.z, ok, Date.now() - t1, +e.x.toFixed(2), +e.y.toFixed(3), +e.z.toFixed(2), ok ? null : bot.__moveErr]); bot.__moveErr = null
+    if (!ok) continue
     reached++
     await settle(bot, 600)
     let a = aimNow()
@@ -395,7 +427,7 @@ async function placeBlock (bot, pos, itemName, opts = {}) {
         const sa = await standAndAim(bot, stands, () => (botOverlaps(bot, p) ? null : aim(eyeOf(bot))), opts.moveMs)
         if (opts.triedStands) for (const c of stands.slice(0, 3)) opts.triedStands.add(c.x + ',' + c.y + ',' + c.z)
         a = sa.a
-        if (!a) { if (!sa.reached) return failP(bot, 'unreachable', t0, { stands: stands.length }); lastReason = 'no_los'; continue }
+        if (!a) { if (!sa.reached) return failP(bot, 'unreachable', t0, { stands: stands.length }); lastReason = 'no_los'; const e = bot.entity.position; bot.__lastNoLos = { t: Date.now(), p: [p.x, p.y, p.z], item: itemName, stands: stands.map(c => [c.x, c.y, c.z, c.lean || null]), at: [+e.x.toFixed(2), +e.y.toFixed(3), +e.z.toFixed(2)], reached: sa.reached, refs: refs.map(r => r.block.name + '@' + r.block.position + ' f' + r.face) }; continue } // why: the last no_los, readable by a probe
       }
       // 2. nobody standing in the target cell?
       const blocker = Object.values(bot.entities).find(e => e !== bot.entity && e.position && (e.type === 'player' || e.type === 'mob' || e.type === 'animal' || e.type === 'hostile' || e.type === 'water_creature' || e.type === 'ambient') &&

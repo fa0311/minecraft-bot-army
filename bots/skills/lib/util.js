@@ -206,6 +206,9 @@ async function pathTo (bot, goal, ms) {
   if (timer.unref) timer.unref()
   try {
     await withTimeout(bot.pathfinder.goto(goal), ms, 'goto')
+    // goto RESOLVES on an EMPTY path (pathfinder lib/goto.js: `path.length === 0` is tested before `noPath`), so "no path at all" read as 'ok' (09-21 19:2xZ)
+    const f = bot.entity.position.floored()
+    if (goal && typeof goal.isEnd === 'function' && !goal.isEnd(f) && !goal.isEnd(f.offset(0, 1, 0))) return 'fail'
     return 'ok'
   } catch (e) {
     if (cancelled(bot)) throw new Cancelled()
