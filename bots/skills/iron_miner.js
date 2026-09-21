@@ -477,7 +477,7 @@ module.exports = async (bot, args = {}, ctx) => {
         bot.__ironLostN = lost && !I.underground(bot, M) ? (bot.__ironLostN || 0) + 1 : 0
         if (bot.__ironLostN >= 5) { bot.__ironLostN = 0; return handBack(bot, 300000, 'mine: cannot get onto the mine mouth (off the graph at ' + (lf.at || []).join(',') + ')') }
         // OFF the graph (fell into a cave, another level): the only way on is the way out - reconnect to the graph, up, and down again properly
-        if (lf && (lf.why === 'off_line' || lf.why === 'off_level') && I.underground(bot, M)) await I.toSurface(bot, { gen, mine: M, why: 'lost' })
+        if (lf && (lf.why === 'off_line' || lf.why === 'off_level') && I.underground(bot, M)) { if (!(await I.toSurface(bot, { gen, mine: M, why: 'lost' })).ok) await U.nap(bot, 3000) } // (no nap here was a 0.4 s spin: Noa 494 reconnects in 3 min)
         else if (sf && sf.why === 'undug') await U.nap(bot, 8000)
         else await U.nap(bot, 2000)
         continue

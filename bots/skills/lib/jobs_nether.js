@@ -1526,6 +1526,36 @@ module.exports = ctx => {
       if (!from) return { work, why: 'no start: settings.nether.hub.outside is not set (build the hub first) and params.from is missing' }
       const r = bpCells('nether_road', from, { bearing, length: P.length || 64 }); cells = r.cells; meta = r.meta
       box = unionBox(meta.box, (N.hub && N.hub.room), xyz(bot.entity.position))
+    } else if (work === 'route') {
+      // THE ROUTE TO THE FORTRESS (top model 09-21): one covered way of several legs (blueprint nether_route, legs on the BOARD in
+      // `params.legs`), hundreds of blocks long. The `reach` filter below keeps a pass to what is near the bot, and the bot comes
+      // out of the gate at the hub - so without a head the work would never get further than 64 blocks from the hub. The head is
+      // a number on the board (`settings.nether.route.head` = the first seq not yet finished): walk the FINISHED way to it
+      // (read-only, the path's own feet cells as waypoints), then work the next `window` cells of the route.
+      if (!Array.isArray(P.legs) || !P.legs.length) return { work, why: 'params.legs (the route legs) are missing' }
+      const r = bpCells('nether_route', [0, 0, 0], { legs: P.legs }); const allR = r.cells; meta = r.meta
+      const R0 = netherOf().route || {}
+      const head = Math.max(0, Math.min(meta.length - 1, (R0.legsKey === JSON.stringify(P.legs) ? R0.head : 0) || 0))
+      const to = Math.max(0, head - 2)
+      // nearest path cell to where we stand, then waypoints every 10 cells along the finished way up to the head
+      const me0 = bot.entity.position
+      let k0 = 0; let best = 1e9
+      for (let i = 0; i <= to; i++) { const f = meta.path[i]; const d = Math.hypot(f[0] - me0.x, f[1] - me0.y, f[2] - me0.z); if (d < best) { best = d; k0 = i } }
+      let walked = 0
+      for (let k = k0; k < to && Date.now() < until && !api.stop();) {
+        k = Math.min(to, k + 10)
+        const f = meta.path[k]
+        task(bot, 'nether route: walking the finished way to the head (' + k + '/' + head + ')')
+        if (!await nTravel(bot, v(f), { range: 1, ms: 30000, stop: api.stop })) { st.routeWalk = { stuckAt: k, feet: f }; break }
+        walked = k
+      }
+      const lo = Math.max(0, head - 6); const hi = head + (P.window || 40)
+      cells = allR.filter(c => c.seq >= lo && c.seq <= hi)
+      const xs = cells.map(c => c.x); const zs = cells.map(c => c.z)
+      box = unionBox([Math.min(...xs) - 2, Math.min(...zs) - 2, Math.max(...xs) + 2, Math.max(...zs) + 2], null, xyz(bot.entity.position))
+      st.route = { head, walked, lo, hi, allR }
+    } else if (work === 'blaze') {
+      return await blazeHunt(bot, job, api, P, until)
     } else if (work === 'scout') {
       return await lookAround(bot, job, api, P, until)
     } else if (work === 'stair') {
@@ -1624,12 +1654,79 @@ module.exports = ctx => {
       out.at2 = meta.at; out.floorY = meta.floorY; out.overVoid = meta.overVoid; out.laneLeft = laneLeft; out.padLeft = padLeft; out.built = built
       if (st.span) { out.spans = st.span.spans; out.bridged = st.span.placed; if (st.span.notes && st.span.notes.length) out.spanWhy = st.span.notes.slice(0, 2) }
     }
+    if (work === 'route' && meta && st.route) {
+      // THE HEAD MOVES ONLY OVER WHAT THE WORLD SHOWS FINISHED: the first seq in this window with a readable cell that is not right
+      // (a torch we could not set does not hold the head), or the first one we could not read at all.
+      const win = st.route.allR.filter(c => c.seq >= st.route.lo && c.seq <= st.route.hi && c.block !== 'torch')
+      let head2 = st.route.hi + 1
+      for (const c of win) { if (c.seq >= head2) continue; if (!loadedAt(bot, c) || !cellOK(bot, c)) head2 = c.seq }
+      head2 = Math.max(st.route.head, Math.min(head2, meta.length))
+      const done = head2 >= meta.length
+      netherEdit({ route: { legsKey: JSON.stringify(P.legs), head: head2, length: meta.length, end: meta.end, headAt: meta.path[Math.min(head2, meta.length - 1)], done, walkedTo: st.route.walked, stuck: st.routeWalk || null, at: Date.now(), by: bot.username } })
+      out.head = head2; out.headWas = st.route.head; out.length = meta.length; out.done = done; if (st.routeWalk) out.walkStuck = st.routeWalk
+    }
     if (work === 'road' && meta) {
       const roads = Object.assign({}, N.roads || {}); roads[meta.bearing] = { from: Array.isArray(P.from) ? P.from : (N.hub || {}).outside, end: meta.end, length: meta.length, box: meta.box, left: r.left, at: Date.now() }
       netherEdit({ roads })
       out.bearing = meta.bearing; out.end = meta.end
     }
     return out
+  }
+  // BLAZES (top model 09-21): the covered way (`work:'route'`, job `params.routeJob`, default nether_route) ends in a bridge through
+  // the wall of the blaze spawner's platform. A player sits in a covered doorway beside a spawner and fights what comes to him; so
+  // does this: walk the finished route to its end, hold the doorway `back` cells inside the tunnel, fight every blaze within
+  // `radius`, pick the rods up, and step back down the tunnel to eat when hurt. Rods come home in the pocket and are banked at the
+  // start of the next slice (`nether_spoils`). Events: blaze_pass {kills, rods, retreats, fights}.
+  async function blazeHunt (bot, job, api, P, until) {
+    const N = netherOf(); const R = N.route || {}
+    const board = A.readJSON(A.F.board, {}) || {}
+    const rj = (board.jobs || []).find(j => j.id === (P.routeJob || 'nether_route'))
+    const legs = rj && rj.params && rj.params.legs
+    if (!Array.isArray(legs) || !legs.length) return { work: 'blaze', why: 'no route job ' + (P.routeJob || 'nether_route') + ' with params.legs on the board' }
+    if (!R.done || R.legsKey !== JSON.stringify(legs)) return { work: 'blaze', why: 'the route is not finished (head ' + (R.head || 0) + '/' + (R.length || '?') + ')' }
+    const meta = bpCells('nether_route', [0, 0, 0], { legs }).meta
+    const L = meta.path.length
+    const post = meta.path[Math.max(0, L - 1 - (P.back == null ? 2 : P.back))]
+    const den = meta.path[Math.max(0, L - 12)] // a safe cell well inside the tunnel, out of the blazes' line of fire
+    const walkTo = async (toI) => {
+      const me = bot.entity.position; let k0 = 0; let best = 1e9
+      for (let i = 0; i < L; i++) { const f = meta.path[i]; const d = Math.hypot(f[0] - me.x, f[1] - me.y, f[2] - me.z); if (d < best) { best = d; k0 = i } }
+      const dir = toI >= k0 ? 1 : -1
+      for (let k = k0; k !== toI && Date.now() < until && !api.stop();) {
+        k = dir > 0 ? Math.min(toI, k + 10) : Math.max(toI, k - 10)
+        task(bot, 'nether blaze: along the route (' + k + '/' + (L - 1) + ')')
+        if (!await nTravel(bot, v(meta.path[k]), { range: 1, ms: 30000, stop: api.stop })) return false
+      }
+      return true
+    }
+    const postI = meta.path.indexOf(post); const denI = meta.path.indexOf(den)
+    if (!await walkTo(postI)) return { work: 'blaze', why: 'could not walk the route to the spawner doorway', at: xyz(bot.entity.position) }
+    const rods0 = A.count(bot, 'blaze_rod'); let kills = 0; let fights = 0; let retreats = 0; let seen = 0
+    const radius = P.radius || 10; const minHp = P.minHp || 10
+    await A.equipBest(bot, 'sword').catch(e_ => swallow('jobs_nether:blazeSword', e_))
+    while (Date.now() < until && !api.stop()) {
+      if (bot.health < minHp) {
+        retreats++
+        task(bot, 'nether blaze: hurt (' + Math.round(bot.health) + '), back down the tunnel to eat')
+        await walkTo(denI)
+        for (let w = 0; w < 60 && bot.health < 16 && !api.stop(); w++) await sleep(1000)
+        if (Date.now() >= until - 30000) break
+        await walkTo(postI); continue
+      }
+      const me = bot.entity.position
+      const b = Object.values(bot.entities).filter(e => e && e.name === 'blaze' && e.isValid !== false && e.position && e.position.distanceTo(me) <= radius).sort((a, c) => a.position.distanceTo(me) - c.position.distanceTo(me))[0]
+      if (!b) {
+        task(bot, 'nether blaze: holding the doorway (' + kills + ' killed, ' + (A.count(bot, 'blaze_rod') - rods0) + ' rods)')
+        if (me.distanceTo(v(post).offset(0.5, 0, 0.5)) > 2) await nTravel(bot, v(post), { range: 1, ms: 15000, stop: api.stop })
+        await sleep(500); continue
+      }
+      seen++; fights++
+      const ok = await A.kill(bot, b, 20000, () => api.stop() || bot.health < minHp)
+      if (ok) { kills++; await sleep(300); await A.pickup(bot, 8, 5000) }
+    }
+    const rods = A.count(bot, 'blaze_rod') - rods0
+    A.result(bot, { ev: 'blaze_pass', job: job.id, kills, rods, fights, retreats, hp: Math.round(bot.health), at: xyz(bot.entity.position), carried: A.count(bot, 'blaze_rod') })
+    return { work: 'blaze', kills, rods, fights, retreats, seen }
   }
   // SCOUT: what a pair of eyes can see from inside the finished road — no wandering, no ledges. Sightings go on the board.
   async function lookAround (bot, job, api, P, until) {
@@ -1917,6 +2014,7 @@ module.exports = ctx => {
     if (w === 'road') { const r = (N.roads || {})[P.bearing || (N.hub || {}).bearing || 'x+']; return r && r.left === 0 ? 'the road reaches ' + (r.end || []).join(',') : false }
     if (w === 'fortress') { const f = (N.sightings || []).find(e => e && e.kind === 'fortress'); return f ? 'a fortress is sighted at ' + (f.at || []).join(',') : false }
     if (w === 'barterspot') { const b = N.barterSpot || {}; return b.built ? 'the barter lane and pad stand at ' + (b.stand || []).join(',') : false }
+    if (w === 'route') { const r = N.route || {}; return r.done && r.legsKey === JSON.stringify(P.legs || []) ? 'the route stands to ' + (r.end || []).join(',') : false }
     return false // barter and anything else: a standing job that ends when an operator pauses it
   }
   // ================================================================ the job
@@ -2035,6 +2133,20 @@ module.exports = ctx => {
       return 'portal: lit; the exploratory crossing waits for job.names with exactly one bot'
     }
 
+    // THE SPOILS GO ON THE SHELF BEFORE THE NEXT CROSSING (top model 09-21): blaze rods and pearls are ALWAYS_KIT in army.js, so no
+    // depot pass ever takes them out of a pocket - and a bot that dies on its next trip loses every rod of the last one. Banked
+    // here, on the overworld side, every slice, whatever else the kit does.
+    if (!netherHere(bot) && dimKnown(bot)) {
+      const loot = ['blaze_rod', 'blaze_powder', 'ender_pearl', 'ender_eye'].filter(k => A.count(bot, k) > 0)
+      if (loot.length) {
+        const keep = {}; for (const it of bot.inventory.items()) if (!loot.includes(it.name)) keep[it.name] = (keep[it.name] || 0) + it.count
+        const had = {}; for (const k of loot) had[k] = A.count(bot, k)
+        task(bot, 'portal: banking the spoils of the last trip')
+        await A.bank(bot, keep, { job: job.id, stop: api.stop }).catch(e_ => swallow('jobs_nether:spoils', e_))
+        const banked = {}; for (const k of loot) if (had[k] - A.count(bot, k) > 0) banked[k] = had[k] - A.count(bot, k)
+        A.result(bot, { ev: 'nether_spoils', job: job.id, banked, left: loot.reduce((o, k) => { if (A.count(bot, k)) o[k] = A.count(bot, k); return o }, {}) })
+      }
+    }
     // KIT: bank first (keep_inventory is OFF), then 128 cobblestone + torches + food + the best sword we may take
     if (!st.kitted) {
       task(bot, 'portal: kitting up for the crossing')

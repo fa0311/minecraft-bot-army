@@ -435,8 +435,22 @@ async function inHand (bot, item) {
   bump(bot, 'handBusy')
   return false
 }
+// POINTED DRIPSTONE is a full-box block to mineflayer but usually WATERLOGGED in a dripstone cave, so isLiquid() read it as water: placeAt clicked a
+// filler into it for ever (09-21 08:0xZ foreman: `placeAt ... still pointed_dripstone` 888/h) and digCell tried to "plug" it. A player knocks the spike
+// down first (1.5 hardness, one swing of a pick) - so does every cell routine here: `spike(b)` is dug, never placed into.
+function spike (b) { return !!b && b.name === 'pointed_dripstone' }
+async function knockSpike (bot, b) {
+  if (!spike(b) || eyeDist(bot, b.position) > 4.9) return false
+  try { await U.withTimeout(bot.tool.equipForBlock(b, {}), 3000, 'eqSpike') } catch (e_) { swallow('iron_core:spikeEquip', e_) }
+  try { await U.withTimeout(bot.dig(b, true), 6000, 'digSpike') } catch (e_) { swallow('iron_core:spikeDig', e_); try { bot.stopDigging() } catch (e2) { swallow('iron_core:spikeStop', e2) } }
+  await sleep(60)
+  const nb = bot.blockAt(b.position); const gone = !spike(nb)
+  if (gone) bump(bot, 'spikes')
+  return gone
+}
 async function placeAt (bot, item, pos, opts = {}) {
-  const cur = bot.blockAt(pos)
+  let cur = bot.blockAt(pos)
+  if (spike(cur)) { if (!await knockSpike(bot, cur)) return false; cur = bot.blockAt(pos) }
   if (isSolid(cur)) return true
   if (!item || U.count(bot, item) <= 0) return false
   if (item !== 'torch' && !opts.temp && walkway(pos.x, pos.y, pos.z)) { bump(bot, 'walkwayRefused'); return false }
@@ -538,6 +552,9 @@ async function withTable (bot, fn) {
     const cands = []
     for (const [dx, dz] of DIRS) for (const dy of [1, 0]) cands.push(f.offset(dx, dy, dz))
     for (const [dx, dz] of DIRS) for (const dy of [1, 0]) cands.push(f.offset(dx * 2, dy, dz * 2))
+    // never INTO a walked line if a side cell will do: a table left there by an interrupted craft shut branch 12:-1 for 23 miners (see walkLine)
+    const onLine = p => !!CUR && (!!locate(CUR.G, p, 0) || !!locate(CUR.G, { x: p.x, y: p.y - 1, z: p.z }, 0))
+    cands.sort((a, b) => (onLine(a) ? 1 : 0) - (onLine(b) ? 1 : 0))
     for (const p of cands) {
       const b = bot.blockAt(p)
       if (!isOpen(b) || (b.name !== 'air' && b.name !== 'cave_air')) continue
@@ -556,7 +573,7 @@ async function withTable (bot, fn) {
   if (!tbl) return false
   let res = false
   try { res = await fn(tbl) } finally {
-    if (mine) await takeTable(bot, mine)
+    if (mine && !await takeTable(bot, mine)) { await sleep(400); await takeTable(bot, mine) } // one more swing: a table left behind is the next walker's wall
   }
   return res
 }
@@ -608,6 +625,7 @@ async function digCell (bot, p, opts = {}) {
     const b = bot.blockAt(p)
     if (!b) return 'fail'
     if (b.name === 'lava') noteLava(bot, p)
+    if (spike(b)) { if (await knockSpike(bot, b)) continue; return 'fail' } // (a waterlogged spike is no water: knocked down, the next round plugs what is left)
     if (isLiquid(b)) { if (await plug(bot, p, { temp: true })) continue; return 'liquid' } // a block put into a source IS the end of that source
     if (b.boundingBox !== 'block' && !(opts.soft && clutter(b))) return round ? 'ok' : 'air'
     // opts.obsidian: the obsidian trip mines what it cast itself (obsidian is protected for everybody else: a portal frame is furniture)
@@ -1194,6 +1212,11 @@ async function walkLine (bot, x, z, gen, ms = 60000, opts = {}) {
     for (const c of [[f.x, f.y, f.z], [f.x, f.y + 1, f.z]].concat(cells)) { const b = blk(bot, c[0], c[1], c[2]); if (isWeb(b)) { worked = true; bot.clearControlStates(); await digCell(bot, b.position, { hand: true, soft: true }) } } // a web holds a walker for 20 s per cell: cut it (ours and the next)
     for (const c of cells) {
       const b = blk(bot, c[0], c[1], c[2])
+      // A MINER'S OWN CRAFTING TABLE LEFT IN THE LINE (withTable puts one beside the miner to craft a pick; a slice end between craft and takeTable left it
+      // standing): it is protected furniture for digCell, so every walker after it bumped into it - 09-21 08:23Z `iron:to-face 12:-1 blocked` x29 from
+      // 23 bots at -276,16,-448 was ONE crafting_table in the branch at -275,16,-448. Deep in the mine no table is furniture: it goes into the pocket.
+      if (b && b.name === 'crafting_table' && CUR && c[1] < CUR.E.y - 4) { worked = true; bot.clearControlStates(); if (await takeTable(bot, b.position)) { bump(bot, 'strayTables'); continue } }
+      if (spike(b)) { worked = true; bot.clearControlStates(); if (!await knockSpike(bot, b)) fails += 2; continue }
       if (isSolid(b) && !U.protectedBlock(b)) { worked = true; bot.clearControlStates(); const r = await digCell(bot, b.position, { hand: opts.hand, breach: opts.breach, sacrifice: opts.sacrifice }); if (r === 'needpick') return quit('needpick'); if (r !== 'ok' && r !== 'air') { fails += 2 } }
     }
     let fl = blk(bot, nx, Y - 1, nz)
@@ -1373,6 +1396,7 @@ async function mineVein (bot, first, level, anchor, gen, opts = {}) {
     return 0
   }
   const vein = veinOf(bot, first)
+  const inv0 = U.invMap(bot)
   let todo = vein.slice()
   const big = vein.big
   const member = b => !!b && (oreFamily(b.name) === fam || (big && b.name === 'tuff'))
@@ -1432,7 +1456,11 @@ async function mineVein (bot, first, level, anchor, gen, opts = {}) {
   await collectDrops(bot, level, trail, gen, fam)
   // ... and the drops that fell INTO the body, below the corridor or behind us: the vein is not mined until they are in the pocket
   const pick = await collectVein(bot, vein, gen)
-  say(bot, { ev: 'vein_done', kind: fam, at: [first.position.x, first.position.y, first.position.z], ore: got, big, picked: pick.got, leftOnFloor: pick.left, tookS: pick.tookS })
+  // `picked` = what the WHOLE vein put in the pocket (most drops come in while digging; the old field counted only the collect pass, so a clean vein read
+  // `picked:{}`), `swept` = the collect pass alone, `skipped` = why drops were left (deep / above / below / open_fail / step_fail / near_not_taken)
+  const inv1 = U.invMap(bot); const picked = {}
+  for (const k of Object.keys(inv1)) { const n = inv1[k] - (inv0[k] || 0); if (n > 0 && VALUABLE_RE.test(k)) picked[k] = n }
+  say(bot, Object.assign({ ev: 'vein_done', kind: fam, at: [first.position.x, first.position.y, first.position.z], ore: got, big, picked, swept: pick.got, leftOnFloor: pick.left, tookS: pick.tookS }, pick.skipped ? { skipped: pick.skipped } : {}, pick.stop ? { stop: pick.stop } : {}))
   // walk the trail back to the anchor
   while (trail.length) {
     const p = trail.pop()
@@ -1456,8 +1484,11 @@ function dropName (e) {
 // `collectDrops` only 5.5 blocks at CORRIDOR level, so everything that fell into the body, or one block under it, stayed there - this file's own
 // comment has said so since world 1. So after the last ore the miner walks INTO the body (it is air now) and takes everything in its box + 2:
 // one cell at a time with `openCell` (which floors a gap and plugs a liquid, so nobody jumps into a hole), never a drop of more than 3, 20 s cap.
+// 09-21 08:2xZ: `vein_done ore:16 picked:{} leftOnFloor:16 tookS:0` (Aika) and 229 of 554 veins/h with drops left, 98 of them after 0 s: the loop
+// BROKE on the first drop it could not step towards (a ledge above, a deeper pit, a cell openCell refused) and gave up on every other drop of the vein.
+// Now such a drop is skipped (with its reason in `stop`) and the next one is tried; a drop we stand beside that does not come in is skipped after 1.5 s.
 async function collectVein (bot, cells, gen, opts = {}) {
-  const out = { got: {}, left: 0, tookS: 0 }
+  const out = { got: {}, left: 0, tookS: 0, stop: null }
   const t0 = Date.now()
   const end = t0 + (opts.ms || 20000)
   if (!cells || !cells.length) return out
@@ -1466,18 +1497,24 @@ async function collectVein (bot, cells, gen, opts = {}) {
   const inBox = e => e.position.x >= lo.x - 2 && e.position.x <= hi.x + 3 && e.position.z >= lo.z - 2 && e.position.z <= hi.z + 3 && e.position.y >= lo.y - 2 && e.position.y <= hi.y + 3
   const mine = () => Object.values(bot.entities).filter(e => e && e.name === 'item' && e.position && inBox(e) && VALUABLE_RE.test(dropName(e) || ''))
   const before = U.invMap(bot)
-  let moves = 0
+  const skip = new Set(); const why = {}
+  const give = (it, r) => { skip.add(it.id); why[r] = (why[r] || 0) + 1 }
+  let moves = 0; let nearT = 0; let nearId = null
   while (Date.now() < end) {
-    if (stale(bot, gen)) break
+    if (stale(bot, gen)) { out.stop = 'stale'; break }
     if (U.freeSlots(bot) <= 2) await tossJunk(bot, false) // junk stone goes first, never the ore
-    const items = mine()
-    out.left = items.length
+    if (U.freeSlots(bot) <= 0) { out.stop = 'full'; break }
+    const items = mine().filter(e => !skip.has(e.id))
     if (!items.length) break
     const me = bot.entity.position
     items.sort((a, b) => a.position.distanceTo(me) - b.position.distanceTo(me))
     const it = items[0]
-    if (it.position.distanceTo(me) < 1.1) { await sleep(200); continue }
-    if (moves >= (opts.maxMoves || 26)) break
+    if (it.position.distanceTo(me) < 1.1) {
+      if (nearId !== it.id) { nearId = it.id; nearT = Date.now() }
+      if (Date.now() - nearT > 1500) give(it, 'near_not_taken'); else await sleep(200)
+      continue
+    }
+    if (moves >= (opts.maxMoves || 26)) { out.stop = 'moves'; break }
     const c = it.position.floored()
     const f = feet(bot)
     // one 4-neighbour step towards the drop, at the y we can legally stand on next
@@ -1485,8 +1522,8 @@ async function collectVein (bot, cells, gen, opts = {}) {
     const ddx = c.x - f.x; const ddz = c.z - f.z
     if (Math.abs(ddx) >= Math.abs(ddz)) sx = Math.sign(ddx); else sz = Math.sign(ddz)
     if (!sx && !sz) { // same column, different height: straight down inside our own cavity, or up onto it
-      if (c.y < f.y && f.y - c.y <= 3 && [1, 2, 3].every(d => f.y - d < c.y || isOpen(blk(bot, f.x, f.y - d, f.z)))) { await sleep(250); continue }
-      break
+      if (c.y < f.y && f.y - c.y <= 3 && [1, 2, 3].every(d => f.y - d < c.y || isOpen(blk(bot, f.x, f.y - d, f.z)))) { await sleep(250); if (nearId !== it.id) { nearId = it.id; nearT = Date.now() } else if (Date.now() - nearT > 1500) give(it, 'below'); continue }
+      give(it, c.y > f.y ? 'above' : 'below'); continue
     }
     const nx = f.x + sx; const nz = f.z + sz
     let ny = f.y
@@ -1494,16 +1531,18 @@ async function collectVein (bot, cells, gen, opts = {}) {
     else if (c.y < f.y) { // how deep is the floor of the next column? never step into a drop of more than 3
       let d = 0
       while (d < 5 && isOpen(blk(bot, nx, f.y - 1 - d, nz))) d++
-      if (d > 3) break
+      if (d > 3) { give(it, 'deep'); continue }
       ny = f.y - Math.min(d, f.y - c.y)
     }
-    if (await openCell(bot, nx, ny, nz) !== 'ok') break
-    if (!await stepTo(bot, nx, nz, { ms: 2500, gen, up: ny > f.y })) break
+    if (await openCell(bot, nx, ny, nz) !== 'ok') { give(it, 'open_fail'); continue }
+    if (!await stepTo(bot, nx, nz, { ms: 2500, gen, up: ny > f.y })) { give(it, 'step_fail'); continue }
     moves++
     await sweep(bot, 400, 2)
   }
+  if (!out.stop && Date.now() >= end) out.stop = 'time'
   await sweep(bot, 600, 2.5)
   out.left = mine().length
+  if (Object.keys(why).length) out.skipped = why
   const after = U.invMap(bot)
   for (const k of Object.keys(after)) { const n = after[k] - (before[k] || 0); if (n > 0 && VALUABLE_RE.test(k)) out.got[k] = n }
   out.tookS = Math.round((Date.now() - t0) / 1000)
@@ -1605,6 +1644,7 @@ function exposedNear (bot, at, r = 24, y = at.y, dy = 3) {
     if (!ids.length) return out
     for (const p of bot.findBlocks({ matching: ids, maxDistance: Math.max(r, dy) + 2, count: 512, point: new Vec3(at.x, y, at.z) })) {
       if (Math.abs(p.y - y) > dy || Math.hypot(p.x - at.x, p.z - at.z) > r) continue
+      if ((DEAD_ORE.get(U.kpos(p)) || 0) > Date.now()) continue // came back empty-handed from it lately (caveOre)
       if (!FACES.some(d => isOpen(blk(bot, p.x + d[0], p.y + d[1], p.z + d[2])))) continue
       out.push(p)
     }
@@ -1616,6 +1656,9 @@ function exposedNear (bot, at, r = 24, y = at.y, dy = 3) {
 // toward it at CORRIDOR LEVEL one openCell at a time (floors a gap, plugs a liquid, never steps into a void), takes the whole connected body, collects
 // the drops (collectDrops + collectVein) and walks its trail back; `drainSeen` then takes what those digs uncovered. No pathfinder, no private diagonal,
 // and the excursion ends on the anchor cell of our own line. Bounded by time, by VEIN_R and by maxMoves - a miner never wanders off into the dark.
+// an exposed ore a vein excursion came back from EMPTY-handed (a ledge out of reach, 3 above the corridor) is not tried again for 30 min by any bot of
+// this process (09-21 08:3xZ: Sayaka `vein_done coal ore:0` at the same -254,18,-463 every 12 s; line 558: the same cave ore re-picked by every miner)
+const DEAD_ORE = global.__ironDeadOre = global.__ironDeadOre || new Map()
 const CAVE_ORE_MS = 240000    // one cavern is worth four minutes of a slice, no more (the branch and the commute still have to fit)
 const CAVE_ORE_R = 24         // how far out of the mouth its walls are worked
 async function caveOre (bot, M, mouth, gen, opts = {}) {
@@ -1644,8 +1687,9 @@ async function caveOre (bot, M, mouth, gen, opts = {}) {
     const b = bot.blockAt(p)
     const fam = b && oreFamily(b.name)
     if (!fam) continue
+    const dk = U.kpos(p); if ((DEAD_ORE.get(dk) || 0) > Date.now()) continue
     const n = await mineVein(bot, b, y, anchor, gen, { maxMoves: 24 })
-    if (n > 0) { out.veins++; out.ore += n; if (fam === 'iron') out.iron += n }
+    if (n > 0) { out.veins++; out.ore += n; if (fam === 'iron') out.iron += n } else if (!stale(bot, gen) && oreFamily((bot.blockAt(p) || {}).name || '')) { DEAD_ORE.set(dk, Date.now() + 30 * 60000); if (DEAD_ORE.size > 2000) DEAD_ORE.clear() }
     const dr = await drainSeen(bot, y, anchor, gen)
     out.ore += dr.got; out.iron += dr.iron
   }
@@ -1932,6 +1976,7 @@ async function claimBranch (bot, M) {
           // the squad was mining it), `caveTry` is the count that stops a cave branch being handed out for ever.
           L.branches[key] = { owner: bot.username, t: now, k, side, len: (b && b.len) || 0, done: false, ore: (b && b.ore) || 0, iron: (b && b.iron) || 0, caveTry: (b && b.caveTry) || 0 }
           if (b && b.need) L.branches[key].need = b.need
+          if (b && b.faceFail) L.branches[key].faceFail = b.faceFail // who could not reach its face (faceFail): the second one closes it
           return Object.assign({ key }, L.branches[key])
         }
       }
@@ -2125,7 +2170,23 @@ async function gotoBranchFace (bot, M, br, gen) {
     else await saveBranch(M, br.key, { owner: null })
     return false
   }
+  if (lf && lf.why !== 'needpick' && !stale(bot)) await faceFail(bot, M, br, lf)
   return needPick(bot, M, br)
+}
+// A FACE NOBODY CAN REACH IS CLOSED ON THE BOARD, not per bot (09-21: `iron:to-face 12:-1 blocked` -276,16,-448 x29 from 23 bots in an hour - the per-bot
+// 10-min skip only spaced out the SAME walk of 50 cells for every miner of the squad). The leg from the mouth to the face failed (blocked / no_floor /
+// no_progress / climb / off_level): the branch record keeps who failed where; the SECOND different miner (or the same one a third time, within 2 h)
+// closes the branch `face_blocked` for good - claimBranch never hands out a done branch whose `why` is set, and the level has 159 others.
+async function faceFail (bot, M, br, lf) {
+  const closed = await update(M.E, d => {
+    const b = lvState(d, M.level).branches[br.key]; if (!b || b.done) return null
+    const now = Date.now(); const ff = b.faceFail && now - (b.faceFail.t || 0) < 2 * 3600000 ? b.faceFail : { n: 0, bots: [] }
+    ff.n++; ff.t = now; ff.why = lf.why; ff.at = lf.at; ff.to = lf.to || null; if (!ff.bots.includes(bot.username)) ff.bots.push(bot.username)
+    b.faceFail = ff; b.owner = null; b.t = 0
+    if (ff.bots.length >= 2 || ff.n >= 3) { b.done = true; b.why = 'face_blocked'; return ff }
+    return null
+  })
+  if (closed) say(bot, { ev: 'mine_face_closed', level: M.level, branch: br.key, why: closed.why, at: closed.at, to: closed.to, bots: closed.bots, n: closed.n, note: 'two miners could not walk from the mouth to this face: the branch is closed, nobody re-picks it' })
 }
 // THE TRUNK CANNOT BE DRIVEN ON (an aquifer, a void nobody can floor - level 16: every branch from k 35 on ended `liquid` at its first cell): when TWO
 // different miners fail with blocked / no_floor at the same stretch BEYOND the old trunk end, the level ends there (`kStop`: claimBranch and
@@ -2379,9 +2440,9 @@ function exitReason (bot) {
 // the stair row at our own height (every y has one), else the nearest trunk - stepped one block per cell where the height differs. Only inside
 // the mine's box, never further than 64, never towards the sky; `mine_reconnect` tells the board where the hole is (from -> to) and whether the
 // bot is verifiably back on the graph.
-function reconnectTarget (M, f) {
+function reconnectTarget (M, f, ban) {
   let best = null
-  const take = (p, part) => { const cost = Math.abs(p[0] - f.x) + Math.abs(p[2] - f.z) + 2 * Math.abs(p[1] - f.y); if (!best || cost < best.cost) best = { p, part, cost } }
+  const take = (p, part) => { if (ban && ban.has(p.join(','))) return; const cost = Math.abs(p[0] - f.x) + Math.abs(p[2] - f.z) + 2 * Math.abs(p[1] - f.y); if (!best || cost < best.cost) best = { p, part, cost } }
   const st = refresh(M)
   for (const [k, g] of M.G.feet) { if (g > st.dug) continue; const p = k.split(',').map(Number); if (p[1] === f.y || (g === Math.max(0, st.dug) && p[1] > f.y)) take(p, 'stair') }
   for (const lv of Object.values(M.G.levels)) {
@@ -2398,22 +2459,67 @@ function reconnectTarget (M, f) {
   return best
 }
 // one cell of a stepped 1x2 connection (dy = +1 up / -1 down): 'ok' or why not
+// no filler for the floor of an UP step: take one from the wall beside us first, the way a player does (a cave pocket has no rock in the cells being opened,
+// so the pack stays empty and the step failed `nofloor` for ever: 09-21 Noa x494 in 3 min)
+async function grabFiller (bot) {
+  if (fillItem(bot) || !bestPick(bot)) return !!fillItem(bot)
+  const f = feet(bot)
+  for (const [dx, dz] of DIRS) for (const dy of [0, 1]) {
+    const b = blk(bot, f.x + dx, f.y + dy, f.z + dz)
+    if (!isSolid(b) || U.protectedBlock(b) || stairSolid(b.position.x, b.position.y, b.position.z) || !/^(stone|deepslate|cobblestone|cobbled_deepslate|andesite|diorite|granite|tuff|dripstone_block|calcite)$/.test(b.name)) continue
+    if (FACES.some(d => isLiquid(bot.blockAt(b.position.offset(d[0], d[1], d[2]))))) continue
+    const r = await digCell(bot, b.position)
+    if (r === 'ok') { await sweep(bot, 1200, 2.5); if (fillItem(bot)) return true }
+  }
+  return !!fillItem(bot)
+}
 async function stepDig (bot, sx, sz, dy, gen) {
   const f = feet(bot); const nx = f.x + sx; const nz = f.z + sz; const ny = f.y + dy
   const open = dy > 0 ? [[f.x, f.y + 2, f.z], [nx, ny + 1, nz], [nx, ny, nz]] : [[nx, f.y + 1, nz], [nx, f.y, nz], [nx, ny, nz]]
   for (const c of open) { const r = await digCell(bot, new Vec3(c[0], c[1], c[2]), { hand: true, breach: true }); if (r !== 'ok' && r !== 'air') return r }
-  if (!isSolid(blk(bot, nx, ny - 1, nz))) { const it = fillItem(bot); if (!it || !await placeAt(bot, it, new Vec3(nx, ny - 1, nz))) return 'nofloor' }
+  let low = 0 // DOWN over a missing floor: a drop of up to 3 onto rock is walked (read-only, like any player), not floored
+  if (!isSolid(blk(bot, nx, ny - 1, nz))) {
+    if (dy < 0) { while (low < 3 && isOpen(blk(bot, nx, ny - 1 - low, nz))) low++; if (!isSolid(blk(bot, nx, ny - 1 - low, nz)) || isHot(blk(bot, nx, ny - 1 - low, nz))) low = 0 }
+    if (!low) {
+      if (dy > 0) await grabFiller(bot)
+      const it = fillItem(bot); if (!it || !await placeAt(bot, it, new Vec3(nx, ny - 1, nz))) return 'nofloor'
+    }
+  }
   await stepTo(bot, nx, nz, { ms: 3000, gen, up: dy > 0 })
-  await settle(bot, 1200, ny)
+  await settle(bot, 1200 + low * 400, ny - low)
   const g = feet(bot)
-  return g.x === nx && g.z === nz && g.y === ny ? 'ok' : 'fail'
+  return g.x === nx && g.z === nz && g.y <= ny && g.y >= ny - low ? 'ok' : 'fail'
+}
+// A RETRY IS ANOTHER WAY, NOT THE SAME STEP (09-21: Noa `mine_reconnect step_nofloor` x494 in 3 min from ONE cell, Hazuki `step_liquid` x126 in 30 s in
+// a lake, Sumire `step_fail` x5 at the same cell - every call re-picked the same target and failed on the same first step). Per bot: a failure from the
+// same spot bans that target (the next call takes the next-nearest graph cell: another stair row, the trunk, another branch); from the third failure
+// on at the same spot the bot waits (20 s, 40 s, 60 s) before it tries again, and the board hears one line per spot and reason a minute, not per try.
+function reconMemo (bot, from) {
+  const m = bot.__ironRecon
+  if (m && Math.abs(m.from[0] - from.x) + Math.abs(m.from[1] - from.y) + Math.abs(m.from[2] - from.z) <= 2 && Date.now() - m.t < 10 * 60000) return m
+  return (bot.__ironRecon = { from: [from.x, from.y, from.z], n: 0, ban: new Set(), t: Date.now() })
 }
 async function reconnect (bot, M, gen) {
   const from = feet(bot)
-  const out = (ok, why, extra) => { const p = feet(bot); const rec = Object.assign({ ev: 'mine_reconnect', ok, from: [from.x, from.y, from.z], at: [p.x, p.y, p.z] }, why ? { why } : {}, extra || {}); say(bot, rec); if (!ok) { try { army().askHelp(bot, 'mine_lost', 'off the mine graph at ' + rec.at.join(',') + ': ' + why, { at: rec.at }) } catch (e_) { swallow('iron_core:lostHelp', e_) } } return { ok, why } }
+  const memo = reconMemo(bot, from)
+  if (memo.n >= 2) { // third try from the same spot: back off first (every call used to fail within 0.4 s and the caller's loop called again)
+    const until = Date.now() + Math.min(60000, 20000 * (memo.n - 1))
+    while (Date.now() < until && !stale(bot, gen)) await sleep(500)
+    if (stale(bot, gen)) return { ok: false, why: 'interrupted' }
+  }
+  let tgtRef = null
+  const out = (ok, why, extra) => {
+    const p = feet(bot); const rec = Object.assign({ ev: 'mine_reconnect', ok, from: [from.x, from.y, from.z], at: [p.x, p.y, p.z] }, why ? { why } : {}, extra || {})
+    if (ok) { bot.__ironRecon = null; say(bot, rec); return { ok, why } }
+    memo.n++; memo.t = Date.now(); if (tgtRef) memo.ban.add(tgtRef.p.join(','))
+    rec.tries = memo.n; rec.banned = memo.ban.size
+    if (sayOnce(bot, 'recon@' + from.x + ',' + from.y + ',' + from.z + ':' + why, 60000, rec)) { try { army().askHelp(bot, 'mine_lost', 'off the mine graph at ' + rec.at.join(',') + ': ' + why, { at: rec.at }) } catch (e_) { swallow('iron_core:lostHelp', e_) } }
+    return { ok, why }
+  }
   if (!inBox(M.box, from, 12)) return out(false, 'outside_mine_box')
-  const tgt = reconnectTarget(M, from)
+  const tgt = reconnectTarget(M, from, memo.ban)
   if (!tgt || tgt.cost > 64) return out(false, tgt ? 'too_far' : 'no_target', tgt ? { to: tgt.p } : null)
+  tgtRef = tgt
   bot.state.task = 'iron:reconnect ' + tgt.p.join(',')
   const dug0 = (bot.__ironStats || {}).dug || 0
   let moves = tgt.cost + 16; let bad = 0
@@ -2421,12 +2527,14 @@ async function reconnect (bot, M, gen) {
     const f = feet(bot); const dy = Math.sign(tgt.p[1] - f.y)
     if (dy === 0) { await walkLine(bot, tgt.p[0], tgt.p[2], gen, 60000 + tgt.cost * 4000, { y: tgt.p[1], hand: true, breach: true }); break }
     const dx = tgt.p[0] - f.x; const dz = tgt.p[2] - f.z
-    const dirs = Math.abs(dx) >= Math.abs(dz) ? [[Math.sign(dx) || 1, 0], [0, Math.sign(dz) || 1], [0, -(Math.sign(dz) || 1)]] : [[0, Math.sign(dz) || 1], [Math.sign(dx) || 1, 0], [-(Math.sign(dx) || 1), 0]]
+    const sx = Math.sign(dx) || 1; const sz = Math.sign(dz) || 1
+    const dirs = Math.abs(dx) >= Math.abs(dz) ? [[sx, 0], [0, sz], [0, -sz], [-sx, 0]] : [[0, sz], [sx, 0], [-sx, 0], [0, -sz]] // the way back too: a pocket's only exit may lie behind us
     let r = null
-    for (const [sx, sz] of dirs) { r = await stepDig(bot, sx, sz, dy, gen); if (r === 'ok') break }
+    for (const [ddx, ddz] of dirs) { r = await stepDig(bot, ddx, ddz, dy, gen); if (r === 'ok') break }
     if (r !== 'ok' && ++bad >= 3) return out(false, 'step_' + r, { to: tgt.p })
   }
   const ok = !!locate(M.G, feet(bot), 0)
+  if (stale(bot, gen) && !ok) return { ok: false, why: 'interrupted' }
   return out(ok, ok ? null : ((bot.__ironLineFail || {}).why || 'not_arrived'), { to: tgt.p, part: tgt.part, dug: ((bot.__ironStats || {}).dug || 0) - dug0 })
 }
 
@@ -2477,7 +2585,7 @@ async function toSurface (bot, opts = {}) {
   // an INTERRUPTED walk is not a blocked one: walkLine/walkRoute return false WITHOUT a failure record only when the run went stale (slice end, hot
   // reload, recall by the army). 09-20: `mine_blocked surface_stairs|surface_line` x9 by 6 bots read as "miners cannot climb" - every one of them was
   // followed within 40 s by `recalled surfaced:true` or carried on in its next slice to `banked` (240 banks/h); the 02:13:46Z cluster was a hot reload.
-  if (!up && stale(bot, gen) && (why === 'line' || why === 'stairs' || why === 'failed')) return { ok: false, why: 'interrupted', pos: pos() } // 'line'/'stairs' = the leg left no failure record
+  if (!up && stale(bot, gen) && (why === 'line' || why === 'stairs' || why === 'failed' || why === 'interrupted')) return { ok: false, why: 'interrupted', pos: pos() } // 'line'/'stairs' = the leg left no failure record
   if (!up) blocked(bot, 'surface_' + why, { want: 'up' })
   return up ? { ok: true, was: 'underground', pos: pos() } : { ok: false, why, pos: pos(), fail: bot.__ironStairFail || bot.__ironLineFail || null }
 }

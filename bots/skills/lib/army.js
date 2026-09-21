@@ -686,8 +686,10 @@ function fieldCost (bot, mv) {
   return mv
 }
 
+// OFF by the owner's word 09-21 08:1xZ: 「ダッシュジャンプやめて」 - the hop stays in the code, switched on only by `settings.dash:true`.
 function dashRule (bot) {
   if (bot.__armyDash) { bot.removeListener('physicsTick', bot.__armyDash); bot.__armyDash = null }
+  const dsw = settings().dash; if (!(dsw === true || (Array.isArray(dsw) && dsw.includes(bot.username)))) return // true = everybody, [names] = a test crew
   const on = () => {
     try {
       const e = bot.entity; if (!e) return
@@ -711,7 +713,7 @@ function dashRule (bot) {
       if (floor0.boundingBox !== 'block' || floor1.boundingBox !== 'block') return // a step down or a gap: the landing would be short
       if (body0.boundingBox === 'block' || head0.boundingBox === 'block') return // something to bump into
       if (CROP_UNDER.test(floor0.name) || CROP_UNDER.test(floor1.name)) return
-      bot.setControlState('jump', true); setTimeout(() => { try { bot.setControlState('jump', false) } catch {} }, 220)
+      bot.setControlState('jump', true); bot.__dashFired = 1; setTimeout(() => { try { bot.setControlState('jump', false) } catch {} }, 220)
     } catch {}
   }
   bot.__armyDash = on; bot.on('physicsTick', on)
@@ -1611,7 +1613,7 @@ async function dumpJunk (bot, items, opts = {}) {
 async function bank (bot, keep = {}, opts = {}) {
   if (!overworldBot(bot)) { offWorld(bot, 'bank'); return {} } // the depot index is OVERWORLD coordinates
   const plan = {}
-  await wear(bot) // what is still in the pockets afterwards is spare: it goes to the depot for the next bot
+  if (!opts.strip) await wear(bot) // what is still in the pockets afterwards is spare: it goes to the depot for the next bot. NOT when stripping: bareDown has just TAKEN the armour off to bank it (09-21 08:3xZ: Nanami crossed a bare job in a diamond chestplate + leggings - this line put them back on first)
   // `opts.strip` = bank a tier DOWN (the bare-handed rule): the usual "keep the best of each kind and anything better than what is worn" is exactly
   // what stopped a bot bound for the Nether from leaving its diamonds behind (09-21: Hina carried a diamond sword, axe, shovel and chestplate out
   // of a `bare_handed` call that banked nothing). With `strip` the caller's `keep` is the whole truth.
