@@ -1362,14 +1362,14 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Misaki",
+   "by": "Nanami",
    "portal": [
-    -47,
-    98,
+    -48,
+    100,
     -77
    ],
-   "through": 1790026933580,
-   "scoutRev": 73,
+   "through": 1790028570292,
+   "scoutRev": 2,
    "hub": {
     "room": [
      -41,
@@ -1481,7 +1481,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789969045309,
-   "back": 1790026846974,
+   "back": 1790028698883,
    "lastDeath": 1790012273059,
    "lastDeathBy": "Yukina",
    "roads": {
@@ -1919,7 +1919,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1790026392678,
+   "gatesAt": 1790028192586,
    "pairRoad": {
     "from": [
      -43,
@@ -2299,10 +2299,10 @@
     ],
     "y": 98,
     "h": 4,
-    "left": 125,
+    "left": 124,
     "unloaded": 0,
     "done": false,
-    "at": 1790026420939,
+    "at": 1790028498853,
     "by": "Nanami"
    }
   },
@@ -2434,7 +2434,7 @@
       28
      ]
     },
-    "t": 1790026466339
+    "t": 1790028713607
    },
    "absorb": {
     "gray_wool": 288,
@@ -4097,7 +4097,7 @@
    "note": "06:3xZ mine engineer: readiness no longer hands a WELL-FED miner back when the depot cannot give 8 food units (48 mine_not_ready from 24 bots in 20 min left the squad at ZERO); caves at a branch face are now harvested, not walled off. rev bump voids the stale not-ready declines",
    "bots": 4,
    "rev": 95,
-   "restUntil": 1790026887242
+   "restUntil": 1790029104090
   },
   {
    "id": "base_dorm",
@@ -4275,9 +4275,9 @@
     "radius": 250,
     "bankAt": 32
    },
-   "rev": 31,
+   "rev": 32,
    "bots": 0,
-   "restUntil": 1790026902252
+   "restUntil": 1790029204157
   },
   {
    "id": "sleeper",
@@ -4362,10 +4362,11 @@
     "why": "20 furnaces stand since 20:47Z and nobody loads them: raw meat and fish must be COOKED (wounded bots cannot heal), 27 raw iron must become ingots (bucket for the field water, shields, armour), logs must become charcoal (torches: 23/224)"
    },
    "params": {
-    "bank": true
+    "bank": true,
+    "cook": true
    },
-   "rev": 2,
-   "restUntil": 1790026971964
+   "rev": 3,
+   "restUntil": 1790028751879
   },
   {
    "id": "fill_ring_field1",
@@ -5574,7 +5575,7 @@
     "crossS": 45
    },
    "rev": 5,
-   "restUntil": 1790027122448,
+   "restUntil": 1790028943975,
    "exclude": []
   },
   {
@@ -6562,7 +6563,7 @@
     "bare": true
    },
    "rev": 18,
-   "restUntil": 1790028348550
+   "restUntil": 1790030159866
   },
   {
    "id": "nether_gate_old_down",
@@ -6881,7 +6882,7 @@
      ]
     ]
    },
-   "restUntil": 1790026992333,
+   "restUntil": 1790028963991,
    "rev": 3
   },
   {
@@ -8208,7 +8209,7 @@
     "target": 16,
     "bare": true
    },
-   "restUntil": 1790027041704,
+   "restUntil": 1790028995657,
    "rev": 1
   },
   {
@@ -9060,7 +9061,7 @@
     "bare": true
    },
    "rev": 1,
-   "restUntil": 1790027052388
+   "restUntil": 1790029654485
   },
   {
    "id": "nether_bridge_roof",
