@@ -2459,6 +2459,16 @@ module.exports = ctx => {
       A.result(bot, { ev: 'gate_stuck', job: job.id, at: xyz(bot.entity.position), dim: dimOf(bot), offCellS, area: A.walkableArea(bot, 60, 1), why: 'still standing in the arrival cells after ' + offCellS + ' s - no work starts from a portal cell; the cooldown will take me home' })
       return 'in the Nether standing in the gate at ' + xyz(me).join(',') + ': could not get clear of the arrival cells'
     }
+    // A ROUTE JOB OUT OF SIGHT OF THE GATE CUTS ITS WAY FROM WHERE IT STANDS (09-21 13:5xZ: Chika in the rock pocket at -66,94,-85, on
+    // seq 0 of her own escape route, looped `nether_lost` every 12 s because no gate was in view - the gate is what the route leads to)
+    if (!far && P.work === 'route' && Array.isArray(P.legs) && !st.worked && !api.stop()) {
+      st.worked = true
+      let w = null
+      try { w = await doWork(bot, job, api, st, P, [], null) } catch (e) { w = { work: 'route', why: 'threw: ' + String(e && e.message).slice(0, 90) }; swallow('jobs_nether:doWorkBlind', e) }
+      A.result(bot, Object.assign({ ev: 'nether_pass', job: job.id, blind: true }, w || {}))
+      far = bot.findBlock({ matching: b => !!b && b.name === 'nether_portal', maxDistance: 48 })
+      if (far) return await comeHome(bot, job, api, ctx2, st, P)
+    }
     if (!far) {
       // no gate in sight = no way home on foot. Say it and stand still; the operator decides (a second gate, a rescue expedition).
       A.result(bot, { ev: 'nether_lost', job: job.id, pos: xyz(me), why: 'no nether_portal block within 32 of where I arrived' })

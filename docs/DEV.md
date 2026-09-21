@@ -95,7 +95,7 @@ Each bot optimises its own trip; the next bot finds pits, stumps and pillars, fa
 the base yard became a crater (chests floating over 6-16 deep pits) and the plateau got 35 trap pits and 72 junk pillars.
 
 **Rules**
-0. **Known traps are weighted, not walled:** `settings.avoid = [{box:[x1,z1,x2,z2], why}]` adds +60 per cell inside the box to EVERY bot's path cost (`army.js fieldCost`, next to the field weight). Put a trap there the day it catches its second bot.
+0. **Known traps are weighted, not walled:** `settings.avoid = [{box:[x1,z1,x2,z2], why}]` adds `w` (default +60) per cell inside the box to EVERY bot's path cost (`army.js fieldCost`, next to the field weight). Put a trap there the day it catches its second bot.
 1. **Travel is read-only.** `A.strictMovements`: `canDig=false`, `scafoldingBlocks=[]`, `allow1by1towers=false`, no parkour,
    SPRINT while the larder holds >= 256 food and the bot's food > 6 (asked per trip in `A.travel`; the mine's raw-control walks sprint on looked-at cells only), `maxDropDown=3` (pathfinder counts to the landing's FLOOR block: real drop = value-1; surface trips use 2 = one block, reversible). `lib/terrain_guard.js` (installed by the manager on every bot; its timer calls the LIVE module, a new `VERSION` re-installs through `strictMovements`/`travel`) enforces the same on the surface
    whatever Movements a skill installs, and counts edits: `stats(bot)` → `pfPlaced/pfDug` must stay 0 (measured 0 for the army).

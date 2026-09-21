@@ -737,8 +737,8 @@ function fieldCost (bot, mv) {
   const boxes = fieldBoxes()
   // TRAPS THE ARMY KNOWS (09-21 13:3xZ): `settings.avoid = [{box:[x1,z1,x2,z2], why}]` - ground every bot walks round, e.g. the lake W of the
   // base whose cliffs let a bot in but never out (Hazuki, Fuuka, Riko, Chika, Riko again: frozen or stranded in it today). A weight, not a veto.
-  const avoid = ((settings().avoid) || []).map(a => a && a.box).filter(q => Array.isArray(q) && q.length === 4)
-  const f = b => { if (!b || !b.position) return 0; const { x, z } = b.position; for (const q of avoid) if (x >= q[0] && x <= q[2] && z >= q[1] && z <= q[3]) return 60; if (mineToo) return 0; for (const q of boxes) if (x >= q[0] - 1 && x <= q[2] + 1 && z >= q[1] - 1 && z <= q[3] + 1) return 40; return 0 }
+  const avoid = ((settings().avoid) || []).filter(a => a && Array.isArray(a.box) && a.box.length === 4) // {box, why, w} - w = weight per cell (default 60)
+  const f = b => { if (!b || !b.position) return 0; const { x, z } = b.position; for (const a of avoid) { const q = a.box; if (x >= q[0] && x <= q[2] && z >= q[1] && z <= q[3]) return a.w || 60 } if (mineToo) return 0; for (const q of boxes) if (x >= q[0] - 1 && x <= q[2] + 1 && z >= q[1] - 1 && z <= q[3] + 1) return 40; return 0 }
   mv.exclusionAreasStep = (mv.exclusionAreasStep || []).filter(g => !g.__armyField).concat(Object.assign(f, { __armyField: true }))
   return mv
 }

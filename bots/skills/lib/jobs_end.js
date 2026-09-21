@@ -239,7 +239,7 @@ module.exports = ctx => {
     if (!isOver(bot)) return muster(bot, job, api, ctx2, 'eyes: overworld work (' + dimOf(bot) + ')')
     const target = P.target || 16
     const stockAll = k => A.stockOf(k) + A.count(bot, k)
-    const have = stockAll('eye_of_ender')
+    const have = stockAll('ender_eye')
     if (have >= target) {
       pauseSelf(job, 'auto-paused: ' + have + '/' + target + ' eyes of ender stand in the depot')
       A.result(bot, { ev: 'eyes_crafted', job: job.id, made: 0, have, target, done: true })
@@ -259,11 +259,11 @@ module.exports = ctx => {
       return muster(bot, job, api, ctx2, 'eyes: nothing to craft with — ' + miss.join(' + '))
     }
     task(bot, 'eyes: crafting ' + can + ' eye_of_ender')
-    const had = A.count(bot, 'eye_of_ender')
-    await A.obtain(bot, 'eye_of_ender', had + can, { stop: api.stop }).catch(e_ => swallow('jobs_end:obtainEye', e_))
-    const made = A.count(bot, 'eye_of_ender') - had
+    const had = A.count(bot, 'ender_eye')
+    await A.obtain(bot, 'ender_eye', had + can, { stop: api.stop }).catch(e_ => swallow('jobs_end:obtainEye', e_))
+    const made = A.count(bot, 'ender_eye') - had
     if (made > 0) await A.bank(bot, { bread: 8, torch: 16 }, { job: job.id, stop: api.stop }).catch(e_ => swallow('jobs_end:bankEye', e_))
-    const nowHave = A.stockOf('eye_of_ender') + A.count(bot, 'eye_of_ender')
+    const nowHave = A.stockOf('ender_eye') + A.count(bot, 'ender_eye')
     A.result(bot, { ev: 'eyes_crafted', job: job.id, made, have: nowHave, target, pearlsLeft: A.stockOf('ender_pearl'), rodsLeft: A.stockOf('blaze_rod') })
     if (!made) A.decline(bot, job, 5 * 60000, 'eyes: the ingredients are on the books but the craft produced none')
     return 'eyes: ' + made + ' crafted, ' + nowHave + '/' + target + ' in stock'
@@ -274,7 +274,7 @@ module.exports = ctx => {
   // DISPLACEMENT over the first ~20 ticks is the bearing. Read from the ENTITY, never from the bot's yaw.
   const EYE_RE = /eye_of_ender|ender_eye|eye_of_ender_signal/
   async function throwEye (bot, api) {
-    const it = bot.inventory.items().find(i => i.name === 'eye_of_ender')
+    const it = bot.inventory.items().find(i => i.name === 'ender_eye')
     if (!it) return { ok: false, why: 'no eye_of_ender in hand or pockets' }
     try { await U.withTimeout(bot.equip(it, 'hand'), 3000, 'eyeHand') } catch (e_) { swallow('jobs_end:eyeHand', e_); return { ok: false, why: 'could not hold the eye' } }
     const before = new Set(Object.keys(bot.entities))
@@ -306,10 +306,10 @@ module.exports = ctx => {
     if (!(len > 0.05)) return { ok: false, why: 'the eye did not move in ' + (now() - t0) + ' ms (len ' + round1(len) + ')' }
     // AN EYE SURVIVES FOUR THROWS IN FIVE: it falls back as an item ~12 blocks along the bearing. A player walks over and picks it
     // up, and so does this — eyes cost a blaze rod each and the whole search is rationed by them.
-    const had = A.count(bot, 'eye_of_ender')
+    const had = A.count(bot, 'ender_eye')
     await sleep(2500)
     await A.pickup(bot, 14, 6000)
-    return { ok: true, dir: [dx / len, dz / len], dy: round1(dy), from: xyz(bot.entity.position), speed: round1(len), kept: A.count(bot, 'eye_of_ender') > had }
+    return { ok: true, dir: [dx / len, dz / len], dy: round1(dy), from: xyz(bot.entity.position), speed: round1(len), kept: A.count(bot, 'ender_eye') > had }
   }
   // t along d1 where the two bearings cross (PLAYBOOK "Stronghold"); null when the legs are too parallel to trust
   function triangulate (a, b) {
@@ -372,11 +372,11 @@ module.exports = ctx => {
     if (!isOver(bot)) return muster(bot, job, api, ctx2, 'stronghold: overworld work (' + dimOf(bot) + ')')
     const S = endS()
     const want = P.eyes || 6
-    const short = await need(bot, api, { eye_of_ender: want, torch: 32, bread: 12, cobblestone: 32 })
-    if (A.count(bot, 'eye_of_ender') < 1) {
+    const short = await need(bot, api, { ender_eye: want, torch: 32, bread: 12, cobblestone: 32 })
+    if (A.count(bot, 'ender_eye') < 1) {
       A.result(bot, { ev: 'sh_blocked', job: job.id, why: 'no eye_of_ender to throw', short })
       A.decline(bot, job, 8 * 60000, 'stronghold: no eyes yet')
-      return muster(bot, job, api, ctx2, 'stronghold: no eye_of_ender (stock ' + A.stockOf('eye_of_ender') + ') — staff work:"eyes" first')
+      return muster(bot, job, api, ctx2, 'stronghold: no eye_of_ender (stock ' + A.stockOf('ender_eye') + ') — staff work:"eyes" first')
     }
     // ---- already dug in? keep digging / look around
     const room = S.room || {}
@@ -437,7 +437,7 @@ module.exports = ctx => {
     const th = await throwEye(bot, api)
     if (!th.ok) { A.result(bot, { ev: 'eye_lost', job: job.id, why: th.why, at: xyz(me()) }); return 'stronghold: the throw gave no bearing (' + th.why + ')' }
     const rec = { at: th.from, dir: th.dir, dy: th.dy, by: bot.username, t: now() }
-    A.result(bot, { ev: 'eye_thrown', job: job.id, at: rec.at, dir: rec.dir.map(round1), dy: rec.dy, phase: 'bearing', have: A.count(bot, 'eye_of_ender') })
+    A.result(bot, { ev: 'eye_thrown', job: job.id, at: rec.at, dir: rec.dir.map(round1), dy: rec.dy, phase: 'bearing', have: A.count(bot, 'ender_eye') })
     endEdit(e => { e.throws = (Array.isArray(e.throws) ? e.throws : []).filter(q => now() - q.t < 6 * 3600000).concat([rec]).slice(-12) })
     // can we cross this with an earlier bearing?
     let best = null
@@ -455,6 +455,22 @@ module.exports = ctx => {
     task(bot, 'stronghold: crossing the bearing to ' + to.x + ',' + to.z)
     const ok = await A.travel(bot, to, { range: 10, ms: 420000, stop: api.stop })
     A.result(bot, { ev: 'sh_leg', job: job.id, ok, to: [to.x, to.z], phase: 'cross', at: xyz(me()), why: 'a second bearing needs a base line across the first' })
+    // THE SECOND THROW HAPPENS WHERE THE LEG ENDS, IN THIS SLICE (top model 09-21 14:2xZ: the next slice opens with `need()`, which walks
+    // the bot back to the depot for its kit - so Hina threw 5 times from the base, all bearing 0.2,1, and never got a crossing).
+    if (ok && !api.stop() && A.count(bot, 'ender_eye') > 0) {
+      const t2 = await throwEye(bot, api)
+      if (t2.ok) {
+        const rec2 = { at: t2.from, dir: t2.dir, dy: t2.dy, by: bot.username, t: now() }
+        A.result(bot, { ev: 'eye_thrown', job: job.id, at: rec2.at, dir: rec2.dir.map(round1), dy: rec2.dy, phase: 'cross', have: A.count(bot, 'ender_eye') })
+        endEdit(e => { e.throws = (Array.isArray(e.throws) ? e.throws : []).filter(q => now() - q.t < 6 * 3600000).concat([rec2]).slice(-12) })
+        const c = triangulate(rec, rec2)
+        if (c) {
+          endEdit(e => { e.fix = { x: c.x, z: c.z, t: now(), legs: 2, den: c.den } })
+          A.result(bot, { ev: 'sh_fix', job: job.id, fix: [c.x, c.z], from: rec2.at, legs: 2, den: c.den, dist: Math.round(Math.hypot(c.x - rec2.at[0], c.z - rec2.at[2])), why: 'two eye bearings crossed - this is where the stronghold is (within ~20-50 blocks)' })
+          return 'stronghold: FIX at ' + c.x + ',' + c.z
+        }
+      } else A.result(bot, { ev: 'eye_lost', job: job.id, why: t2.why, at: xyz(me()) })
+    }
     return 'stronghold: bearing ' + rec.dir.map(round1).join(',') + ', crossing leg ' + (ok ? 'walked' : 'blocked')
   }
   // write every end_portal_frame in view onto the board (the portal work needs the exact cells)
@@ -481,8 +497,8 @@ module.exports = ctx => {
     const centre = Array.isArray(P.at) ? P.at : room.portal
     if (!Array.isArray(centre)) return muster(bot, job, api, ctx2, 'end portal: the portal room is not on the board yet (settings.end.room) — staff work:"stronghold"')
     const need12 = P.eyes || 12
-    const short = await need(bot, api, { eye_of_ender: need12, torch: 16, bread: 8 })
-    if (A.count(bot, 'eye_of_ender') < 1) { A.result(bot, { ev: 'portal_frames', job: job.id, blocked: 'no eye_of_ender carried', short }); A.decline(bot, job, 6 * 60000, 'end portal: no eyes'); return muster(bot, job, api, ctx2, 'end portal: no eye to place (' + short.join(', ') + ')') }
+    const short = await need(bot, api, { ender_eye: need12, torch: 16, bread: 8 })
+    if (A.count(bot, 'ender_eye') < 1) { A.result(bot, { ev: 'portal_frames', job: job.id, blocked: 'no eye_of_ender carried', short }); A.decline(bot, job, 6 * 60000, 'end portal: no eyes'); return muster(bot, job, api, ctx2, 'end portal: no eye to place (' + short.join(', ') + ')') }
     const c = v(centre)
     if (bot.entity.position.distanceTo(c) > 6) {
       task(bot, 'end portal: to the portal room')
@@ -503,9 +519,9 @@ module.exports = ctx => {
         try { eye = String(b.getProperties().eye) === 'true' } catch (e_) { swallow('jobs_end:frameProps', e_) }
         if (eye) { filled++; continue }
         open++
-        if (!A.count(bot, 'eye_of_ender')) break
+        if (!A.count(bot, 'ender_eye')) break
         if (bot.entity.position.distanceTo(q) > 3.5 && !await A.travel(bot, q, { range: 2, ms: 30000, quiet: true, stop: api.stop, anyDepth: true })) continue
-        const it = bot.inventory.items().find(i => i.name === 'eye_of_ender')
+        const it = bot.inventory.items().find(i => i.name === 'ender_eye')
         if (!it) break
         try { await U.withTimeout(bot.equip(it, 'hand'), 3000, 'eyeHand') } catch (e_) { swallow('jobs_end:portalHand', e_); continue }
         try { await bot.lookAt(q.offset(0.5, 0.9, 0.5), true); await U.withTimeout(bot.activateBlock(bot.blockAt(q)), 4000, 'frame') } catch (e_) { swallow('jobs_end:frameClick', e_) }
@@ -527,7 +543,7 @@ module.exports = ctx => {
       pauseSelf(job, 'auto-paused: the end portal is lit at ' + xyz(lit[0]).join(','))
       return 'end portal: LIT at ' + xyz(lit[0]).join(',')
     }
-    A.result(bot, { ev: 'portal_frames', job: job.id, placed, filled, of: total, carried: A.count(bot, 'eye_of_ender'), why: total < 12 ? 'fewer than 12 frames in view — walk the room' : 'frames still open' })
+    A.result(bot, { ev: 'portal_frames', job: job.id, placed, filled, of: total, carried: A.count(bot, 'ender_eye'), why: total < 12 ? 'fewer than 12 frames in view — walk the room' : 'frames still open' })
     return 'end portal: ' + placed + ' eyes set, ' + filled + '/' + total + ' frames full'
   }
 
