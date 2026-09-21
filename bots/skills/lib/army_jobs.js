@@ -2168,6 +2168,10 @@ async function sleeper (bot, job, api, ctx) {
     }
     return 'sleeper'
   }
+  // THE SLEEPER DOES NOT STAND AT THE BED ALL DAY (owner 09-21 18:3xZ 「就寝係、なにしてる？」: Rin stood 'waiting for dusk' at noon, t 5450, a whole bot
+  // idle in 20-s slices). Before t 11500 (~50 s of walking before 12542) the job hands its bot back until then; the dispatcher gives it other work.
+  const tod = bot.time && bot.time.timeOfDay
+  if (Number.isFinite(tod) && tod < 11500) { const waitMs = Math.max(60000, Math.round((11500 - tod) / 20 * 1000)); A.decline(bot, job, waitMs, 'sleeper: day (t ' + tod + '), back before dusk'); return muster(bot, job, api, ctx, 'sleeper: day, back before dusk') }
   task(bot, 'sleeper: waiting for dusk')
   const slot = bedPos.offset(1, 0, 1)
   if (A.dist2(bot, slot.x, slot.z) > 4) await A.travel(bot, slot, { range: 3, ms: 60000, stop: api.stop })

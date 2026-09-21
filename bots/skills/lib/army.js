@@ -771,7 +771,10 @@ function fieldCost (bot, mv) {
   // A GATE IS NOT A SHORTCUT (Nether engineer 09-21 18:1xZ: Noa came home, her `tidying pockets` walk to the depot passed through the home gate 41 s later and she
   // died in the lava sea - the pathfinder treats portal blocks as walkable air). Only a job that means to cross (type portal / end) may path through one.
   const crossing = /^(portal|end)$/.test(jt)
-  const f = b => { if (!b || !b.position) return 0; if (b.name === 'nether_portal' || b.name === 'end_portal') return crossing ? 0 : 1000; const ww = waterW(b); if (ww) return ww; const { x, z } = b.position; for (const a of avoid) { const q = a.box; if (x >= q[0] && x <= q[2] && z >= q[1] && z <= q[3]) return a.w || 60 } if (mineToo) return 0; for (const q of boxes) if (x >= q[0] - 1 && x <= q[2] + 1 && z >= q[1] - 1 && z <= q[3] + 1) return 40; return 0 }
+  const f = b => { if (!b || !b.position) return 0; if (b.name === 'nether_portal' || b.name === 'end_portal') return crossing ? 0 : 1000; const { x, z } = b.position; const fz = bot.__armyFree; if (fz) for (const q of fz) if (Math.abs(x - q.x) <= q.r && Math.abs(z - q.z) <= q.r) return 0; const ww = waterW(b); if (ww) return ww; for (const a of avoid) { const q = a.box; if (x >= q[0] && x <= q[2] && z >= q[1] && z <= q[3]) return a.w || 60 } if (mineToo) return 0; for (const q of boxes) if (x >= q[0] - 1 && x <= q[2] + 1 && z >= q[1] - 1 && z <= q[3] + 1) return 40; return 0 }
+  // THE ENDS OF A HOP ARE FREE (engineer 09-21 18:3xZ, measured): a goal INSIDE a field / next to water made every step there cost 3 x 40..200 (the pathfinder prices
+  // a forward move's feet cell twice + its head) and the A* flooded 11 000 nodes into a timeout for a 20-block walk. travel() sets `bot.__armyFree` = the start and the
+  // goal of the running hop: the bot has to be there anyway, so the weights stop within a few blocks of both (portal blocks stay priced).
   mv.exclusionAreasStep = (mv.exclusionAreasStep || []).filter(g => !g.__armyField).concat(Object.assign(f, { __armyField: true }))
   return mv
 }
@@ -1648,6 +1651,7 @@ async function travel (bot, target, opts = {}) {
   } catch (e_) { swallow('army:tripStart', e_) }
   let ok = false
   try { ok = await travelLegs(bot, target, opts); return ok } finally {
+    bot.__armyFree = null
     if (tr) {
       clearInterval(tr.timer); bot.__armyTrip = null
       try { const e = bot.entity.position; result(bot, { ev: 'journey', ok, job: ((assignment(bot) || {}).job || {}).id, to: [Math.round(target.x), target.y == null ? null : Math.round(target.y), Math.round(target.z)], d0: tr.d0, left: Math.round(Math.hypot(target.x - e.x, target.z - e.z)), s: Math.round((Date.now() - tr.t0) / 1000), cells: tr.cells, water: tr.water, road: tr.road, hops: { route: tr.route, line: tr.line }, planMs: tr.planMs, via: tr.via }) } catch (e_) { swallow('army:tripEnd', e_) }
@@ -1767,6 +1771,11 @@ async function travelLegs (bot, target, opts = {}) {
     if (hop) best = hop.left0; else if (lastHop) best = Infinity
     lastHop = hop
     const gone = () => hop ? R.left(bot, hop) : dist2(bot, target.x, target.z)
+    // THE HEURISTIC MUST PRICE A BLOCK LIKE THE COSTS DO (engineer 09-21 18:3xZ, measured on Ayame, 64-block base walk): jobs_road.roadCost adds `off` to the feet cell
+    // twice and the head once per forward move, so an off-road block costs 1 + 3 x 0.3 = 1.9 while GoalNear's heuristic says 1 - the A* visited 2 367 nodes / 756 ms
+    // instead of 159 / 36 ms. Scaled by the same 1 + 3 x off (<= 2): 98 nodes / 24 ms, the same path cost (115 vs 114). On a road cell it overestimates = a slightly greedy A*.
+    try { const rc = bot.__roadCost; const hs = rc && rc.cells && rc.off > 0 ? Math.min(2, 1 + 3 * rc.off) : 1; if (hs > 1) { const h0 = goal.heuristic.bind(goal); goal.heuristic = n => h0(n) * hs } } catch (e_) { swallow('army:hScale', e_) }
+    try { const gp = hop || (d > 44 ? null : target); bot.__armyFree = [{ x: Math.floor(p.x), z: Math.floor(p.z), r: 3 }].concat(gp ? [{ x: Math.floor(gp.x), z: Math.floor(gp.z), r: Math.max(5, range + 3) }] : []) } catch (e_) { swallow('army:freeZone', e_) }
     const r = await U.pathTo(bot, goal, Math.min(45000, Math.max(5000, end - Date.now()))).catch(() => 'fail')
     dbg.last = r
     if (sheltering(bot)) continue // interrupted by the shelter reflex: not a failed attempt

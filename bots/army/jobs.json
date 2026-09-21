@@ -1362,14 +1362,14 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Riko",
+   "by": "Kotori",
    "portal": [
-    -47,
+    -48,
     98,
     -77
    ],
-   "through": 1790014136417,
-   "scoutRev": 73,
+   "through": 1790016096734,
+   "scoutRev": 0,
    "hub": {
     "room": [
      -41,
@@ -1481,7 +1481,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789969045309,
-   "back": 1790014103571,
+   "back": 1790016112269,
    "lastDeath": 1790012273059,
    "lastDeathBy": "Yukina",
    "roads": {
@@ -1585,54 +1585,6 @@
     {
      "dim": "the_nether",
      "at": [
-      -45,
-      97,
-      -80
-     ],
-     "box": [
-      [
-       -45,
-       97,
-       -80
-      ],
-      [
-       -44,
-       97,
-       -80
-      ]
-     ],
-     "frame": 2,
-     "lit": false,
-     "cells": 0,
-     "state": "DEAD"
-    },
-    {
-     "dim": "the_nether",
-     "at": [
-      -45,
-      101,
-      -80
-     ],
-     "box": [
-      [
-       -45,
-       101,
-       -80
-      ],
-      [
-       -44,
-       101,
-       -80
-      ]
-     ],
-     "frame": 2,
-     "lit": false,
-     "cells": 0,
-     "state": "DEAD"
-    },
-    {
-     "dim": "the_nether",
-     "at": [
       -40,
       104,
       -75
@@ -1650,54 +1602,6 @@
       ]
      ],
      "frame": 2,
-     "lit": false,
-     "cells": 0,
-     "state": "DEAD"
-    },
-    {
-     "dim": "the_nether",
-     "at": [
-      -42,
-      97,
-      -80
-     ],
-     "box": [
-      [
-       -42,
-       97,
-       -80
-      ],
-      [
-       -42,
-       97,
-       -80
-      ]
-     ],
-     "frame": 1,
-     "lit": false,
-     "cells": 0,
-     "state": "DEAD"
-    },
-    {
-     "dim": "the_nether",
-     "at": [
-      -42,
-      101,
-      -80
-     ],
-     "box": [
-      [
-       -42,
-       101,
-       -80
-      ],
-      [
-       -42,
-       101,
-       -80
-      ]
-     ],
-     "frame": 1,
      "lit": false,
      "cells": 0,
      "state": "DEAD"
@@ -2015,7 +1919,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1790013563837,
+   "gatesAt": 1790015596476,
    "pairRoad": {
     "from": [
      -43,
@@ -2533,18 +2437,19 @@
     "t": 1790013933238
    },
    "absorb": {
-    "string": 320,
     "gray_wool": 288,
     "coal": 480,
-    "iron_ingot": 144,
+    "iron_ingot": 96,
+    "string": 320,
     "flint": 600,
     "diamond": 12,
     "leather": 192,
-    "beetroot": 240,
-    "pumpkin": 72,
-    "melon": 48
+    "carrot": 352,
+    "pumpkin": 144,
+    "melon": 96,
+    "beetroot": 240
    },
-   "absorbT": 1790012296111
+   "absorbT": 1790015978756
   },
   "enchantTable": [
    -344,
@@ -4009,7 +3914,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 16,
    "site": [
     -367,
     69,
@@ -4045,7 +3950,7 @@
      ]
     ]
    },
-   "rev": 98,
+   "rev": 99,
    "note": "06:35Z mine engineer: the sponge held 16 of 49 bots at priority 60 while mine_iron (92, deficit 0.96 of iron 31/800) stood at ZERO staffed. A sponge exists so nobody idles, not to starve the roadmap: 16 -> 4. Raise it again when iron is met",
    "restUntil": 1790010797084
   },
@@ -4190,7 +4095,7 @@
    "note": "06:3xZ mine engineer: readiness no longer hands a WELL-FED miner back when the depot cannot give 8 food units (48 mine_not_ready from 24 bots in 20 min left the squad at ZERO); caves at a branch face are now harvested, not walled off. rev bump voids the stale not-ready declines",
    "bots": 4,
    "rev": 92,
-   "restUntil": 1790014443279
+   "restUntil": 1790016602214
   },
   {
    "id": "base_dorm",
@@ -4370,7 +4275,7 @@
    },
    "rev": 30,
    "bots": 0,
-   "restUntil": 1790014608946
+   "restUntil": 1790016174053
   },
   {
    "id": "sleeper",
@@ -4395,7 +4300,8 @@
      -539
     ]
    },
-   "rev": 1
+   "rev": 3,
+   "note": ""
   },
   {
    "id": "guard_bed",
@@ -4457,7 +4363,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1790014110219
+   "restUntil": 1790016249106
   },
   {
    "id": "fill_ring_field1",
@@ -6656,7 +6562,7 @@
     "bare": true
    },
    "rev": 18,
-   "restUntil": 1790015578829
+   "restUntil": 1790016227082
   },
   {
    "id": "nether_gate_old_down",
@@ -6975,7 +6881,7 @@
      ]
     ]
    },
-   "restUntil": 1790015278683,
+   "restUntil": 1790016247089,
    "rev": 3
   },
   {
@@ -8302,7 +8208,7 @@
     "target": 16,
     "bare": true
    },
-   "restUntil": 1790012726275,
+   "restUntil": 1790016567207,
    "rev": 1
   },
   {
@@ -9756,7 +9662,7 @@
    "type": "build",
    "priority": 70,
    "front": "works",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "site": [
@@ -9809,10 +9715,13 @@
    "stuckBy": {
     "key": "rev7",
     "bots": [
-     "Kokoro"
+     "Kokoro",
+     "Sumire",
+     "Chika"
     ]
    },
-   "rev": 7
+   "rev": 7,
+   "note": "auto-paused: 38 cells nobody could do: -395,68,-492 | -394,68,-492 | -395,67,-492 | -395,66,-492 | -397,68,-505 | -400,68,-505"
   },
   {
    "id": "cap_void_fix_base_field_2",
@@ -9886,14 +9795,15 @@
     "cells": {}
    },
    "desc": "re-activated 14:3xZ by the top model: base audit - 9 WATER cells of the field read dirt (-381/-390/-399,68,-516 ...), 59 soil tiles untilled; the build job IS the repair",
-   "note": "auto-paused: 18 cells nobody could do: -399,69,-507 | -399,69,-498 | -399,69,-516 | -390,69,-507 | -390,69,-498 | -390,69,-516",
+   "note": "auto-paused: 18 cells nobody could do: -390,69,-516 | -381,69,-516 | -399,69,-516 | -390,69,-507 | -381,69,-507 | -399,69,-507",
    "stuckBy": {
     "key": "rev12",
     "bots": [
      "Iroha",
      "Kurumi",
      "Erika",
-     "Hazuki"
+     "Hazuki",
+     "Honoka"
     ]
    }
   },
@@ -10065,7 +9975,7 @@
      "d": 15
     }
    },
-   "rev": 20,
+   "rev": 21,
    "restUntil": 1789912916108,
    "voidFix": {
     "n": 2,
@@ -10078,13 +9988,7 @@
     "cols": 465,
     "t": 1789912978111
    },
-   "note": "auto-paused: build complete - BUT 8 columns are a deck over air (void_under_pad): -370,66,-477 | -369,66,-478 | -369,66,-477 | -369,66,-476 | -368,65,-490 | -368,65,-489",
-   "stuckBy": {
-    "key": "rev20",
-    "bots": [
-     "Aoi"
-    ]
-   }
+   "note": "auto-paused: build complete - BUT 6 columns are a deck over air (void_under_pad): -370,66,-477 | -369,66,-478 | -369,66,-477 | -369,66,-476 | -368,65,-489 | -343,65,-480"
   },
   {
    "id": "cap_void_fix_base_pen_1_pad",
@@ -10491,7 +10395,7 @@
    "type": "build",
    "priority": 70,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 1,
    "site": [
@@ -11763,7 +11667,7 @@
    "id": "probe_village_suzu2",
    "type": "steps",
    "priority": 60,
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "names": [
     "Suzu"
@@ -11797,7 +11701,8 @@
       "s": 900
      }
     ]
-   }
+   },
+   "note": "auto-paused: plan finished"
   }
  ]
 }

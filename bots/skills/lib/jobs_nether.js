@@ -357,7 +357,10 @@ module.exports = ctx => {
       const end = Date.now() + Math.min(seconds, 30) * 1000
       while (Date.now() < end && !api.stop()) {
         if (dimChanged(bot, dim0)) return dimOf(bot)
-        if (!inGateNow(bot)) { try { await A.travel(bot, c, { range: 0, ms: 8000, stop: api.stop, quiet: true, anyDepth: true }) } catch (e_) { swallow('jobs_nether:hold', e_) } }
+        if (!inGateNow(bot)) { // the centred step first (moves.walkInto: the pathfinder stops a body short, rubbing the frame), the pathfinder only if that could not start
+          const r = await require('./moves').walkInto(bot, [c.x, c.y, c.z], { stop: api.stop, done: () => inGateNow(bot) || dimChanged(bot, dim0) }).catch(e_ => { swallow('jobs_nether:walkInto', e_); return null })
+          if (!(r && r.ok)) { try { await A.travel(bot, c, { range: 0, ms: 8000, stop: api.stop, quiet: true, anyDepth: true }) } catch (e_) { swallow('jobs_nether:hold', e_) } }
+        }
         await sleep(500)
       }
       if (dimChanged(bot, dim0)) return dimOf(bot)

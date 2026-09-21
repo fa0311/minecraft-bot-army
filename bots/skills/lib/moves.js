@@ -203,4 +203,34 @@ async function shoot (bot, ent, o = {}) {
   }
   return { ok: false, shots: o.shots || 4, why: 'still standing after ' + (o.shots || 4) + ' arrows' }
 }
-module.exports = { waterDrop, stepOff, bridgeTo, fallGuard, groundBelow, scoop, shoot }
+// WALK INTO ONE CELL, CENTRED (a portal): the pathfinder calls a goal reached when the feet's cell is next to it, and a body 0.6 wide standing 0.06 off the
+// centre line rubs the FRAME. MEASURED 09-21 18:3xZ: Hinata stood at x -47.94 z -77.30 for 1 h before the far gate (portal x -48..-47, z -77, frame x -49): the
+// hitbox reached x -48.24 into the obsidian column, so every `forward` stopped flush at z -77.0 and 60 slices said "the gate did not take me". A player steps to
+// the middle of the opening first. `cell` = [x, y, z] (feet); walks to the centre of the cell in front on the same level, then presses on to its centre.
+async function walkInto (bot, cell, opts = {}) {
+  const t0 = Date.now(); const fail = (why) => ({ ok: false, how: 'walk_into', why, tookMs: Date.now() - t0 })
+  if (bot.__moveBusy) return fail('another technique is running')
+  const [cx, cy, cz] = cell; const c = new Vec3(cx + 0.5, cy, cz + 0.5); const p0 = bot.entity.position
+  if (Math.abs(p0.y - cy) > 1.2 || Math.hypot(p0.x - c.x, p0.z - c.z) > 2.2) return fail('not next to the cell')
+  // the approach point: centre of the cell we stand in, lined up with the target on the axis we move along
+  const dx = Math.abs(c.x - p0.x) >= Math.abs(c.z - p0.z) ? Math.sign(c.x - p0.x) : 0; const dz = dx ? 0 : Math.sign(c.z - p0.z)
+  const a = new Vec3(c.x - dx, p0.y, c.z - dz)
+  bot.__moveBusy = 'walk_into'
+  const go = (to, ms, done) => new Promise(resolve => {
+    const end = Date.now() + ms
+    const iv = setInterval(() => {
+      const e = bot.entity.position; const d = Math.hypot(e.x - to.x, e.z - to.z)
+      if (done() || d < 0.15 || Date.now() > end || (opts.stop && opts.stop())) { clearInterval(iv); bot.setControlState('forward', false); resolve(d) } else bot.lookAt(new Vec3(to.x, e.y + 1.6, to.z), true).catch(() => {})
+    }, 50)
+    bot.lookAt(new Vec3(to.x, bot.entity.position.y + 1.6, to.z), true).catch(() => {}).then(() => bot.setControlState('forward', true))
+  })
+  try {
+    try { bot.pathfinder && bot.pathfinder.setGoal(null) } catch {} // why: best effort - the walk below is what counts
+    const done = opts.done || (() => false)
+    await go(a, 1500, done); if (!done()) await go(c, opts.ms || 2000, done)
+    const e = bot.entity.position; const inside = Math.floor(e.x) === cx && Math.floor(e.z) === cz
+    return { ok: inside || done(), how: 'walk_into', at: [Math.floor(e.x), Math.floor(e.y), Math.floor(e.z)], off: +Math.hypot(e.x - c.x, e.z - c.z).toFixed(2), lost: 0, tookMs: Date.now() - t0 }
+  } catch (e) { return fail('error: ' + (e && e.message)) } finally { bot.setControlState('forward', false); bot.__moveBusy = null }
+}
+
+module.exports = { waterDrop, stepOff, bridgeTo, fallGuard, groundBelow, scoop, shoot, walkInto }
