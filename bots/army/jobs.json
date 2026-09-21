@@ -1274,13 +1274,13 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Hina",
+   "by": "Misaki",
    "portal": [
     -44,
     98,
     -80
    ],
-   "through": 1789952456700,
+   "through": 1789954242950,
    "scoutRev": 4,
    "hub": {
     "room": [
@@ -1392,8 +1392,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789952456864,
-   "back": 1789952469462,
+   "landingAt": 1789954243080,
+   "back": 1789954255410,
    "lastDeath": 1789924669079,
    "lastDeathBy": "Fuuka",
    "roads": {
@@ -1615,9 +1615,20 @@
     "t": 1789924913245
    },
    "absorb": {
-    "iron_ingot": 48
+    "rabbit": 64,
+    "porkchop": 112,
+    "iron_ingot": 144,
+    "coal": 720,
+    "leather": 288,
+    "flint": 600,
+    "carrot": 704,
+    "wheat": 640,
+    "pumpkin": 216,
+    "melon": 144,
+    "diamond": 12,
+    "beetroot": 240
    },
-   "absorbT": 1789951351384
+   "absorbT": 1789953091129
   },
   "enchantTable": [
    -344,
@@ -1854,7 +1865,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 10,
+   "bots": 16,
    "site": [
     -367,
     69,
@@ -1890,9 +1901,9 @@
      ]
     ]
    },
-   "rev": 75,
+   "rev": 77,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
-   "restUntil": 1789952556334
+   "restUntil": 1789954100442
   },
   {
    "id": "farm_1",
@@ -2001,7 +2012,7 @@
    "type": "delegate",
    "priority": 92,
    "front": "mine",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "site": [
     -330,
@@ -2037,7 +2048,7 @@
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 8,
    "rev": 67,
-   "restUntil": 1789953209412
+   "restUntil": 1789955375667
   },
   {
    "id": "base_dorm",
@@ -2223,9 +2234,9 @@
     "radius": 150,
     "bankAt": 32
    },
-   "rev": 20,
+   "rev": 22,
    "bots": 1,
-   "restUntil": 1789953560578
+   "restUntil": 1789955536125
   },
   {
    "id": "sleeper",
@@ -2312,7 +2323,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789952481611
+   "restUntil": 1789954293323
   },
   {
    "id": "fill_ring_field1",
@@ -2856,7 +2867,7 @@
    "type": "build",
    "priority": 70,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "site": [
@@ -3366,7 +3377,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789953324800
+   "restUntil": 1789955144993
   },
   {
    "id": "nether_landing_2",
@@ -4784,7 +4795,7 @@
    "priority": 88,
    "status": "active",
    "when": "any",
-   "bots": 6,
+   "bots": 1,
    "front": "industry",
    "site": [
     -345,
@@ -4839,7 +4850,7 @@
     ],
     "rev": 99
    },
-   "rev": 100,
+   "rev": 101,
    "restUntil": 1789950979786
   },
   {
@@ -4877,7 +4888,7 @@
     "radius": 150,
     "bankAt": 48
    },
-   "restUntil": 1789952888445,
+   "restUntil": 1789955210195,
    "rev": 13
   },
   {
@@ -5055,7 +5066,7 @@
    "type": "build",
    "priority": 57,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 1,
    "site": [
@@ -5079,8 +5090,8 @@
      "d": 15
     }
    },
-   "rev": 9,
-   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -402,65,-548",
+   "rev": 10,
+   "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -402,64,-548",
    "restUntil": 1789935147159,
    "cap": {
     "id": "cap_base_pen_2_pad",
@@ -5088,11 +5099,10 @@
     "t": 1789927911282
    },
    "stuckBy": {
-    "key": "rev9",
+    "key": "rev10",
     "bots": [
-     "Hazuki",
-     "Chika",
-     "Rin"
+     "Aoi",
+     "Hinata"
     ]
    }
   }
