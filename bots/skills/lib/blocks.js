@@ -290,8 +290,11 @@ async function moveTo (bot, cell, ms = 12000) {
   // A STAND ON FARMLAND (the cap over a field's water cell has ONLY farmland stands): `farmland` is in blocksToAvoid (safeMovements: no route across a field)
   // and a body on farmland has its feet IN that cell, so the pathfinder never entered the plot - 3 h of `put:unreachable` on base_field_2/4 (09-21 18:5xZ,
   // Erika: 6 stands, 0 reached, 311 ms). For this one short walk to that one stand the veto is lifted (walking does not trample; the fieldCost weight stays).
-  const mv = bot.pathfinder.movements; const fl = bot.registry.blocksByName.farmland; const below = bot.blockAt(cell.offset(0, -1, 0)); const inCell = bot.blockAt(cell)
-  const lift = !!(mv && fl && mv.blocksToAvoid && mv.blocksToAvoid.has(fl.id) && ((below && below.type === fl.id) || (inCell && inCell.type === fl.id)))
+  // Not only the stand's own floor: an UNTILLED tile in a plot is ringed by farmland (Karin 19:3xZ: `noPath` in 50 ms from -389,69,-516) - farmland within 2 of
+  // the stand or of the bot lifts it.
+  const mv = bot.pathfinder.movements; const fl = bot.registry.blocksByName.farmland
+  const farmNear = (c) => { for (let dx = -2; dx <= 2; dx++) for (let dz = -2; dz <= 2; dz++) for (let dy = -2; dy <= 0; dy++) { const b = bot.blockAt(new Vec3(Math.floor(c.x) + dx, Math.floor(c.y) + dy, Math.floor(c.z) + dz)); if (b && b.type === fl.id) return true } return false }
+  const lift = !!(mv && fl && mv.blocksToAvoid && mv.blocksToAvoid.has(fl.id) && (farmNear(cell) || farmNear(bot.entity.position)))
   if (lift) mv.blocksToAvoid.delete(fl.id)
   try {
     await gotoStrict(bot, new goals.GoalBlock(cell.x, cell.y, cell.z), ms)
