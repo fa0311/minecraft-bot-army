@@ -678,7 +678,7 @@ async function haul (bot, job, api, ctx) {
 // (review row 3, 09-20 12:0xZ: this table was born in the stone age and is the army's ONLY automatic tool producer - 19 of 50 bots were on a wooden/stone pickaxe or
 // none and the depot held 0 pickaxes of any kind, while 353 diamonds and 66 ingots lay in the same depot. Batches follow the x50 rule: torch 64->256, planks 64->256,
 // stick 32->128.) A key only becomes a candidate when `settings.targets` names it, so adding a row here costs nothing until the board wants the thing.
-const CRAFTED = { torch: 256, planks: 256, stick: 128, arrow: 32, book: 3, bookshelf: 3, enchanting_table: 1, stone_shovel: 8, stone_axe: 8, stone_pickaxe: 8, iron_pickaxe: 4, diamond_pickaxe: 4, diamond_shovel: 4, diamond_axe: 4, diamond_sword: 4, diamond_chestplate: 2, diamond_leggings: 2, bucket: 2, shears: 4, bow: 2, shield: 2 } // target key -> batch per round; raw materials and smelted goods have their own jobs
+const CRAFTED = { torch: 256, planks: 256, stick: 128, arrow: 32, book: 3, bookshelf: 3, enchanting_table: 1, stone_shovel: 8, stone_axe: 8, stone_pickaxe: 8, iron_pickaxe: 4, diamond_pickaxe: 4, diamond_shovel: 4, diamond_axe: 4, diamond_sword: 4, diamond_chestplate: 2, diamond_leggings: 2, bucket: 8, shears: 4, bow: 2, shield: 2 } // target key -> batch per round; raw materials and smelted goods have their own jobs
 // A TOOL IS NEVER WORTH THE RESERVE IT EATS: a precious material is spent from its SURPLUS only - a diamond batch needs more than 64 diamond in the depot, anything
 // made of iron more than 32 iron_ingot (the mine, the buckets and the enchanting chain live on the rest). Below that the key is simply not a candidate this round.
 const CRAFT_FROM = { iron_pickaxe: 'iron_ingot', bucket: 'iron_ingot', shears: 'iron_ingot', shield: 'iron_ingot', diamond_pickaxe: 'diamond', diamond_shovel: 'diamond', diamond_axe: 'diamond', diamond_sword: 'diamond', diamond_chestplate: 'diamond', diamond_leggings: 'diamond' }
@@ -700,7 +700,10 @@ async function craftToTargets (bot, job, api) {
   let ST = null; try { ST = require('../../army/stock.js') } catch (e_) { swallow('army_jobs:craftTargetsStock', e_) }
   const D = ST ? ST.detail() : { chest: A.stockMap(), carried: {} }; const nBots = (A.settings().roster || []).length || 30
   const POCKET = { torch: 16, stick: 8 } // what bank()/pockets leave with EVERY bot (their keep lists)
-  const haveOf = k => { const dep = ST ? ST.count(k, D.chest) : (k === 'planks' ? stockRe(U.PLANK_RE) : A.stockOf(k)); const extra = Math.max(0, (ST ? ST.count(k, D.carried) : 0) - (POCKET[k] || 0) * nBots); return { have: dep + Math.min(extra, Math.ceil(T[k] / 4)), all: dep + extra } }
+  // A BUCKET IS A BUCKET, FULL OR EMPTY (09-21, one water bucket per bot): the kit fills the empties at the well, so `bucket` counts water_bucket too - and the
+  // hard ceiling below (2x target, depot + every pocket) is then the army's whole bucket budget: target 20 = at most 40 buckets = 120 iron ever spent on them.
+  const ALSO = { bucket: ['water_bucket'] }; const cnt = (k, m) => (ST ? ST.count(k, m) : 0) + (ALSO[k] || []).reduce((n, a) => n + (ST ? ST.count(a, m) : 0), 0)
+  const haveOf = k => { const dep = ST ? cnt(k, D.chest) : (k === 'planks' ? stockRe(U.PLANK_RE) : A.stockOf(k)); const extra = Math.max(0, cnt(k, D.carried) - (POCKET[k] || 0) * nBots); return { have: dep + Math.min(extra, Math.ceil(T[k] / 4)), all: dep + extra } }
   const cands = []
   for (const k of Object.keys(CRAFTED)) { if (!(T[k] > 0)) continue; const raw = CRAFT_FROM[k]; if (raw && A.stockOf(raw) <= (CRAFT_RESERVE[raw] || 0)) continue; const { have, all } = haveOf(k); if (all >= 2 * T[k] || Date.now() - (_craftFail[k] || 0) < 1800000) continue; const d = 1 - have / T[k]; if (T[k] <= 32 ? have < T[k] : d > 0.1) cands.push({ k, d, have }) }
   cands.sort((a, b) => b.d - a.d)
@@ -1588,6 +1591,10 @@ async function steps (bot, job, api, ctx) {
     if (!ok) st.failedN = (st.failedN || 0) + 1
     A.result(bot, { ev: 'step', job: job.id, i: st.i + 1, do: step.do, ok, why: ok ? undefined : String(r) })
     if (!ok && P.onFail !== 'continue') A.askHelp(bot, 'plan_failed', 'job ' + job.id + ' step ' + (st.i + 1) + ' ' + JSON.stringify(step).slice(0, 120) + ' -> ' + String(r), { remaining: list.slice(st.i + 1, st.i + 6) })
+    // A REPEAT PLAN IS A PRODUCTION LOOP: one failed step ends THIS pass, never the loop (09-21 09:0xZ: bake_bread_industry withdrew 192
+    // wheat = 64 bread and then asked for 9 x 21; craft 4 failed every pass, st.done stuck, 22 bots declined it while 2 386 wheat sat
+    // in the depot and 7 bots starved). Rest 2 min and start over.
+    if (!ok && P.onFail !== 'continue' && P.repeat) { st.i = 0; A.result(bot, { ev: 'plan_failed', job: job.id, at: st.i + 1, do: step.do, why: String(r), repeat: true }); A.decline(bot, job, 120000, 'repeat plan: step failed, retry in 2 min'); return 'plan pass failed at step ' + (st.i + 1) + ': ' + r }
     if (!ok && P.onFail !== 'continue') { st.done = true; st.failed = true; A.result(bot, { ev: 'plan_failed', job: job.id, at: st.i + 1, do: step.do, why: String(r) }); return 'plan failed at step ' + (st.i + 1) + ': ' + r }
     st.i++
     try { await lib('feed').eat(bot, {}) } catch (e_) { swallow('army_jobs:678', e_) }
@@ -2595,7 +2602,7 @@ function blueprintCells (P) {
     // PAD RULE (owner 09-19: "before any construction the terrain is levelled"): every structure gets a level pad first - its footprint + 1,
     // ground layer (lowest structure block - 1) filled where it is missing, 4 blocks of headroom cut where the blueprint has no block of its
     // own. Digs run before places, so the pad exists before the first wall block. Terrain-spanning blueprints opt out; params.pad:false too.
-    const NO_PAD = /^(level|fill_void|clear_area|bridge|road|road_path|stairwell|fishing_dock|fishing_pier|lake_farm|spots|platform|field_block|cane_block|tree_farm|mine_head)$/ // fill_void: its lowest layer is 3-11 BELOW grade - the pad rule took that for the ground level and cut `air` from there up in the ring of 1 around the box = a MOAT 1 wide and 3 deep around every fill (09-19 21:5xZ: rings around fill_field3/dorm/field2/minepad_void = the "road trenches" on the lines x -374, z -491, z -526; zones became islands); field_block brings its own ring + headroom (its lowest cells are the 9 floors under the water: the generic rule would cut a moat); tree_farm: a pad's headroom would fell its trees; mine_head: a pad would fill the miner's stair mouth
+    const NO_PAD = /^(level|fill_void|clear_area|bridge|road|road_path|stairwell|fishing_dock|fishing_pier|lake_farm|spots|platform|field_block|cane_block|tree_farm|mine_head|well)$/ // fill_void: its lowest layer is 3-11 BELOW grade - the pad rule took that for the ground level and cut `air` from there up in the ring of 1 around the box = a MOAT 1 wide and 3 deep around every fill (09-19 21:5xZ: rings around fill_field3/dorm/field2/minepad_void = the "road trenches" on the lines x -374, z -491, z -526; zones became islands); field_block brings its own ring + headroom (its lowest cells are the 9 floors under the water: the generic rule would cut a moat); tree_farm: a pad's headroom would fell its trees; mine_head: a pad would fill the miner's stair mouth
     const body = [...m.values()].filter(c => c.block !== 'air' && !/torch/.test(c.block))
     if (P.pad !== false && !NO_PAD.test(String(P.blueprint)) && body.length) {
       const baseY = Math.min(...body.map(c => c.y)); const cols = new Set()
@@ -2835,6 +2842,9 @@ async function build (bot, job, api, ctx) {
   // The book lives ON THE BOARD (job.water = {key:'rev<n>', cells:{'x,y,z':{by,t} claim 6 min | {fail,why}}}; 30 bots = 10 processes, no new state file):
   // the claim is taken inside ONE locked board edit, so two builders never pour the same cell; two failures army-wide retire the cell for this rev.
   const SIDES = [[1, 0], [-1, 0], [0, 1], [0, -1]]
+  // a side of a water cell is CLOSED when it is solid - or, for a POOL cell (blueprint `well`: `pool:true`), when it is a source of the same pool: the
+  // 2x2 is made of two poured sources, the other two cells fill by themselves (two source neighbours), so their sides are water by design
+  const closedSide = (c, dx, dz) => { const n = at(c.x + dx, c.y, c.z + dz); return solid(n) || (!!c.pool && isSrc(n) && waterKeys.has((c.x + dx) + ',' + c.y + ',' + (c.z + dz))) }
   const isSrc = b => !!b && b.name === 'water' && b.metadata === 0
   // A VISIBLE FACE TAKES THE BLUEPRINT'S OWN BLOCK (owner 12:1xZ: 「適当にブロック使うから見栄えが悪いんだよね。土を置くべきなところに石を置いたり、丸石を置くべきところに
   // 深層岩を置いてる」; `audit_surface` 12:04Z MEASURED it: 705 visible planned cells hold a substitute - road_12 199, road_9 189, road_11 80, road_1 70, field_7 41,
@@ -3001,7 +3011,7 @@ async function build (bot, job, api, ctx) {
         if (isSrc(b)) continue
         const e = waterBook()[K(c)] || {}
         if (!all && ((e.fail || 0) >= 2 || waterClaimed(c))) continue // failed twice army-wide (stays in `left` -> build_stuck tells the foreman) / another builder is on it
-        if (solid(at(c.x, c.y - 1, c.z)) && SIDES.every(([dx, dz]) => solid(at(c.x + dx, c.y, c.z + dz)))) put.push(c); else wait++
+        if (solid(at(c.x, c.y - 1, c.z)) && SIDES.every(([dx, dz]) => closedSide(c, dx, dz))) put.push(c); else wait++
         continue
       }
       // `needs`: a cap goes over WATER (placed earlier it would have to come off again for the pour), a torch onto its block
@@ -3384,13 +3394,15 @@ async function build (bot, job, api, ctx) {
     if (!won) return { ok: false, reason: 'locked' }
     let out = { ok: false, reason: 'interrupted' }; let counted = false
     try {
-      const w = await bucketWater()
+      // a POOL cell with two SOURCE neighbours of its pool fills by itself the moment it is opened (infinite-source rule): no bucket is fetched for it
+      const selfFill = !!c.pool && SIDES.filter(([dx, dz]) => waterKeys.has((c.x + dx) + ',' + c.y + ',' + (c.z + dz)) && isSrc(at(c.x + dx, c.y, c.z + dz))).length >= 2
+      const w = selfFill ? true : await bucketWater()
       if (w !== true) { out = { ok: false, reason: 'no_water', noWater: String(w) }; return out }
       if (api.stop()) return out
       task(bot, 'build: water cell ' + key)
       if (bot.entity.position.distanceTo(pos) > 5 && !await A.travel(bot, pos.offset(1, 1, 1), { range: 3, ms: 180000, stop: api.stop })) { out = { ok: false, reason: 'unreachable' }; return out }
       if (isSrc(at(c.x, c.y, c.z))) { out = { ok: true, already: true }; return out } // seen from afar the chunk data may have been stale
-      if (!solid(at(c.x, c.y - 1, c.z)) || !SIDES.every(([dx, dz]) => solid(at(c.x + dx, c.y, c.z + dz)))) { out = { ok: false, reason: 'locked' }; return out } // floor/sides changed while the water was fetched: their cells come first again
+      if (!solid(at(c.x, c.y - 1, c.z)) || !SIDES.every(([dx, dz]) => closedSide(c, dx, dz))) { out = { ok: false, reason: 'locked' }; return out } // floor/sides changed while the water was fetched: their cells come first again
       for (const p of [pos.offset(0, 1, 0), pos]) { // whatever catches the bucket click over the cell, then the cell itself
         const b = at(p.x, p.y, p.z); if (!b || /^(air|cave_air|water)$/.test(b.name)) continue
         if (U.protectedBlock(b) && !DECOR.test(b.name)) { counted = true; out = { ok: false, reason: 'a ' + b.name + ' stands in the water cell' }; return out }
@@ -3402,7 +3414,8 @@ async function build (bot, job, api, ctx) {
       await sleep(500)
       const flowing = () => bot.findBlocks({ matching: bot.registry.blocksByName.water.id, maxDistance: 3, count: 40, point: pos }).filter(q => !isSrc(bot.blockAt(q))).length
       const flow0 = flowing() // a neighbour's old leak is not this pour's
-      const r = isSrc(at(c.x, c.y, c.z)) ? true : await VERBS.pour(bot, { at: [c.x, c.y, c.z], waterCell: true }, api) // (ice over a floor melts into a source by itself)
+      if (selfFill) for (let i = 0; i < 10 && !isSrc(at(c.x, c.y, c.z)); i++) await sleep(300)
+      const r = isSrc(at(c.x, c.y, c.z)) ? true : await VERBS.pour(bot, { at: [c.x, c.y, c.z], waterCell: true, allowFlow: !!c.pool }, api) // (ice over a floor melts into a source by itself)
       await sleep(1200)
       const flows = Math.max(0, flowing() - flow0)
       if (r === true && isSrc(at(c.x, c.y, c.z)) && !flows) { out = { ok: true }; A.result(bot, { ev: 'water_cell', job: job.id, at: [c.x, c.y, c.z], left: [...waterKeys].filter(k => { const [x, y, z] = k.split(',').map(Number); return !isSrc(at(x, y, z)) }).length }); return out }

@@ -1150,7 +1150,7 @@
    "diamond_shovel": 8,
    "diamond_axe": 8,
    "shield": 16,
-   "bucket": 8,
+   "bucket": 20,
    "shears": 4,
    "bow": 16,
    "arrow": 512,
@@ -1317,7 +1317,13 @@
    ]
   ],
   "legacyChests": {
-   "found": []
+   "found": [
+    [
+     -351,
+     67,
+     -503
+    ]
+   ]
   },
   "dump": {
    "at": [
@@ -1350,13 +1356,13 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Rena",
+   "by": "Mio",
    "portal": [
     -47,
     98,
     -77
    ],
-   "through": 1789979857621,
+   "through": 1789981718366,
    "scoutRev": 67,
    "hub": {
     "room": [
@@ -1469,7 +1475,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789969045309,
-   "back": 1789979849537,
+   "back": 1789981627108,
    "lastDeath": 1789978491206,
    "lastDeathBy": "Hinata",
    "roads": {
@@ -1543,7 +1549,7 @@
        -77
       ]
      ],
-     "frame": 28,
+     "frame": 24,
      "lit": true,
      "cells": 6,
      "state": "WHOLE"
@@ -1933,7 +1939,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1789979361709,
+   "gatesAt": 1789981161425,
    "pairRoad": {
     "from": [
      -43,
@@ -2211,33 +2217,33 @@
    },
    "barterGoal": {
     "at": [
-     -46,
+     -52,
      98,
-     -83
+     -80
     ],
-    "t": 1789979867384,
-    "by": "Rena",
+    "t": 1789981727978,
+    "by": "Mio",
     "why": "the head of the barter stair - every bot extends the same one"
    },
    "route": {
-    "legsKey": "[{\"kind\":\"stair\",\"from\":[-55,110,-77],\"bearing\":\"x+\",\"toY\":98,\"reverse\":true},{\"kind\":\"road\",\"from\":[-55,110,-78],\"bearing\":\"z-\",\"length\":5},{\"kind\":\"road\",\"from\":[-53,110,-82],\"bearing\":\"x+\",\"length\":230},{\"kind\":\"road\",\"from\":[176,110,-80],\"bearing\":\"z+\",\"length\":172},{\"kind\":\"stair\",\"from\":[176,110,92],\"bearing\":\"z+\",\"toY\":77},{\"kind\":\"road\",\"from\":[177,77,124],\"bearing\":\"x+\",\"length\":8,\"noTorch\":true}]",
-    "head": 2,
-    "length": 462,
+    "legsKey": "[{\"kind\":\"stair\",\"from\":[-55,110,-75],\"bearing\":\"x+\",\"toY\":98,\"reverse\":true},{\"kind\":\"road\",\"from\":[-55,110,-76],\"bearing\":\"z-\",\"length\":9},{\"kind\":\"road\",\"from\":[-53,110,-84],\"bearing\":\"x+\",\"length\":230},{\"kind\":\"road\",\"from\":[176,110,-82],\"bearing\":\"z+\",\"length\":174},{\"kind\":\"stair\",\"from\":[176,110,92],\"bearing\":\"z+\",\"toY\":77},{\"kind\":\"road\",\"from\":[177,77,124],\"bearing\":\"x+\",\"length\":8,\"noTorch\":true}]",
+    "head": 0,
+    "length": 468,
     "end": [
      184,
      77,
      124
     ],
     "headAt": [
-     -45,
-     100,
-     -77
+     -43,
+     98,
+     -75
     ],
     "done": false,
     "walkedTo": 0,
     "stuck": null,
-    "at": 1789979824999,
-    "by": "Nanami"
+    "at": 1789981655973,
+    "by": "Erika"
    }
   },
   "industry": {
@@ -2368,22 +2374,20 @@
       28
      ]
     },
-    "t": 1789979920477
+    "t": 1789981565722
    },
    "absorb": {
-    "iron_ingot": 192,
     "coal": 720,
-    "leather": 288,
+    "iron_ingot": 192,
     "flint": 888,
-    "gray_wool": 475,
+    "gray_wool": 288,
     "carrot": 352,
     "wheat": 320,
-    "pumpkin": 144,
-    "melon": 96,
-    "beetroot": 240,
-    "diamond": 12
+    "pumpkin": 72,
+    "melon": 48,
+    "leather": 288
    },
-   "absorbT": 1789975605289
+   "absorbT": 1789981715423
   },
   "enchantTable": [
    -344,
@@ -2707,340 +2711,340 @@
    ],
    "caves": [
     {
-     "key": "-21,-1,-18",
+     "key": "-21,0,-43",
      "at": [
       -335,
-      -16,
-      -283
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Mei",
-     "t": 1789979769624
-    },
-    {
-     "key": "-26,-1,-18",
-     "at": [
-      -411,
-      -16,
-      -286
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Ichika",
-     "t": 1789979773189
-    },
-    {
-     "key": "-22,-1,-17",
-     "at": [
-      -337,
-      -16,
-      -271
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Koharu",
-     "t": 1789979777456
-    },
-    {
-     "key": "-19,-1,-16",
-     "at": [
-      -301,
-      -16,
-      -250
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Kurumi",
-     "t": 1789979777618
-    },
-    {
-     "key": "-25,-1,-16",
-     "at": [
-      -393,
-      -16,
-      -256
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Aika",
-     "t": 1789979785361
-    },
-    {
-     "key": "-26,-1,-16",
-     "at": [
-      -401,
-      -16,
-      -253
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Akari",
-     "t": 1789979793230
-    },
-    {
-     "key": "-20,-1,-17",
-     "at": [
-      -314,
-      -16,
-      -265
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Iroha",
-     "t": 1789979797512
-    },
-    {
-     "key": "-21,-1,-17",
-     "at": [
-      -335,
-      -16,
-      -268
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Ume",
-     "t": 1789979798915
-    },
-    {
-     "key": "-15,-1,-24",
-     "at": [
-      -230,
-      -16,
-      -382
+      0,
+      -685
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 0,
      "iron": 0,
      "by": "Suzu",
-     "t": 1789979803820
+     "t": 1789981367593
     },
     {
-     "key": "-13,-1,-24",
+     "key": "-27,0,-43",
      "at": [
-      -197,
-      -16,
-      -373
+      -427,
+      0,
+      -679
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 0,
      "iron": 0,
-     "by": "Mei",
-     "t": 1789979831175
+     "by": "Yotsuba",
+     "t": 1789981374270
     },
     {
-     "key": "-22,-1,-20",
+     "key": "-21,0,-44",
      "at": [
-      -352,
-      -16,
-      -316
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Aika",
-     "t": 1789979832774
-    },
-    {
-     "key": "-23,-1,-20",
-     "at": [
-      -354,
-      -16,
-      -307
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Wakana",
-     "t": 1789979836750
-    },
-    {
-     "key": "-31,-1,-23",
-     "at": [
-      -483,
-      -16,
-      -367
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Ichika",
-     "t": 1789979846282
-    },
-    {
-     "key": "-15,-1,-20",
-     "at": [
-      -238,
-      -16,
-      -310
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Kaede",
-     "t": 1789979848775
-    },
-    {
-     "key": "-9,-1,-24",
-     "at": [
-      -139,
-      -16,
-      -370
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Chino",
-     "t": 1789979854410
-    },
-    {
-     "key": "-17,-1,-18",
-     "at": [
-      -260,
-      -16,
-      -286
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Aika",
-     "t": 1789979860292
-    },
-    {
-     "key": "-18,-1,-23",
-     "at": [
-      -273,
-      -16,
-      -364
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 3,
-     "iron": 0,
-     "by": "Sayaka",
-     "t": 1789979865087
-    },
-    {
-     "key": "-22,-1,-19",
-     "at": [
-      -351,
-      -16,
-      -298
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Hinata",
-     "t": 1789979867873
-    },
-    {
-     "key": "-29,-1,-26",
-     "at": [
-      -451,
-      -16,
-      -406
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Akari",
-     "t": 1789979871972
-    },
-    {
-     "key": "-25,-1,-19",
-     "at": [
-      -393,
-      -16,
-      -292
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Himari",
-     "t": 1789979881674
-    },
-    {
-     "key": "-15,-1,-22",
-     "at": [
-      -228,
-      -16,
-      -346
+      -334,
+      0,
+      -691
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 0,
      "iron": 0,
      "by": "Tamaki",
-     "t": 1789979886454
+     "t": 1789981374913
     },
     {
-     "key": "-19,-1,-17",
+     "key": "-11,0,-42",
      "at": [
-      -301,
-      -16,
-      -259
+      -175,
+      0,
+      -658
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 1,
+     "iron": 0,
+     "by": "Sayaka",
+     "t": 1789981383662
+    },
+    {
+     "key": "-14,0,-44",
+     "at": [
+      -216,
+      0,
+      -697
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 1,
+     "iron": 0,
+     "by": "Rena",
+     "t": 1789981395180
+    },
+    {
+     "key": "-24,0,-44",
+     "at": [
+      -372,
+      0,
+      -700
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 1,
+     "iron": 0,
+     "by": "Suzu",
+     "t": 1789981403363
+    },
+    {
+     "key": "-12,0,-42",
+     "at": [
+      -177,
+      0,
+      -664
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 0,
      "iron": 0,
-     "by": "Kaede",
-     "t": 1789979893648
+     "by": "Iroha",
+     "t": 1789981416710
     },
     {
-     "key": "-17,-1,-19",
+     "key": "-24,0,-45",
      "at": [
-      -271,
-      -16,
-      -289
+      -375,
+      0,
+      -715
      ],
      "cells": 2000,
      "klass": "cavern",
-     "ores": 2,
-     "iron": 2,
+     "ores": 0,
+     "iron": 0,
      "by": "Ume",
-     "t": 1789979935133
+     "t": 1789981425358
     },
     {
-     "key": "-23,-1,-16",
+     "key": "-7,0,-44",
      "at": [
-      -366,
-      -16,
-      -247
+      -110,
+      0,
+      -694
      ],
      "cells": 2000,
      "klass": "cavern",
-     "ores": 3,
+     "ores": 1,
+     "iron": 1,
+     "by": "Yui",
+     "t": 1789981429817
+    },
+    {
+     "key": "-8,0,-44",
+     "at": [
+      -121,
+      0,
+      -691
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Akari",
+     "t": 1789981438322
+    },
+    {
+     "key": "-24,0,-46",
+     "at": [
+      -379,
+      0,
+      -727
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Suzu",
+     "t": 1789981445044
+    },
+    {
+     "key": "-14,0,-45",
+     "at": [
+      -216,
+      0,
+      -706
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Sayaka",
+     "t": 1789981452945
+    },
+    {
+     "key": "-22,0,-47",
+     "at": [
+      -346,
+      0,
+      -745
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Iroha",
+     "t": 1789981488449
+    },
+    {
+     "key": "-12,0,-47",
+     "at": [
+      -186,
+      0,
+      -739
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Ume",
+     "t": 1789981490168
+    },
+    {
+     "key": "-12,0,-46",
+     "at": [
+      -184,
+      0,
+      -736
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Akari",
+     "t": 1789981509348
+    },
+    {
+     "key": "-24,0,-47",
+     "at": [
+      -384,
+      0,
+      -742
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 1,
+     "iron": 0,
+     "by": "Rena",
+     "t": 1789981534887
+    },
+    {
+     "key": "-12,0,-37",
+     "at": [
+      -183,
+      0,
+      -592
+     ],
+     "cells": 103,
+     "klass": "big",
+     "ores": 0,
+     "iron": 0,
+     "by": "Iroha",
+     "t": 1789981547936
+    },
+    {
+     "key": "-7,0,-34",
+     "at": [
+      -111,
+      0,
+      -529
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 1,
+     "iron": 7,
+     "by": "Koharu",
+     "t": 1789981608907
+    },
+    {
+     "key": "-12,0,-43",
+     "at": [
+      -183,
+      0,
+      -679
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 1,
+     "iron": 0,
+     "by": "Yui",
+     "t": 1789981638251
+    },
+    {
+     "key": "-8,0,-33",
+     "at": [
+      -120,
+      0,
+      -520
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Kokoro",
+     "t": 1789981646744
+    },
+    {
+     "key": "-17,0,-43",
+     "at": [
+      -270,
+      0,
+      -685
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Iroha",
+     "t": 1789981661493
+    },
+    {
+     "key": "-13,0,-45",
+     "at": [
+      -205,
+      0,
+      -718
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Yui",
+     "t": 1789981693778
+    },
+    {
+     "key": "-34,0,-45",
+     "at": [
+      -542,
+      0,
+      -706
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
      "iron": 0,
      "by": "Nagisa",
-     "t": 1789979939317
+     "t": 1789981694508
+    },
+    {
+     "key": "-13,0,-36",
+     "at": [
+      -201,
+      0,
+      -568
+     ],
+     "cells": 294,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Kaede",
+     "t": 1789981732764
     }
    ]
   },
@@ -3082,9 +3086,14 @@
     "width": 5,
     "spur": false,
     "cells": 997,
-    "built": "5/24",
-    "checked": 1789979913214
+    "built": "7/24",
+    "checked": 1789981658099
    }
+  ],
+  "dash": [
+   "Hina",
+   "Karin",
+   "Mei"
   ]
  },
  "enlisted": [
@@ -3286,7 +3295,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 3,
    "site": [
     -367,
     69,
@@ -3322,7 +3331,7 @@
      ]
     ]
    },
-   "rev": 87,
+   "rev": 88,
    "note": "06:35Z mine engineer: the sponge held 16 of 49 bots at priority 60 while mine_iron (92, deficit 0.96 of iron 31/800) stood at ZERO staffed. A sponge exists so nobody idles, not to starve the roadmap: 16 -> 4. Raise it again when iron is met",
    "restUntil": 1789965580527
   },
@@ -3466,7 +3475,7 @@
    },
    "note": "06:3xZ mine engineer: readiness no longer hands a WELL-FED miner back when the depot cannot give 8 food units (48 mine_not_ready from 24 bots in 20 min left the squad at ZERO); caves at a branch face are now harvested, not walled off. rev bump voids the stale not-ready declines",
    "bots": 16,
-   "rev": 77,
+   "rev": 78,
    "restUntil": 1789972963415
   },
   {
@@ -3647,7 +3656,7 @@
    },
    "rev": 28,
    "bots": 0,
-   "restUntil": 1789978256946
+   "restUntil": 1789980768264
   },
   {
    "id": "sleeper",
@@ -3734,7 +3743,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789979900302
+   "restUntil": 1789981637045
   },
   {
    "id": "fill_ring_field1",
@@ -5416,90 +5425,6 @@
    "note": "auto-paused: plan failed"
   },
   {
-   "id": "base_depot_south",
-   "type": "build",
-   "priority": 55,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 6,
-   "site": [
-    -364,
-    69,
-    -517
-   ],
-   "plan": "ONE storage complex: two `build` rows of DOUBLE chests 3 high at z -518 / -515, x -371..-358 (owner 09-20 17:0xZ 「かまどとチェストの位置近くね？」: the third row at z -521 stood ONE block from the furnace row z -523 - a 1-wide alley for 50 bots; it is removed, the alley is 4 wide now; capacity went to the east wing)",
-   "params": {
-    "blueprint": "depot_rows",
-    "origin": [
-     -372,
-     68,
-     -518
-    ],
-    "args": {
-     "len": 14,
-     "high": 3,
-     "rows": [
-      "build",
-      "build"
-     ],
-     "torch": true
-    },
-    "order": "near"
-   },
-   "rev": 4,
-   "stuckBy": {
-    "key": "rev4",
-    "bots": [
-     "Chino"
-    ]
-   },
-   "note": "auto-paused: build complete",
-   "restUntil": 1789971460534
-  },
-  {
-   "id": "cap_north_tiles",
-   "type": "build",
-   "priority": 60,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 6,
-   "site": [
-    -291,
-    68,
-    -544
-   ],
-   "plan": "BASE PLAN zone infill (north tiles x -350..-232 / z -559..-529): DIRT CAP - the cut hills left ~2300 columns of bare stone at grade (audit_surface: infill_n283_n558 630, n252_n558 598, n314_n558 588, n337_n555 504); the grade layer becomes dirt wherever bare stone or gravel stands, paving/fields/other blueprints untouched. Looks: the owner sees grey rubble where grass belongs",
-   "params": {
-    "blueprint": "level",
-    "origin": [
-     -291,
-     68,
-     -544
-    ],
-    "args": {
-     "w": 119,
-     "d": 31,
-     "cap": true,
-     "fill": "dirt"
-    },
-    "needStock": {
-     "dirt": 128
-    },
-    "order": "near"
-   },
-   "rev": 23,
-   "note": "auto-paused: build complete",
-   "restUntil": 1789968297004,
-   "stuckBy": {
-    "key": "rev23",
-    "bots": [
-     "Akari"
-    ]
-   }
-  },
-  {
    "id": "nether_barter",
    "type": "portal",
    "priority": 98,
@@ -6182,7 +6107,7 @@
    "priority": 97,
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 4,
    "front": "industry",
    "site": [
     -345,
@@ -6196,7 +6121,7 @@
      {
       "do": "withdraw",
       "item": "wheat",
-      "n": 192,
+      "n": 189,
       "atLeast": 9
      },
      {
@@ -6224,45 +6149,16 @@
       "n": 21
      },
      {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
-      "do": "craft",
-      "item": "bread",
-      "n": 21
-     },
-     {
       "do": "bank",
       "keep": {
        "bread": 8,
        "torch": 16
       }
      }
-    ]
+    ],
+    "onFail": "continue"
    },
-   "rev": 101,
+   "rev": 102,
    "restUntil": 1789968980606
   },
   {
@@ -6300,7 +6196,7 @@
     "radius": 150,
     "bankAt": 48
    },
-   "restUntil": 1789978382001,
+   "restUntil": 1789980773269,
    "rev": 21
   },
   {
@@ -6436,62 +6332,6 @@
    "rev": 1
   },
   {
-   "id": "op_bank_wheat",
-   "type": "steps",
-   "priority": 89,
-   "status": "paused",
-   "when": "any",
-   "bots": 6,
-   "names": [
-    "Hinata",
-    "Iroha",
-    "Aika",
-    "Kurumi",
-    "Botan",
-    "Kokoro"
-   ],
-   "site": [
-    -345,
-    69,
-    -523
-   ],
-   "plan": "no world change: carried wheat (550+) never reaches the depot, so the bakery starves and miners get no food kit. Bank it once, then the job pauses itself.",
-   "params": {
-    "repeat": false,
-    "steps": [
-     {
-      "do": "goto",
-      "to": [
-       -345,
-       69,
-       -523
-      ],
-      "range": 3,
-      "s": 300
-     },
-     {
-      "do": "bank",
-      "keep": {
-       "iron_axe": 1,
-       "diamond_pickaxe": 1,
-       "diamond_sword": 1,
-       "diamond_axe": 1,
-       "stone_pickaxe": 1,
-       "iron_pickaxe": 1,
-       "shield": 1,
-       "stone_hoe": 1,
-       "water_bucket": 1,
-       "torch": 16,
-       "bread": 4,
-       "wheat_seeds": 999
-      }
-     }
-    ]
-   },
-   "rev": 5,
-   "restUntil": 1789971279812
-  },
-  {
    "id": "tidy_portal",
    "type": "tidy",
    "priority": 74,
@@ -6523,7 +6363,7 @@
      ]
     ]
    },
-   "restUntil": 1789980162608,
+   "restUntil": 1789982068313,
    "rev": 1
   },
   {
@@ -6669,50 +6509,6 @@
    "restUntil": 1789972930162,
    "rev": 9,
    "note": "auto-paused: road complete - 3 segments, 52 cells"
-  },
-  {
-   "id": "base_yard_pad",
-   "type": "build",
-   "priority": 85,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 2,
-   "site": [
-    -355,
-    69,
-    -483
-   ],
-   "requires": {
-    "minHp": 10
-   },
-   "plan": "BASE PLAN zone yard x -370..-340 / z -490..-476 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. muster yard 29x13 (settings.muster): a level pad, nothing built on it",
-   "params": {
-    "blueprint": "level",
-    "origin": [
-     -355,
-     68,
-     -483
-    ],
-    "args": {
-     "w": 31,
-     "d": 15
-    }
-   },
-   "rev": 16,
-   "restUntil": 1789912916108,
-   "voidFix": {
-    "n": 2,
-    "id": "void_fix_base_yard_pad",
-    "cols": 4,
-    "t": 1789913775086
-   },
-   "cap": {
-    "id": "cap_base_yard_pad",
-    "cols": 465,
-    "t": 1789912978111
-   },
-   "note": "auto-paused: build complete - BUT 5 columns are a deck over air (void_under_pad): -368,65,-490 | -368,65,-489 | -367,65,-485 | -367,65,-484 | -359,66,-490"
   },
   {
    "id": "nether_barter_road",
@@ -7018,7 +6814,7 @@
    "front": "roads",
    "status": "active",
    "when": "any",
-   "bots": 14,
+   "bots": 12,
    "site": [
     -367,
     69,
@@ -7174,9 +6970,10 @@
       ],
       "len": 2,
       "rise": 0,
-      "built": false,
+      "built": true,
       "width": 5,
-      "rails": []
+      "rails": [],
+      "at": 1789980481695
      },
      {
       "i": 5,
@@ -7222,7 +7019,7 @@
       ],
       "len": 43,
       "rise": 5,
-      "built": false,
+      "built": true,
       "args": {
        "toX": -303,
        "toZ": -297,
@@ -7233,7 +7030,9 @@
        "shoulder": 2,
        "toY": 71
       },
-      "idle": 1
+      "idle": 0,
+      "at": 1789981036982,
+      "leftover": []
      },
      {
       "i": 7,
@@ -7261,7 +7060,7 @@
        "shoulder": 2,
        "toY": 65
       },
-      "idle": 1
+      "idle": 2
      },
      {
       "i": 8,
@@ -7289,7 +7088,20 @@
        "shoulder": 2,
        "toY": 74
       },
-      "idle": 7
+      "idle": 8,
+      "blocked": {
+       "at": 1789980110116,
+       "left": 195,
+       "of": 510,
+       "cells": [
+        "-305,67,-248=short_grass",
+        "-304,67,-248=short_grass",
+        "-305,67,-247=air",
+        "-304,67,-247=air",
+        "-301,67,-247=air",
+        "-305,67,-246=short_grass"
+       ]
+      }
      },
      {
       "i": 9,
@@ -7317,7 +7129,20 @@
        "shoulder": 2,
        "toY": 116
       },
-      "idle": 3
+      "idle": 8,
+      "blocked": {
+       "at": 1789980768119,
+       "left": 760,
+       "of": 1060,
+       "cells": [
+        "-314,76,-164=air",
+        "-315,76,-164=air",
+        "-315,76,-163=air",
+        "-316,77,-164=air",
+        "-316,77,-163=air",
+        "-316,77,-162=air"
+       ]
+      }
      },
      {
       "i": 10,
@@ -7345,7 +7170,7 @@
        "shoulder": 2,
        "toY": 116
       },
-      "idle": 1
+      "idle": 0
      },
      {
       "i": 11,
@@ -7373,7 +7198,7 @@
        "shoulder": 2,
        "toY": 94
       },
-      "idle": 1
+      "idle": 3
      },
      {
       "i": 12,
@@ -7400,7 +7225,8 @@
        "torchEvery": 8,
        "shoulder": 2,
        "toY": 99
-      }
+      },
+      "idle": 2
      },
      {
       "i": 13,
@@ -7427,7 +7253,8 @@
        "torchEvery": 8,
        "shoulder": 2,
        "toY": 97
-      }
+      },
+      "idle": 0
      },
      {
       "i": 14,
@@ -7454,7 +7281,8 @@
        "torchEvery": 8,
        "shoulder": 2,
        "toY": 93
-      }
+      },
+      "idle": 0
      },
      {
       "i": 15,
@@ -7481,7 +7309,8 @@
        "torchEvery": 8,
        "shoulder": 2,
        "toY": 95
-      }
+      },
+      "idle": 2
      },
      {
       "i": 16,
@@ -7508,7 +7337,8 @@
        "torchEvery": 8,
        "shoulder": 2,
        "toY": 96
-      }
+      },
+      "idle": 1
      },
      {
       "i": 17,
@@ -7535,7 +7365,8 @@
        "torchEvery": 8,
        "shoulder": 2,
        "toY": 96
-      }
+      },
+      "idle": 2
      },
      {
       "i": 18,
@@ -7701,7 +7532,7 @@
      }
     ]
    },
-   "rev": 7
+   "rev": 8
   },
   {
    "id": "smelt_and_buckets",
@@ -7787,88 +7618,6 @@
    },
    "rev": 1,
    "note": "auto-paused: plan failed"
-  },
-  {
-   "id": "base_road_1",
-   "type": "build",
-   "priority": 80,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 3,
-   "site": [
-    -339,
-    69,
-    -509
-   ],
-   "requires": {
-    "minHp": 10
-   },
-   "plan": "BASE PLAN zone road 1 x -340..-338 / z -555..-462 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): 3-wide AVENUE north-south, paved at ground level",
-   "params": {
-    "blueprint": "road",
-    "origin": [
-     -339,
-     68,
-     -555
-    ],
-    "args": {
-     "toX": -339,
-     "toZ": -462,
-     "width": 3
-    }
-   },
-   "rev": 8,
-   "note": "auto-paused: build complete - BUT 5 cells are left that 3 builders could not do (build_leftover): -340,67,-519 | -339,65,-496 | -340,67,-523 | -338,67,-507 | -340,67,-505",
-   "stuckBy": {
-    "key": "rev8",
-    "bots": [
-     "Chika",
-     "Yui",
-     "Akari"
-    ]
-   }
-  },
-  {
-   "id": "base_road_2",
-   "type": "build",
-   "priority": 79,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 2,
-   "site": [
-    -320,
-    69,
-    -491
-   ],
-   "requires": {
-    "minHp": 10
-   },
-   "plan": "BASE PLAN zone road 2 x -404..-235 / z -492..-490 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): 3-wide AVENUE east-west, paved at ground level",
-   "params": {
-    "blueprint": "road",
-    "origin": [
-     -404,
-     68,
-     -491
-    ],
-    "args": {
-     "toX": -235,
-     "toZ": -491,
-     "width": 3
-    }
-   },
-   "rev": 8,
-   "note": "auto-paused: build complete - BUT 2 cells are left that 3 builders could not do (build_leftover): -359,67,-490 | -394,67,-492",
-   "stuckBy": {
-    "key": "rev8",
-    "bots": [
-     "Kurumi",
-     "Ichika",
-     "Honoka"
-    ]
-   }
   },
   {
    "id": "copper_armoury",
@@ -8013,7 +7762,7 @@
     "target": 16,
     "bare": true
    },
-   "restUntil": 1789980083355
+   "restUntil": 1789982064073
   },
   {
    "id": "farm_2",
@@ -8217,7 +7966,7 @@
     "shear": false,
     "cull": false
    },
-   "restUntil": 1789980124802
+   "restUntil": 1789982009986
   },
   {
    "id": "end_stronghold",
@@ -8289,57 +8038,11 @@
    }
   },
   {
-   "id": "base_core_pad",
-   "type": "build",
-   "priority": 88,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 1,
-   "site": [
-    -356,
-    69,
-    -508
-   ],
-   "requires": {
-    "minHp": 10
-   },
-   "plan": "BASE PLAN zone core x -373..-339 / z -525..-491 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. core 32x32: THE craft table + furnace bank (north strip 32x10), depot rows of double chests by category (south 32x20; grow them with len/high + rev)",
-   "params": {
-    "blueprint": "level",
-    "origin": [
-     -356,
-     68,
-     -508
-    ],
-    "args": {
-     "w": 35,
-     "d": 35
-    }
-   },
-   "rev": 10,
-   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -345,67,-515",
-   "cap": {
-    "id": "cap_base_core_pad",
-    "cols": 1225,
-    "t": 1789926449257
-   },
-   "restUntil": 1789963308637,
-   "stuckBy": {
-    "key": "rev10",
-    "bots": [
-     "Honoka",
-     "Kotori",
-     "Ayame"
-    ]
-   }
-  },
-  {
    "id": "nether_route",
    "type": "portal",
    "priority": 97,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 2,
    "shiftMin": 20,
@@ -8348,7 +8051,7 @@
     69,
     -518
    ],
-   "plan": "zone portal (docs/WORLD.md): THE COVERED WAY TO THE FORTRESS (blaze rods = the only source of eye powder; owner goal: the dragon today). SkyEye camera 09-21 08:3xZ found the fortress and a BLAZE SPAWNER at the_nether 187,77,125 on a walled brick platform (floor y76, x184-190 z122-128), ~300 blocks from the hub. The ceiling rock y108-112 is solid along the whole line (camera profile: 195/196, 161/166, 34/34 cells), so the way is a 2x2 TUNNEL cut in the roof of the Nether: stair up W from the hub x- door (-43,98,-77 -> -55,110), N 5, E 230 at z-82/-81 y110, S 172 at x176/175, stair down 34 to y77 inside the cliff, 8-cell covered bridge E through the platform wall at 184,77,124-125. No ghast sees in, nobody falls off. One blueprint (nether_route) so corners never fight; the head (settings.nether.route.head) moves over what the world shows finished; each pass walks the finished way and cuts the next 40 cells.",
+   "plan": "zone portal (docs/WORLD.md): THE COVERED WAY TO THE FORTRESS (blaze rods = the only source of eye powder; owner goal: the dragon today). SkyEye camera 09-21 08:3xZ found the fortress and a BLAZE SPAWNER at the_nether 187,77,125 on a walled brick platform (floor y76, x184-190 z122-128), ~300 blocks from the hub. The ceiling rock y108-112 is solid along the whole line (camera profile: 195/196, 161/166, 34/34 cells), so the way is a 2x2 TUNNEL cut in the roof of the Nether: stair up W from beside the hub x- door, 2 blocks SOUTH of and above the gate (-43,98,-75/-74 -> -55,110; v1 ran THROUGH the gate at -49..-46,-77 and dug the frame corner -46,101,-77 - paused 08:4xZ), N 9 at x-55/-54, E 230 at z-84/-83 y110, S 174 at x176/175, stair down 34 to y77 inside the cliff, 8-cell covered bridge E through the platform wall at 184,77,124-125. Camera read of all 7632 cells 08:5xZ: 1811 to dig, 332 to place, 8 lava, NO obsidian/portal in the way. No ghast sees in, nobody falls off. One blueprint (nether_route) so corners never fight; the head (settings.nether.route.head) moves over what the world shows finished; each pass walks the finished way and cuts the next 40 cells.",
    "params": {
     "blueprint": "nether_portal",
     "origin": [
@@ -8369,7 +8072,7 @@
       "from": [
        -55,
        110,
-       -77
+       -75
       ],
       "bearing": "x+",
       "toY": 98,
@@ -8380,17 +8083,17 @@
       "from": [
        -55,
        110,
-       -78
+       -76
       ],
       "bearing": "z-",
-      "length": 5
+      "length": 9
      },
      {
       "kind": "road",
       "from": [
        -53,
        110,
-       -82
+       -84
       ],
       "bearing": "x+",
       "length": 230
@@ -8400,10 +8103,10 @@
       "from": [
        176,
        110,
-       -80
+       -82
       ],
       "bearing": "z+",
-      "length": 172
+      "length": 174
      },
      {
       "kind": "stair",
@@ -8434,7 +8137,95 @@
     "maxDeaths": 2,
     "bare": true
    },
-   "desc": "EXPERIMENT (bare): first live run of work:route 09-21 08:4xZ by the top model."
+   "desc": "EXPERIMENT (bare): work:route v2 09-21 08:5xZ by the top model (v1 crossed the gate).",
+   "rev": 2
+  },
+  {
+   "id": "base_cane",
+   "type": "build",
+   "priority": 45,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 4,
+   "site": [
+    -272,
+    69,
+    -479
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone cane x -282..-262 / z -489..-469 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): sugar cane block 21x21 INSIDE the base (crops grow only in ticked chunks): plus-tiling of isolated water cells BUILT by the blueprint (one bucket each from settings/params waterFrom), ~270 cane cells, paved ring, lit",
+   "params": {
+    "blueprint": "cane_block",
+    "origin": [
+     -282,
+     68,
+     -489
+    ],
+    "args": {
+     "w": 21,
+     "d": 21
+    },
+    "waterFrom": [
+     -441,
+     62,
+     -422
+    ]
+   },
+   "after": "base_cane_pad",
+   "rev": 4,
+   "note": "auto-restored from the archive: 1 cells damaged",
+   "water": {
+    "key": "rev3",
+    "cells": {
+     "-273,68,-481": {
+      "fail": 1,
+      "why": "no water_bucket"
+     }
+    }
+   }
+  },
+  {
+   "id": "fix_depot_slot_351",
+   "type": "steps",
+   "priority": 95,
+   "status": "paused",
+   "bots": 1,
+   "names": [
+    "Mio"
+   ],
+   "when": "any",
+   "plan": "zone depot: the chest row z-503 has ONE missing chest at -351,67,-503 - a 1x1, 2-deep slot between chests that trapped Mio twice (hung 08:54Z, 09:03Z, rescued 09:1xZ). A chest in the slot restores the row and removes the trap (top model).",
+   "params": {
+    "steps": [
+     {
+      "do": "withdraw",
+      "item": "chest",
+      "n": 1
+     },
+     {
+      "do": "goto",
+      "to": [
+       -351,
+       69,
+       -505
+      ],
+      "range": 2
+     },
+     {
+      "do": "place",
+      "block": "chest",
+      "at": [
+       -351,
+       67,
+       -503
+      ]
+     }
+    ]
+   },
+   "note": "auto-paused: plan finished"
   }
  ]
 }

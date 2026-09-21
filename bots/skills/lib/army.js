@@ -500,13 +500,47 @@ async function bareDown (bot, opts = {}) {
   result(bot, { ev: 'bare_handed', job: ((assignment(bot) || {}).job || {}).id || null, banked: moved || {}, why: 'experimental job: nothing valuable goes out there' })
 }
 
+// THE WELL (blueprint `well`, built by an ordinary `build` job - its board entry IS the registration): [[4 pool cells] per well], nearest first.
+function wellCells (near) {
+  const out = []
+  for (const j of buildJobs()) {
+    if (j.params.blueprint !== 'well') continue
+    try { out.push(require(path.join(DIR, '..', 'blueprints', 'well.js')).pool(j.params.origin).map(c => new Vec3(c[0], c[1], c[2]))) } catch (e_) { swallow('army:wellCells', e_) }
+  }
+  return near ? out.sort((a, b) => a[0].distanceTo(near) - b[0].distanceTo(near)) : out
+}
+async function waterUp (bot, opts, took) {
+  const maxDist = opts.maxDist == null ? 96 : opts.maxDist
+  if (stockOf('water_bucket') > 0 && await withdraw(bot, 'water_bucket', 1, { stop: opts.stop, maxDist }) > 0) { took.push('water_bucket'); return }
+  // ONLY A FINISHED WELL (09-21 08:49Z: Aoi scooped the first lone source the builder had just poured - the well was gone again): all four cells must be
+  // SOURCES as this bot sees them - then a scooped cell refills from its two neighbours. Not loaded / half built = not a well yet.
+  const isSrc = c => { const b = bot.blockAt(c); return !!b && b.name === 'water' && b.metadata === 0 }
+  const well = wellCells(bot.entity.position).find(p => p.every(isSrc)); const src = well && well[0]
+  if (!src || src.distanceTo(bot.entity.position) > maxDist) return
+  if (!U.count(bot, 'bucket')) { if (!(stockOf('bucket') > 0) || !(await withdraw(bot, 'bucket', 1, { stop: opts.stop, maxDist }) > 0)) return }
+  if (U.cancelled(bot) || (opts.stop && opts.stop())) return
+  if (bot.state) bot.state.task = 'army:kit: filling a bucket at the well ' + [src.x, src.y, src.z].join(',')
+  const MV = require('./moves')
+  if (src.distanceTo(bot.entity.position) > 3.5 && !await travel(bot, { x: src.x, y: src.y + 1, z: src.z }, { range: 2, ms: 60000, stop: opts.stop, quiet: true })) { result(bot, { ev: 'well_scoop', ok: false, at: [src.x, src.y, src.z], why: 'no route to the well' }); return }
+  const ok = await MV.scoop(bot, src).catch(e_ => { swallow('army:wellScoop', e_); return false })
+  result(bot, { ev: 'well_scoop', ok: !!ok && U.count(bot, 'water_bucket') > 0, at: [src.x, src.y, src.z] })
+  if (U.count(bot, 'water_bucket')) took.push('water_bucket')
+}
 async function kitUp (bot, opts = {}) {
   if (bot.__armyKitBusy || !bot.entity) return []
   bot.__armyKitBusy = true; const took = []
   try {
     await wear(bot) // WEARING what the bot carries works in every world; FETCHING does not (the tools chest is an overworld coordinate)
     if (!overworldBot(bot)) { offWorld(bot, 'kit'); return took }
-    if (opts.fetch === false || Date.now() - (bot.__armyKitT || 0) < (opts.force ? 0 : 300000)) return took
+    if (opts.fetch === false) return took
+    // the 5-min throttle is for the gear loop; the WATER BUCKET is not throttled with it: bank() deposits the carried one on every depot pass and calls
+    // kitUp right after - throttled, the bot walked off with no bucket (09-21: 502 `banked` lines carried a water_bucket into the depot)
+    if (Date.now() - (bot.__armyKitT || 0) < (opts.force ? 0 : 300000)) {
+      if (!U.count(bot, 'water_bucket') && !bareJob(bot) && Date.now() - (bot.__armyWaterT || 0) > 60000) { bot.__armyWaterT = Date.now(); await waterUp(bot, opts, took) }
+      if (U.count(bot, 'water_bucket')) await toHotbar(bot, 'water_bucket')
+      if (took.length) result(bot, { ev: 'kitted', items: took, risk: !!opts.risk, why: opts.why || null })
+      return took
+    }
     bot.__armyKitT = Date.now()
     // BARE-HANDED FOR AN EXPERIMENT (owner 09-21: 「実験的な試みは丸腰でさせたら？」). A job whose design is NOT PROVEN kills bots in ways nobody has
     // foreseen - 1 519 iron-equivalents and 580 diamonds have gone that way - and in the Nether nothing is ever recovered. So a job marked
@@ -526,15 +560,13 @@ async function kitUp (bot, opts = {}) {
     // that carries no enchanted pick opens the tools chest itself, takes the pickaxes of the best Fortune stack and puts the plain ones straight back;
     // iron_core.bestPick then digs ORE with the Fortune pick and rock with the plain one. Nobody else touches it, so it reaches a miner and stays there.
     if (opts.risk && !Object.keys(myEnch).some(n => /_pickaxe$/.test(n))) await takeFortunePick(bot, opts, took)
-    // ONE WATER BUCKET FOR THE JOBS THAT FALL (`lib/moves.js`: `waterDrop` = a deliberate descent, `fallGuard` = the reflex that turns an unplanned
-    // fall of >= 4 hp into a water landing). Builders, miners, deck crews and hole-fillers work over drops all day, so the bucket is KIT - and it is
-    // moved into the HOTBAR, because from the backpack the reflex needs an inventory shuffle and the ground arrives first. Never off the overworld
-    // (kitUp returns above): water evaporates in the Nether. Only a bucket the depot already holds FILLED is taken - a fill trip is a walk to open
-    // water this function cannot price, so an empty `bucket` is left for the jobs that know where the water is.
-    const jt = String(((assignment(bot) || {}).job || {}).type || '')
-    if (/^(build|delegate|deck|cavity)$/.test(jt) && !U.count(bot, 'water_bucket') && stockOf('water_bucket') > 0) {
-      if (await withdraw(bot, 'water_bucket', 1, { stop: opts.stop, maxDist: opts.maxDist == null ? 96 : opts.maxDist }) > 0) took.push('water_bucket')
-    }
+    // ONE WATER BUCKET FOR EVERY BOT (owner 09-21: 「水バケツ持ってないやつ多い」 - measured 9 of 50). `lib/moves.js`: `waterDrop` = a deliberate descent,
+    // `fallGuard` = the reflex that turns an unplanned fall of >= 4 hp into a water landing - every body falls (miners, builders, farmers at a ravine lip,
+    // herders on a cliff), so the bucket is KIT for all, and it is moved into the HOTBAR (from the backpack the reflex needs an inventory shuffle and the
+    // ground arrives first). Never off the overworld (kitUp returns above): water evaporates in the Nether. A filled one from the depot first; else an
+    // empty `bucket` (carried or from the depot) is filled at the WELL (blueprint `well`, a 2x2 infinite pool beside the depot) - never at a field's or the
+    // cane block's water, which the crops need. Bounded: one walk of <= 60 s, only when the well is within reach of the depot trip (maxDist, 96).
+    if (!U.count(bot, 'water_bucket') && !bareJob(bot)) await waterUp(bot, opts, took)
     if (U.count(bot, 'water_bucket')) await toHotbar(bot, 'water_bucket')
     // EVERY BOT CARRIES A PICKAXE, A SHOVEL AND AN AXE (owner 09-20: "つるはしを持っておらず、手で掘るやつが多すぎ"), and it carries the BEST one the army can spare:
     // both rules live in kitPlan above, so the tools come out of the same fair-share loop as the armour. What the upgrade makes redundant goes back into the tools
@@ -686,37 +718,65 @@ function fieldCost (bot, mv) {
   return mv
 }
 
-// OFF by the owner's word 09-21 08:1xZ: 「ダッシュジャンプやめて」 - the hop stays in the code, switched on only by `settings.dash:true`.
+// Switched by `settings.dash`: true = everybody, ["Name", …] = a test crew (owner 09-21 08:1xZ 「ダッシュジャンプやめて」 until the hop is proven clean).
+// WHY THE OLD HOP WAS BUGGY (measured 09-21): the pathfinder counts a node as reached only within 0.35 block AND |dy| < 1 - a sprint-jump is > 1 block
+// high for ~6 ticks and ~2 blocks long, so the node under the arc is never "reached"; on landing path[0] lies BEHIND the bot and the pathfinder turns
+// it round (back-steps, hops in place, `stuck` resets). So the hop now (1) jumps only on a straight LEVEL run of the pathfinder's OWN path, long enough
+// for the landing, with headroom over every cell of the arc, and (2) while in the air ticks off the nodes the body has flown past, BEFORE the
+// pathfinder aims (prepended listener) - exactly what it would do itself had the body stayed on the ground.
 function dashRule (bot) {
   if (bot.__armyDash) { bot.removeListener('physicsTick', bot.__armyDash); bot.__armyDash = null }
+  if (bot.__armyDashPre) { bot.removeListener('physicsTick', bot.__armyDashPre); bot.removeListener('path_update', bot.__armyDashPath); bot.removeListener('path_reset', bot.__armyDashPath); bot.__armyDashPre = bot.__armyDashPath = null }
   const dsw = settings().dash; if (!(dsw === true || (Array.isArray(dsw) && dsw.includes(bot.username)))) return // true = everybody, [names] = a test crew
+  let path = null; let flying = 0; let lenPre = -1; let arrived = 0 // path = the pathfinder's live node list (path_update hands out the very array it walks and shifts)
+  const plain = n => n && !(n.toBreak && n.toBreak.length) && !(n.toPlace && n.toPlace.length)
+  const RUN = 5 // nodes of straight level path ahead: a sprint-jump flies ~3.5 blocks, one more to land on
+  const pre = () => { // ticks off the nodes the hop has flown past (the pathfinder's own 0.35/|dy|<1 test cannot see them from the arc)
+    try {
+      lenPre = path ? path.length : -1
+      if (!flying || !path) return
+      const e = bot.entity; const p = e.position
+      if (e.onGround && --flying <= 0) { flying = 0 } // a few ticks after landing, then the pathfinder is on its own again
+      while (path.length > 1 && plain(path[0]) && plain(path[1]) && Math.abs(path[1].y - path[0].y) < 0.01) {
+        const a = path[0]; const b = path[1]; const sx = b.x - a.x; const sz = b.z - a.z; const L2 = sx * sx + sz * sz; if (!L2) break
+        const t = ((p.x - a.x) * sx + (p.z - a.z) * sz) / L2; const lat = Math.abs((p.x - a.x) * sz - (p.z - a.z) * sx) / Math.sqrt(L2)
+        if (t * Math.sqrt(L2) <= 0.35 || lat > 0.6 || p.y < a.y - 0.5 || p.y > a.y + 1.6) break // within 0.35 the pathfinder's own arrival test takes it
+        path.shift()
+      }
+      lenPre = path.length
+    } catch (e_) { swallow('army:dashPre', e_) }
+  }
   const on = () => {
     try {
       const e = bot.entity; if (!e) return
+      if (path && lenPre >= 0 && path.length < lenPre) arrived = Date.now(); lenPre = -1 // the pathfinder ticked a node off itself this tick
       if (!bot.pathfinder || !bot.pathfinder.isMoving || !bot.pathfinder.isMoving()) return
+      if (!e.onGround || e.isInWater || flying) return                             // a few ground ticks between hops: the pathfinder must reach a node of its own
+      if (Date.now() - arrived > 1500) return // hop after hop with no node of its own: at 3.5 s the pathfinder calls itself `stuck` and drops the path
       if (bot.food < 15 || !larderFull() || !overworldBot(bot)) return            // hunger is the price: only with food to spare
-      if (!bot.getControlState('sprint') && !bot.controlState.sprint) return       // pathfinder decides sprinting; the dash only adds the hop
-      const p = e.position
-      const under = bot.blockAt(p.offset(0, -1, 0)); const ahead = bot.blockAt(p.offset(Math.sign(e.velocity.x) || 0, -1, Math.sign(e.velocity.z) || 0))
-      if ((under && CROP_UNDER.test(under.name)) || (ahead && CROP_UNDER.test(ahead.name))) return // never trample a field
-      const head = bot.blockAt(p.offset(0, 2, 0)); if (head && head.boundingBox === 'block') return // no headroom: a jump is a bump
-      if (!e.onGround || e.isInWater) return
-      const sp = Math.hypot(e.velocity.x, e.velocity.z); if (sp < 0.15) return     // only while really running
-      // A LANDING MUST NOT COST GROUND (owner 09-21: 「着地時に1ブロック戻っている」). A jump while the pathfinder is turning, or into a cell whose
-      // floor is one lower, lands the body short and the walk re-aims backwards - the hop then costs more than it wins. So: only on a straight run
-      // (the two cells ahead are floor at the same height and open), and the jump is held for the whole arc, not pulsed.
-      const dir = new Vec3(Math.sign(e.velocity.x) || 0, 0, Math.sign(e.velocity.z) || 0)
-      if (!dir.x && !dir.z) return
-      const floor0 = bot.blockAt(p.offset(dir.x, -1, dir.z)); const floor1 = bot.blockAt(p.offset(dir.x * 2, -1, dir.z * 2))
-      const head0 = bot.blockAt(p.offset(dir.x, 1, dir.z)); const body0 = bot.blockAt(p.offset(dir.x, 0, dir.z))
-      if (!floor0 || !floor1 || !head0 || !body0) return // unknown is never a dash
-      if (floor0.boundingBox !== 'block' || floor1.boundingBox !== 'block') return // a step down or a gap: the landing would be short
-      if (body0.boundingBox === 'block' || head0.boundingBox === 'block') return // something to bump into
-      if (CROP_UNDER.test(floor0.name) || CROP_UNDER.test(floor1.name)) return
-      bot.setControlState('jump', true); bot.__dashFired = 1; setTimeout(() => { try { bot.setControlState('jump', false) } catch {} }, 220)
-    } catch {}
+      if (!bot.controlState.sprint || bot.controlState.jump) return                // the pathfinder decided to sprint and not to jump itself: a plain run
+      if (Math.hypot(e.velocity.x, e.velocity.z) < 0.14) return                    // only at full running speed (ground velocity after friction: sprint 0.153, walk 0.118)
+      if (!path || path.length < RUN + 1) return
+      const p = e.position; const n = path.slice(0, RUN)
+      if (!n.every(plain) || n.some(q => Math.abs(q.y - p.y) > 0.01)) return      // level: no step up/down, no stair, no slab edge
+      const sx = n[1].x - n[0].x; const sz = n[1].z - n[0].z
+      if (Math.abs(sx) > 1 || Math.abs(sz) > 1 || (!sx && !sz)) return
+      for (let i = 2; i < RUN; i++) if (n[i].x - n[i - 1].x !== sx || n[i].z - n[i - 1].z !== sz) return // straight: no corner under the arc
+      const L = Math.hypot(sx, sz); const tx = n[0].x - p.x; const tz = n[0].z - p.z
+      if ((tx * sx + tz * sz) / L < -0.1 || Math.abs(tx * sz - tz * sx) / L > 0.3) return // the body runs ON the line, in its direction
+      if (((e.velocity.x * sx + e.velocity.z * sz) / L) < 0.13) return             // …and fast along it
+      const cells = [p.floored()].concat(n.map(q => new Vec3(Math.floor(q.x), Math.round(q.y), Math.floor(q.z))))
+      for (const c of cells) {
+        const fl = bot.blockAt(c.offset(0, -1, 0)); const hd = bot.blockAt(c.offset(0, 2, 0))
+        if (!fl || !hd || hd.boundingBox === 'block') return                         // unknown, or a ceiling: a jump is a bump
+        if (CROP_UNDER.test(fl.name)) return                                         // never trample a field
+      }
+      bot.setControlState('jump', true); bot.__dashFired = 1; flying = 3
+    } catch (e_) { swallow('army:dash', e_) }
   }
-  bot.__armyDash = on; bot.on('physicsTick', on)
+  bot.__armyDashPath = r => { const fresh = !path || !path.length; path = r && Array.isArray(r.path) ? r.path : null; if (fresh && path) arrived = Date.now() } // a path from nothing restarts its clock too
+  bot.__armyDash = on; bot.__armyDashPre = pre
+  bot.on('path_update', bot.__armyDashPath); bot.on('path_reset', bot.__armyDashPath); bot.prependListener('physicsTick', pre); bot.on('physicsTick', on)
 }
 
 function strictMovements (bot) {

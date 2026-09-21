@@ -155,7 +155,10 @@ function targetOf (e, P) {
 //   big    <= cap                     a GRID of columns >= 5 apart, one bot per column, each filling only what it reaches - never a walking crew
 //   cavern > cap, or open to the sky, or a natural cave that is not under our ground: NOT a fill job. It is listed, lit if it is under the base
 //          (a dark cavern is a mob farm under our feet) and left; for a MINER it is a prospect worth ore, and the branch routes around it.
+// opts.wall(p) -> true: a cell the flood treats as rock although it is air. The MINER passes its own dug galleries (09-21: every void a branch met read
+// `cavern cells:2000` - 884 of 884 mine_cave events - because the flood ran back through the branch into the whole trunk/branch grid). Default: none.
 function voidSize (bot, at, opts = {}) {
+  const wall = typeof opts.wall === 'function' ? opts.wall : null
   const cap = opts.cap || 2000; const radius = opts.radius || 64; const yTop = opts.yTop == null ? 320 : opts.yTop
   const p0 = vv(at); const seen = new Set([keyOf(p0)]); const q = [p0]; const cells = []
   const bb = [p0.x, p0.y, p0.z, p0.x, p0.y, p0.z]
@@ -171,6 +174,7 @@ function voidSize (bot, at, opts = {}) {
       const n = p.offset(dx, dy, dz); const k = keyOf(n)
       if (seen.has(k)) continue
       if (Math.abs(n.x - p0.x) > radius || Math.abs(n.z - p0.z) > radius || Math.abs(n.y - p0.y) > radius) { capped = true; continue }
+      if (wall && wall(n)) continue // the caller's own corridors are not part of the void (opts.wall, see above)
       const b = bot.blockAt(n); if (!b) { capped = true; continue }
       if (b.name === 'lava') { lava = true; continue }
       if (LIQUID_RE.test(b.name)) { water = true; continue }

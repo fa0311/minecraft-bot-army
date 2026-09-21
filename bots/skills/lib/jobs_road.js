@@ -341,7 +341,24 @@ module.exports = ctx => {
       await railPass(bot, job, P, Object.assign({}, s, { origin: spine(head), to: spine(head + step) }), api, { roof: false }).catch(e_ => swallow('jobs_road:bridgeRail', e_))
       head += step
     }
-    return 'road: bridge ' + head + '/' + n + ' cells (' + spans + ' spans this slice)'
+    // THE DECK IS WHAT IS JUDGED, SO THE DECK IS WHAT GETS FINISHED (09-21 08:5xZ: seg 4 of road_village ran 1 137 slices in an hour,
+    // 3 ms each, across 14 bots - its spine ORIGIN -303,67,-344 was a hole; the loop above starts at spine(1), segState reads the whole
+    // deck, so the segment was never built and never had work). Once the spine reaches the far end, every deck hole is filled here.
+    let filled = 0
+    if (head >= n && !api.stop()) {
+      const holes = () => deckCells(s, width).filter(c => { const b = bot.blockAt(new Vec3(c.x, c.y, c.z)); return b && !solid(b) })
+      const h0 = holes()
+      if (h0.length && stoneItem()) {
+        task(bot, 'road: filling ' + h0.length + ' hole(s) in the bridge deck')
+        await BL().buildCells(bot, h0.map(c => ({ pos: new Vec3(c.x, c.y, c.z), name: stoneItem() })), { place: { stop: api.stop } }).catch(e_ => swallow('jobs_road:deckFill', e_))
+        const h1 = holes(); filled = h0.length - h1.length
+        if (h1.length) {
+          A.result(bot, { ev: 'road_blocked', job: job.id, seg: s.i, why: 'bridge deck holes I could not fill', cells: h1.slice(0, 4).map(c => c.x + ',' + c.y + ',' + c.z) })
+          A.decline(bot, job, 600000, 'road: bridge deck holes I cannot fill at ' + h1.slice(0, 2).map(c => c.x + ',' + c.y + ',' + c.z).join(' '))
+        }
+      }
+    }
+    return 'road: bridge ' + head + '/' + n + ' cells (' + spans + ' spans this slice' + (filled ? ', ' + filled + ' deck holes filled' : '') + ')'
   }
 
   // ---------------------------------------------------------------- the handler

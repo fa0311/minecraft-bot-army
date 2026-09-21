@@ -18,6 +18,8 @@ Each file exports `module.exports = (origin, params) => [{x, y, z, block}, ...]`
   `axis:'x'|'z'` (oriented block such as a fence gate: the direction the WALL runs; the builder stands square to it), `facing:'north'|…` (a bed:
   the head lands one cell further that way - keep it free), `needs:'water'|'below'` (wait until the cell below is a water source / solid: a cap
   over a water cell, a torch on its block), `solid` (fill_void rules), `soil:true` (a farmland tile of `field_block`).
+  `pool:true` on a `water` cell (blueprint `well`): a source of the same pool counts as a closed side, it is poured with allowFlow, and a cell with two
+  pool sources beside it is just opened (it fills itself) - two diagonal pours make a 2x2 infinite pool.
 * BASE-PLAN blueprints (`armyctl.js plan-base`): `field_block`, `core`, `depot_rows`, `dorm`, `tree_farm`, `pen`, `mine_head`, `road`. Their header
   says `origin = NW corner` or `origin = centre` (plan-base reads that), they take `{w, d}` = their slot and never build outside it, and they
   export `.meta(args)` = `{origin, w, d}`. PAD RULE: the build job levels footprint + 1 first, except for the blueprints in its NO_PAD list. Outside the blueprint's own columns the pad never cuts below the origin y (a basement is no ground level). A `fillOnly` ground cell with `unlid:true` (road sub-base) makes the build job take a shallow deck off, fill the column, and put the block back.

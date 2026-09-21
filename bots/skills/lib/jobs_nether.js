@@ -63,9 +63,11 @@ module.exports = ctx => {
   // THE SHELL IS BUILT FROM WHATEVER STONE WE HAVE, not from one name (11:53Z: the scout refused to cross with `cobblestone 0/32`
   // while the depot held 299 diorite — the ravine fill drains cobblestone faster than the mine banks it). Order = what a depot
   // usually has most of; `stoneItem` re-reads the pockets for every block placed, so a pile running out costs nothing.
-  const SHELL_STONE = ['cobblestone', 'cobbled_deepslate', 'diorite', 'andesite', 'granite', 'stone', 'tuff', 'deepslate', 'blackstone', 'dirt']
+  const SHELL_STONE = ['cobblestone', 'cobbled_deepslate', 'diorite', 'andesite', 'granite', 'stone', 'tuff', 'deepslate', 'blackstone', 'netherrack', 'dirt']
   const stoneCarried = bot => SHELL_STONE.reduce((n, k) => n + A.count(bot, k), 0)
-  const stoneItem = bot => SHELL_STONE.filter(k => A.count(bot, k) > 0).sort((a, b) => A.count(bot, b) - A.count(bot, a))[0] || null
+  // DIRT IS THE LAST RESORT, NOT THE BIGGEST PILE (09-21: every route bot carried 128 dirt and walled the Nether with it - blast
+  // resistance 0.5 against a ghast's fireball, 6 for cobblestone; the depot holds 10 000+ cobblestone)
+  const stoneItem = bot => SHELL_STONE.filter(k => A.count(bot, k) > 0).sort((a, b) => ((a === 'dirt') - (b === 'dirt')) || (A.count(bot, b) - A.count(bot, a)))[0] || null
 
   // ---------------------------------------------------------------- WHAT GOES THROUGH THE GATE IS WHAT THE ARMY LOSES
   // Owner 09-21, reading the bill: 「もったいな」. 115 deaths have cost 1519 iron-equivalents and 580 diamonds, and two of them were
@@ -1487,6 +1489,198 @@ module.exports = ctx => {
   // the bedrock roof, measured 12:30:23Z): cross, work for `params.minutes`, come home. Nobody is ever idle on the far side.
   // `params.work`: 'landing' (finish the 5x5 until it reads safe) · 'hub' (blueprint nether_hub) · 'road' (blueprint nether_road,
   // one bearing) · 'scout' (walk the finished road, look, report sightings). Blocks per bot-minute is in every `nether_pass`.
+  // ---------------------------------------------------------------- THE TUNNELER (work:'route', Nether engineer 09-21)
+  // A player cuts a tunnel from INSIDE it: he stands on the last cell he finished, clears the body of the next one, lays its
+  // floor, closes its sides and roof, and steps in. Nothing else. `buildCells` is a builder for a site (stand candidates round a
+  // target, one sneak hold for the whole build) and on this route it came home `placed 0, dug 0, steps 40` pass after pass:
+  //  * the v1 route (2 cells north) had WALL cells on z-75, now the v2 walkway; two of them are v2 TORCH cells (seq 0 and 6, the
+  //    stair blueprint puts its torch on the tread), and a torch cell was only ever PLACED, never dug - a cobbled deepslate at
+  //    -43,98,-75 held the head at 0 for ever (live read 09-21 09:1xZ: seq0 feet cobbled_deepslate, seq6 feet dirt).
+  //  * every stand candidate had to be strictly closer to the target cell, and the target was up a crouched climb.
+  // So the route has its own driver: the WALK (the path's feet cells, made adjacent at the leg corners) is the only ground the
+  // bot ever stands on; every cell of seq [here-6, here+3] within arm's length is worked from it (a solid block in a walkway or
+  // torch cell is DUG, lava in the body is plugged first); then one hand-driven step to the next walk cell once its feet, head and
+  // floor read right. Crouched only where a drop is within 1 (`edgeNear`), upright inside the finished tunnel - a crouched body can
+  // neither climb nor step down. Walked back to the start before the pass ends, so the way home is the gate beside the hub.
+  const K3 = (x, y, z) => x + ',' + y + ',' + z
+  function routeWalkOf (meta, cells) {
+    const clear = new Set(cells.filter(c => c.block !== 'stone').map(c => K3(c.x, c.y, c.z)))
+    const isClear = q => clear.has(K3(q[0], q[1], q[2])) && clear.has(K3(q[0], q[1] + 1, q[2]))
+    const out = []
+    meta.path.forEach((f, s) => {
+      const prev = out[out.length - 1]
+      if (prev && f[1] === prev.p[1] && Math.abs(f[0] - prev.p[0]) + Math.abs(f[2] - prev.p[2]) > 1) {
+        const dx = f[0] - prev.p[0]; const dz = f[2] - prev.p[2]
+        const mids = xFirst => { const m = []; let x = prev.p[0]; let z = prev.p[2]; while (x !== f[0] || z !== f[2]) { if (xFirst ? x !== f[0] : z === f[2]) x += Math.sign(dx); else z += Math.sign(dz); if (x !== f[0] || z !== f[2]) m.push([x, f[1], z]) } return m }
+        const a = mids(true); const b = mids(false)
+        for (const q of (a.every(isClear) ? a : b.every(isClear) ? b : a)) out.push({ p: q, seq: prev.seq })
+      }
+      out.push({ p: f, seq: s })
+    })
+    return out
+  }
+  const bodyClear = b => !!b && b.boundingBox !== 'block' && !/^(lava|fire|soul_fire)$/.test(b.name)
+  function walkable (bot, p) {
+    const q = v(p)
+    if (!knownAt(bot, q) || !knownAt(bot, q.offset(0, -1, 0)) || !knownAt(bot, q.offset(0, 1, 0))) return false
+    const u = bot.blockAt(q.offset(0, -1, 0))
+    return bodyClear(bot.blockAt(q)) && bodyClear(bot.blockAt(q.offset(0, 1, 0))) && !!u && u.boundingBox === 'block' && !/lava|magma/.test(u.name)
+  }
+  // is the cell right for the route? (an air cell holding lava or fire is NOT right; a torch cell without a torch in our pockets is
+  // right as long as it is clear - a torch is light, never a reason to stop)
+  function routeOK (bot, c) {
+    const b = bot.blockAt(v([c.x, c.y, c.z])); if (!b) return false
+    if (c.block === 'stone') return b.boundingBox === 'block' && !/^(lava|water)$/.test(b.name)
+    if (c.block === 'air') return bodyClear(b)
+    if (c.block === 'torch') return /torch/.test(b.name) || (bodyClear(b) && !A.count(bot, 'torch'))
+    return true
+  }
+  // ONE CELL of the walk, by hand. Up = one pulse of jump, down = walk off (only where no drop is within 1: a crouched body is held
+  // at the lip and cannot), flat = forward. Crouched exactly where the doctrine asks for it: at a rim.
+  async function routeStep (bot, api, p) {
+    const to = v(p); const here = bot.entity.position.floored()
+    if (here.equals(to)) return true
+    const dy = to.y - here.y
+    if (Math.abs(to.x - here.x) + Math.abs(to.z - here.z) !== 1 || Math.abs(dy) > 1) return false
+    if (!walkable(bot, p) || !knownRing(bot, to, 1)) return false
+    if (dy > 0 && !bodyClear(bot.blockAt(here.offset(0, 2, 0)))) return false // no room to jump
+    if (dy < 0 && !bodyClear(bot.blockAt(to.offset(0, 2, 0)))) return false
+    const rim = edgeNear(bot, to) || edgeNear(bot, here)
+    if (rim && dy < 0) return false
+    const crouch = () => { try { bot.setControlState('sneak', rim || (bot.__netherHold > 0)) } catch (e_) { swallow('jobs_nether:routeCrouch', e_) } }
+    try {
+      bot.pathfinder.setGoal(null); bot.clearControlStates(); crouch()
+      const aim = to.offset(0.5, 0, 0.5)
+      await bot.lookAt(new Vec3(aim.x, bot.entity.position.y + 1.62 + dy, aim.z), true)
+      bot.setControlState('forward', true)
+      let jumped = 0
+      for (let t = 0; t < (rim ? 80 : 50) && !api.stop(); t++) {
+        crouch()
+        const pos = bot.entity.position
+        const hd = Math.hypot(pos.x - aim.x, pos.z - aim.z)
+        if (pos.floored().equals(to) && hd < 0.3 && bot.entity.onGround) break
+        if (dy > 0 && bot.entity.onGround && jumped < 6 && t % 8 === 1) { bot.setControlState('jump', true); jumped++ } else bot.setControlState('jump', false)
+        if (t % 5 === 0) await bot.lookAt(new Vec3(aim.x, pos.y + 1.62, aim.z), true)
+        await sleep(50)
+      }
+    } catch (e_) { swallow('jobs_nether:routeStep', e_) } finally {
+      try { bot.setControlState('forward', false); bot.setControlState('jump', false) } catch (e_) { swallow('jobs_nether:routeStepClear', e_) }
+    }
+    await sleep(100)
+    return bot.entity.position.floored().equals(to)
+  }
+  const routeItem = bot => ['cobblestone', 'cobbled_deepslate', 'blackstone', 'andesite', 'diorite', 'granite', 'tuff', 'stone', 'deepslate', 'netherrack', 'dirt'].find(k => A.count(bot, k) >= 1) || null
+  async function routeTunnel (bot, job, api, P, meta, allR, head, body, until) {
+    const t0 = Date.now()
+    const gate = new Set()
+    for (const q of body) for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) gate.add(K3(q.x + dx, q.y + dy, q.z + dz))
+    const cells = allR.filter(c => !gate.has(K3(c.x, c.y, c.z)))
+    const bySeq = new Map(); for (const c of cells) { if (!bySeq.has(c.seq)) bySeq.set(c.seq, []); bySeq.get(c.seq).push(c) }
+    const W = routeWalkOf(meta, allR)
+    const feetY = s => meta.path[Math.max(0, Math.min(meta.length - 1, s))][1]
+    let placed = 0; let dug = 0; let steps = 0; let back = 0; let waited = 0; const why = {}; const fails = {}
+    let i = -1; let stuck = null
+    // ON TO THE WALK at its start (the gate puts us 5 cells from it; the finished way is then walked cell by cell, read-only, and
+    // whatever is still open behind the head is worked on the way - that is how the walls and roof get finished)
+    const k0 = 0
+    task(bot, 'nether route: onto the way (' + W[k0].p.join(',') + ')')
+    if (walkable(bot, W[k0].p)) { if (await nTravel(bot, v(W[k0].p), { range: 0, ms: 30000, stop: api.stop }) && bot.entity.position.floored().equals(v(W[k0].p))) i = k0 }
+    else await nTravel(bot, v(W[k0].p), { range: 2, ms: 30000, stop: api.stop })
+    const lastI = () => i
+    const reserve = () => 15000 + Math.max(0, lastI()) * 700 // the walk back to the start
+    const eye = () => eyeOf(bot)
+    const rank = (c, s0) => {
+      const b = bot.blockAt(v([c.x, c.y, c.z]))
+      if (b && /^(lava|fire)$/.test(b.name)) return 0 // what burns is first
+      if (c.block !== 'stone' && c.seq <= s0 + 2) return 1 // the body of the next cells
+      if (c.block === 'stone' && c.y === feetY(c.seq) - 1) return 2 // floor
+      if (c.block === 'stone' && c.y <= feetY(c.seq) + 1) return 3 // walls at body height
+      if (c.block === 'air') return 4
+      if (c.block === 'stone') return 5 // roof
+      return 6 // torches last
+    }
+    while (Date.now() < until - reserve() && !api.stop()) {
+      if (bot.health < 8) { stuck = 'hurt (' + Math.round(bot.health) + ' hp)'; break }
+      const s0 = i >= 0 ? W[i].seq : -1
+      const todo = []
+      for (let s = Math.max(0, s0 - 6); s <= s0 + 3; s++) for (const c of (bySeq.get(s) || [])) if (loadedAt(bot, c) && !routeOK(bot, c) && (fails[K3(c.x, c.y, c.z)] || 0) < 3) todo.push(c)
+      todo.sort((a, b) => (rank(a, s0) - rank(b, s0)) || (a.seq - b.seq) || (eye().distanceTo(v([a.x, a.y, a.z])) - eye().distanceTo(v([b.x, b.y, b.z]))))
+      let prog = 0
+      for (const c of todo) {
+        if (Date.now() >= until - reserve() || api.stop()) break
+        const q = v([c.x, c.y, c.z]); const k = K3(c.x, c.y, c.z)
+        if (eye().distanceTo(q.offset(0.5, 0.5, 0.5)) > 4.4) { why[k] = 'out of reach'; continue }
+        if (routeOK(bot, c)) continue
+        const b = bot.blockAt(q); if (!b) continue
+        if (/obsidian|portal|bedrock|chest|crafting/.test(b.name)) { why[k] = 'never touched: ' + b.name; fails[k] = 9; continue }
+        task(bot, 'nether route: seq ' + s0 + '/' + meta.length + ', ' + placed + ' placed, ' + dug + ' dug')
+        const dig = c.block !== 'stone' && b.boundingBox === 'block'
+        const fire = c.block !== 'stone' && /fire/.test(b.name)
+        if (dig || fire) {
+          const r = await BL().digBlock(bot, q, { collect: false, requireHarvest: false, noMove: true }).catch(e => ({ ok: false, reason: String(e && e.message) }))
+          if (r && r.ok && bodyClear(bot.blockAt(q))) { dug++; prog++; delete why[k] } else { why[k] = 'dig: ' + String((r || {}).reason).slice(0, 40); fails[k] = (fails[k] || 0) + 1 }
+          continue
+        }
+        // place: stone into air/lava, stone into LAVA in a body cell (dug next round), a torch on its floor
+        const item = c.block === 'torch' ? 'torch' : routeItem(bot)
+        if (!item) { why[k] = 'nothing to place'; continue }
+        if (c.block === 'torch') { const u = bot.blockAt(q.offset(0, -1, 0)); if (!u || u.boundingBox !== 'block') continue }
+        if (!hasRef(bot, q)) { why[k] = 'no face to place against'; fails[k] = (fails[k] || 0) + 1; continue }
+        const pr = await placeStill(bot, api, q, item)
+        const nb = bot.blockAt(q)
+        if (nb && (c.block === 'torch' ? /torch/.test(nb.name) : nb.boundingBox === 'block')) { placed++; prog++; delete why[k] } else { why[k] = 'place: ' + String(pr.reason).slice(0, 40); fails[k] = (fails[k] || 0) + 1 }
+      }
+      // FORWARD: the next walk cell, when the world says it is ready
+      const nx = W[i + 1]
+      if (!nx) { stuck = 'end of the route'; break }
+      if (!knownAt(bot, v(nx.p)) || !knownAt(bot, v(nx.p).offset(0, -1, 0))) { waited++; if (waited > 90) { stuck = 'seq ' + nx.seq + ' never loaded'; break } await sleep(1000); continue }
+      if (walkable(bot, nx.p)) {
+        const mate = Object.values(bot.entities).find(e => e !== bot.entity && e.type === 'player' && e.position && Math.hypot(e.position.x - nx.p[0] - 0.5, e.position.z - nx.p[2] - 0.5) < 0.9 && Math.abs(e.position.y - nx.p[1]) < 1.5)
+        if (mate) { waited++; await sleep(1000); continue } // a mate is in the cell ahead: he is the head, we are the crew behind him
+        let ok = false
+        if (i >= 0) ok = await routeStep(bot, api, nx.p)
+        else ok = !!await nTravel(bot, v(nx.p), { range: 0, ms: 15000, stop: api.stop }) && bot.entity.position.floored().equals(v(nx.p))
+        if (ok) { i++; steps++; stuck = null; continue }
+        why[K3(...nx.p)] = 'step failed from ' + xyz(bot.entity.position).join(',')
+        fails['step' + (i + 1)] = (fails['step' + (i + 1)] || 0) + 1
+        if (fails['step' + (i + 1)] >= 3) { stuck = 'cannot step onto ' + nx.p.join(',') + ' (seq ' + nx.seq + ')'; break }
+        continue
+      }
+      if (!prog) {
+        const blockers = [[0, -1, 0], [0, 0, 0], [0, 1, 0]].map(d => { const q = v(nx.p).offset(d[0], d[1], d[2]); const b = bot.blockAt(q); return K3(q.x, q.y, q.z) + '=' + (b ? b.name : '?') + (why[K3(q.x, q.y, q.z)] ? ' (' + why[K3(q.x, q.y, q.z)] + ')' : '') })
+        stuck = 'seq ' + nx.seq + ' not walkable and nothing more in reach: ' + blockers.join(' ')
+        fails.idle = (fails.idle || 0) + 1
+        if (fails.idle >= 3) break
+        await sleep(1000)
+      } else fails.idle = 0
+    }
+    const reached = i >= 0 ? W[i].seq : -1
+    // HOME END FIRST: walk the finished way back to the start, so the gate beside the hub is the way home
+    for (let k = i - 1; k >= 0 && !api.stop(); k--) {
+      task(bot, 'nether route: walking back (' + W[k].seq + ')')
+      if (await routeStep(bot, api, W[k].p)) { back++; i = k; continue }
+      if (!await nTravel(bot, v(W[k].p), { range: 0, ms: 15000, stop: api.stop })) break
+      i = k
+    }
+    try { bot.setControlState('sneak', bot.__netherHold > 0) } catch (e_) { swallow('jobs_nether:routeEnd', e_) }
+    // THE HEAD = HOW FAR THE WAY IS WALKABLE, as the world shows it (walls and roofs do not hold it; they are worked 6 seq behind
+    // whoever passes). Read from the old head forward over the cells that are loaded.
+    let head2 = head
+    while (head2 < meta.length) {
+      const f = meta.path[head2]
+      if (!loadedAt(bot, { x: f[0], y: f[1] - 1, z: f[2] }) || !walkable(bot, f)) break
+      head2++
+    }
+    const done = head2 >= meta.length
+    netherEdit({ route: { legsKey: JSON.stringify(P.legs), head: head2, length: meta.length, end: meta.end, headAt: meta.path[Math.min(head2, meta.length - 1)], done, reached, at: Date.now(), by: bot.username } })
+    const min = Math.max(0.1, (Date.now() - t0) / 60000)
+    const left = cells.filter(c => c.seq < head2 && loadedAt(bot, c) && !routeOK(bot, c))
+    return {
+      work: 'route', head: head2, headWas: head, length: meta.length, reached, done, placed, dug, steps, back, waited, stuck,
+      behindLeft: left.length, leftAt: left.slice(0, 4).map(c => K3(c.x, c.y, c.z) + '=' + c.block + ' (' + (why[K3(c.x, c.y, c.z)] || '?') + ')'),
+      min: Math.round(min * 10) / 10, perBotMin: Math.round((placed + dug) / min * 10) / 10, carried: stoneCarried(bot), item: routeItem(bot)
+    }
+  }
   // the area a squad may step inside = its own work plus the way in (a box that does not hold the door is a box nobody reaches)
   function unionBox (a, b, p) {
     const out = Array.isArray(a) ? a.slice() : null; if (!out) return null
@@ -1536,24 +1730,7 @@ module.exports = ctx => {
       const r = bpCells('nether_route', [0, 0, 0], { legs: P.legs }); const allR = r.cells; meta = r.meta
       const R0 = netherOf().route || {}
       const head = Math.max(0, Math.min(meta.length - 1, (R0.legsKey === JSON.stringify(P.legs) ? R0.head : 0) || 0))
-      const to = Math.max(0, head - 2)
-      // nearest path cell to where we stand, then waypoints every 10 cells along the finished way up to the head
-      const me0 = bot.entity.position
-      let k0 = 0; let best = 1e9
-      for (let i = 0; i <= to; i++) { const f = meta.path[i]; const d = Math.hypot(f[0] - me0.x, f[1] - me0.y, f[2] - me0.z); if (d < best) { best = d; k0 = i } }
-      let walked = 0
-      for (let k = k0; k < to && Date.now() < until && !api.stop();) {
-        k = Math.min(to, k + 10)
-        const f = meta.path[k]
-        task(bot, 'nether route: walking the finished way to the head (' + k + '/' + head + ')')
-        if (!await nTravel(bot, v(f), { range: 1, ms: 30000, stop: api.stop })) { st.routeWalk = { stuckAt: k, feet: f }; break }
-        walked = k
-      }
-      const lo = Math.max(0, head - 6); const hi = head + (P.window || 40)
-      cells = allR.filter(c => c.seq >= lo && c.seq <= hi)
-      const xs = cells.map(c => c.x); const zs = cells.map(c => c.z)
-      box = unionBox([Math.min(...xs) - 2, Math.min(...zs) - 2, Math.max(...xs) + 2, Math.max(...zs) + 2], null, xyz(bot.entity.position))
-      st.route = { head, walked, lo, hi, allR }
+      return await routeTunnel(bot, job, api, P, meta, allR, head, body, until)
     } else if (work === 'blaze') {
       return await blazeHunt(bot, job, api, P, until)
     } else if (work === 'scout') {
@@ -1653,17 +1830,6 @@ module.exports = ctx => {
       netherEdit({ barterSpot: Object.assign({}, N.barterSpot || {}, { at: meta.at, stand: [meta.at[0], meta.floorY + 1, meta.at[2]], route: meta.route, pad: meta.padBox, floorY: meta.floorY, overVoid: meta.overVoid, laneLeft, padLeft, built, t: Date.now() }) })
       out.at2 = meta.at; out.floorY = meta.floorY; out.overVoid = meta.overVoid; out.laneLeft = laneLeft; out.padLeft = padLeft; out.built = built
       if (st.span) { out.spans = st.span.spans; out.bridged = st.span.placed; if (st.span.notes && st.span.notes.length) out.spanWhy = st.span.notes.slice(0, 2) }
-    }
-    if (work === 'route' && meta && st.route) {
-      // THE HEAD MOVES ONLY OVER WHAT THE WORLD SHOWS FINISHED: the first seq in this window with a readable cell that is not right
-      // (a torch we could not set does not hold the head), or the first one we could not read at all.
-      const win = st.route.allR.filter(c => c.seq >= st.route.lo && c.seq <= st.route.hi && c.block !== 'torch')
-      let head2 = st.route.hi + 1
-      for (const c of win) { if (c.seq >= head2) continue; if (!loadedAt(bot, c) || !cellOK(bot, c)) head2 = c.seq }
-      head2 = Math.max(st.route.head, Math.min(head2, meta.length))
-      const done = head2 >= meta.length
-      netherEdit({ route: { legsKey: JSON.stringify(P.legs), head: head2, length: meta.length, end: meta.end, headAt: meta.path[Math.min(head2, meta.length - 1)], done, walkedTo: st.route.walked, stuck: st.routeWalk || null, at: Date.now(), by: bot.username } })
-      out.head = head2; out.headWas = st.route.head; out.length = meta.length; out.done = done; if (st.routeWalk) out.walkStuck = st.routeWalk
     }
     if (work === 'road' && meta) {
       const roads = Object.assign({}, N.roads || {}); roads[meta.bearing] = { from: Array.isArray(P.from) ? P.from : (N.hub || {}).outside, end: meta.end, length: meta.length, box: meta.box, left: r.left, at: Date.now() }
@@ -2159,10 +2325,11 @@ module.exports = ctx => {
       st.swap = P.bare ? { swapped: ['(params.bare: army.js bareDown owns the kit)'], kept: [], deposited: 0 }
         : await swapDown(bot, api, /pair|degate/.test(String(P.work)) ? /pickaxe/ : null).catch(e_ => { swallow('jobs_nether:swapDown', e_); return null })
       const want = Math.max(32, P.cobble || 128)
-      for (const k of SHELL_STONE.slice().sort((a, b) => A.stockOf(b) - A.stockOf(a))) {
-        if (stoneCarried(bot) >= want || api.stop()) break
+      for (const k of SHELL_STONE.slice().sort((a, b) => ((a === 'dirt') - (b === 'dirt')) || (A.stockOf(b) - A.stockOf(a)))) { // dirt only when no stone is in the depot
+        const real = () => stoneCarried(bot) - A.count(bot, 'dirt') // a pocket of dirt is not the building stone this trip wants
+        if (real() >= want || api.stop()) break
         if (A.stockOf(k) < 16) continue
-        await A.obtain(bot, k, Math.min(A.count(bot, k) + (want - stoneCarried(bot)), 256), { stop: api.stop }).catch(e_ => swallow('jobs_nether:obtain', e_))
+        await A.obtain(bot, k, Math.min(A.count(bot, k) + (want - real()), 256), { stop: api.stop }).catch(e_ => swallow('jobs_nether:obtain', e_))
       }
       if (A.count(bot, 'torch') < 16) await A.obtain(bot, 'torch', 32, { stop: api.stop }).catch(e_ => swallow('jobs_nether:torch', e_))
       // the hub's furniture is CARRIED OVER (there is no depot on the far side and there must not be one in the overworld's books)

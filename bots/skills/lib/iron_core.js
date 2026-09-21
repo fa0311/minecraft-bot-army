@@ -451,6 +451,8 @@ async function knockSpike (bot, b) {
 async function placeAt (bot, item, pos, opts = {}) {
   let cur = bot.blockAt(pos)
   if (spike(cur)) { if (!await knockSpike(bot, cur)) return false; cur = bot.blockAt(pos) }
+  // a rail / cobweb in the cell is no air either (mineshafts: `placeAt ... still rail` 60/h, `still cobweb` 24/h at 09:0xZ): out with it first
+  if (clutter(cur) && !U.protectedBlock(cur)) { await digCell(bot, pos, { hand: true, soft: true }); cur = bot.blockAt(pos); if (clutter(cur)) return false }
   if (isSolid(cur)) return true
   if (!item || U.count(bot, item) <= 0) return false
   if (item !== 'torch' && !opts.temp && walkway(pos.x, pos.y, pos.z)) { bump(bot, 'walkwayRefused'); return false }
@@ -1629,7 +1631,25 @@ async function recordVein (bot, pos, fam, seen, raw = 0) {
 // the army's one implementation) and acts like a player: a POCKET is bridged walled and lit and the branch carries on; a CAVERN is not bridged at all -
 // its walls are harvested (caveOre), it goes on the board as an ore prospect (`mine_cave` + settings.mine.caves) and the branch ends there, routed around.
 function caveAt (bot, x, y, z, opts) {
-  try { return require('./jobs_cavity').voidSize(bot, [x, y, z], Object.assign({ cap: 2000, radius: 64 }, opts || {})) } catch (e_) { swallow('iron_core:caveAt', e_); return null }
+  try { return require('./jobs_cavity').voidSize(bot, [x, y, z], Object.assign({ cap: 2000, radius: 64, wall: dugWall(CUR) }, opts || {})) } catch (e_) { swallow('iron_core:caveAt', e_); return null }
+}
+// OUR OWN GALLERIES ARE NOT THE CAVE: a cell of the stairwell, of the dug trunk (up to the furthest branch mouth) or of a branch up to its recorded length
+// (feet or head cell) is rock for voidSize - else the flood from a fresh face runs back through the branch into the whole mine grid and every pocket
+// reads `cavern 2000` (09-21: 884 of 884 mine_cave events), so no branch ever bridged a pocket again.
+function dugWall (M) {
+  if (!M || !M.G) return null
+  const st = M.st || {}; const trunkEnd = new Map()
+  const endOf = (level) => { if (!trunkEnd.has(level)) { const ks = Object.values(lvState(st, level).branches).map(b => b.k).filter(Number.isFinite); trunkEnd.set(level, ks.length ? branchOff(Math.max(...ks)) + 1 : FIRST_OFF) } return trunkEnd.get(level) }
+  return (p) => {
+    for (const q of [p, { x: p.x, y: p.y - 1, z: p.z }]) {
+      const l = locate(M.G, q, 0); if (!l) continue
+      if (l.part === 'stair') return true
+      if (l.part === 'trunk') { if (l.along <= endOf(l.level)) return true; continue }
+      const b = lvState(st, l.level).branches[l.k + ':' + l.side]
+      if (b && l.len <= (b.len || 0)) return true
+    }
+    return false
+  }
 }
 // the cave's own klass decides: `tiny`/`small` = a pocket in the rock (bridge it), `big`/`cavern` = a room (harvest and route around). `capped`
 // (voidSize hit its 2000 cells / 64 blocks) is a cavern by definition - it is bigger than we looked.
@@ -2938,7 +2958,7 @@ module.exports = {
   digCell, openCell, sealSides, torchNear, stepTo, settle, walkLine, pillarOne, blocked, sweep, returnTo,
   auditStairs, repairStairs, walkRoute, nearestWp, treadState, layTreads, stairItem, STAIR_RE, isSupport, supportChain, placeSupported,
   exposedOre, veinOf, mineVein, collectVein, noteOre, drainSeen, fortuneOf, threat, defend, wallOff, eat, tossJunk,
-  caveAt, bigCave, exposedNear, caveOre, recordCave,
+  caveAt, dugWall, bigCave, exposedNear, caveOre, recordCave,
   claimStairs, digStairs, claimBranch, branchOutlook, exhausted, levelCap, levelYield, reopenable, commute, nextLanding, claimGrowth, sayMine, pickRank, stoneWanted, saveBranch, gotoBranchFace, mineBranch, walkTrunk,
   rawIron, lootScore, needHaul, foodUnits, pickUses, readiness, exitReason, reconnect, toSurface, toEntrance,
   // lava on record + the obsidian trip
