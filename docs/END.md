@@ -107,6 +107,11 @@ read from a camera volume dump before it went on the board: no water/lava within
 `jobs_nether.js` exports `route.{work,walk,plan}` (one implementation; in the overworld it also plugs WATER behind a cell), head in
 `settings.end.way`. When the head reaches the end the next slice is the proof walk door -> room -> door (`end_way_walked`), then the
 job pauses itself. `portal` and `dragon` walk this way in and out (`viaWay`/`wayHome`) — the stronghold is ~2 000 blocks from the base.
+**Cut and proven 09-21 16:5xZ** (Hazuki, Kotori, Aoi; ~65 min of which most was the 2 000-block commute; 0 deaths): Aoi walked
+door -> room in 97 s and back in 113 s and read all 12 frames from the room (1 holds an eye) -> **11 eyes still needed**. Lessons: a stone
+pickaxe lasts 131 blocks, so the kit is `params.picks` 8 (the first two bots ran out at seq 117 and 168 and walked home); two bots on
+the route deadlock at the landings (the route cutter's "mate in the cell ahead" wait has no cap -> `hung` -> released) — ONE bot cuts;
+a bare job never takes a bot that is already far from the depot with diamonds (it is released, `end_way` "carrying valuables").
 
 ## 4. THE PORTAL — `work:'portal'`
 Walk the room, `noteFrames` writes every `end_portal_frame` to `settings.end.room`, then for each frame whose `eye` property

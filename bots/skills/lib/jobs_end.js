@@ -521,7 +521,8 @@ module.exports = ctx => {
   // out, both directions timed (`end_way_walked`); then the job pauses itself. portal/dragon walk the same way (`viaWay`).
   let _nr = null
   const NR = () => { if (!_nr) _nr = require('./jobs_nether')(ctx); return _nr.route }
-  function wayOf () { const w = endS().way; return (w && Array.isArray(w.legs) && w.legs.length) ? w : null }
+  // read FRESH from the board (A.settings() is cached: the slice after the head reached the end still saw done:false and cut again)
+  function wayOf () { let w = null; try { w = (((A.readJSON(A.F.board, {}) || {}).settings || {}).end || {}).way } catch (e_) { swallow('jobs_end:wayOf', e_); w = endS().way } return (w && Array.isArray(w.legs) && w.legs.length) ? w : null }
   const wayIO = { read: () => endS().way || {}, edit: patch => endEdit(e => { for (const k of Object.keys(patch)) e[k] = Object.assign({}, e[k] || {}, patch[k]) }) }
   // on the walk already? (the nearest walk cell within 2.5)
   function onWay (bot, plan) { const me = bot.entity.position; return plan.walk.some(w => Math.hypot(w.p[0] + 0.5 - me.x, w.p[1] - me.y, w.p[2] + 0.5 - me.z) < 2.5) }

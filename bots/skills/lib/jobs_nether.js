@@ -1705,7 +1705,10 @@ module.exports = ctx => {
     // where the two lanes' numbering crosses). Cells we cannot read yet count as passable; each step is verified, a failed cell is
     // dropped and the way re-planned.
     const bad = new Set()
-    const passable = k => { if (bad.has(k)) return false; const q = k.split(',').map(Number); return !knownAt(bot, v(q)) || walkable(bot, q) }
+    // FIRE IS PUT OUT, NOT WALKED ROUND (09-21 14-17Z: a fire burning on the netherrack tread 175,107,95 - a blaze or ghast shot - blocked
+    // lane 1 at seq 434 and 63 blaze passes turned back at 433): a cell whose only fault is fire counts as passable and is punched out first
+    const fireIn = q => [0, 1].some(dy => { const b = bot.blockAt(v(q).offset(0, dy, 0)); return !!b && /fire/.test(b.name) })
+    const passable = k => { if (bad.has(k)) return false; const q = k.split(',').map(Number); if (!knownAt(bot, v(q))) return true; if (walkable(bot, q)) return true; if (!fireIn(q)) return false; const u = bot.blockAt(v(q).offset(0, -1, 0)); return !!u && u.boundingBox === 'block' && [0, 1].every(dy => { const b = bot.blockAt(v(q).offset(0, dy, 0)); return !!b && b.boundingBox !== 'block' && !/lava/.test(b.name) }) }
     const plan = () => {
       const start = [here.x, here.y, here.z].join(); const prev = new Map([[start, null]]); const q = [start]; let goal = null
       while (q.length) {
@@ -1724,6 +1727,7 @@ module.exports = ctx => {
         if (api.stop()) break
         const q = k.split(',').map(Number)
         task(bot, 'nether route: ' + (label || (target < cur ? 'walking home along the route' : 'walking out along the route')) + ' (' + seqAt.get(k) + ')')
+        for (const dy of [0, 1]) { const fb = bot.blockAt(v(q).offset(0, dy, 0)); if (fb && /fire/.test(fb.name)) { await BL().digBlock(bot, v(q).offset(0, dy, 0), { collect: false, requireHarvest: false, noMove: true, plug: false }).catch(e_ => swallow('jobs_nether:putOut', e_)); A.result(bot, { ev: 'route_fire_out', at: [q[0], q[1] + dy, q[2]], out: !/fire/.test((bot.blockAt(v(q).offset(0, dy, 0)) || {}).name || '') }) } }
         if (!(await routeStep(bot, api, q))) { bad.add(k); broke = true; break }
         walked++; cur = seqAt.get(k); here = bot.entity.position.floored()
       }

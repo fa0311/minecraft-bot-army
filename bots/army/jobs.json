@@ -1362,13 +1362,13 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Chino",
+   "by": "Chika",
    "portal": [
-    -47,
-    98,
+    -48,
+    100,
     -77
    ],
-   "through": 1790008581015,
+   "through": 1790010460568,
    "scoutRev": 6,
    "hub": {
     "room": [
@@ -1481,7 +1481,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789969045309,
-   "back": 1790008524015,
+   "back": 1790010540693,
    "lastDeath": 1789997242231,
    "lastDeathBy": "Kanade",
    "roads": {
@@ -1943,7 +1943,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1790008164054,
+   "gatesAt": 1790009964206,
    "pairRoad": {
     "from": [
      -43,
@@ -2441,7 +2441,7 @@
       28
      ]
     },
-    "t": 1790008198855
+    "t": 1790010312901
    },
    "absorb": {
     "coal": 480,
@@ -3162,8 +3162,20 @@
      -495,
      -250
     ],
-    "why": "lake lobe W of the base: cliffs let a bot in, never out (Hazuki, Fuuka, Riko x2, Chika stranded/frozen 09-21) - top model 13:3xZ | 14:1xZ: Aika + Yuzu (hp1 f0) caught at -526,59,-300 = the E dead end of an UNDERGROUND water passage (y57-59, roof y63) after the +60 weight; raised to 400 | 14:5xZ: widened E+S over the cherry-grove hill -520..-505,-280..-260 - an island with NO route to the base; escapes from it fall 19 blocks into the water cave (Iroha 13:42 -520,78,-278 -> -526,59,-301; 9 bots there) | 16:0xZ engineer: camera = ONE cave system: a sky-open SINKHOLE in the hill (mouth x-521..-514/z-273..-256, a walkable ramp from the S at z-259..-256 y93 down to its floor y78 at z-272..-269), its N throat drops 14 to the lower chamber (y64, z-280) which runs down to the water pocket (-540..-524,59,-304..-296). The W plain N of the pocket is NOT part of it: box narrowed to hill+sinkhole+throat so builders can reach the exit stair cave_exit (-536,78,-320)",
-    "w": 400
+    "why": "lake lobe W of the base: cliffs let a bot in, never out (Hazuki, Fuuka, Riko x2, Chika stranded/frozen 09-21) - top model 13:3xZ | 14:1xZ: Aika + Yuzu (hp1 f0) caught at -526,59,-300 = the E dead end of an UNDERGROUND water passage (y57-59, roof y63) after the +60 weight; raised to 400 | 14:5xZ: widened E+S over the cherry-grove hill -520..-505,-280..-260 - an island with NO route to the base; escapes from it fall 19 blocks into the water cave (Iroha 13:42 -520,78,-278 -> -526,59,-301; 9 bots there) | 16:0xZ engineer: camera = ONE cave system: a sky-open SINKHOLE in the hill (mouth x-521..-514/z-273..-256, a walkable ramp from the S at z-259..-256 y93 down to its floor y78 at z-272..-269), its N throat drops 14 to the lower chamber (y64, z-280) which runs down to the water pocket (-540..-524,59,-304..-296). The W plain N of the pocket is NOT part of it: box narrowed to hill+sinkhole+throat so builders can reach the exit stair cave_exit (-536,78,-320) | 16:5xZ: w 400 -> 1 FOR THE EVACUATION (the cave walks out S through this box: throat -> sinkhole -> ramp -> hill top -> W slope x-534; pathfinder-proven 145 nodes); back up after the ramp wall cave_seal stands",
+    "w": 1,
+    "id": "hill_sinkhole"
+   },
+   {
+    "id": "water_cave",
+    "box": [
+     -541,
+     -305,
+     -520,
+     -284
+    ],
+    "w": 1,
+    "why": "water cave pocket + lower chamber (y46-75, lake y47-59): a death here is written off by core/recover.js (the kit sank). w 1 = NO path cost on purpose: the way out (stair cave_exit, foot -537,60,-302, walkway z-301) runs through this box - top model 16:4xZ"
    }
   ],
   "end": {
@@ -3601,36 +3613,42 @@
     ],
     "length": 223,
     "job": "end_way",
-    "head": 172,
+    "head": 223,
     "headAt": [
-     118,
-     -26,
-     1494
+     109,
+     -42,
+     1515
     ],
-    "done": false,
-    "reached": 169,
-    "at": 1790007241500,
-    "by": "Kotori"
+    "done": true,
+    "reached": 222,
+    "at": 1790010289562,
+    "by": "Aoi",
+    "walked": {
+     "t": 1790010500594,
+     "by": "Aoi",
+     "downS": 97,
+     "upS": 113
+    }
    },
    "room": {
     "frames": [
      [
-      102,
+      106,
       -40,
       1515
      ],
      [
-      102,
+      106,
       -40,
       1516
      ],
      [
-      102,
+      106,
       -40,
       1517
      ],
      [
-      103,
+      105,
       -40,
       1514
      ],
@@ -3640,7 +3658,7 @@
       1514
      ],
      [
-      103,
+      105,
       -40,
       1518
      ],
@@ -3650,27 +3668,27 @@
       1518
      ],
      [
-      105,
+      103,
       -40,
       1514
      ],
      [
-      105,
+      103,
       -40,
       1518
      ],
      [
-      106,
+      102,
       -40,
       1515
      ],
      [
-      106,
+      102,
       -40,
       1516
      ],
      [
-      106,
+      102,
       -40,
       1517
      ]
@@ -3686,7 +3704,7 @@
      1515
     ],
     "filled": 1,
-    "by": "camera",
+    "by": "Aoi",
     "filledAt": [
      [
       102,
@@ -3694,7 +3712,7 @@
       1517
      ]
     ],
-    "at": 1790004947533
+    "at": 1790010387723
    }
   }
  },
@@ -3897,7 +3915,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 1,
+   "bots": 12,
    "site": [
     -367,
     69,
@@ -3933,9 +3951,9 @@
      ]
     ]
    },
-   "rev": 96,
+   "rev": 97,
    "note": "06:35Z mine engineer: the sponge held 16 of 49 bots at priority 60 while mine_iron (92, deficit 0.96 of iron 31/800) stood at ZERO staffed. A sponge exists so nobody idles, not to starve the roadmap: 16 -> 4. Raise it again when iron is met",
-   "restUntil": 1789994143642
+   "restUntil": 1790010797084
   },
   {
    "id": "farm_1",
@@ -4078,7 +4096,7 @@
    "note": "06:3xZ mine engineer: readiness no longer hands a WELL-FED miner back when the depot cannot give 8 food units (48 mine_not_ready from 24 bots in 20 min left the squad at ZERO); caves at a branch face are now harvested, not walled off. rev bump voids the stale not-ready declines",
    "bots": 4,
    "rev": 92,
-   "restUntil": 1790010416287
+   "restUntil": 1790012262205
   },
   {
    "id": "base_dorm",
@@ -4258,7 +4276,7 @@
    },
    "rev": 28,
    "bots": 0,
-   "restUntil": 1790008260825
+   "restUntil": 1790010151758
   },
   {
    "id": "sleeper",
@@ -4345,7 +4363,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1790008843160
+   "restUntil": 1790010661912
   },
   {
    "id": "fill_ring_field1",
@@ -6544,7 +6562,7 @@
     "bare": true
    },
    "rev": 18,
-   "restUntil": 1790009765970
+   "restUntil": 1790011596877
   },
   {
    "id": "nether_gate_old_down",
@@ -6659,7 +6677,7 @@
    },
    "bots": 1,
    "rev": 8,
-   "restUntil": 1790009471113
+   "restUntil": 1790011286724
   },
   {
    "id": "mine_sweep",
@@ -6863,7 +6881,7 @@
      ]
     ]
    },
-   "restUntil": 1790009670923,
+   "restUntil": 1790011526840,
    "rev": 3
   },
   {
@@ -8190,7 +8208,7 @@
     "target": 16,
     "bare": true
    },
-   "restUntil": 1790009065172,
+   "restUntil": 1790010690172,
    "rev": 1
   },
   {
@@ -9741,7 +9759,7 @@
    "type": "build",
    "priority": 66,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "site": [
@@ -9774,7 +9792,15 @@
     "cells": {}
    },
    "desc": "re-activated 14:3xZ by the top model: base audit - 9 WATER cells of the field read dirt (-381/-390/-399,68,-516 ...), 59 soil tiles untilled; the build job IS the repair",
-   "note": "needs: water (no bucket carried, in stock or craftable (3 iron_ingot)) (9 cells wait; every cell whose material exists is done or in work)"
+   "note": "auto-paused: 18 cells nobody could do: -399,69,-507 | -399,69,-498 | -399,69,-516 | -390,69,-507 | -390,69,-498 | -390,69,-516",
+   "stuckBy": {
+    "key": "rev12",
+    "bots": [
+     "Iroha",
+     "Kurumi",
+     "Erika"
+    ]
+   }
   },
   {
    "id": "void_fix_base_pen_1_pad",
@@ -10003,9 +10029,9 @@
    "id": "end_way",
    "type": "end",
    "priority": 97,
-   "status": "active",
+   "status": "paused",
    "when": "any",
-   "bots": 2,
+   "bots": 1,
    "shiftMin": 40,
    "site": [
     116,
@@ -10359,18 +10385,18 @@
      ]
     }
    },
-   "rev": 7,
+   "rev": 8,
    "names": [
-    "Aoi",
-    "Akari"
-   ]
+    "Aoi"
+   ],
+   "note": "auto-paused: the way is cut and walked door -> portal room -> door by Aoi (97 s down, 113 s up)"
   },
   {
    "id": "base_field_2",
    "type": "build",
    "priority": 70,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "site": [
@@ -10407,11 +10433,13 @@
    },
    "rev": 6,
    "desc": "re-activated 15:4xZ by the top model: 8 WATER cells read dirt (the void_fix pad fill laid its skin on them) - the build job is the repair",
-   "note": "needs: water (no bucket carried, in stock or craftable (3 iron_ingot)) (9 cells wait; every cell whose material exists is done or in work)",
+   "note": "auto-paused: 16 cells nobody could do: -288,69,-516 | -279,69,-516 | -297,69,-516 | -288,69,-507 | -279,69,-507 | -297,69,-507",
    "stuckBy": {
     "key": "rev6",
     "bots": [
-     "Ayame"
+     "Ayame",
+     "Erika",
+     "Noa"
     ]
    }
   },
@@ -10510,8 +10538,29 @@
     },
     "pad": false
    },
-   "rev": 2,
-   "note": "top model 16:3xZ: NOT a runaway to pause - the dig loops were DIRT that bots walking the half-cut stair placed as pathfinder scaffolding (a roofed stair = terrain_guard UNDERGROUND mode, scaffolding allowed) into its interior cells (-537,69,-311 -537,70,-312 -536/-537,74..76,-316/-317); noDig cleared, 2 bots finish it. The foot IS right (-537/-536,60,-302 = the N lobe of the trapped bots island); the walkway to it is cave_exit_ford."
+   "rev": 3,
+   "note": "top model 16:3xZ: NOT a runaway to pause - the dig loops were DIRT that bots walking the half-cut stair placed as pathfinder scaffolding (a roofed stair = terrain_guard UNDERGROUND mode, scaffolding allowed) into its interior cells (-537,69,-311 -537,70,-312 -536/-537,74..76,-316/-317); noDig cleared, 2 bots finish it. The foot IS right (-537/-536,60,-302 = the N lobe of the trapped bots island); the walkway to it is cave_exit_ford.",
+   "exclude": [
+    "Aika",
+    "Fuuka",
+    "Hotaru",
+    "Karin",
+    "Kokoro",
+    "Madoka",
+    "Mashiro",
+    "Nagisa",
+    "Nanami",
+    "Rena",
+    "Rin",
+    "Shiori",
+    "Sumire",
+    "Tsumugi",
+    "Ume",
+    "Wakana",
+    "Yotsuba",
+    "Yui",
+    "Yukina"
+   ]
   },
   {
    "id": "base_infill_n337_n524",
@@ -10747,14 +10796,53 @@
    "id": "cave_walkway",
    "type": "steps",
    "priority": 100,
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "names": [
-    "Karin"
+    "Nozomi"
    ],
-   "plan": "zone: the water cave N lobe row z -301 x -536..-529 (camera 16:3xZ): the stair cave_exit is clear (6 dirt plugs dug); Karin laid the first causeway block (-536,59,-301) and ended on the ledge. Now cell by cell from the WEST: stand on the last block, place the next one on the water (cobblestone y59), cut the rock head room y61 x -533..-529, step onto it - until it meets the 1-deep ledge at x -529; then walk up and out.",
+   "plan": "zone: the exit stair foot + the water cave N lobe rows z -302/-301 x -536..-529 (camera 16:3xZ). Placing needs a VISIBLE reference face and nobody can stand in the water: so the order follows the rock. From the dry stair foot (-537,60,-302): the missing stair tread (-535,59,-302) in STONE (on the rock -535,59,-303), then the causeway z -301 cell by cell EASTWARDS, each block laid against the south face of a solid block in row z -302 (the tread, two helper blocks -534/-533,59,-302, then natural rock -532..-530), stepping onto each, cutting the rock head room y61 x -533..-529, until it meets the trapped bots 1-deep ledge; then back up. Cobblestone y59 on the water; nothing else touched.",
    "params": {
     "steps": [
+     {
+      "do": "withdraw",
+      "item": "cobblestone",
+      "n": 32
+     },
+     {
+      "do": "withdraw",
+      "item": "stone",
+      "n": 4
+     },
+     {
+      "do": "goto",
+      "to": [
+       -537,
+       77,
+       -322
+      ],
+      "range": 2,
+      "s": 600
+     },
+     {
+      "do": "goto",
+      "to": [
+       -537,
+       60,
+       -302
+      ],
+      "range": 0,
+      "s": 180
+     },
+     {
+      "do": "place",
+      "block": "stone",
+      "at": [
+       -535,
+       59,
+       -302
+      ]
+     },
      {
       "do": "goto",
       "to": [
@@ -10763,7 +10851,7 @@
        -301
       ],
       "range": 0,
-      "s": 180
+      "s": 120
      },
      {
       "do": "place",
@@ -10782,7 +10870,25 @@
        -301
       ],
       "range": 0,
-      "s": 180
+      "s": 120
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -533,
+       59,
+       -302
+      ]
+     },
+     {
+      "do": "place",
+      "block": "cobblestone",
+      "at": [
+       -534,
+       59,
+       -302
+      ]
      },
      {
       "do": "place",
@@ -10801,7 +10907,15 @@
        -301
       ],
       "range": 0,
-      "s": 180
+      "s": 120
+     },
+     {
+      "do": "dig",
+      "at": [
+       -533,
+       61,
+       -301
+      ]
      },
      {
       "do": "place",
@@ -10813,14 +10927,6 @@
       ]
      },
      {
-      "do": "dig",
-      "at": [
-       -533,
-       61,
-       -301
-      ]
-     },
-     {
       "do": "goto",
       "to": [
        -533,
@@ -10828,7 +10934,15 @@
        -301
       ],
       "range": 0,
-      "s": 180
+      "s": 120
+     },
+     {
+      "do": "dig",
+      "at": [
+       -532,
+       61,
+       -301
+      ]
      },
      {
       "do": "place",
@@ -10840,14 +10954,6 @@
       ]
      },
      {
-      "do": "dig",
-      "at": [
-       -532,
-       61,
-       -301
-      ]
-     },
-     {
       "do": "goto",
       "to": [
        -532,
@@ -10855,7 +10961,15 @@
        -301
       ],
       "range": 0,
-      "s": 180
+      "s": 120
+     },
+     {
+      "do": "dig",
+      "at": [
+       -531,
+       61,
+       -301
+      ]
      },
      {
       "do": "place",
@@ -10867,14 +10981,6 @@
       ]
      },
      {
-      "do": "dig",
-      "at": [
-       -531,
-       61,
-       -301
-      ]
-     },
-     {
       "do": "goto",
       "to": [
        -531,
@@ -10882,7 +10988,15 @@
        -301
       ],
       "range": 0,
-      "s": 180
+      "s": 120
+     },
+     {
+      "do": "dig",
+      "at": [
+       -530,
+       61,
+       -301
+      ]
      },
      {
       "do": "place",
@@ -10890,14 +11004,6 @@
       "at": [
        -530,
        59,
-       -301
-      ]
-     },
-     {
-      "do": "dig",
-      "at": [
-       -530,
-       61,
        -301
       ]
      },
@@ -10921,7 +11027,477 @@
      }
     ]
    },
-   "rev": 3
+   "rev": 4,
+   "note": "auto-paused: plan failed"
+  },
+  {
+   "id": "cave_seal",
+   "type": "build",
+   "priority": 98,
+   "front": "works",
+   "status": "active",
+   "when": "day",
+   "bots": 3,
+   "site": [
+    -518,
+    88,
+    -260
+   ],
+   "requires": {
+    "minHp": 14,
+    "minFood": 10
+   },
+   "plan": "zone: the SINKHOLE on the cherry-grove hill, row z -262 x -523..-513 (camera + pathfinder 16:5xZ): THE FUNNEL into the water cave is not a shaft - it is a WALKABLE RAMP: from the hill top (-522,100,-250) the sinkhole floor runs down N (z -256 y92 -> z -270 y78), the throat steps down into the lower chamber (-525,70,-277) and the lake to the dead end -526,59,-302 nearest the base, where every partial path towards the base ends. A cobblestone wall across the ramp at z -262, from each column floor up to y92 (69 blocks; 1+ above every standable cell on the S side, 5+ over the N side, so it is neither climbed nor stepped down from) cuts that walk. Built from the S (hill) side; the builders come over the hill W slope (x -534) from the plain and leave the same way. BARE: a fall to the N lands in the cave.",
+   "params": {
+    "blueprint": "spots",
+    "origin": [
+     -518,
+     88,
+     -262
+    ],
+    "args": {
+     "blocks": [
+      [
+       -523,
+       89,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -523,
+       90,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -523,
+       91,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -523,
+       92,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -522,
+       87,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -522,
+       88,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -522,
+       89,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -522,
+       90,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -522,
+       91,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -522,
+       92,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -521,
+       86,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -521,
+       87,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -521,
+       88,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -521,
+       89,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -521,
+       90,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -521,
+       91,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -521,
+       92,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -520,
+       85,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -520,
+       86,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -520,
+       87,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -520,
+       88,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -520,
+       89,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -520,
+       90,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -520,
+       91,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -520,
+       92,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -519,
+       86,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -519,
+       87,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -519,
+       88,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -519,
+       89,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -519,
+       90,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -519,
+       91,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -519,
+       92,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -518,
+       87,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -518,
+       88,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -518,
+       89,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -518,
+       90,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -518,
+       91,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -518,
+       92,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -517,
+       88,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -517,
+       89,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -517,
+       90,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -517,
+       91,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -517,
+       92,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -516,
+       87,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -516,
+       88,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -516,
+       89,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -516,
+       90,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -516,
+       91,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -516,
+       92,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -515,
+       86,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -515,
+       87,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -515,
+       88,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -515,
+       89,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -515,
+       90,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -515,
+       91,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -515,
+       92,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -514,
+       86,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -514,
+       87,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -514,
+       88,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -514,
+       89,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -514,
+       90,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -514,
+       91,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -514,
+       92,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -513,
+       87,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -513,
+       88,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -513,
+       89,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -513,
+       90,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -513,
+       91,
+       -262,
+       "cobblestone"
+      ],
+      [
+       -513,
+       92,
+       -262,
+       "cobblestone"
+      ]
+     ]
+    },
+    "pad": false,
+    "bare": true
+   },
+   "exclude": [
+    "Aika",
+    "Fuuka",
+    "Hotaru",
+    "Karin",
+    "Kokoro",
+    "Madoka",
+    "Mashiro",
+    "Nagisa",
+    "Nanami",
+    "Rena",
+    "Rin",
+    "Shiori",
+    "Sumire",
+    "Tsumugi",
+    "Ume",
+    "Wakana",
+    "Yotsuba",
+    "Yui",
+    "Yukina"
+   ],
+   "rev": 1
   }
  ]
 }
