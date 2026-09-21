@@ -459,6 +459,32 @@ module.exports = ctx => {
       return bot.entity.position.distanceTo(c.offset(0.5, 0, 0.5)) < 1.2
     } catch (e_) { swallow('jobs_nether:sneakStep', e_); try { bot.setControlState('forward', false) } catch (e2_) { swallow('jobs_nether:sneakStepClear', e2_) } return false }
   }
+  // ONE CELL UP, SNEAKING, WITH ONE PULSE OF JUMP. `sneakStep` walks; it cannot climb, because a 1-block rise needs a jump and
+  // holding `forward` against a wall for 3.5 s simply fails (07:27:13Z). Jump is PULSED, never held: a held jump bunny-hops a bot
+  // forward off the far side of a 1-wide stair, and sneak does not help a body that is already airborne.
+  async function climbStep (bot, api, c) {
+    try {
+      if (!knownRing(bot, c, 1)) return false
+      const u = bot.blockAt(c.offset(0, -1, 0)); if (!u || u.boundingBox !== 'block' || /lava|magma/.test(u.name)) return false
+      // SNEAK IS WHAT STOPS THE CLIMB, and only where it is not earning anything. A crouched body is held at the lip of the block
+      // it stands on, so the hop onto a block one up and one across never leaves the ground (07:31:08Z, `could not climb onto
+      // -35,103,-80`, after five cells of the same route worked). The doctrine's own rule is the answer: a rim is walked by hand
+      // sneaking, open ground is simply walked. So the crouch comes off for ONE hop, and only when there is no drop within 1 of
+      // either the cell we leave or the cell we land on - at a rim it stays on and the climb is refused and reported instead.
+      const here = bot.entity.position.floored()
+      const rim = edgeNear(bot, c) || edgeNear(bot, here)
+      bot.pathfinder.setGoal(null); bot.clearControlStates(); if (rim) sneakOn(bot)
+      await bot.lookAt(c.offset(0.5, 0.1, 0.5), true)
+      bot.setControlState('forward', true)
+      for (let hop = 0; hop < 4 && !api.stop(); hop++) {
+        bot.setControlState('jump', true); await sleep(200); bot.setControlState('jump', false)
+        for (let t = 0; t < 7 && !api.stop(); t++) { if (rim) sneakOn(bot); await sleep(200); if (bot.entity.position.floored().equals(c)) break }
+        if (bot.entity.position.floored().equals(c)) break
+      }
+      bot.setControlState('jump', false); bot.setControlState('forward', false); sneakOn(bot)
+      return bot.entity.position.distanceTo(c.offset(0.5, 0, 0.5)) < 1.2
+    } catch (e_) { swallow('jobs_nether:climbStep', e_); try { bot.setControlState('jump', false); bot.setControlState('forward', false) } catch (e2_) { swallow('jobs_nether:climbClear', e2_) } return false }
+  }
   async function safeStep (bot, api, c, box) {
     try {
       if (!box || c.x < box[0] || c.x > box[2] || c.z < box[1] || c.z > box[3]) return false
@@ -467,7 +493,10 @@ module.exports = ctx => {
       const u = bot.blockAt(c.offset(0, -1, 0)); if (!u || u.boundingBox !== 'block' || /lava|magma/.test(u.name)) return false
       for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) for (let dz = -2; dz <= 2; dz++) { const b = bot.blockAt(c.offset(dx, dy, dz)); if (b && /^(lava|fire)$/.test(b.name)) return false }
       // NEAR A DROP THE PATHFINDER IS NEVER ASKED: one cell, by hand, sneaking (16:53:11Z cost a bot and a kit)
-      if (edgeNear(bot, c) || bot.entity.position.distanceTo(c.offset(0.5, 0, 0.5)) < 2.6) return await sneakStep(bot, api, c)
+      // ...and a step that RISES is a hop, not a walk: `sneakStep` holds forward against the side of a block for 3.5 s and calls
+      // it a failure. A bot that cannot step up cannot walk the stair it is building (07:31-07:34Z), so the rise goes to
+      // `climbStep`, which is the same hand-driven single cell with one pulse of jump.
+      if (edgeNear(bot, c) || bot.entity.position.distanceTo(c.offset(0.5, 0, 0.5)) < 2.6) return await (c.y > bot.entity.position.floored().y ? climbStep : sneakStep)(bot, api, c)
       sneakOn(bot)
       return !!await nTravel(bot, c, { range: 0, ms: 12000, stop: api.stop })
     } catch (e_) { swallow('jobs_nether:safeStep', e_); return false }
@@ -1024,44 +1053,75 @@ module.exports = ctx => {
   // about. It is SEARCHED every time over what this bot can actually READ, cost = blocks placed, minimum first (a bucket queue,
   // so the first cell popped inside `reach` is the cheapest one). Unknown chunks are simply not in the graph — rule 1.
   function stairSearch (bot, from, target, opts = {}) {
-    const reach = opts.reach || 8; const maxPlace = opts.maxPlace || 24; const R = opts.box || 20
+    const reach = opts.reach || 8; const maxPlace = opts.maxPlace || 48; const R = opts.box || 20
     const tx = target.x; const ty = Math.floor(target.y); const tz = target.z
     const b1 = Math.min(from.x, Math.floor(tx)) - R; const b2 = Math.max(from.x, Math.floor(tx)) + R
     const b3 = Math.min(from.z, Math.floor(tz)) - R; const b4 = Math.max(from.z, Math.floor(tz)) + R
     const y1 = Math.min(from.y, ty) - 6; const y2 = Math.max(from.y, ty) + 6
-    const seen = new Map()
+    // one block cache for BOTH passes and one for the 150-lookup lava question: without them a 48-block budget is seconds of
+    // blocked event loop on a live bot, and a bot that does not tick is a bot that does not sneak
+    const seen = (opts.cache && opts.cache.blk) || new Map(); const cooled = (opts.cache && opts.cache.cool) || new Map()
     const at = (x, y, z) => {
       const k = x + ',' + y + ',' + z; let s = seen.get(k)
       if (s === undefined) { const b = bot.blockAt(new Vec3(x, y, z)); s = b == null ? null : (/^(lava|fire|magma_block)$/.test(b.name) ? 'hot' : b.boundingBox === 'block' ? 'solid' : 'air'); seen.set(k, s) }
       return s
     }
     const body = (x, y, z) => at(x, y, z) === 'air' && at(x, y + 1, z) === 'air'
-    const cool = (x, y, z) => !lavaNear({ x, y, z }, 2, 3, 2)
+    const cool = (x, y, z) => { const k = x + ',' + y + ',' + z; let c = cooled.get(k); if (c === undefined) { c = !lavaNear({ x, y, z }, 2, 3, 2); cooled.set(k, c) } return c }
+    const hasSolidFace = (x, y, z) => at(x + 1, y, z) === 'solid' || at(x - 1, y, z) === 'solid' || at(x, y - 1, z) === 'solid' || at(x, y, z + 1) === 'solid' || at(x, y, z - 1) === 'solid'
     const canStand = (x, y, z) => at(x, y - 1, z) === 'solid' && body(x, y, z) && cool(x, y, z)
     const canLay = (x, y, z) => at(x, y - 1, z) === 'air' && body(x, y, z) && cool(x, y, z) // we place the floor under it
     const K = (x, y, z) => x + ',' + y + ',' + z
+    // A CORRIDOR, AND THE NEAREST CELL FIRST. An unguided flood fill over Nether air is hopeless: walking is free, so cost 0
+    // drains the whole 383-cell shelf, and every cost after that is a SHELL through open cavern — tens of thousands of cells
+    // before the budget is half spent, and the search comes back "no stair" having never looked at the plateau. So the graph is
+    // cut to a corridor `wide` cells either side of the straight line bot -> piglin, and the frontier is a heap keyed on
+    // (blocks placed, then distance to the target): cost stays the primary key, so the answer is still the CHEAPEST stair, but it
+    // is found walking towards the piglin instead of away from it.
+    const ax = from.x; const az = from.z; const bx = Math.floor(tx); const bz = Math.floor(tz)
+    const ddx = bx - ax; const ddz = bz - az; const L2 = ddx * ddx + ddz * ddz
+    const wide = opts.wide || 8
+    const inCorridor = (x, z) => {
+      let u = L2 ? ((x - ax) * ddx + (z - az) * ddz) / L2 : 0; u = u < 0 ? 0 : u > 1 ? 1 : u
+      return Math.hypot(x - (ax + u * ddx), z - (az + u * ddz)) <= wide
+    }
+    const dTo = (x, y, z) => Math.sqrt((x + 0.5 - tx) ** 2 + (y - target.y) ** 2 + (z + 0.5 - tz) ** 2)
+    const heap = []; const hpush = (key, n) => { heap.push([key, n]); let i = heap.length - 1; while (i > 0) { const p2 = (i - 1) >> 1; if (heap[p2][0] <= heap[i][0]) break; const t2 = heap[p2]; heap[p2] = heap[i]; heap[i] = t2; i = p2 } }
+    const hpop = () => { const top = heap[0]; const last = heap.pop(); if (heap.length) { heap[0] = last; let i = 0; for (;;) { const l = 2 * i + 1; const r = l + 1; let m = i; if (l < heap.length && heap[l][0] < heap[m][0]) m = l; if (r < heap.length && heap[r][0] < heap[m][0]) m = r; if (m === i) break; const t2 = heap[m]; heap[m] = heap[i]; heap[i] = t2; i = m } } return top }
     const dist = new Map(); const prev = new Map()
-    const buckets = Array.from({ length: maxPlace + 2 }, () => [])
-    dist.set(K(from.x, from.y, from.z), 0); buckets[0].push([from.x, from.y, from.z])
+    dist.set(K(from.x, from.y, from.z), 0); hpush(0, [from.x, from.y, from.z, 0])
     let pops = 0
-    for (let c = 0; c <= maxPlace; c++) {
-      while (buckets[c].length) {
-        if (++pops > (opts.pops || 40000)) return null
-        const [x, y, z] = buckets[c].pop(); const k = K(x, y, z)
+    {
+      while (heap.length) {
+        if (++pops > (opts.pops || 30000)) return null
+        const [, [x, y, z, c]] = hpop(); const k = K(x, y, z)
         if (dist.get(k) !== c) continue
         const d = Math.sqrt((x + 0.5 - tx) ** 2 + (y - target.y) ** 2 + (z + 0.5 - tz) ** 2)
-        if (d <= reach && !(x === from.x && y === from.y && z === from.z)) {
+        // `natural` = the goal must be REAL GROUND, not the last block of our own pillar. The piglins wander over a plateau at
+        // y107-116 while the shelf is at y98, so the climb is the investment and where it ENDS decides whether the next trade is
+        // a walk or another stair: a first pass asks for a landing on their own ground, and only then do we settle for a perch.
+        if (d <= reach && !(x === from.x && y === from.y && z === from.z) && (!opts.natural || at(x, y - 1, z) === 'solid')) {
           const route = []; for (let q = k; q && q !== K(from.x, from.y, from.z); q = prev.get(q)) route.unshift(q.split(',').map(Number))
           return { cost: c, at: [x, y, z], d: Math.round(d * 10) / 10, route }
         }
-        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) for (const dy of [0, 1, -1]) {
+        // ONLY FLAT AND ONLY UP. A sneaking body is stopped at every rim by prismarine-physics — which is exactly what keeps it
+        // alive, and also what makes it unable to step DOWN a block. We are climbing to a plateau, so a descent is not needed;
+        // planning one would only plan a step the bot cannot take (07:27Z, `could not step onto -50,99,-88`).
+        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) for (const dy of [0, 1]) {
           const nx = x + dx; const ny = y + dy; const nz = z + dz
           if (nx < b1 || nx > b2 || nz < b3 || nz > b4 || ny < y1 || ny > y2) continue
+          if (!inCorridor(nx, nz)) continue
           if (dy === 1 && at(x, y + 2, z) !== 'air') continue // no headroom over our own head to climb
-          const w = canStand(nx, ny, nz) ? 0 : canLay(nx, ny, nz) ? 1 : null
+          // A BLOCK NEEDS SOMETHING TO BE PLACED AGAINST, and the plan has to know it (07:26:59Z: a 23-block stair died on its
+          // FIRST cell, `nothing to place the stair block at -53,98,-74 against`). The floor we are about to lay must touch a
+          // face of something solid: natural rock, or the floor we are standing on — and that second case only happens on a FLAT
+          // step, because a floor one up and one across is diagonal to ours. So a climb only goes up where rock is beside it,
+          // which is the honest physical truth: you cannot build a staircase up through empty air without pillaring, and
+          // pillaring is what the doctrine forbids.
+          const w = canStand(nx, ny, nz) ? 0 : (canLay(nx, ny, nz) && (hasSolidFace(nx, ny - 1, nz) || dy === 0)) ? 1 : null
           if (w === null || c + w > maxPlace) continue
           const nk = K(nx, ny, nz); if (dist.get(nk) != null && dist.get(nk) <= c + w) continue
-          dist.set(nk, c + w); prev.set(nk, k); buckets[c + w].push([nx, ny, nz])
+          dist.set(nk, c + w); prev.set(nk, k); hpush((c + w) * 1000 + Math.min(999, Math.round(dTo(nx, ny, nz))), [nx, ny, nz, c + w])
         }
       }
     }
@@ -1073,44 +1133,34 @@ module.exports = ctx => {
   async function stairTo (bot, job, api, until, target, opts = {}) {
     lavaSet(bot, true)
     const t0 = Date.now(); const from = bot.entity.position.floored()
-    if (!safeStand(bot)) return { ok: false, placed: 0, why: 'the ground we stand on is not safe to build from (lava within 2, or fewer than 8 walkable cells)' }
-    if (stoneCarried(bot) < 8) return { ok: false, placed: 0, why: 'only ' + stoneCarried(bot) + ' blocks carried - a stair needs params.cobble through the gate' }
-    const plan = stairSearch(bot, from, target, opts)
-    if (!plan) return { ok: false, placed: 0, why: 'no stair of ' + (opts.maxPlace || 24) + ' blocks or fewer reaches within ' + (opts.reach || 8) + ' of ' + xyz(target).join(',') + ' through ground we can read' }
+    // EVERY refusal is REPORTED. The first cut of this returned quietly, so four failed attempts looked exactly like "no piglin
+    // came" in the log and cost a slice to tell apart (07:2xZ).
+    const no = why => { A.result(bot, { ev: 'nether_stair', job: job.id, at: xyz(from), target: target && target.x != null ? xyz(target) : String(target), ok: false, placed: 0, why }); return { ok: false, placed: 0, why } }
+    if (!target || target.x == null || target.y == null) return no('stairTo was given no target position (an entity is not a position)')
+    if (!safeStand(bot)) return no('the ground we stand on is not safe to build from (lava within 2, or fewer than 8 walkable cells)')
+    if (stoneCarried(bot) < 8) return no('only ' + stoneCarried(bot) + ' blocks carried - a stair needs params.cobble through the gate')
+    const cache = { blk: new Map(), cool: new Map() }
+    const plan = stairSearch(bot, from, target, Object.assign({ natural: true, cache }, opts)) || stairSearch(bot, from, target, Object.assign({ cache }, opts))
+    if (!plan) return no('no stair of ' + (opts.maxPlace || 48) + ' blocks or fewer reaches within ' + (opts.reach || 8) + ' of ' + xyz(target).join(',') + ' through ground we can read (it is ' + Math.round(Math.abs(Math.floor(target.y) - from.y)) + ' up and ' + (Math.abs(Math.floor(target.x) - from.x) + Math.abs(Math.floor(target.z) - from.z)) + ' across)')
     A.result(bot, { ev: 'nether_stair', job: job.id, from: xyz(from), to: plan.at, target: xyz(target), place: plan.cost, cells: plan.route.length, dToPig: plan.d })
-    let placed = 0; let why = null
-    sneakHold(bot, true)
-    try {
-      for (const c of plan.route) {
-        if (Date.now() > until || api.stop()) { why = 'out of time after ' + placed + ' blocks'; break }
-        const q = v(c)
-        if (!knownRing(bot, q, 1)) { why = 'the ground at ' + c.join(',') + ' stopped reading - unknown is never stepped onto'; break }
-        if (lavaTouching(bot, q) || lavaNear(q, 2, 3, 2)) { why = 'lava came within 2 of ' + c.join(','); break }
-        const floor = q.offset(0, -1, 0); const fb = bot.blockAt(floor)
-        if (!fb || fb.boundingBox !== 'block') {
-          const item = stoneItem(bot); if (!item) { why = 'ran out of stone after ' + placed + ' blocks'; break }
-          if (!hasRef(bot, floor)) { why = 'nothing to place the stair block at ' + xyz(floor).join(',') + ' against'; break }
-          if (eyeOf(bot).distanceTo(floor.offset(0.5, 0.5, 0.5)) > 4.2) { why = 'the stair block at ' + xyz(floor).join(',') + ' is out of reach from where we stand'; break }
-          const r = await placeStill(bot, api, floor, item)
-          if (!r.ok) { why = 'could not place the stair block at ' + xyz(floor).join(',') + ' (' + r.reason + ')'; break }
-          placed++
-        }
-        if (!await sneakStep(bot, api, q)) { why = 'could not step onto ' + c.join(','); break }
-      }
-      // A 1-WIDE PILLAR IS NOT A PLACE TO TRADE FROM: the gold comes back as an ITEM ON THE GROUND, so the bot needs a step or two
-      // of floor around it to pick the pearls up. The last cell gets a skirt wherever one can be reached and read.
-      if (!why) {
-        const st = bot.entity.position.floored()
-        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
-          const f = st.offset(dx, -1, dz); const b = bot.blockAt(f)
-          if (!b || b.boundingBox === 'block' || /lava|fire/.test(b.name) || !hasRef(bot, f)) continue
-          if (eyeOf(bot).distanceTo(f.offset(0.5, 0.5, 0.5)) > 4.2) continue
-          const item = stoneItem(bot); if (!item) break
-          if ((await placeStill(bot, api, f, item)).ok) placed++
-        }
-      }
-    } finally { sneakHold(bot, false) }
-    const out = { ok: !why, placed, at: xyz(bot.entity.position), planned: plan.cost, s: Math.round((Date.now() - t0) / 1000), why: why || undefined }
+    // THE PLACING IS `buildCells`, NOT A SECOND IMPLEMENTATION OF IT. A hand-rolled loop of my own lost a whole shift to the
+    // things that engine already knows: what is in reach of an eye, what has a face to be placed against, when to wait for the
+    // chunks, and - the part that makes a STAIR possible at all - when nothing is in reach, take ONE safe step towards the
+    // nearest unfinished cell, including along the floor we have just laid. It built the 413-cell hub and both landings.
+    // So the search says WHICH cells, in order (`seq` = the leg index, so the engine lays them from the bottom up), and the
+    // engine lays them. The last cell gets a skirt: the pearls come back as items on the ground and nobody picks them up off a
+    // 1-wide pillar.
+    const cells = plan.route.map((c, i) => ({ x: c[0], y: c[1] - 1, z: c[2], block: 'stone', seq: i }))
+    const end = plan.at
+    for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) cells.push({ x: end[0] + dx, y: end[1] - 1, z: end[2] + dz, block: 'stone', seq: plan.route.length + 1 })
+    const xs = cells.map(c => c.x); const zs = cells.map(c => c.z)
+    const box = [Math.min(...xs) - 3, Math.min(...zs) - 3, Math.max(...xs) + 3, Math.max(...zs) + 3]
+    const r = await buildCells(bot, job, api, cells, box, until, 'barter stair')
+    // WALK WHAT NOW STANDS. The goal is not a guess and not a piglin: it is a cell of our own floor that this bot's own search
+    // reached over blocks it can read. That is the difference between this walk and the two that ended in the lava sea.
+    if (r.placed || r.done) await nTravel(bot, v(end), { range: 1, ms: Math.min(60000, Math.max(15000, until - Date.now())), stop: api.stop })
+    const arrived = bot.entity.position.distanceTo(v(end).offset(0.5, 0, 0.5)) <= 2.5
+    const out = { ok: arrived, placed: r.placed, planned: plan.cost, left: r.left, steps: r.steps, unloaded: r.unloaded, done: r.done, of: r.of, leftAt: r.leftAt, to: end, at: xyz(bot.entity.position), s: Math.round((Date.now() - t0) / 1000), why: arrived ? undefined : 'the stair is ' + r.left + ' cells short of ' + end.join(',') }
     A.result(bot, Object.assign({ ev: 'nether_stair', job: job.id, target: xyz(target) }, out))
     return out
   }
@@ -1130,8 +1180,17 @@ module.exports = ctx => {
     //    Instead the bot goes to the nearest piglin it can SEE, and where walking cannot arrive it builds a staircase (above).
     const isAdult = e => e && e.name === 'piglin' && e.position && !(e.metadata && e.metadata[17] === true)
     const adults = r => Object.values(bot.entities).filter(e => isAdult(e) && e.position.distanceTo(bot.entity.position) <= r)
+    // A ZOMBIFIED PIGLIN IS NOT A PIGLIN AND THE REPORT MUST NOT SAY IT IS (07:2xZ: `pigsSeen: 30` was thirty zombie pigmen and
+    // sent a whole shift looking for a way to reach them; the live piglins were five, on a plateau at y107-116, 20 blocks off).
     const anyPig = r => Object.values(bot.entities).filter(e => e && /^(piglin|zombified_piglin)$/.test(e.name) && e.position && e.position.distanceTo(bot.entity.position) <= r).length
+    const zombies = r => Object.values(bot.entities).filter(e => e && e.name === 'zombified_piglin' && e.position && e.position.distanceTo(bot.entity.position) <= r).length
     const nearestAdult = () => Object.values(bot.entities).filter(isAdult).sort((a, b) => a.position.distanceTo(bot.entity.position) - b.position.distanceTo(bot.entity.position))[0]
+    // WHERE A BOT WAITS IS A DESIGN DECISION, AND THE WRONG ONE HAS KILLED FOUR. Erika, Chika, Honoka and Chino all ended in the
+    // lava sea at -51..-55,26..28,-75: the lip of the 900-cell cavern, three of them while the code thought they were safe and
+    // Chino (07:28:28Z) while literally `waiting for a piglin`. Sneak stops a body that WALKS at a rim; it does nothing for one
+    // that is SHOVED, and a zombified piglin wandering past on a 1-wide lip is a shove. So the bot remembers the wide arrival
+    // ground it came in on and goes back to it to wait — the stair is built from the rim, but nobody stands there doing nothing.
+    const anchor = bot.entity.position.floored()
     const S0 = barterOf(P); const stand = S0.stand; const built = !!S0.built && Array.isArray(stand)
     if (built) {
       const roster = A.settings().roster || []
@@ -1149,31 +1208,72 @@ module.exports = ctx => {
     // 4. TRADE, and MEASURE: pearls per 64 gold is the number this whole front is judged by.
     const roam = Math.max(4, Math.min(P.roam || 16, 32))
     const pearls0 = A.count(bot, 'ender_pearl'); const gold0 = A.count(bot, 'gold_ingot')
-    let offered = 0; let back = 0; let seen = 0; const t0 = Date.now()
+    let offered = 0; let back = 0; let seen = 0; let stairs = 0; let stairPlaced = 0; let dry = 0; const notes = []
+    const t0 = Date.now()
+    let adultsMax = 0
     while (Date.now() < until && !api.stop() && A.count(bot, 'gold_ingot') > 0) {
-      seen = Math.max(seen, anyPig(32))
+      seen = Math.max(seen, anyPig(32)); adultsMax = Math.max(adultsMax, adults(48).length)
       let t = adults(8)[0]
       if (!t) {
-        const far2 = Object.values(bot.entities).filter(isAdult).sort((a, b) => a.position.distanceTo(bot.entity.position) - b.position.distanceTo(bot.entity.position))[0]
-        // walk INTO the activation range, but never off our own pad and never past the edge doctrine (nTravel refuses a goal with
-        // no floor within 3 or lava on a face, so a piglin standing over a drop is simply not followed)
-        if (far2 && far2.position.distanceTo(v(stand)) <= roam) await nTravel(bot, far2.position, { range: 4, ms: 25000, stop: api.stop })
-        t = adults(8)[0]
-        if (!t) { task(bot, 'nether barter: waiting for a piglin (' + anyPig(32) + ' pigs within 32)'); await sleep(3000); continue }
+        const far2 = nearestAdult()
+        if (far2) {
+          // NEVER A PATHFINDER ROUTE TOWARDS A PIGLIN. It is the third death on the same shape and the second on this job: the
+          // piglins live on a plateau that is NOT connected to our shelf, `nTravel` accepts the goal (it reads solid ground under
+          // the piglin, no lava, chunks loaded) and then the pathfinder walks the bot at the void between the two grounds —
+          // Wakana 07:02:45Z at -55,28,-79 "walking to the spot", and 07:23:43Z at -53,28,-77 "walking to a piglin at
+          // -69,113,-73", 18 iron and 7 diamonds each. The edge doctrine cannot save a route it did not plan.
+          // So there is ONE way to a piglin and it is `stairTo`: a cell list found over blocks we can READ, then cell by cell, each
+          // ring re-read, each foot moved by a hand-driven sneakStep, placing a floor only where there is none. Where the route
+          // costs nothing to build it IS the walk; where it costs blocks it is the stair. Same code, no pathfinder, no gamble.
+          // `roam` bounds the chase: a piglin 40 blocks off over strange ground is not worth a staircase, it is worth waiting for
+          // ONE GOAL, AND THE SAME GOAL FOR EVERY BOT AND EVERY TRIP. Piglins wander, so re-reading "the nearest adult" before
+          // every attempt started a NEW stair towards a NEW piglin: 5 attempts, 4 blocks placed, nothing finished (07:33Z). But
+          // the registered pad centre -65,111,-72 is the WRONG shared goal - it is 26+ blocks away and only by a route that goes
+          // DOWN first, which a crouched bot cannot walk, so every search refused it (07:35-07:36Z, `no stair of 48 or fewer`).
+          // So the goal is the first adult piglin we can actually reach, and it is written to the BOARD: the next bot reads it,
+          // aims at the same cell, and the blocks this one laid read back as free ground to its search. The stair GROWS across
+          // trips instead of restarting - the same doctrine as every road we build, one thing built once for everybody.
+          const NB = netherOf().barterGoal
+          let goal = NB && Array.isArray(NB.at) && Date.now() - (NB.t || 0) < 3600000 ? v(NB.at) : null
+          if (!goal) { goal = (nearestAdult() || far2).position.floored(); netherEdit({ barterGoal: { at: xyz(goal), t: Date.now(), by: bot.username, why: 'the piglin this stair is aimed at - every bot extends the same stair' } }) }
+          if (far2.position.distanceTo(bot.entity.position) <= roam && stairs < (P.stairs || 3) && Date.now() < until - 45000) {
+            const st = await stairTo(bot, job, api, Math.min(until - 30000, Date.now() + 240000), goal, { reach: 8, maxPlace: P.maxPlace || 48 })
+            // the goal is unreachable for everybody, not just for this bot: drop it so the next attempt picks a fresh piglin
+            if (!st.ok && /no stair of/.test(st.why || '')) netherEdit({ barterGoal: null })
+            stairs++; stairPlaced += st.placed || 0; if (st.why) notes.push(st.why)
+            t = adults(8)[0]
+          }
+        }
+        // (c) PIGLINS WANDER, so standing still is a strategy and coming home is not. The old code gave up after one failed walk
+        //     and re-queued for the gate; a bot that waits where they walk trades, and a crossing costs 4.5 s of a queue of six.
+        if (!t) {
+          dry = nearestAdult() ? 0 : dry + 1
+          if (dry > 60) { notes.push('no adult piglin in sight for 3 min'); break }
+          if (edgeWithin(bot, bot.entity.position.floored(), 3) && bot.entity.position.distanceTo(anchor) > 3) {
+            task(bot, 'nether barter: stepping back off the rim to ' + xyz(anchor).join(','))
+            await nTravel(bot, anchor, { range: 2, ms: 20000, stop: api.stop })
+          }
+          task(bot, 'nether barter: waiting for a piglin (' + adults(48).length + ' adult, ' + zombies(32) + ' zombified within 32)'); await sleep(3000); continue
+        }
       }
+      dry = 0
       const it = bot.inventory.items().find(i => i.name === 'gold_ingot'); if (!it) break
       task(bot, 'nether barter: ' + offered + ' offered, ' + (A.count(bot, 'ender_pearl') - pearls0) + ' pearls')
       try { await bot.lookAt(t.position.offset(0, 1, 0), true); await U.withTimeout(bot.toss(it.type, null, 1), 5000, 'tossGold'); offered++ } catch (e_) { swallow('jobs_nether:toss', e_); break }
       await sleep(7000) // a piglin examines the gold for about 6 s before it throws something back
       const before = Object.values(A.inv(bot)).reduce((n, x) => n + x, 0)
-      await A.pickup(bot, 7, 4000)
+      // the pearls come back as items on the ground and `pickup` walks to them: over here that walk is held sneaking, because a
+      // stair-top stand is a rim and prismarine-physics is what stops a sneaking body at one
+      sneakHold(bot, true)
+      try { await A.pickup(bot, 7, 4000) } finally { sneakHold(bot, false) }
       back += Math.max(0, Object.values(A.inv(bot)).reduce((n, x) => n + x, 0) - before)
+      if (offered === 1) A.result(bot, { ev: 'nether_barter', job: job.id, at: xyz(bot.entity.position), first: true, offered, pearls: A.count(bot, 'ender_pearl') - pearls0, itemsBack: back, piglin: xyz(t.position), why: 'FIRST TRADE ON THIS FRONT - a piglin took our gold' })
     }
     const pearls = A.count(bot, 'ender_pearl') - pearls0
     const loot = {}; for (const [k, n] of Object.entries(A.inv(bot))) if (/pearl|potion|obsidian|glowstone|string|quartz|leather|soul_sand|crying|arrow|iron_nugget/.test(k)) loot[k] = n
-    const out = { work: 'barter', offered, itemsBack: back, pearls, per64: offered ? Math.round(pearls / offered * 64 * 10) / 10 : null, pigsSeen: seen, goldLeft: A.count(bot, 'gold_ingot'), goldTook: gold0, loot, min: Math.round((Date.now() - t0) / 6000) / 10 }
+    const out = { work: 'barter', offered, itemsBack: back, pearls, per64: offered ? Math.round(pearls / offered * 64 * 10) / 10 : null, pigsSeen: seen, adultsSeen: adultsMax, zombified: zombies(48), stairs, stairPlaced, goldLeft: A.count(bot, 'gold_ingot'), goldTook: gold0, loot, notes: notes.slice(0, 3), min: Math.round((Date.now() - t0) / 6000) / 10 }
     if (offered || seen) A.result(bot, Object.assign({ ev: 'nether_barter', job: job.id, at: xyz(bot.entity.position) }, out))
-    else A.result(bot, { ev: 'nether_barter', job: job.id, at: xyz(bot.entity.position), offered: 0, pigsSeen: 0, why: 'stood on the barter spot for ' + out.min + ' min and not one piglin came within 32 - the spot is on the wrong ground' })
+    else A.result(bot, { ev: 'nether_barter', job: job.id, at: xyz(bot.entity.position), offered: 0, pigsSeen: seen, adultsSeen: adultsMax, zombified: zombies(48), stairs, stairPlaced, notes: notes.slice(0, 3), why: 'stood in the Nether for ' + out.min + ' min and not one piglin came within 32 - this is the wrong ground, not a slow day' })
     return out
   }
   // ---------------------------------------------------------------- PAIR THE GATES EXACTLY (top model 15:4xZ)

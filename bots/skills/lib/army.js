@@ -665,6 +665,27 @@ function climbRule (mv) { // idempotent, and applied to the LIVE Movements objec
 // jump covers ~30 % more ground than a sprint, at roughly four times the hunger - so it is for LONG legs with a full larder, and it is
 // FORBIDDEN over a field: a jump onto farmland turns it back into dirt, which is exactly why our own fields are pitted with dirt blocks.
 const CROP_UNDER = /farmland|_stem$|wheat|carrots|potatoes|beetroots|melon|pumpkin|sweet_berry|soul_sand|slime_block|honey_block|scaffolding|ladder|vine/
+// NOBODY WALKS ACROSS A FIELD ON THE WAY TO SOMEWHERE ELSE (owner 09-21: 「ダッシュジャンプ全然出来てない、他のタスクやってるやつが畑の上でジャンプしている」).
+// Trampling is not the dash rule's fault: the PATHFINDER routes the straight line, and a straight line through 607 tilled tiles plus any 1-block
+// hop turns farmland back into dirt. `blocksToAvoid` cannot help - the farmland is UNDER the bot, not the cell it enters. So the field boxes get a
+// per-cell cost: a farmer walks in freely, everybody else pays 40 per cell and the pathfinder goes round. Boxes come from the board's farm jobs.
+let _fieldsT = 0; let _fields = []
+function fieldBoxes () {
+  if (Date.now() - _fieldsT < 60000) return _fields
+  _fieldsT = Date.now()
+  try { _fields = ((readJSON(F.board, {}) || {}).jobs || []).filter(j => j.type === 'farm' && j.params && Array.isArray(j.params.box)).map(j => j.params.box) } catch (e_) { swallow('army:fieldBoxes', e_) }
+  return _fields
+}
+function fieldCost (bot, mv) {
+  if (!mv) return mv
+  const jt = String(((assignment(bot) || {}).job || {}).type || '')
+  const mineToo = /^(farm|cane|tidy)$/.test(jt) // the farmer, the groundskeeper and the cane crew belong there
+  const boxes = fieldBoxes()
+  const f = b => { if (mineToo || !b || !b.position) return 0; const { x, z } = b.position; for (const q of boxes) if (x >= q[0] - 1 && x <= q[2] + 1 && z >= q[1] - 1 && z <= q[3] + 1) return 40; return 0 }
+  mv.exclusionAreasStep = (mv.exclusionAreasStep || []).filter(g => !g.__armyField).concat(Object.assign(f, { __armyField: true }))
+  return mv
+}
+
 function dashRule (bot) {
   if (bot.__armyDash) { bot.removeListener('physicsTick', bot.__armyDash); bot.__armyDash = null }
   const on = () => {
@@ -679,7 +700,18 @@ function dashRule (bot) {
       const head = bot.blockAt(p.offset(0, 2, 0)); if (head && head.boundingBox === 'block') return // no headroom: a jump is a bump
       if (!e.onGround || e.isInWater) return
       const sp = Math.hypot(e.velocity.x, e.velocity.z); if (sp < 0.15) return     // only while really running
-      bot.setControlState('jump', true); setTimeout(() => { try { bot.setControlState('jump', false) } catch {} }, 60)
+      // A LANDING MUST NOT COST GROUND (owner 09-21: 「着地時に1ブロック戻っている」). A jump while the pathfinder is turning, or into a cell whose
+      // floor is one lower, lands the body short and the walk re-aims backwards - the hop then costs more than it wins. So: only on a straight run
+      // (the two cells ahead are floor at the same height and open), and the jump is held for the whole arc, not pulsed.
+      const dir = new Vec3(Math.sign(e.velocity.x) || 0, 0, Math.sign(e.velocity.z) || 0)
+      if (!dir.x && !dir.z) return
+      const floor0 = bot.blockAt(p.offset(dir.x, -1, dir.z)); const floor1 = bot.blockAt(p.offset(dir.x * 2, -1, dir.z * 2))
+      const head0 = bot.blockAt(p.offset(dir.x, 1, dir.z)); const body0 = bot.blockAt(p.offset(dir.x, 0, dir.z))
+      if (!floor0 || !floor1 || !head0 || !body0) return // unknown is never a dash
+      if (floor0.boundingBox !== 'block' || floor1.boundingBox !== 'block') return // a step down or a gap: the landing would be short
+      if (body0.boundingBox === 'block' || head0.boundingBox === 'block') return // something to bump into
+      if (CROP_UNDER.test(floor0.name) || CROP_UNDER.test(floor1.name)) return
+      bot.setControlState('jump', true); setTimeout(() => { try { bot.setControlState('jump', false) } catch {} }, 220)
     } catch {}
   }
   bot.__armyDash = on; bot.on('physicsTick', on)
@@ -1374,6 +1406,7 @@ async function travel (bot, target, opts = {}) {
   // version is installed here (measured 09-20 06:20Z: 50/50 bots allowSprinting=false, the guard's old timer kept switching it off)
   try { require('./terrain_guard').install(bot); climbRule(mv0); if (mv0) mv0.allowSprinting = larderFull() && bot.food > 6 } catch (e_) { swallow('army:travelSprint', e_) }
   try { require('./jobs_road').roadCost(bot, mv0) } catch (e_) { swallow('army:roadCost', e_) }
+  try { fieldCost(bot, mv0) } catch (e_) { swallow('army:fieldCost', e_) } // a field is not a shortcut (owner 09-21: 「他のタスクやってるやつが畑の上でジャンプしている」)
   try { dashRule(bot) } catch (e_) { swallow('army:dashRule', e_) } // sprint-JUMP on a long open leg (owner 09-21: 「マイクラ最速移動、ダッシュジャンプ」), never over a field // a built road is cheap, off-road underground/Nether is dear (owner 09-21: 「空が見えているか、ディメンションがどこか、によって重み付け」)
   if (surfaceTrip && mv0 && !mv0.exclusionAreasStep.includes(floorRule)) mv0.exclusionAreasStep.push(floorRule)
   if (keepOn && mv0) mv0.exclusionAreasStep.push(keepRule)

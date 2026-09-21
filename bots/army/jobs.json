@@ -1352,12 +1352,12 @@
    "lit": 1789916622472,
    "by": "Botan",
    "portal": [
-    -47,
+    -48,
     98,
     -77
    ],
-   "through": 1789975121914,
-   "scoutRev": 53,
+   "through": 1789976227261,
+   "scoutRev": 65,
    "hub": {
     "room": [
      -41,
@@ -1457,7 +1457,7 @@
    ],
    "shellY": 98,
    "returnJob": "nether_return",
-   "deaths": 0,
+   "deaths": 1,
    "deathsResetAt": 1789910779294,
    "deathsResetWhy": "owner 13:2xZ: death is an accepted cost of exploring the Nether; the brake is 6 in 30 min",
    "landing": [
@@ -1469,9 +1469,9 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789969045309,
-   "back": 1789974890046,
-   "lastDeath": 1789974958209,
-   "lastDeathBy": "Nagisa",
+   "back": 1789975605712,
+   "lastDeath": 1789975724782,
+   "lastDeathBy": "Chino",
    "roads": {
     "x+": {
      "from": [
@@ -1497,7 +1497,9 @@
    },
    "outAt": 1789915921402,
    "outBy": "Rin",
-   "deathLog": [],
+   "deathLog": [
+    1789975724782
+   ],
    "sightings": [],
    "fortress": null,
    "stair": {
@@ -1931,7 +1933,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1789973882782,
+   "gatesAt": 1789975683759,
    "pairRoad": {
     "from": [
      -43,
@@ -2205,7 +2207,17 @@
     "laneLeft": 28,
     "padLeft": 121,
     "built": false,
-    "t": 1789974876268
+    "t": 1789975593104
+   },
+   "barterGoal": {
+    "at": [
+     -52,
+     112,
+     -75
+    ],
+    "t": 1789976234972,
+    "by": "Botan",
+    "why": "the piglin this stair is aimed at - every bot extends the same stair"
    }
   },
   "industry": {
@@ -2291,25 +2303,57 @@
     ],
     "stations": {
      "light_gray_bed": [
-      -745,
+      -743,
       70,
       30
+     ],
+     "chest": [
+      -744,
+      70,
+      31
+     ],
+     "blast_furnace": [
+      -742,
+      69,
+      28
+     ],
+     "smithing_table": [
+      -740,
+      69,
+      28
+     ],
+     "lectern": [
+      -746,
+      70,
+      32
+     ],
+     "barrel": [
+      -746,
+      71,
+      33
+     ],
+     "smoker": [
+      -744,
+      69,
+      28
      ]
     },
-    "t": 1789974709248
+    "t": 1789975765108
    },
    "absorb": {
-    "coal": 480,
-    "iron_ingot": 144,
+    "iron_ingot": 192,
+    "coal": 720,
     "leather": 288,
-    "flint": 600,
-    "gray_wool": 288,
+    "flint": 888,
+    "gray_wool": 475,
     "carrot": 352,
     "wheat": 320,
-    "pumpkin": 72,
-    "melon": 48
+    "pumpkin": 144,
+    "melon": 96,
+    "beetroot": 240,
+    "diamond": 12
    },
-   "absorbT": 1789974863518
+   "absorbT": 1789975605289
   },
   "enchantTable": [
    -344,
@@ -2382,344 +2426,487 @@
      "raw": 0,
      "by": "Botan",
      "t": 1789974493879
+    },
+    {
+     "key": "-59,-3,-60/tuff_cluster",
+     "at": [
+      -471,
+      -17,
+      -475
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Himari",
+     "t": 1789975953626
+    },
+    {
+     "key": "-60,-3,-59/tuff_cluster",
+     "at": [
+      -475,
+      -17,
+      -469
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Himari",
+     "t": 1789976003094
+    },
+    {
+     "key": "-48,-2,-59/tuff_cluster",
+     "at": [
+      -378,
+      -15,
+      -470
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Kokoro",
+     "t": 1789976049502
+    },
+    {
+     "key": "-48,-2,-60/tuff_cluster",
+     "at": [
+      -378,
+      -16,
+      -474
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Kokoro",
+     "t": 1789976083688
+    },
+    {
+     "key": "-32,-2,-62/tuff_cluster",
+     "at": [
+      -256,
+      -15,
+      -495
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Tsumugi",
+     "t": 1789976116314
+    },
+    {
+     "key": "-33,-2,-62/tuff_cluster",
+     "at": [
+      -257,
+      -15,
+      -495
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Tsumugi",
+     "t": 1789976117226
+    },
+    {
+     "key": "-33,-2,-63/tuff_cluster",
+     "at": [
+      -259,
+      -13,
+      -498
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Tsumugi",
+     "t": 1789976132379
+    },
+    {
+     "key": "-47,-2,-59/tuff_cluster",
+     "at": [
+      -374,
+      -16,
+      -471
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Kokoro",
+     "t": 1789976134201
+    },
+    {
+     "key": "-51,-3,-59/tuff_cluster",
+     "at": [
+      -403,
+      -18,
+      -467
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Kanade",
+     "t": 1789976147313
+    },
+    {
+     "key": "-47,-3,-59/tuff_cluster",
+     "at": [
+      -371,
+      -18,
+      -467
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Himari",
+     "t": 1789976161710
+    },
+    {
+     "key": "-51,-2,-59/tuff_cluster",
+     "at": [
+      -404,
+      -16,
+      -467
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Kanade",
+     "t": 1789976175341
     }
    ],
    "caves": [
     {
-     "key": "-25,2,-36",
+     "key": "-12,3,-31",
      "at": [
-      -390,
-      32,
-      -562
+      -185,
+      48,
+      -484
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 0,
      "iron": 0,
-     "by": "Yukina",
-     "t": 1789974670433
+     "by": "Koharu",
+     "t": 1789975640005
     },
     {
-     "key": "-14,2,-34",
+     "key": "-30,3,-18",
      "at": [
-      -223,
-      32,
-      -544
+      -466,
+      48,
+      -286
      ],
      "cells": 2000,
      "klass": "cavern",
-     "ores": 0,
+     "ores": 3,
      "iron": 0,
-     "by": "Mio",
-     "t": 1789974679225
+     "by": "Himari",
+     "t": 1789975656649
     },
     {
-     "key": "-18,2,-38",
+     "key": "-22,3,-17",
      "at": [
-      -283,
-      32,
-      -598
+      -339,
+      48,
+      -259
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 0,
      "iron": 0,
      "by": "Madoka",
-     "t": 1789974708559
+     "t": 1789975661862
     },
     {
-     "key": "-10,2,-37",
-     "at": [
-      -158,
-      32,
-      -589
-     ],
-     "cells": 1156,
-     "klass": "cavern",
-     "ores": 2,
-     "iron": 0,
-     "by": "Hinata",
-     "t": 1789974730135
-    },
-    {
-     "key": "-34,2,-38",
-     "at": [
-      -529,
-      32,
-      -595
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Yukina",
-     "t": 1789974731259
-    },
-    {
-     "key": "-22,2,-39",
+     "key": "-22,3,-16",
      "at": [
       -348,
-      32,
-      -619
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Mashiro",
-     "t": 1789974735353
-    },
-    {
-     "key": "-21,2,-40",
-     "at": [
-      -325,
-      32,
-      -631
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Aoi",
-     "t": 1789974749232
-    },
-    {
-     "key": "-20,2,-40",
-     "at": [
-      -319,
-      32,
-      -640
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Mashiro",
-     "t": 1789974752913
-    },
-    {
-     "key": "-15,2,-39",
-     "at": [
-      -227,
-      32,
-      -619
+      48,
+      -256
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 0,
      "iron": 0,
      "by": "Yuzu",
-     "t": 1789974772314
+     "t": 1789975705173
     },
     {
-     "key": "-32,2,-40",
+     "key": "-30,3,-17",
      "at": [
-      -500,
-      32,
-      -637
+      -474,
+      48,
+      -271
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 1,
+     "iron": 0,
+     "by": "Sayaka",
+     "t": 1789975756014
+    },
+    {
+     "key": "-28,3,-19",
+     "at": [
+      -442,
+      48,
+      -304
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 2,
+     "iron": 0,
+     "by": "Madoka",
+     "t": 1789975758273
+    },
+    {
+     "key": "-15,3,-16",
+     "at": [
+      -237,
+      48,
+      -247
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 0,
      "iron": 0,
-     "by": "Aoi",
-     "t": 1789974783502
+     "by": "Yuzu",
+     "t": 1789975766612
     },
     {
-     "key": "-34,2,-40",
+     "key": "-9,3,-30",
      "at": [
-      -531,
-      32,
-      -640
+      -144,
+      48,
+      -466
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 0,
      "iron": 0,
-     "by": "Mashiro",
-     "t": 1789974791576
+     "by": "Hotaru",
+     "t": 1789975800870
     },
     {
-     "key": "-20,2,-41",
+     "key": "-31,3,-18",
      "at": [
-      -305,
+      -491,
+      48,
+      -277
+     ],
+     "cells": 1851,
+     "klass": "cavern",
+     "ores": 1,
+     "iron": 0,
+     "by": "Ayame",
+     "t": 1789975880729
+    },
+    {
+     "key": "-34,3,-31",
+     "at": [
+      -541,
+      48,
+      -484
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 9,
+     "iron": 12,
+     "by": "Nanami",
+     "t": 1789975957180
+    },
+    {
+     "key": "-8,2,-42",
+     "at": [
+      -116,
       32,
-      -649
+      -667
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 0,
      "iron": 0,
-     "by": "Yotsuba",
-     "t": 1789974801056
+     "by": "Madoka",
+     "t": 1789975993109
     },
     {
-     "key": "-13,2,-36",
+     "key": "-27,-1,-30",
      "at": [
-      -202,
-      32,
-      -568
+      -426,
+      -16,
+      -478
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 0,
      "iron": 0,
      "by": "Kokoro",
-     "t": 1789974812436
+     "t": 1789976018487
     },
     {
-     "key": "-34,2,-41",
+     "key": "-27,-1,-31",
      "at": [
-      -533,
-      32,
-      -646
+      -425,
+      -16,
+      -481
      ],
      "cells": 2000,
      "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Yuzu",
-     "t": 1789974833807
-    },
-    {
-     "key": "-8,2,-42",
-     "at": [
-      -124,
-      32,
-      -658
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Noa",
-     "t": 1789974849574
-    },
-    {
-     "key": "-31,2,-42",
-     "at": [
-      -488,
-      32,
-      -670
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Honoka",
-     "t": 1789974887971
-    },
-    {
-     "key": "-27,2,-39",
-     "at": [
-      -426,
-      32,
-      -610
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 6,
+     "ores": 1,
      "iron": 2,
-     "by": "Yotsuba",
-     "t": 1789974899793
+     "by": "Shiori",
+     "t": 1789976020335
     },
     {
-     "key": "-11,2,-38",
+     "key": "-30,-1,-31",
      "at": [
-      -171,
-      32,
-      -595
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Nanami",
-     "t": 1789974908054
-    },
-    {
-     "key": "-6,2,-33",
-     "at": [
-      -86,
-      32,
-      -517
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 14,
-     "iron": 7,
-     "by": "Mio",
-     "t": 1789974909111
-    },
-    {
-     "key": "-33,2,-38",
-     "at": [
-      -523,
-      32,
-      -601
+      -480,
+      -16,
+      -484
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 3,
      "iron": 0,
-     "by": "Shiori",
-     "t": 1789974923648
+     "by": "Himari",
+     "t": 1789976038934
     },
     {
-     "key": "-7,2,-33",
+     "key": "-8,0,-33",
      "at": [
-      -105,
-      32,
+      -116,
+      0,
       -514
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 1,
      "iron": 0,
-     "by": "Honoka",
-     "t": 1789975038647
+     "by": "Rena",
+     "t": 1789976147192
     },
     {
-     "key": "-26,2,-42",
+     "key": "-8,0,-32",
      "at": [
-      -401,
-      32,
-      -664
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 5,
-     "iron": 1,
-     "by": "Kokoro",
-     "t": 1789975042335
-    },
-    {
-     "key": "-12,2,-37",
-     "at": [
-      -182,
-      32,
-      -586
+      -119,
+      0,
+      -511
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 0,
      "iron": 0,
-     "by": "Rena",
-     "t": 1789975118839
+     "by": "Ume",
+     "t": 1789976147347
     },
     {
-     "key": "-28,3,-20",
+     "key": "-22,0,-32",
      "at": [
-      -435,
-      48,
-      -319
+      -344,
+      0,
+      -511
      ],
-     "cells": 886,
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 7,
+     "iron": 3,
+     "by": "Ayame",
+     "t": 1789976150225
+    },
+    {
+     "key": "-16,-1,-31",
+     "at": [
+      -250,
+      -16,
+      -484
+     ],
+     "cells": 2000,
      "klass": "cavern",
      "ores": 1,
      "iron": 0,
-     "by": "Sayaka",
-     "t": 1789975139133
+     "by": "Tsumugi",
+     "t": 1789976162191
+    },
+    {
+     "key": "-16,-1,-30",
+     "at": [
+      -252,
+      -16,
+      -478
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 3,
+     "iron": 0,
+     "by": "Rin",
+     "t": 1789976162892
+    },
+    {
+     "key": "-34,3,-29",
+     "at": [
+      -540,
+      48,
+      -451
+     ],
+     "cells": 433,
+     "klass": "cavern",
+     "ores": 2,
+     "iron": 0,
+     "by": "Hina",
+     "t": 1789976194257
+    },
+    {
+     "key": "-17,-1,-29",
+     "at": [
+      -269,
+      -16,
+      -460
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 3,
+     "iron": 0,
+     "by": "Akari",
+     "t": 1789976218303
+    },
+    {
+     "key": "-22,-1,-30",
+     "at": [
+      -348,
+      -16,
+      -475
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 4,
+     "iron": 0,
+     "by": "Yotsuba",
+     "t": 1789976234075
+    },
+    {
+     "key": "-15,-1,-29",
+     "at": [
+      -231,
+      -16,
+      -457
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 1,
+     "iron": 0,
+     "by": "Kanade",
+     "t": 1789976258969
+    },
+    {
+     "key": "-15,-1,-30",
+     "at": [
+      -225,
+      -16,
+      -466
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 7,
+     "iron": 4,
+     "by": "Noa",
+     "t": 1789976259596
     }
    ]
   },
@@ -2742,7 +2929,7 @@
     "spur": false,
     "cells": 52,
     "built": "2/3",
-    "checked": 1789974927262
+    "checked": 1789976260877
    },
    {
     "id": "road_village",
@@ -2762,7 +2949,7 @@
     "spur": false,
     "cells": 874,
     "built": "14/118",
-    "checked": 1789974824465
+    "checked": 1789976260713
    }
   ]
  },
@@ -3326,7 +3513,7 @@
    },
    "rev": 27,
    "bots": 1,
-   "restUntil": 1789974640926
+   "restUntil": 1789976722724
   },
   {
    "id": "sleeper",
@@ -3413,7 +3600,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789975034704
+   "restUntil": 1789976377855
   },
   {
    "id": "fill_ring_field1",
@@ -5208,11 +5395,11 @@
     "landing": false,
     "work": "barter",
     "ingots": 64,
-    "minutes": 8,
-    "cobble": 64,
+    "minutes": 10,
+    "cobble": 128,
     "crossS": 30,
-    "maxDeaths": 6,
-    "roam": 28,
+    "maxDeaths": 3,
+    "roam": 48,
     "bare": true,
     "standing": true,
     "cargo": [
@@ -5221,13 +5408,15 @@
      "golden_boots",
      "cobblestone",
      "netherrack"
-    ]
+    ],
+    "stairs": 3,
+    "maxPlace": 48
    },
-   "desc": "waits for the 17-block span - two bots on one gate queue each other (portal_light_failed sharingCell:1)",
-   "rev": 53,
+   "desc": "OFF-ROAD BARTER: walks to the nearest adult piglin and builds a <=24-block STAIR to it (nether_stair). The 48-cell lane is not needed.",
+   "rev": 65,
    "maxDeaths": 2,
    "restUntil": 0,
-   "note": "09-21 06:5xZ: runs IN PARALLEL with the spine. A barter needs no road - if the registered spot is out of reach it walks to the nearest adult piglin the edge doctrine allows and trades from there (barter_offroad). Reports pearls per64."
+   "note": "09-21 07:2xZ top model: camera at step 1 found a piglin at -57,110,-74 reachable from the shelf corner -55,101,-83 by a 7-cell / 6-block staircase. Route is SEARCHED at runtime (cost = blocks placed), never walked to the unbuilt pad (that walk killed Wakana 07:02). Reports nether_stair + nether_barter{offered,pearls,per64}."
   },
   {
    "id": "nether_gate_spare_n607",
@@ -5438,7 +5627,8 @@
    },
    "rev": 10,
    "bots": 1,
-   "desc": "WHEAT IS FOOD FIRST (09-21 06:5xZ: the depot went 13 141 -> 53 wheat, bread 0, 9 bots hungry while the traders sold 925 wheat a visit). Sell only what is over the bread need"
+   "desc": "WHEAT IS FOOD FIRST (09-21 06:5xZ: the depot went 13 141 -> 53 wheat, bread 0, 9 bots hungry while the traders sold 925 wheat a visit). Sell only what is over the bread need",
+   "restUntil": 1789976436877
   },
   {
    "id": "nether_landing_3",
@@ -5736,7 +5926,7 @@
     "bare": true
    },
    "rev": 18,
-   "restUntil": 1789974826510
+   "restUntil": 1789976515487
   },
   {
    "id": "nether_gate_old_down",
@@ -5976,7 +6166,7 @@
     "radius": 150,
     "bankAt": 48
    },
-   "restUntil": 1789974881710,
+   "restUntil": 1789976615733,
    "rev": 21
   },
   {
@@ -6199,7 +6389,7 @@
      ]
     ]
    },
-   "restUntil": 1789975911151,
+   "restUntil": 1789977862527,
    "rev": 1
   },
   {
@@ -6287,7 +6477,7 @@
        "shoulder": 2
       },
       "at": 1789969589775,
-      "idle": 180
+      "idle": 236
      },
      {
       "i": 2,
@@ -6381,10 +6571,10 @@
   {
    "id": "nether_barter_road",
    "type": "portal",
-   "status": "active",
+   "status": "paused",
    "bots": 1,
    "prio": 78,
-   "desc": "CRITICAL PATH 07:0xZ: the barter bot SAW 30 piglins, 17 blocks from the spot, and could not reach one (`pigsSeen:30, dToSpot:17`). That 17-block span with `moves.bridgeTo` is the whole dragon deadline. One bot, bare, lava is the only refusal",
+   "desc": "DO NOT RE-ACTIVATE - 3 deaths on this design (Erika 05:46, Chika 05:52, Honoka 07:10, all -51..-55,28,-75 in the lava sea under a 900-cell cavern). The stair replaced it; it also jams the one-at-a-time gate the barter bots need.",
    "plan": "zone portal (docs/WORLD.md): THE BARTER SPOT IS A PLACE, NOT THE CELL WE LAND ON. The spectator camera measured this shift: (1) the arrival shelf is one connected ground of 383 standable cells (x -56..-30 / z -96..-72, y95-103) and no mob EVER spawns within 24 blocks of a player, so no piglin can appear on it - the census found 0 of 6 there; (2) all 6 piglins and 17 of 69 zombified piglins stand on ONE other ground, 291 cells at x -69..-52 / z -83..-47 / y100-116, with natural rock at y113 three cells over its y109/110 plateau (a roof no ghast shoots through); (3) the cheapest walkable line to it is 26 placed blocks (Dijkstra over the camera solid/air map). So this job lays that line as a proper road - 3 walkable cells wide, a one-block kerb on each rim so a fireball cannot shove a bot off, 3 of headroom, a torch every 8 legs - and levels a 9x9 pad at -65,110,-72 to the MEDIAN ground of its box (never a knoll: that is what left the pair platform 139 of 225 cells over void). Columns with no support within 3 below are dropped from the plan, never bridged. Pad centre is 32 blocks from the hub chest -37,98,-79, the distance paper piglins-guard-chests:true wants. Every builder sneaks (buildCells) and every walk goes through nTravel (edge doctrine). maxDeaths 2: two deaths on this design and it stops itself.",
    "params": {
     "blueprint": "nether_portal",
@@ -6663,7 +6853,7 @@
     ]
    },
    "restUntil": 0,
-   "rev": 103,
+   "rev": 104,
    "priority": 99,
    "zone": "base",
    "front": "base",
@@ -6733,7 +6923,7 @@
        "torchEvery": 8,
        "shoulder": 2
       },
-      "idle": 39
+      "idle": 70
      },
      {
       "i": 1,
@@ -6759,7 +6949,7 @@
        "torchEvery": 8,
        "shoulder": 2
       },
-      "idle": 5
+      "idle": 8
      },
      {
       "i": 2,
@@ -7244,7 +7434,7 @@
        "torchEvery": 8,
        "shoulder": 2
       },
-      "idle": 1
+      "idle": 2
      },
      {
       "i": 18,
@@ -7321,7 +7511,8 @@
        "clear": 3,
        "torchEvery": 8,
        "shoulder": 2
-      }
+      },
+      "idle": 1
      },
      {
       "i": 21,
@@ -7400,7 +7591,7 @@
        "torchEvery": 8,
        "shoulder": 2
       },
-      "idle": 1
+      "idle": 2
      },
      {
       "i": 24,
@@ -10066,7 +10257,7 @@
     "target": 16,
     "bare": true
    },
-   "restUntil": 1789975279905
+   "restUntil": 1789976281975
   },
   {
    "id": "farm_2",
@@ -10229,7 +10420,8 @@
     "radius": 250,
     "shear": true,
     "cull": false
-   }
+   },
+   "restUntil": 1789975800210
   },
   {
    "id": "herd_chickens",
@@ -10269,7 +10461,7 @@
     "shear": false,
     "cull": false
    },
-   "restUntil": 1789975244864
+   "restUntil": 1789976496566
   },
   {
    "id": "end_stronghold",

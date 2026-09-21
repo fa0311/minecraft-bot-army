@@ -31,13 +31,38 @@ Every Nether walk goes through **`nTravel`**, and every `work:` mode uses it (`e
 `nether_barter` crossed and came home **36 times and traded nothing**: the old code tested the bot's CURRENT position against the hub chest, and the arrival cells are 10 blocks from it. Two facts behind it, both measured by flying `SkyEye` under the bedrock roof (`ops/skyshot.js --dim=the_nether --fly=104`, plus per-column solid/air reads):
 * **No mob ever spawns within 24 blocks of a player**, and no cell of the 383-cell arrival shelf is further than 24 from a squad standing on it. So no piglin can ever appear there however long we wait — and the census found none: **0 of the 6** in the region.
 * All **6 piglins and 17 of the 69 zombified piglins** stand on ONE other ground: **291 standable cells, x -69..-52 / z -83..-47, y100-116**, netherrack, with natural rock at **y113** three cells over its y109/110 plateau — a roof no ghast shoots through. It is big enough that a piglin spawning 24+ blocks away can walk to a squad on it.
-* The cheapest walkable line from our shelf to it is **26 placed blocks** (Dijkstra over the camera's solid/air map, cost = blocks that must be placed): west along z-75, a 13-cell span at y96 over the void at x-57, then up the natural ramp to y110.
-
-**So bartering has a lane and a pad of its own** — `work:'barterspot'` (`laneCells` + `padCells`), job **`nether_barter_road`**, route on the BOARD in `params.route` (a coordinate in code is a coordinate nobody can fix from the board). 3 walkable cells wide, a one-block kerb on each rim (a fireball SHOVES, it does not kill), 3 of headroom, a torch every 8 legs; the pad is 9x9 levelled to the **median ground of its box** (never the centre column's knoll — that is what left `pair_built overVoid:139 of 225`), columns with no support within 3 below are dropped, never bridged. Dry run against the camera map: **652 cells, 213 to place, 22 to dig, 0 lava**. Pad centre **-65,110,-72**, 32 blocks from the hub chest. When it stands it registers `settings.nether.barterSpot {at, stand, route, pad, floorY, built}`.
-Then `work:'barter'` (`nether_barter`) walks there through `nTravel`, wears a gold piece, drops ONE ingot at a time at an ADULT piglin within 8, picks up at radius 7, and reports **`nether_barter {offered, pearls, per64, pigsSeen, loot}`** — pearls per 64 gold is the number this front is judged by. Book rate: ~1 pearl / 15.5 ingots, so 16 pearls ≈ 250 gold; the depot holds 861. It never attacks: `util.js HOSTILE` has neither `piglin` nor `zombified_piglin`, so the melee reflex leaves the 17 zombified piglins on that ground alone.
+**A STAIRCASE IS CHEAPER THAN A ROAD, AND THE LANE WAS NEVER NEEDED (top model 09-21 07:2xZ — this replaces the lane).** The lane
+was the cheapest walkable line **at the arrival level** (26+ placed blocks west along z-75, a span at y96 over the void at x-57, then the
+natural ramp to y110) and it killed three bots at -51..-55,98,-75 because that line crosses a **900-cell cavern** and every pass built
+blind over it. Asked as a *different question* at step 1 with the same camera — "where is the nearest cell we can STAND on within 8 of an
+adult piglin, counting only blocks we must PLACE?" — the answer is not a road: from the shelf's SW corner **-55,101,-83** a **7-cell
+staircase of SIX placed blocks** (`-55,101,-82 · -55,102,-81 · -55,103,-80 · -55,104,-79 · -56,105,-79 · -57,106,-79`) stands **6.4 blocks
+from the piglin at -57,110,-74**. Nothing is bridged, every step is +1, and **a step up onto a block placed at your own foot level is the one
+construction move that cannot drop you** — you stand on the reference block while you place it. 6 blocks against 213, no void over a lava sea.
+So `work:'barter'` carries `stairSearch` + `stairTo`. **`stairSearch`** is a corridor-bounded best-first search over cells THIS bot can read,
+cost = blocks that must be placed, key = (cost, then distance to the goal) so the answer is still the cheapest stair but is found walking
+towards the target; unguided Dijkstra is hopeless here because walking is free and every cost level is a shell through open cavern.
+**`stairTo`** hands the cell list to **`buildCells`** (`seq` = leg index, so it lays them bottom-up) and then walks what stands.
+Four physics facts it cost a shift to learn, all now asserted in the search or the step:
+1. **A block needs a face to be placed against.** A floor one up and one across is DIAGONAL to the floor you stand on, so an ascent over
+   pure air is impossible without pillaring - which the doctrine forbids. The search only climbs where rock is already beside the step
+   (`hasSolidFace`); a FLAT placement always has your own floor as its reference, so a level causeway is always plannable.
+2. **A crouched body cannot climb.** Sneak holds you at the lip of your own block, which is what keeps you alive - and what makes a
+   1-block rise fail. `climbStep` = one hand-driven cell with a PULSED jump (a held jump bunny-hops a bot off the far side), crouch
+   dropped for that one hop ONLY when there is no drop within 1 of either cell. `safeStep` now routes every rise through it.
+3. **A crouched body cannot step DOWN either**, so the search plans dy 0/+1 only. We are climbing to a plateau; a dip is crossed flat.
+4. **Where a bot WAITS is a design decision.** Erika, Chika, Honoka and Chino all died at -51..-55,26..28,-75 - the lip of the cavern -
+   and Chino while literally `waiting for a piglin`. Sneak stops a body that walks off a rim; it does nothing for one that is SHOVED, and
+   a zombified piglin wandering past is a shove. The bot now returns to its wide arrival anchor to wait.
+The goal is FROZEN per trip and is the same for every bot (`settings.nether.barterSpot.stand`): piglins wander, so re-reading "the nearest
+adult" before each attempt started a new stair every time - 5 attempts, 4 blocks, nothing finished. One goal means the cells one bot places
+read back as free ground to the next one's search, so the stair GROWS across trips. Reports `nether_stair` + `nether_barter`.
+The old lane (`work:'barterspot'`, `nether_barter_road`, pad -65,110,-72, 652 cells / 213 to place) is **paused and off the critical path** —
+it is a road we may still want for a 50-bot squad, but it is not what buys the eyes.
+`work:'barter'` (`nether_barter`) wears a gold piece, drops ONE ingot at a time at an ADULT piglin within 8, picks up at radius 7 (sneak held - the stair top is a rim), and reports **`nether_barter {offered, pearls, per64, pigsSeen, loot}`** — pearls per 64 gold is the number this front is judged by. Book rate: ~1 pearl / 15.5 ingots, so 16 pearls ≈ 250 gold; the depot holds 861. It never attacks: `util.js HOSTILE` has neither `piglin` nor `zombified_piglin`, so the melee reflex leaves the 17 zombified piglins on that ground alone.
 
 ## Job type `portal` — one type, `params.work` picks the work
-`params {origin, args:{axis}, buildJob, go, landing, work, at/from/route/bearing/length/width/pad, minutes, cobble, crossS, maxDeaths, obsidian, ingots, roam}`
+`params {origin, args:{axis}, buildJob, go, landing, work, at/from/route/bearing/length/width/pad, minutes, cobble, crossS, maxDeaths, obsidian, ingots, roam, stairs, maxPlace, cargo}`
 * **frame** (reads 14 cells back, re-activates the frame's build job) · **light** (`strike`, success = six `nether_portal` blocks read back) · **go** (banks, kits, refuses under-equipped) · **arrival** (rules 1-3, `sealNear`, `nether_look`, optional `landing`) · **home** (`comeHome`; the whole of `nether_return`).
 * **work**: `pair` · `stair` (RETIRED, owner: bridge/gravel, do not dig) · `hub` · `road` · `scout` · `fortress` · **`barterspot`** · **`barter`** · `degate`. One round trip per slice; the trip always ends at the gate.
 * **death rule**: `maxDeaths` deaths in 30 min and the job pauses itself. A bot that died declines 3 min.
@@ -48,8 +73,8 @@ Then `work:'barter'` (`nether_barter`) walks there through `nTravel`, wears a go
 ## What stands / what is paused
 | job | state |
 |---|---|
-| `nether_barter_road` (work `barterspot`) | **STOPPED, bots 0** — two deaths on the same design, see below. The code and the plan stand; the way the void span is LAID has to change before anybody goes again |
-| `nether_barter` (work `barter`, 8 bots) | paused until `settings.nether.barterSpot.built`; it now says so itself instead of bouncing |
+| `nether_barter_road` (work `barterspot`) | **PAUSED 09-21 07:2xZ, THREE deaths on one design** (Erika 05:46, Chika 05:52, Honoka 07:10, all at -51..-55,28,-75 in the lava sea under the same cavern). Off the critical path: the stair replaced it |
+| `nether_barter` (work `barter`) | **ACTIVE, 2 bots, the whole front.** Off-road: nearest adult piglin -> `stairTo` -> trade -> wait. `maxPlace:24`, `stairs:4`, `minutes:12`, `cobble:96`, `maxDeaths:2` |
 | `nether_fortress` (6 bots) | paused. Re-activate only after the lane proves the continuous-sneak doctrine with 0 deaths; `explore` already hops 16 blocks through `nTravel` and bridges with `bridgeAhead` |
 | `nether_pair`, `nether_dead_frames` | PAUSED 09-21 05:4xZ (top model): `pair` declined 10x for `obsidian 6/10 (depot: 0)` and `dead_frames` 4x for `no sword` — neither could run, and both were queueing for the gate the barter lane needs. Gate pairing is off the critical path (40+ crossings work) |
 | `nether_hub` (paused) | 413/413 cells, chest -37,98,-79 and table -37,98,-73 stand. **The chest is the one container that constrains bartering**; if a spot inside 32 of it is ever wanted, take the chest home first |
@@ -60,9 +85,13 @@ Then `work:'barter'` (`nether_barter`) walks there through `nTravel`, wears a go
 2. **Minimal kit through the gate** (owner 「もったいな」: 115 deaths = 1519 iron-equivalents + 580 diamonds; the two on the lane = 46 iron + 7 diamonds in six minutes). `swapDown` fetches the iron tier FIRST, then wears it and deposits the diamond tier by hand into a tools chest — `A.bank` force-keeps the best tool of each class and better armour, and `A.stash` skips tools by name, so neither can bank a tier *down* (request upstream: `bank(bot, keep, {maxTier})`). `pair` and `degate` keep a diamond pickaxe; obsidian comes out for nothing else. Every crossing now reports `portal_kit {worth:{iron,diamond}, worthBefore, swapped, stillRich}`. Target ~15 iron, 0 diamonds.
 3. **A span over the void is a library call.** `spanAhead` finds the head of the road we already have, measures the gap with **`voidSize`** (`jobs_cavity.js`, the terrain engineer's ONE implementation, required lazily) and refuses to bridge a `cavern` or anything that `touchesLava` (`nether_gap`), then lays **one span of ≤ 6 with `moves.bridgeTo`** (`nether_span`) — the method that has never lost a bot here. `buildCells` widens and rails that span from the spine before the next is opened. Note: `bridgeTo` drops sneak in its own `finally`; it is put straight back on.
 
-## WE BUILT BLIND OVER THE VOID — the two deaths that bought them (09-21 05:46 / 05:52Z, docs/BUGS.md)
-`Erika -51,27,-75` (31 iron + 5 diamond + 231 items) and `Chika -52,27,-75` (15 iron + 2 diamond + 219) both fell ~70 blocks into the lava sea from the SAME cell of the lane's first leg, tasks `nether barterspot: 4 placed / 3 placed, 0 cleared`. Chika had taken **`steps: 0`** — she never made a `safeStep`, so she went over the rim without the code ever deciding to move her. The common factor is in every pass: **`unloaded: 1053 of 1053`** — 30 s after arrival `bot.blockAt` is null for the whole work area, 25 blocks away. And in that state the two halves of the code disagree: `cellOK()` reads an unreadable cell as **done**, while `noFloor`/`edgeNear` read it as **a drop**. So a bot stands at the lip of a void placing blocks it cannot read back. Sneak is not the answer to this and the sneak hold did not save the second bot.
-All three fixes are in (see the rules above). The lane is re-armed with **ONE bot, `maxDeaths: 1`** and the death log cleared: the next death stops it instantly. It stays at one bot until the road has carried a bot both ways **twice with 0 deaths** — the gate is a queue (`sharingCell:1`), so a squad follows one at a time.
+## THE LAVA SEA UNDER -51..-55,~,-75 HAS KILLED FIVE (09-21 05:46 / 05:52 / 07:10 / 07:23 / 07:28Z)
+Erika, Chika, Honoka, Chino and one `nether_return` bot all ended at y26-30 under the SAME rim: the lip of the 900-cell cavern the old lane
+crossed. Causes, all now fixed: `cellOK()` counted an unreadable cell as **done** while `noFloor`/`edgeNear` read it as a drop, so a bot
+placed blocks it could not read back (`unloaded: 1053 of 1053` 30 s after arrival) - rule 1 above; a pathfinder GOAL on the far plateau,
+which `nTravel` accepts (rock under the piglin, no lava, chunks loaded) and then routes at the void between the two grounds; and standing
+still at the rim, where a passing zombified piglin is a shove and sneak protects nothing. **No Nether job may give the pathfinder a goal its
+own search has not reached over readable blocks.**
 
 ## NEXT, in order
 0. **Re-lay the void span with `bridgeTo`, then re-run the lane.** Everything else on this list is downstream of it.
