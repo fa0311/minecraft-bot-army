@@ -9,7 +9,8 @@
 //                     A pair-and-disengage fight: iron armour + shield + sword, one target at a time, break off at `minHp` (8).
 //                     A bot never STARTS a fight with an enderman anywhere else in this army (army.js `kill` refuses, `safePitch`
 //                     makes it impossible to even look at one) — here, and only here and only at ONE chosen target, the gaze guard
-//                     is lifted (`gazeAllow`). Events: ender_seen · ender_fight · ender_kill · ender_hunt · ender_dry.
+//                     is lifted (`gazeAllow`). `dy` (8) is the fight gate: an enderman in a cave/ravine below is counted and
+//                     reported, never chased. Events: ender_seen · ender_fight · ender_kill · ender_hunt · ender_dry · ender_far.
 //   work:'eyes'       craft every eye_of_ender the depot allows (1 ender_pearl + 1 blaze_powder; 1 blaze_rod -> 2 powder) and bank
 //                     it. `target:16` (12 frames + breakage). Pauses itself at the target; says what is missing when it cannot.
 //                     Events: eyes_crafted · eyes_blocked.
@@ -89,16 +90,22 @@ module.exports = ctx => {
   }
 
   // ================================================================ 1. ENDERHUNT
-  const enderNear = (bot, r) => {
+  // WHAT IS IN VIEW vs WHAT IS FIGHTABLE. A live probe of a hunter at 06:41Z found two endermen loaded and BOTH underground
+  // (-375,-43,-380 and -339,52,-438, the ravine) while the bot stood at y69: endermen are plentiful in the dark under the base and
+  // scarce on the night surface. A surface squad must not chase one down a ravine (travel refuses below grade in a keep-out and the
+  // fall is what kills), so `dy` (8) stays the fight gate — but the ones it rejects are COUNTED and reported (`ender_far`), so the
+  // measurement says "none on this ground" instead of "none anywhere".
+  const enderAll = (bot, r) => {
     const me = bot.entity.position; const out = []
     for (const k in bot.entities) {
       const e = bot.entities[k]
       if (!e || e.name !== 'enderman' || !e.position || !e.isValid) continue
       const d = e.position.distanceTo(me)
-      if (d <= r && Math.abs(e.position.y - me.y) <= 8) out.push({ e, d })
+      if (d <= r) out.push({ e, d, dy: e.position.y - me.y })
     }
     return out.sort((a, b) => a.d - b.d)
   }
+  const enderNear = (bot, r, dy) => enderAll(bot, r).filter(q => Math.abs(q.dy) <= (dy || 8))
   // WHERE A PLAYER FIGHTS ONE: never in water, never in the rain (water hurts an enderman — it teleports out of every fight and the
   // pearl is lost), and with a roof over the head if there is one within reach, because an enderman is 2.9 tall and cannot follow.
   const badGround = bot => {
@@ -112,6 +119,12 @@ module.exports = ctx => {
   async function fightEnder (bot, ent, o) {
     const id = ent.id; const t0 = now()
     const floor = o.minHp
+    // HOW FAR IS "GONE"? First live engagement 06:49:2xZ: Aika and Chino opened on endermen 28-30 blocks off and EVERY fight ended
+    // `it teleported out of reach` within 250 ms — the abort was measured against a flat 28 blocks while the bot had not taken a
+    // step yet. An enderman that teleports goes a few dozen blocks; one we are still walking to is not gone. So the gate is
+    // "clearly FARTHER than where it started" (+16, never under 36) and it only counts after 4 s of closing.
+    const d0 = ent.position ? ent.position.distanceTo(bot.entity.position) : 8
+    const gone = Math.max(36, d0 + 16)
     await A.equipBest(bot, 'sword') || await A.equipBest(bot, 'axe')
     await equipShield(bot)
     try { if (bot.pathfinder.movements) bot.pvp.movements = bot.pathfinder.movements } catch (e_) { swallow('jobs_end:pvpMv', e_) } // fights stay read-only too
@@ -124,7 +137,8 @@ module.exports = ctx => {
         const cur = bot.entities[id]
         if (!cur || !cur.isValid) return { ok: true, s: round1((now() - t0) / 1000) }
         if (bot.health <= floor) return { ok: false, why: 'disengaged at hp ' + Math.round(bot.health) }
-        if (cur.position.distanceTo(bot.entity.position) > 28) return { ok: false, why: 'it teleported out of reach' }
+        const d = cur.position.distanceTo(bot.entity.position)
+        if (now() - t0 > 4000 && d > gone) return { ok: false, why: 'it teleported out of reach (' + Math.round(d) + ' blocks, opened at ' + Math.round(d0) + ')' }
       }
       return { ok: false, why: 'no kill in ' + Math.round((now() - t0) / 1000) + ' s' }
     } finally {
@@ -163,32 +177,46 @@ module.exports = ctx => {
         return 'enderhunt: no route to ' + mine.x + ',' + mine.z
       }
     }
-    let killed = 0; let fought = 0; let seen = 0; let broke = 0
+    let killed = 0; let fought = 0; let seen = 0; let broke = 0; let outOfReach = 0; let lowest = null
     const pearls0 = A.count(bot, 'ender_pearl')
     const t0 = now()
     while (now() < endT && !api.stop()) {
       if (bot.health < engageHp) { task(bot, 'enderhunt: hurt, holding back'); await sleep(3000); continue }
       const bad = badGround(bot)
-      const list = enderNear(bot, R)
+      const all = enderAll(bot, R)
+      const list = all.filter(q => Math.abs(q.dy) <= (P.dy || 8))
+      for (const q of all) if (Math.abs(q.dy) > (P.dy || 8)) { outOfReach++; if (lowest == null || q.dy < lowest) lowest = Math.round(q.dy) }
       if (!list.length) {
         task(bot, 'enderhunt: looking for endermen')
         // walk a short ring inside my patch — moving finds spawns, standing does not; never a long march (spawns follow the bot)
         const a2 = Math.random() * Math.PI * 2; const r2 = 8 + Math.random() * 14
-        await A.travel(bot, { x: Math.round(mine.x + Math.cos(a2) * r2), y: null, z: Math.round(mine.z + Math.sin(a2) * r2) }, { range: 3, ms: 20000, quiet: true, stop: () => api.stop() || !!enderNear(bot, R)[0] })
+        await A.travel(bot, { x: Math.round(mine.x + Math.cos(a2) * r2), y: null, z: Math.round(mine.z + Math.sin(a2) * r2) }, { range: 3, ms: 20000, quiet: true, stop: () => api.stop() || !!enderNear(bot, R, P.dy)[0] })
         await sleep(600)
         continue
       }
       seen++
       if (bad) { task(bot, 'enderhunt: ' + bad); await sleep(4000); continue }
-      const t = list[0]
+      // ONE TARGET AT A TIME, AND NEVER THE SAME ONE IN A LOOP. 06:50:0xZ: Kanade opened on the same enderman 42 blocks off eight
+      // times in two seconds and filed 16 events doing it. A target that beat us twice is left alone for a minute; the squad has
+      // other patches and the night is short.
+      const give = bot.__endGaveUp = bot.__endGaveUp || {}
+      for (const k of Object.keys(give)) if (give[k] < now()) delete give[k]
+      const t = list.find(q => !give[q.e.id])
+      if (!t) { task(bot, 'enderhunt: the ones in view all got away — looking further'); await sleep(4000); continue }
       A.result(bot, { ev: 'ender_seen', job: job.id, at: xyz(t.e.position), d: round1(t.d), hp: Math.round(bot.health), armour: armourOn(bot).length })
       task(bot, 'enderhunt: fighting an enderman at ' + xyz(t.e.position).join(','))
       fought++
       const had = A.count(bot, 'ender_pearl')
       const r = await fightEnder(bot, t.e, { minHp: breakHp, stop: api.stop, ms: P.fightS ? P.fightS * 1000 : 60000 })
-      if (r.ok) { killed++; await sleep(400); await A.pickup(bot, 10, 6000) } else if (/disengag/.test(r.why || '')) broke++
+      if (r.ok) { killed++; await sleep(400); await A.pickup(bot, 10, 6000) } else {
+        if (/disengag/.test(r.why || '')) broke++
+        const fails = bot.__endFails = bot.__endFails || {}
+        fails[t.e.id] = (fails[t.e.id] || 0) + 1
+        if (fails[t.e.id] >= 2) give[t.e.id] = now() + 60000
+        await sleep(1500)
+      }
       const got = A.count(bot, 'ender_pearl') - had
-      A.result(bot, { ev: r.ok ? 'ender_kill' : 'ender_fight', job: job.id, ok: !!r.ok, why: r.why || null, s: r.s || null, pearl: got, hp: Math.round(bot.health), at: xyz(bot.entity.position) })
+      A.result(bot, { ev: r.ok ? 'ender_kill' : 'ender_fight', job: job.id, ok: !!r.ok, why: r.why || null, s: r.s || null, pearl: got, openedAt: Math.round(t.d), hp: Math.round(bot.health), at: xyz(bot.entity.position) })
       if (bot.health < breakHp + 4) { task(bot, 'enderhunt: hurt, eating'); await sleep(5000) }
     }
     const pearls = A.count(bot, 'ender_pearl') - pearls0
@@ -198,11 +226,11 @@ module.exports = ctx => {
       await A.bank(bot, { bread: 8, torch: 16 }, { job: job.id, stop: api.stop }).catch(e_ => swallow('jobs_end:bank', e_))
     }
     A.result(bot, {
-      ev: 'ender_hunt', job: job.id, ok: true, seen, fought, killed, broke, pearls, min: Math.round(botH * 60),
+      ev: 'ender_hunt', job: job.id, ok: true, seen, fought, killed, broke, pearls, outOfReach, lowestDy: lowest, min: Math.round(botH * 60),
       perBotH: botH > 0.02 ? round1(pearls / botH) : null, armour: armourOn(bot).length, at: xyz(bot.entity.position),
       why: 'pearls per bot-hour is the number this job is judged on'
     })
-    if (!seen) A.result(bot, { ev: 'ender_dry', job: job.id, at: xyz(bot.entity.position), min: Math.round(botH * 60), why: 'no enderman came into view — the ground is too bright, too small or not night' })
+    if (!seen) A.result(bot, { ev: outOfReach ? 'ender_far' : 'ender_dry', job: job.id, at: xyz(bot.entity.position), min: Math.round(botH * 60), outOfReach, lowestDy: lowest, why: outOfReach ? outOfReach + ' enderman sighting(s) in view but ' + lowest + ' blocks below this ground (a cave/ravine, not the night surface): a surface squad does not chase one down' : 'no enderman came into view at all — the ground is too bright, too small, or the night was skipped' })
     return 'enderhunt: ' + killed + ' killed, ' + pearls + ' pearls in ' + Math.round(botH * 60) + ' min'
   }
 
@@ -276,7 +304,12 @@ module.exports = ctx => {
     const dx = p1.x - p0.x; const dz = p1.z - p0.z; const dy = p1.y - p0.y
     const len = Math.hypot(dx, dz)
     if (!(len > 0.05)) return { ok: false, why: 'the eye did not move in ' + (now() - t0) + ' ms (len ' + round1(len) + ')' }
-    return { ok: true, dir: [dx / len, dz / len], dy: round1(dy), from: xyz(bot.entity.position), speed: round1(len) }
+    // AN EYE SURVIVES FOUR THROWS IN FIVE: it falls back as an item ~12 blocks along the bearing. A player walks over and picks it
+    // up, and so does this — eyes cost a blaze rod each and the whole search is rationed by them.
+    const had = A.count(bot, 'eye_of_ender')
+    await sleep(2500)
+    await A.pickup(bot, 14, 6000)
+    return { ok: true, dir: [dx / len, dz / len], dy: round1(dy), from: xyz(bot.entity.position), speed: round1(len), kept: A.count(bot, 'eye_of_ender') > had }
   }
   // t along d1 where the two bearings cross (PLAYBOOK "Stronghold"); null when the legs are too parallel to trust
   function triangulate (a, b) {
@@ -580,12 +613,17 @@ module.exports = ctx => {
     const me = () => bot.entity.position
     if (Math.abs(me().x) > 60 || Math.abs(me().z) > 60) {
       task(bot, 'dragon: crossing from the arrival platform')
+      const STONE = ['cobblestone', 'cobbled_deepslate', 'end_stone', 'dirt', 'stone', 'obsidian']
       for (let i = 0; i < 12 && !api.stop() && (Math.abs(me().x) > 45 || Math.abs(me().z) > 45); i++) {
-        const a = Math.atan2(-me().z, -me().x)
-        const to = { x: Math.round(me().x + Math.cos(a) * 16), y: null, z: Math.round(me().z + Math.sin(a) * 16) }
+        // the island is at the origin: step towards it on the DOMINANT axis, because blocks.js `bridge` spans one axis at a time
+        const dx = -Math.sign(Math.round(me().x)); const dz = -Math.sign(Math.round(me().z))
+        const axis = Math.abs(me().x) >= Math.abs(me().z) ? new Vec3(dx, 0, 0) : new Vec3(0, 0, dz)
+        const to = { x: Math.round(me().x + axis.x * 16), y: null, z: Math.round(me().z + axis.z * 16) }
         if (await A.travel(bot, to, { range: 3, ms: 30000, quiet: true, stop: api.stop, anyDepth: true })) continue
-        const r = await B.bridge(bot, v([to.x, Math.floor(me().y), to.z]), { stop: api.stop }).catch(e_ => { swallow('jobs_end:bridge', e_); return null })
-        if (!r) break
+        const item = STONE.find(k => A.count(bot, k) > 0)
+        if (!item) { A.result(bot, { ev: 'end_retreat', job: job.id, at: xyz(me()), why: 'nothing left to bridge the void with' }); break }
+        const adv = await B.bridge(bot, axis, 16, item, { stop: api.stop }).catch(e_ => { swallow('jobs_end:bridge', e_); return 0 })
+        if (!adv) break
       }
     }
     let crys = 0; let hits = 0; let perches = 0

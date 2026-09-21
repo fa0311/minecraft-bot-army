@@ -481,8 +481,11 @@ async function takeFortunePick (bot, opts, took) {
 const BARE_OK = /^(stone_|wooden_|cobble|cobbled_deepslate|stone$|deepslate$|andesite|diorite|granite|tuff|dirt|gravel|sand|netherrack|torch|bread|cooked_|apple|golden_carrot|water_bucket|bucket|flint_and_steel|ladder|crafting_table|[a-z_]+_planks|[a-z_]+_log|[a-z_]+_fence|obsidian|wheat_seeds|rail)/
 function bareJob (bot) { const j = (assignment(bot) || {}).job || {}; const p = j.params || {}; return !!(p.bare || /experiment/i.test(String(p.risk || j.risk || ''))) }
 async function bareDown (bot, opts = {}) {
+  // BARE IS NOT EMPTY-HANDED: the job's own materials stay, or the bot arrives unable to do the work it went for (09-21: the barter bot was
+  // stripped of the 64 gold ingots it was carrying TO TRADE and of the golden helmet that keeps the piglins calm).
+  const j0 = (assignment(bot) || {}).job || {}; const mine = JOB_MATERIAL[String(j0.type || '')] || null
   const keep = {}
-  for (const i of bot.inventory.items()) if (BARE_OK.test(i.name)) keep[i.name] = (keep[i.name] || 0) + i.count
+  for (const i of bot.inventory.items()) if (BARE_OK.test(i.name) || (mine && mine.test(i.name)) || /^gold(en)?_/.test(i.name)) keep[i.name] = (keep[i.name] || 0) + i.count
   const rich = bot.inventory.items().filter(i => !BARE_OK.test(i.name)).reduce((n, i) => n + i.count, 0)
   const worn = [5, 6, 7, 8].map(sl => bot.inventory.slots[sl]).filter(Boolean)
   if (!rich && !worn.length) { // already bare: make sure it at least has a stone pickaxe to work with
@@ -490,7 +493,7 @@ async function bareDown (bot, opts = {}) {
     return
   }
   for (const it of worn) { try { await bot.unequip(it.name.includes('helmet') ? 'head' : it.name.includes('chestplate') ? 'torso' : it.name.includes('leggings') ? 'legs' : 'feet') } catch (e_) { swallow('army:bareUnequip', e_) } }
-  const moved = await bank(bot, keep, { job: ((assignment(bot) || {}).job || {}).id + ' (bare: experimental job)', stop: opts.stop, noKit: true })
+  const moved = await bank(bot, keep, { job: ((assignment(bot) || {}).job || {}).id + ' (bare: experimental job)', stop: opts.stop, noKit: true, strip: true })
   for (const n of ['stone_pickaxe', 'stone_shovel', 'stone_axe']) if (!U.count(bot, n) && stockOf(n) > 0) await withdraw(bot, n, 1, { stop: opts.stop }).catch(() => 0)
   result(bot, { ev: 'bare_handed', job: ((assignment(bot) || {}).job || {}).id || null, banked: moved || {}, why: 'experimental job: nothing valuable goes out there' })
 }
@@ -1574,13 +1577,16 @@ async function bank (bot, keep = {}, opts = {}) {
   if (!overworldBot(bot)) { offWorld(bot, 'bank'); return {} } // the depot index is OVERWORLD coordinates
   const plan = {}
   await wear(bot) // what is still in the pockets afterwards is spare: it goes to the depot for the next bot
-  const bestNames = new Set(['pickaxe', 'axe', 'sword', 'shovel', 'hoe'].map(k => bestOf(bot, k)).filter(Boolean).map(i => i.name))
+  // `opts.strip` = bank a tier DOWN (the bare-handed rule): the usual "keep the best of each kind and anything better than what is worn" is exactly
+  // what stopped a bot bound for the Nether from leaving its diamonds behind (09-21: Hina carried a diamond sword, axe, shovel and chestplate out
+  // of a `bare_handed` call that banked nothing). With `strip` the caller's `keep` is the whole truth.
+  const bestNames = opts.strip ? new Set() : new Set(['pickaxe', 'axe', 'sword', 'shovel', 'hoe'].map(k => bestOf(bot, k)).filter(Boolean).map(i => i.name))
   const seenBest = new Set()
   for (const i of bot.inventory.items()) {
     let k = keep[i.name] || 0
     if (bestNames.has(i.name) && !seenBest.has(i.name)) { seenBest.add(i.name); k = Math.max(k, 1) }
     const ar = armorOf(i.name)
-    if ((ar && ar.rank > wornRank(bot, ar.piece)) || (i.name === 'shield' && !offHand(bot))) k = Math.max(k, 1) // better than what is worn = wear() could not run yet: keep it
+    if (!opts.strip && ((ar && ar.rank > wornRank(bot, ar.piece)) || (i.name === 'shield' && !offHand(bot)))) k = Math.max(k, 1) // better than what is worn = wear() could not run yet: keep it
     plan[i.name] = (plan[i.name] == null ? -k : plan[i.name]) + i.count
   }
   const byCat = {}

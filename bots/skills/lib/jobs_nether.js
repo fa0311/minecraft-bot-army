@@ -1014,6 +1014,9 @@ module.exports = ctx => {
     if (![5, 6, 7, 8].map(q => bot.inventory.slots[q]).filter(Boolean).some(i => /^golden_/.test(i.name))) return { work: 'barter', why: 'no gold armour piece to wear - every piglin in sight would turn hostile' }
     // 2. WALK TO THE SPOT. Never trade where we land: the arrival shelf has no piglins and, being all inside 24 of the squad,
     //    never will. `nTravel` carries the whole edge doctrine, so a lane that is not finished ends in a REPORT, not a fall.
+    const isAdult = e => e && e.name === 'piglin' && e.position && !(e.metadata && e.metadata[17] === true)
+    const adults = r => Object.values(bot.entities).filter(e => isAdult(e) && e.position.distanceTo(bot.entity.position) <= r)
+    const anyPig = r => Object.values(bot.entities).filter(e => e && /^(piglin|zombified_piglin)$/.test(e.name) && e.position && e.position.distanceTo(bot.entity.position) <= r).length
     const { stand } = barterOf(P)
     if (!Array.isArray(stand)) return { work: 'barter', why: 'settings.nether.barterSpot is not built yet - staff work:"barterspot" first' }
     const roster = A.settings().roster || []
@@ -1023,16 +1026,27 @@ module.exports = ctx => {
       task(bot, 'nether barter: walking to the spot ' + stand.join(','))
       await nTravel(bot, tgt, { range: 2, ms: Math.min(150000, Math.max(20000, until - Date.now() - 60000)), stop: api.stop })
     }
-    const d = bot.entity.position.distanceTo(v(stand))
-    if (d > 10) return { work: 'barter', at: xyz(bot.entity.position), dToSpot: Math.round(d), why: 'no way to the barter spot ' + stand.join(',') + ' yet - the lane is unfinished: keep work:"barterspot" staffed' }
+    // A BARTER NEEDS NO ROAD (owner 09-21, dragon deadline): only a safe cell within 8 of an adult piglin and a gold piece worn.
+    // So an unfinished lane is NOT a reason to come home empty: if the registered spot is out of reach, go to the nearest adult
+    // piglin the edge doctrine will actually let us stand near. `nTravel` refuses unknown chunks, cells with no floor within 3 and
+    // anything touching lava, so "as near as we can safely get" is a bounded, honest answer rather than a gamble.
+    let d = bot.entity.position.distanceTo(v(stand))
+    if (d > 10) {
+      const pig = Object.values(bot.entities).filter(isAdult).sort((x, y) => x.position.distanceTo(bot.entity.position) - y.position.distanceTo(bot.entity.position))[0]
+      if (pig) {
+        task(bot, 'nether barter: the lane is short - walking to a piglin at ' + xyz(pig.position).join(','))
+        await nTravel(bot, pig.position, { range: 5, ms: 60000, stop: api.stop })
+      }
+      const near = adults(8)[0]
+      if (!near) return { work: 'barter', at: xyz(bot.entity.position), dToSpot: Math.round(d), pigsSeen: anyPig(48), why: 'no way to the barter spot ' + stand.join(',') + ' yet and no adult piglin within 8 of any cell we may safely stand on (' + anyPig(48) + ' pigs within 48) - the lane is what unlocks this: keep work:"barterspot" staffed' }
+      A.result(bot, { ev: 'barter_offroad', job: job.id, at: xyz(bot.entity.position), piglin: xyz(near.position), why: 'the lane is unfinished, but a piglin came within 8 of ground we can stand on - trading here' })
+      d = 0
+    }
     // 3. A CONTAINER OF OURS WITHIN 16 IS THE ONE THING THAT WOULD ANGER THEM. We never open one here; it is reported, not obeyed.
     const cids = ['chest', 'trapped_chest', 'barrel'].map(n => bot.registry.blocksByName[n]).filter(Boolean).map(b => b.id)
     const box2 = cids.length ? bot.findBlocks({ matching: cids, maxDistance: 16, count: 1 }) : []
     if (box2.length) A.result(bot, { ev: 'barter_chest_near', job: job.id, at: xyz(box2[0]), why: 'a container of ours stands within 16 of the barter spot - opening or breaking it would anger every piglin here (paper piglins-guard-chests)' })
     // 4. TRADE, and MEASURE: pearls per 64 gold is the number this whole front is judged by.
-    const isAdult = e => e && e.name === 'piglin' && e.position && !(e.metadata && e.metadata[17] === true)
-    const adults = r => Object.values(bot.entities).filter(e => isAdult(e) && e.position.distanceTo(bot.entity.position) <= r)
-    const anyPig = r => Object.values(bot.entities).filter(e => e && /^(piglin|zombified_piglin)$/.test(e.name) && e.position && e.position.distanceTo(bot.entity.position) <= r).length
     const roam = Math.max(4, Math.min(P.roam || 16, 32))
     const pearls0 = A.count(bot, 'ender_pearl'); const gold0 = A.count(bot, 'gold_ingot')
     let offered = 0; let back = 0; let seen = 0; const t0 = Date.now()
@@ -1861,6 +1875,16 @@ module.exports = ctx => {
       // so a lane job with an iron axe in hand was refusing to cross). `army.js startGuard` already swings `bestOf('sword') ||
       // bestOf('axe')`, so an axe IS the army's fallback weapon and this gate may not be stricter than the code that fights.
       if (!A.bestOf(bot, 'sword') && !A.bestOf(bot, 'axe')) short.push('no weapon (no sword and no axe; depot swords: ' + ['iron_sword', 'stone_sword', 'diamond_sword'].map(k => k + ' ' + A.stockOf(k)).join(', ') + ')')
+      // GOLD IS THE CARGO, NOT THE LOOT (09-21 06:58:24Z: `bare_handed {banked:{... gold_ingot:20}}` — army.js `bareDown` strips
+      // valuables before an `experimental` trip, and a gold ingot reads as valuable. A barter bot that crosses without gold trades
+      // nothing and we only find out a slice later, so the kit is re-checked HERE, after bare/kit have both run, and the trip is
+      // refused loudly rather than wasted. Same for the worn gold piece: without it every piglin in sight turns hostile.
+      if (P.work === 'barter') {
+        if (A.count(bot, 'gold_ingot') < 16) { await A.obtain(bot, 'gold_ingot', P.ingots || 64, { stop: api.stop }).catch(e_ => swallow('jobs_nether:goldAgain', e_)) }
+        if (A.count(bot, 'gold_ingot') < 16) short.push('gold to trade ' + A.count(bot, 'gold_ingot') + '/16 (depot: ' + A.stockOf('gold_ingot') + ') - params.bare banks gold as a valuable, so it must be re-drawn after bareDown')
+        const wearGold = [5, 6, 7, 8].map(q => bot.inventory.slots[q]).filter(Boolean).some(i => /^golden_/.test(i.name)) || A.count(bot, 'golden_helmet') || bot.inventory.items().some(i => /^golden_(helmet|chestplate|leggings|boots)$/.test(i.name))
+        if (!wearGold) { await A.obtain(bot, 'golden_helmet', 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:goldHelm2', e_)); if (!A.count(bot, 'golden_helmet')) short.push('no gold armour piece to wear (depot golden_helmet: ' + A.stockOf('golden_helmet') + ') - every piglin in sight would turn hostile') }
+      }
       if (!bot.inventory.items().some(i => bot.registry.foodsByName[i.name])) short.push('no food')
       if (P.work === 'pair') {
         if (A.count(bot, 'obsidian') < 10) short.push('obsidian ' + A.count(bot, 'obsidian') + '/10 (depot: ' + A.stockOf('obsidian') + ') - a frame cannot be built without it')

@@ -10,10 +10,41 @@ ender pearls ─┐
 blaze rods ───┘   (1 pearl + 1 powder;   (2 bearings)      (staircase)    (12 eyes)                   (crystals first)
                    1 rod = 2 powder)
 ```
-**Two independent pearl sources, one blaze source.** Pearls: `work:'enderhunt'` (this file) AND piglin bartering
-(`jobs_nether.js`, ~1 pearl per 15.5 gold; the army holds 861 gold). Blaze rods have NO second source — a Nether fortress is the
-only one, so **the fortress is the single point of failure of the whole deadline** and belongs to the Nether engineer.
+**Three possible pearl sources, ONE blaze source.** Pearls: `work:'enderhunt'` (this file) · piglin bartering
+(`jobs_nether.js`, ~1 pearl per 15.5 gold; the army holds 861 gold = ~55 pearls, by far the best rate) · an **Expert cleric**
+at the plains village sells pearls for 5 emeralds (PLAYBOOK "Village value"; the army holds 29 emeralds and `village_trade` is
+running — `jobs_industry.js`, not this file). Blaze rods have NO second source — a Nether fortress is the only one, so
+**the fortress is the single point of failure of the whole deadline** and belongs to the Nether engineer.
 Budget: 12 frames minus ~1.2 pre-filled + 20 % throw breakage + spares = **16 eyes = 16 pearls + 8 blaze rods**.
+
+### Measured 09-21 06:19-06:51Z (first live rounds of `end_hunt_1`) — **0.0 pearls per bot-hour over ~2.3 bot-hours**
+The job runs clean: 10 hunters on the ground, hp 19-20, **0 deaths, 0 errors**, spread across the shelf, all reporting. What it has
+not yet done is kill one. Three causes, in the order they were found and fixed:
+1. **The ground was unreachable.** The first post (-350,-335, south of the base) is cut off by the ravine keep-out and the gully:
+   7 of 10 hunters reported `no route to the hunting ground` (06:48Z). The post is now the **dark grass shelf WEST of the wall,
+   `-432,63,-466`, radius 45, ground y62-63, 69 blocks from muster** — flat grass, read-only walkable, and the commute costs one
+   minute of a ten-minute night instead of five. `no_route` went to 0.
+2. **Every fight aborted in 250 ms.** `it teleported out of reach` x30: the abort was a flat 28 blocks measured before the bot had
+   taken a step, while endermen were opening at 28-45. The gate is now "clearly farther than where it started" (`d0 + 16`, never
+   under 36) **and only after 4 s of closing**.
+3. **One target, in a loop.** Kanade's slice closed `seen:121 fought:121 killed:0` in 3 minutes — the same enderman 42 blocks off,
+   re-opened every 250 ms. A target that beats a hunter twice is now dropped for a minute (`bot.__endGaveUp`) and a failed fight
+   costs 1.5 s of quiet. (Both fixes went live through `armyctl.js patch end_hunt_1 '{"rev":N}'`: a hot lib edit only reaches a bot
+   at its NEXT slice, and a slice runs up to 15 minutes — bump the rev when a fix must be in the field now.)
+Encounter rate, measured by probe: **2-3 endermen loaded per hunter at night** on that shelf, typically 28-45 blocks off, plus
+9-11 phantoms and ~20 zombies (a real night, so the spawns are real). Endermen are ~2.4 % of overworld monster spawns, so this is
+what the surface gives. **Expect low single-digit pearls per night from 10 bots — a backup, not the plan.**
+
+### Earlier measurements 09-21 06:2x-06:4xZ
+- The squad reaches the ground, spreads into patches and patrols: 8 bots × 5-7 min slices, positions -340..-387 / -294..-382.
+- **0 endermen in fight range on the surface, day or night.** A live probe of a hunter at 06:41Z (`POST :3000/cmd` eval) found
+  two endermen loaded and BOTH underground (-375,**-43**,-380 and -339,**52**,-438 — the ravine) while the bot stood at y69. The
+  night surface is a poor enderman ground; the dark under the base is full of them. The job now counts and reports what it can
+  see but will not fight (`ender_far {outOfReach, lowestDy}`) instead of calling the ground empty.
+- **Two of the three test nights were skipped** — see docs/BUGS.md 09-21 06:2xZ (~55 s and ~3 min out of ~9.6 min). The THIRD
+  ran its full length (06:47:08-06:57:20Z, t 12069 -> 23300, nobody lay down), so `needsNight` does keep a night when no bot's
+  6-hourly bed turn falls at that dusk — the skip is intermittent, not constant. **And a full night with 10 hunters still gave 0
+  kills**, so the low rate is the ground truth, not an artefact of short nights. Bartering stays the pearl plan of record.
 
 ## 1. PEARLS — `work:'enderhunt'` (job `end_hunt_1`)
 Night hunt in the open, 120 blocks S of the base wall on dark grass at `-350,65,-335` (grass y65, outside the base torch grid;
