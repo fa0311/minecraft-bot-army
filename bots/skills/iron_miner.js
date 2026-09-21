@@ -473,6 +473,22 @@ module.exports = async (bot, args = {}, ctx) => {
           if (!lost) { bot.__ironSkip = bot.__ironSkip || {}; bot.__ironSkip[M.level + '/' + br.key] = Date.now() + 10 * 60000 }
           await I.saveBranch(M, br.key, { owner: null })
         }
+        // THE SAME SPOT, THE SAME FAILURE (09-21 11:2xZ: Hotaru `iron:to-trunk no_progress` at -458,-56,-651 -> -328,-54,-651 on every slice, each new branch
+        // claim a new 60-s walk from a pit it could not leave; 11:0xZ Akari/Tamaki likewise at -279,-50,-331). It is the BOT that is stuck, not the branch:
+        // the second time from the same cell the bot cuts one stair step toward the line (another way, not the same walk); the third time it is handed
+        // back, so the army's trap escape (trap_found -> escaped by stair/pillar) takes over instead of a mine loop that blames branch after branch.
+        if (lf && Array.isArray(lf.at) && !lost && lf.why !== 'needpick' && I.underground(bot, M)) {
+          const m = bot.__ironSameFail
+          const same = !!m && Math.abs(m.at[0] - lf.at[0]) + Math.abs(m.at[1] - lf.at[1]) + Math.abs(m.at[2] - lf.at[2]) <= 2 && Date.now() - m.t < 15 * 60000
+          const n = same ? m.n + 1 : 1
+          bot.__ironSameFail = { at: lf.at, why: lf.why, n, t: Date.now() }
+          if (n === 2) { const to = Array.isArray(lf.to) ? lf.to : lf.at; await I.climbStep(bot, to[0], to[2], gen) }
+          if (n >= 3) {
+            bot.__ironSameFail = null
+            ARMY.result(bot, { ev: 'mine_stuck_spot', job: jobRef(bot).id, at: lf.at, why: lf.why, task: bot.state && bot.state.task, n, note: 'three walks from the same cell failed the same way: handed back to the army (trap escape), no branch blamed' })
+            return handBack(bot, 300000, 'mine: stuck at ' + lf.at.join(',') + ' (' + lf.why + ' x' + n + ')')
+          }
+        }
         // off the graph ON THE SURFACE five times running (toEntrance cannot put us on the mouth cell): other work for 5 min, not a spin at the mine head
         bot.__ironLostN = lost && !I.underground(bot, M) ? (bot.__ironLostN || 0) + 1 : 0
         if (bot.__ironLostN >= 5) { bot.__ironLostN = 0; return handBack(bot, 300000, 'mine: cannot get onto the mine mouth (off the graph at ' + (lf.at || []).join(',') + ')') }
@@ -482,6 +498,7 @@ module.exports = async (bot, args = {}, ctx) => {
         else await U.nap(bot, 2000)
         continue
       }
+      bot.__ironSameFail = null
       bot.state.task = 'iron:branch ' + br.key
       const res = await I.mineBranch(bot, M, br, gen, { maxMs: 12 * 60000 })
       U.note(bot, 'info', 'branch ' + br.key + ' -> ' + JSON.stringify(res))

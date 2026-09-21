@@ -1726,7 +1726,12 @@ async function bank (bot, keep = {}, opts = {}) {
   }
   const moved = {}
   const unreach = {}
+  // A DEPOT WE CANNOT REACH FROM HERE IS NOT WORTH 8 x N MORE WALKS (09-21 11:1xZ: Fuuka/Hazuki/Riko sat in a lake at -539,62,-345 with
+  // `__armyOffBusy` for 13 min and no heartbeat - every chest of every category was a travel that timed out). Two chests in a row that
+  // could not be opened end the whole visit; the bot keeps its load and its worker gets on with the escape and the job.
+  let missRow = 0; let gaveUp = false
   for (const cat of CATS) {
+    if (gaveUp) break
     const want = byCat[cat]
     if (!want) continue
     const idx0 = index()
@@ -1745,7 +1750,8 @@ async function bank (bot, keep = {}, opts = {}) {
       if (!Object.keys(want).length || U.cancelled(bot) || (opts.stop && opts.stop()) || opened >= 8) break
       opened++
       const w = await openChest(bot, cp, opts)
-      if (!w) { unreach[cat] = (unreach[cat] || 0) + 1; continue }
+      if (!w) { unreach[cat] = (unreach[cat] || 0) + 1; if (++missRow >= 2) { gaveUp = true; result(bot, { ev: 'bank_unreachable', at: bot.entity ? [Math.floor(bot.entity.position.x), Math.floor(bot.entity.position.y), Math.floor(bot.entity.position.z)] : null, why: 'two depot chests in a row could not be reached - visit abandoned', job: opts.job || null }); break } continue }
+      missRow = 0
       try {
         for (const name of Object.keys(want)) {
           const item = bot.registry.itemsByName[name]

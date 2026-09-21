@@ -15,6 +15,11 @@ module.exports = {
     const st = bot.__core_combat = bot.__core_combat || { hp: bot.health, t: 0 }; const hurt = bot.health < st.hp - 0.5; st.hp = bot.health
     if (!bot.entity || bot.health < 8 || Date.now() - st.t < 4000 || bot.isSleeping || core.pending(bot)) return
     const A = core.A; if (/^iron:/.test(String(bot.state && bot.state.task || '').replace(/^army:/, ''))) return
+    // THE NETHER ROUTE AND THE BLAZE DOORWAY FIGHT IN PLACE (Nether engineer 09-21 11:3xZ): a chase from the route's head goes off a
+    // 1-wide bridge over the void or onto the spawner platform - Sayaka died at 183,77,125 in `core:combat:threat` 40 s after her pass,
+    // and the alert also cut Hinata's pass short at the fortress wall. Those jobs hold their cell and strike what comes into reach
+    // (the lib/army.js melee reflex, and blazeHunt's shield-and-sword loop); nothing here pulls them off it.
+    if (/^nether (route|blaze|steps)/.test(String(bot.state && bot.state.task || '').replace(/^army:/, ''))) return
     if (!(A.bestOf(bot, 'sword') || A.bestOf(bot, 'axe'))) return // unarmed: the kit rule arms it at the next depot visit
     // NO DOGPILE, NO LOST CAUSES (owner 09-20 14:5xZ "-376 72 -510でハング": 13 bots stood on one cell, all `core:combat:threat`, chasing ONE skeleton on a roof 3 blocks up that
     // nobody could reach - `defended {killed:false, ms:18021, fights:17}`, over and over): a mob this bot failed to kill is ignored for 5 min; a mob that already has two

@@ -372,7 +372,24 @@ function derive (d, E) {
 }
 function refresh (M) { M.st = read(M.E); return M.st }
 // below the pad and inside the mine's box = "underground in OUR mine" (sync; army_jobs asks this before it sends a bot anywhere on the surface)
-function underground (bot, M = CUR) { if (!M || !bot.entity) return false; const f = feet(bot); return f.y < M.E.y - 1 && inBox(M.box, f, 12) && (!!locate(M.G, f) || (roofed(bot, f) && !inHole(f))) }
+function underground (bot, M = CUR) {
+  if (!M || !bot.entity) return false
+  const f = feet(bot)
+  if (!(f.y < M.E.y - 1 && inBox(M.box, f, 12))) return false
+  if (locate(M.G, f)) return true
+  return roofed(bot, f) && !inHole(f) && !notOurs(bot, M, f)
+}
+// OFF THE GRAPH, BUT NOT IN OUR ROCK EITHER (09-21: Hazuki/Fuuka/Riko sat 13 min to 4 h in a sealed water pocket at -539,62,-345 that a surface ROAD job
+// (road_village segs 16-23) had dropped them into; the mine's box reaches there (level-48 branches are 256 long), the pocket's roof read `roofed`, so the
+// mine called them "lost underground" and `reconnect` tried to cut a 14-deep gallery DOWN through the pond floor to branch -535,48,-322: step_liquid x126
+// in 30 s). A bot IN WATER/LAVA, or ABOVE every dug level (+6) and off the stairs, is not in a gallery we dug: it leaves by the army's travel/escape
+// (it swims, walks, pillars out of a pit), never by a mine gallery.
+function notOurs (bot, M, f) {
+  if (isLiquid(blk(bot, f.x, f.y, f.z)) || isLiquid(blk(bot, f.x, f.y + 1, f.z))) return 'liquid'
+  const st = M.st || {}; let top = -Infinity
+  for (const lv of Object.values(M.G.levels || {})) if (st.dug == null || lv.g <= st.dug) top = Math.max(top, lv.y)
+  return Number.isFinite(top) && f.y > top + 6 ? 'above_levels' : null
+}
 // THE RAVINE IS NOT THE MINE (measured 09-20 05:30-06:30Z: 95 `mine_reconnect` galleries in an hour from the ravine floor through the stairwell's wall at y48 - its
 // overhangs count as "roofed"). A bot inside a `settings.keepOut` box, above that hole's floor (`floor`, default base y - 30), walks out by the hole's exit (A.travel).
 function inHole (f) {
@@ -1131,7 +1148,7 @@ async function walkLine (bot, x, z, gen, ms = 60000, opts = {}) {
   const Y = opts.y != null ? opts.y : f0.y
   const budget = Math.max(ms, 30000 + (Math.abs(x - f0.x) + Math.abs(z - f0.z)) * 1500)
   let paused = 0 // time NOT spent walking (a fight, a convoy hold): the budget is for the ROUTE, not for what happens on it (11:0xZ, see defend())
-  let best = 1e9; let progT = Date.now(); let held = 0; let lastTorchAt = null
+  let best = 1e9; let progT = Date.now(); let held = 0; let lastTorchAt = null; let sharedT = 0
   const hotSt = { plugs: 0 }; const runLine = running()
   const quit = (why, extra) => {
     try { bot.clearControlStates() } catch (e_) { swallow('iron_core:q12', e_) }
@@ -1165,17 +1182,29 @@ async function walkLine (bot, x, z, gen, ms = 60000, opts = {}) {
       // ends up in ONE cell of the hole: 8 miners, 8x climb_fail at -39,-56,-132). First name keeps the cell, the others move one cell on along the hole.
       const me = bot.entity.position
       const mates = Object.values(bot.entities).filter(e => e !== bot.entity && e.type === 'player' && e.position && Math.abs(e.position.y - me.y) < 1.6 && Math.max(Math.abs(e.position.x - me.x), Math.abs(e.position.z - me.z)) < 0.95)
+      // A POCKET WITH NO SECOND CELL DEADLOCKED THAT RULE (09-21 11:0xZ Akari+Tamaki at -279,-50,-331, 11:26Z Mio+Hotaru at -458,-56,-651: two miners took
+      // the same cave vein, collectVein brought both down into its 1-cell pit 2 under the level, the first name waited for the other to leave and the other
+      // had nowhere to go - `no_progress`, `hung`, `to-trunk no_progress` on every later slice). Nobody waits for ever: after a few seconds in a shared cell
+      // (the later name at 3 s, the first at 8 s) the bot CUTS ONE STAIR STEP up toward the line (stepDig: the reconnect's own step, floored, plugged) -
+      // a player in a pit with a mate beside him digs a step out, he does not stand there.
       if (mates.length) {
-        if (mates.some(e => String(e.username) < String(bot.username))) {
-          const open2 = (cx, cz) => isOpen(blk(bot, cx, f.y, cz)) && isOpen(blk(bot, cx, f.y + 1, cz)) && isSolid(blk(bot, cx, f.y - 1, cz))
-          const fwd = atCol ? null : [nx, nz]; const back = atCol ? null : [f.x - (nx - f.x), f.z - (nz - f.z)]
-          const to = [fwd, back].find(c => c && open2(c[0], c[1]))
-          if (to) await stepTo(bot, to[0], to[1], { ms: 2000, gen, tol: 0.3 }); else await sleep(700)
-        } else await sleep(400 + Math.floor(Math.random() * 300)) // my cell: wait until the others have left it
+        const later = mates.some(e => String(e.username) < String(bot.username))
+        if (!sharedT) sharedT = Date.now()
+        const open2 = (cx, cz) => isOpen(blk(bot, cx, f.y, cz)) && isOpen(blk(bot, cx, f.y + 1, cz)) && isSolid(blk(bot, cx, f.y - 1, cz))
+        const fwd = atCol ? null : [nx, nz]; const back = atCol ? null : [f.x - (nx - f.x), f.z - (nz - f.z)]
+        const to = later ? [fwd, back].find(c => c && open2(c[0], c[1])) : null
+        if (to) { await stepTo(bot, to[0], to[1], { ms: 2000, gen, tol: 0.3 }); continue }
+        if (Date.now() - sharedT > (later ? 3000 : 8000)) {
+          if (await climbStep(bot, x, z, gen) === 'ok') { sharedT = 0; progT = Date.now(); bump(bot, 'pit_step'); continue }
+          fails++; if (fails > 7) return quit('climb_shared')
+        }
+        await sleep(later ? 700 : 400 + Math.floor(Math.random() * 300)) // my cell: wait until the others have left it
         continue
       }
+      sharedT = 0
       const r = await pillarOne(bot, gen)
-      if (r !== 'ok') { fails += 2; if (fails > 5) return quit(r === 'no_filler' ? r : 'climb_' + r); await sleep(300) }
+      // A RETRY IS ANOTHER WAY: a pillar that failed twice (the server refuses the block: a mate's hitbox, a liquid over the head) -> one stair step instead
+      if (r !== 'ok') { fails += 2; if (fails >= 4 && await climbStep(bot, x, z, gen) === 'ok') { fails = 0; progT = Date.now(); bump(bot, 'pit_step'); continue } if (fails > 5) return quit(r === 'no_filler' ? r : 'climb_' + r); await sleep(300) }
       continue
     }
     if (atCol) { // over the target column but above its level (somebody's wall block, a filled step): land, else take the block under us out
@@ -1681,6 +1710,38 @@ function exposedNear (bot, at, r = 24, y = at.y, dy = 3) {
 const DEAD_ORE = global.__ironDeadOre = global.__ironDeadOre || new Map()
 const CAVE_ORE_MS = 240000    // one cavern is worth four minutes of a slice, no more (the branch and the commute still have to fit)
 const CAVE_ORE_R = 24         // how far out of the mouth its walls are worked
+// ONE MINER PER CAVE VEIN (09-21: Akari+Tamaki `vein_done lapis -279,-49,-331` in the same second, Mio+Hotaru `vein_done redstone -458,-55,-651` in the same
+// second - two faces of one cavern see the same exposed ore; both miners walked into the same 1-cell pit under it and trapped each other there). A cave ore
+// is CLAIMED across all shard processes for 4 min: nobody else takes an ore within 6 blocks of a live claim of another bot.
+const CLAIMS = path.join(DIR, 'iron_claims.json')
+const CLAIM_R = 6
+const CLAIM_ORE_MS = 240000
+async function claimOre (bot, p) {
+  try {
+    return await U.withLock('iron-claims', async () => {
+      let l = []
+      try { l = JSON.parse(fs.readFileSync(CLAIMS, 'utf8')) } catch (e) { if (e.code !== 'ENOENT') swallow('iron_core:claimsRead', e) }
+      const now = Date.now()
+      l = (Array.isArray(l) ? l : []).filter(c => c && c.until > now && c.by !== bot.username)
+      if (l.some(c => Math.max(Math.abs(c.at[0] - p.x), Math.abs(c.at[1] - p.y), Math.abs(c.at[2] - p.z)) <= CLAIM_R)) return false
+      l.push({ at: [p.x, p.y, p.z], by: bot.username, until: now + CLAIM_ORE_MS })
+      fs.writeFileSync(CLAIMS + '.tmp', JSON.stringify(l.slice(-400)))
+      fs.renameSync(CLAIMS + '.tmp', CLAIMS)
+      return true
+    }, 4000)
+  } catch (e_) { swallow('iron_core:claimOre', e_); return true } // the file is advisory: a broken lock never stops the mine
+}
+async function releaseOre (bot) {
+  try {
+    await U.withLock('iron-claims', async () => {
+      let l = []
+      try { l = JSON.parse(fs.readFileSync(CLAIMS, 'utf8')) } catch (e) { if (e.code !== 'ENOENT') swallow('iron_core:claimsRead', e); return }
+      const n = Array.isArray(l) ? l.filter(c => c && c.by !== bot.username && c.until > Date.now()) : []
+      fs.writeFileSync(CLAIMS + '.tmp', JSON.stringify(n))
+      fs.renameSync(CLAIMS + '.tmp', CLAIMS)
+    }, 4000)
+  } catch (e_) { swallow('iron_core:releaseOre', e_) }
+}
 async function caveOre (bot, M, mouth, gen, opts = {}) {
   const y = mouth.y
   const anchor = opts.anchor || { x: bot.entity ? feet(bot).x : mouth.x, y, z: bot.entity ? feet(bot).z : mouth.z }
@@ -1708,12 +1769,14 @@ async function caveOre (bot, M, mouth, gen, opts = {}) {
     const fam = b && oreFamily(b.name)
     if (!fam) continue
     const dk = U.kpos(p); if ((DEAD_ORE.get(dk) || 0) > Date.now()) continue
+    if (!await claimOre(bot, p)) { bump(bot, 'ore_claimed_by_mate'); continue }
     const n = await mineVein(bot, b, y, anchor, gen, { maxMoves: 24 })
     if (n > 0) { out.veins++; out.ore += n; if (fam === 'iron') out.iron += n } else if (!stale(bot, gen) && oreFamily((bot.blockAt(p) || {}).name || '')) { DEAD_ORE.set(dk, Date.now() + 30 * 60000); if (DEAD_ORE.size > 2000) DEAD_ORE.clear() }
     const dr = await drainSeen(bot, y, anchor, gen)
     out.ore += dr.got; out.iron += dr.iron
   }
   await returnTo(bot, anchor, gen)
+  await releaseOre(bot)
   return out
 }
 // A CAVERN GOES ON THE BOARD like a giant vein does (recordVein): its walls are standing ore an operator can send head-count to (`ores` job / a second
@@ -2510,6 +2573,22 @@ async function stepDig (bot, sx, sz, dy, gen) {
   const g = feet(bot)
   return g.x === nx && g.z === nz && g.y <= ny && g.y >= ny - low ? 'ok' : 'fail'
 }
+// ONE STAIR STEP UP out of a pit toward column (tx,tz) - the target direction first, then the sides, then back (a pit's only rock may lie behind us).
+// walkLine uses it when pillaring is impossible (a mate shares the cell, the pillar failed twice). 'ok' | why the last try failed
+async function climbStep (bot, tx, tz, gen) {
+  const f = feet(bot)
+  const dx = tx - f.x; const dz = tz - f.z
+  const sx = Math.sign(dx) || 1; const sz = Math.sign(dz) || 1
+  const dirs = Math.abs(dx) >= Math.abs(dz) ? [[sx, 0], [0, sz], [0, -sz], [-sx, 0]] : [[0, sz], [sx, 0], [-sx, 0], [0, -sz]]
+  let r = 'fail'
+  for (const [ddx, ddz] of dirs) {
+    if (stale(bot, gen)) return 'stale'
+    if (isLiquid(blk(bot, f.x + ddx, f.y + 2, f.z + ddz)) || isLiquid(blk(bot, f.x + ddx, f.y + 1, f.z + ddz))) continue
+    r = await stepDig(bot, ddx, ddz, 1, gen)
+    if (r === 'ok') return r
+  }
+  return r
+}
 // A RETRY IS ANOTHER WAY, NOT THE SAME STEP (09-21: Noa `mine_reconnect step_nofloor` x494 in 3 min from ONE cell, Hazuki `step_liquid` x126 in 30 s in
 // a lake, Sumire `step_fail` x5 at the same cell - every call re-picked the same target and failed on the same first step). Per bot: a failure from the
 // same spot bans that target (the next call takes the next-nearest graph cell: another stair row, the trunk, another branch); from the third failure
@@ -2537,6 +2616,9 @@ async function reconnect (bot, M, gen) {
     return { ok, why }
   }
   if (!inBox(M.box, from, 12)) return out(false, 'outside_mine_box')
+  // never a gallery out of water (or out of a place no level of ours reaches): the pond/pocket is left by swimming/travel (see notOurs), not by a cut
+  // through its floor - a hole under a water cell drains the pocket into the mine below
+  { const no = notOurs(bot, M, from); if (no) return out(false, 'not_ours_' + no) }
   const tgt = reconnectTarget(M, from, memo.ban)
   if (!tgt || tgt.cost > 64) return out(false, tgt ? 'too_far' : 'no_target', tgt ? { to: tgt.p } : null)
   tgtRef = tgt
@@ -2960,7 +3042,7 @@ module.exports = {
   exposedOre, veinOf, mineVein, collectVein, noteOre, drainSeen, fortuneOf, threat, defend, wallOff, eat, tossJunk,
   caveAt, dugWall, bigCave, exposedNear, caveOre, recordCave,
   claimStairs, digStairs, claimBranch, branchOutlook, exhausted, levelCap, levelYield, reopenable, commute, nextLanding, claimGrowth, sayMine, pickRank, stoneWanted, saveBranch, gotoBranchFace, mineBranch, walkTrunk,
-  rawIron, lootScore, needHaul, foodUnits, pickUses, readiness, exitReason, reconnect, toSurface, toEntrance,
+  rawIron, lootScore, needHaul, foodUnits, pickUses, readiness, exitReason, reconnect, climbStep, notOurs, claimOre, releaseOre, toSurface, toEntrance,
   // lava on record + the obsidian trip
   cur: () => CUR, markHazard, branchAt, isHot, hotAhead, clearHot,
   noteLava, lavaAhead, obsidianOutlook, claimObsidianSpot, saveSpot, diamondPick, obsidianReady, lakeSurvey, pourAt, scoopAt, mineSheet, obsidianAt

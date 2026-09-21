@@ -1677,16 +1677,33 @@ module.exports = ctx => {
       if (!pick || !((await routeStep(bot, api, pick.p)) || (await nTravel(bot, v(pick.p), { range: 0, ms: 30000, stop: api.stop })))) return { ok: false, from, walked }
       here = bot.entity.position.floored(); cur = seqAt.get([here.x, here.y, here.z].join()); if (cur == null) return { ok: false, from, walked }
     }
-    const dir = target >= cur ? 1 : -1
-    const seen = new Set([[here.x, here.y, here.z].join()])
-    while (!api.stop() && cur !== target) {
-      const nb = []
-      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) for (const dy of [0, 1, -1]) { const k = [here.x + dx, here.y + dy, here.z + dz].join(); const sq = seqAt.get(k); if (sq != null && !seen.has(k) && (dir > 0 ? sq >= cur && sq <= target : sq <= cur && sq >= target)) nb.push({ p: [here.x + dx, here.y + dy, here.z + dz], seq: sq, k }) }
-      nb.sort((a2, b2) => dir * (b2.seq - a2.seq))
-      let moved = false
-      for (const n of nb) { if (!walkable(bot, n.p)) continue; task(bot, 'nether route: ' + (label || (dir < 0 ? 'walking home along the route' : 'walking out along the route')) + ' (' + n.seq + ')'); if (await routeStep(bot, api, n.p)) { seen.add(n.k); cur = n.seq; walked++; moved = true; break } }
-      if (!moved) return { ok: false, from, walked, seq: cur, at: xyz(bot.entity.position) }
-      here = bot.entity.position.floored()
+    // SHORTEST WAY OVER THE WALK GRAPH (both lanes; 09-21 11:4xZ: a greedy "never a lower seq" walk stuck at the leg corner at seq 256,
+    // where the two lanes' numbering crosses). Cells we cannot read yet count as passable; each step is verified, a failed cell is
+    // dropped and the way re-planned.
+    const bad = new Set()
+    const passable = k => { if (bad.has(k)) return false; const q = k.split(',').map(Number); return !knownAt(bot, v(q)) || walkable(bot, q) }
+    const plan = () => {
+      const start = [here.x, here.y, here.z].join(); const prev = new Map([[start, null]]); const q = [start]; let goal = null
+      while (q.length) {
+        const k = q.shift(); if (seqAt.get(k) === target) { goal = k; break }
+        const [x, y, z] = k.split(',').map(Number)
+        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) for (const dy of [0, 1, -1]) { const n = [x + dx, y + dy, z + dz].join(); if (seqAt.has(n) && !prev.has(n) && passable(n)) { prev.set(n, k); q.push(n) } }
+      }
+      if (!goal) return null
+      const way = []; for (let k = goal; k && k !== start; k = prev.get(k)) way.unshift(k)
+      return way
+    }
+    for (let tries = 0; tries < 6 && !api.stop() && cur !== target; tries++) {
+      const way = plan(); if (!way) break
+      let broke = false
+      for (const k of way) {
+        if (api.stop()) break
+        const q = k.split(',').map(Number)
+        task(bot, 'nether route: ' + (label || (target < cur ? 'walking home along the route' : 'walking out along the route')) + ' (' + seqAt.get(k) + ')')
+        if (!(await routeStep(bot, api, q))) { bad.add(k); broke = true; break }
+        walked++; cur = seqAt.get(k); here = bot.entity.position.floored()
+      }
+      if (!broke) break
     }
     return { ok: cur === target, from, walked, seq: cur }
   }
@@ -1842,6 +1859,10 @@ module.exports = ctx => {
       // FORWARD: the next walk cell, when the world says it is ready
       const nx = W[i + 1]
       if (!nx) { stuck = 'end of the route'; break }
+      // COVER BEFORE YOU ADVANCE near the far end (09-21 11:25Z: Sayaka bridged six cells to the fortress wall in six seconds, open on
+      // every side, and died at the head to the blazes): within `coverR` (16) of the route's end a step is only taken after a round in
+      // which nothing more could be placed or dug - walls and roof of what we stand in are up first
+      if (prog && meta.end && Math.hypot(nx.p[0] - meta.end[0], nx.p[2] - meta.end[2]) <= (P.coverR || 16)) continue
       if (!knownAt(bot, v(nx.p)) || !knownAt(bot, v(nx.p).offset(0, -1, 0))) { waited++; if (waited > 90) { stuck = 'seq ' + nx.seq + ' never loaded'; break } await sleep(1000); continue }
       if (walkable(bot, nx.p)) {
         const mate = Object.values(bot.entities).find(e => e !== bot.entity && e.type === 'player' && e.position && Math.hypot(e.position.x - nx.p[0] - 0.5, e.position.z - nx.p[2] - 0.5) < 0.9 && Math.abs(e.position.y - nx.p[1]) < 1.5)
@@ -2169,7 +2190,8 @@ module.exports = ctx => {
     bot.on('entityDead', onDead)
     const shieldUp = on => { try { if (on) { if (!bot.usingHeldItem) bot.activateItem(true) } else if (bot.usingHeldItem) bot.deactivateItem() } catch (e_) { swallow('jobs_nether:shield', e_) } }
     try {
-      await A.equipBest(bot, 'sword').catch(e_ => swallow('jobs_nether:blazeSword', e_))
+      const arm = async () => { if (!(await A.equipBest(bot, 'sword').catch(() => false))) await A.equipBest(bot, 'axe').catch(e_ => swallow('jobs_nether:blazeAxe', e_)) }
+      await arm()
       const sh = bot.inventory.items().find(i => i.name === 'shield'); if (sh && !(bot.inventory.slots[45] || {}).name) await U.withTimeout(bot.equip(sh, 'off-hand'), 5000, 'shield').catch(e_ => swallow('jobs_nether:shieldEq', e_))
       let lastHit = 0
       while (Date.now() < until - 240000 && !api.stop()) { // 4 min kept for the 470-cell walk home
@@ -2182,7 +2204,7 @@ module.exports = ctx => {
             if (bot.food < 20 && !bot.__armyEating) { const f = bot.inventory.items().find(i => bot.registry.foodsByName[i.name]); if (f) { try { await bot.equip(f, 'hand'); await bot.consume(); st.ate++ } catch (e_) { swallow('jobs_nether:blazeEat', e_) } } }
             await sleep(1000)
           }
-          await A.equipBest(bot, 'sword').catch(e_ => swallow('jobs_nether:blazeSword2', e_))
+          await arm()
           if (Date.now() >= until - 90000) break
           await routeWalkSeq(bot, api, legs, postSeq, 'back to the blaze doorway'); continue
         }
@@ -2193,7 +2215,7 @@ module.exports = ctx => {
         if (near) { // IN REACH: shield down, one full-strength blow (sword cooldown 0.625 s)
           shieldUp(false)
           try { await bot.lookAt(near.position.offset(0, 0.9, 0), true) } catch (e_) { swallow('jobs_nether:blazeLook', e_) }
-          if (Date.now() - lastHit >= 650) { try { bot.attack(near); hit.set(near.id, Date.now()); st.hits++; lastHit = Date.now() } catch (e_) { swallow('jobs_nether:blazeHit', e_) } }
+          if (Date.now() - lastHit >= (/_axe$/.test(String((bot.heldItem || {}).name)) ? 1250 : 650)) { try { bot.attack(near); hit.set(near.id, Date.now()); st.hits++; lastHit = Date.now() } catch (e_) { swallow('jobs_nether:blazeHit', e_) } }
           await sleep(100); continue
         }
         if (bl.length) { // IN SIGHT, OUT OF REACH: face it behind the shield and let it come to the doorway
