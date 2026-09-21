@@ -1362,14 +1362,14 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Aoi",
+   "by": "Misaki",
    "portal": [
-    -48,
+    -47,
     98,
     -77
    ],
-   "through": 1790019592830,
-   "scoutRev": 1,
+   "through": 1790021205231,
+   "scoutRev": 73,
    "hub": {
     "room": [
      -41,
@@ -1481,7 +1481,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789969045309,
-   "back": 1790019730333,
+   "back": 1790021120227,
    "lastDeath": 1790012273059,
    "lastDeathBy": "Yukina",
    "roads": {
@@ -1919,7 +1919,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1790019191371,
+   "gatesAt": 1790020991055,
    "pairRoad": {
     "from": [
      -43,
@@ -2302,7 +2302,7 @@
     "left": 127,
     "unloaded": 0,
     "done": false,
-    "at": 1790019758398,
+    "at": 1790020950357,
     "by": "Nozomi"
    }
   },
@@ -2434,7 +2434,7 @@
       28
      ]
     },
-    "t": 1790019756383
+    "t": 1790021110189
    },
    "absorb": {
     "gray_wool": 288,
@@ -4094,8 +4094,8 @@
    },
    "note": "06:3xZ mine engineer: readiness no longer hands a WELL-FED miner back when the depot cannot give 8 food units (48 mine_not_ready from 24 bots in 20 min left the squad at ZERO); caves at a branch face are now harvested, not walled off. rev bump voids the stale not-ready declines",
    "bots": 4,
-   "rev": 92,
-   "restUntil": 1790020068046
+   "rev": 95,
+   "restUntil": 1790022834368
   },
   {
    "id": "base_dorm",
@@ -4275,7 +4275,7 @@
    },
    "rev": 30,
    "bots": 0,
-   "restUntil": 1790020123070
+   "restUntil": 1790022203997
   },
   {
    "id": "sleeper",
@@ -4363,7 +4363,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1790019832844
+   "restUntil": 1790021487271
   },
   {
    "id": "fill_ring_field1",
@@ -5572,7 +5572,7 @@
     "crossS": 45
    },
    "rev": 5,
-   "restUntil": 1790018252804,
+   "restUntil": 1790021654026,
    "exclude": []
   },
   {
@@ -6560,7 +6560,7 @@
     "bare": true
    },
    "rev": 18,
-   "restUntil": 1790021063433
+   "restUntil": 1790022884390
   },
   {
    "id": "nether_gate_old_down",
@@ -6879,7 +6879,7 @@
      ]
     ]
    },
-   "restUntil": 1790021248502,
+   "restUntil": 1790023099526,
    "rev": 3
   },
   {
@@ -8206,7 +8206,7 @@
     "target": 16,
     "bare": true
    },
-   "restUntil": 1790020016266,
+   "restUntil": 1790021588729,
    "rev": 1
   },
   {
@@ -9058,7 +9058,7 @@
     "bare": true
    },
    "rev": 1,
-   "restUntil": 1790019923454
+   "restUntil": 1790021274156
   },
   {
    "id": "nether_bridge_roof",
@@ -11569,7 +11569,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 1,
    "shiftMin": 20,
    "site": [
     -326,
@@ -11621,7 +11621,7 @@
    },
    "desc": "GATE HALL (owner 09-21 17:2xZ 「もっと空間空けて、丸石とかで壁作ったほうが良い、見栄えも悪いし」): a 21x21 COBBLESTONE hall round the z-77 gate, x -55..-35 / z -88..-68, floor y97, 4 high, roof y102, torch grid; its only ways out are the routes that cross its walls (yieldTo: v3 stair foot at x-55 z-82/-81, the escape road z-84/-83). Camera 17:3xZ: 2647 cells, 190 dig, 781 place, 318 replaced to cobblestone, 36 floor cells over a drop kept, 46 obsidian/portal cells never touched, 0 lava.",
    "note": "17:4xZ v2: footprint (only columns over rock; the wall ring stands on the rim and is never stood on); gold piece worn. v1 pass: 3 deaths in 6 min at the open edges (piglin - no gold; fall off the E drop; ghast into lava).",
-   "rev": 1
+   "rev": 2
   },
   {
    "id": "base_field_4_pad",
@@ -11652,7 +11652,7 @@
      "d": 31
     }
    },
-   "rev": 10,
+   "rev": 11,
    "voidFix": {
     "n": 2,
     "id": "void_fix_base_field_4_pad",
