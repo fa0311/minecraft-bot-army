@@ -1274,14 +1274,14 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Nanami",
+   "by": "Hina",
    "portal": [
-    -43,
+    -44,
     98,
     -80
    ],
-   "through": 1789946940008,
-   "scoutRev": 10,
+   "through": 1789948868382,
+   "scoutRev": 4,
    "hub": {
     "room": [
      -41,
@@ -1392,8 +1392,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789946863119,
-   "back": 1789946875849,
+   "landingAt": 1789948868554,
+   "back": 1789948881140,
    "lastDeath": 1789924669079,
    "lastDeathBy": "Fuuka",
    "roads": {
@@ -1615,11 +1615,19 @@
     "t": 1789924913245
    },
    "absorb": {
-    "leather": 192,
-    "coal": 240,
-    "flint": 312
+    "leather": 96,
+    "coal": 720,
+    "iron_ingot": 144,
+    "flint": 288,
+    "diamond": 12,
+    "carrot": 352,
+    "wheat": 320,
+    "pumpkin": 72,
+    "melon": 48,
+    "rabbit": 64,
+    "porkchop": 112
    },
-   "absorbT": 1789945634018
+   "absorbT": 1789947571864
   },
   "enchantTable": [
    -344,
@@ -2038,8 +2046,8 @@
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 8,
-   "rev": 66,
-   "restUntil": 1789948805762
+   "rev": 67,
+   "restUntil": 0
   },
   {
    "id": "base_dorm",
@@ -2227,7 +2235,7 @@
    },
    "rev": 19,
    "bots": 0,
-   "restUntil": 1789947783114
+   "restUntil": 1789949694083
   },
   {
    "id": "sleeper",
@@ -2314,7 +2322,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789947233464
+   "restUntil": 1789948806614
   },
   {
    "id": "fill_ring_field1",
@@ -3368,7 +3376,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789947853286
+   "restUntil": 1789949689059
   },
   {
    "id": "nether_landing_2",
@@ -4841,8 +4849,8 @@
     ],
     "rev": 99
    },
-   "rev": 8,
-   "restUntil": 1789945001467
+   "rev": 99,
+   "restUntil": 1789947781364
   },
   {
    "id": "mine_sweep",
@@ -4879,7 +4887,7 @@
     "radius": 150,
     "bankAt": 48
    },
-   "restUntil": 1789948354523,
+   "restUntil": 1789950395879,
    "rev": 12
   },
   {
