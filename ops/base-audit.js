@@ -98,6 +98,17 @@ function loadPlan () {
   // a cell a LATER terrain job cleared or a moved job re-planned is judged by the newest word only for structures: terrain blueprints never enter `planned`
   const planned = new Map() // 'x,y,z' -> cell (non-air) of any structure, 'steps' place cells included
   for (const b of builds) if (!b.terrain) for (const c of b.cells) if (c.block !== 'air') planned.set(c.x + ',' + c.y + ',' + c.z, c)
+  // ROADS ARE OURS TOO (top model 09-21 14:3xZ: the foreman reported road_village's ramp at x-305..-301 / z-406..-345, y68->74, as 72
+  // 'STRAY COBBLESTONE' twice): every column of a road segment's band (width + 2 shoulders) is planned from the deck down to 4 below it.
+  for (const j of jobs.values()) if (j.type === 'road') for (const s of (j.params || {}).segments || []) {
+    if (!Array.isArray(s.origin) || !Array.isArray(s.to)) continue
+    const w = ((s.args || {}).width || s.width || (j.params || {}).width || 5); const half = Math.floor(w / 2) + 2
+    const [x1, y1, z1] = s.origin; const [x2, y2, z2] = s.to; const n = Math.max(Math.abs(x2 - x1), Math.abs(z2 - z1)) || 1; const alongX = Math.abs(x2 - x1) >= Math.abs(z2 - z1)
+    for (let i = 0; i <= n; i++) {
+      const cx = Math.round(x1 + (x2 - x1) * i / n); const cz = Math.round(z1 + (z2 - z1) * i / n); const cy = y1 + Math.round((y2 - y1) * i / n)
+      for (let a = -half; a <= half; a++) for (let y = cy - 4; y <= cy + 1; y++) { const k = (alongX ? cx : cx + a) + ',' + y + ',' + (alongX ? cz + a : cz); if (!planned.has(k)) planned.set(k, { x: alongX ? cx : cx + a, y, z: alongX ? cz + a : cz, block: 'cobblestone', road: true }) }
+    }
+  }
   for (const j of jobs.values()) if (j.type === 'steps') for (const s of (j.params || {}).steps || []) if (s.do === 'place') for (const c of [].concat(s.at ? [s.at] : [], s.cells || [])) if (Array.isArray(c) && c.length === 3) planned.set(c.join(','), { block: s.block })
   const furniture = []; const F = (list, kind, re) => { for (const p of list || []) if (Array.isArray(p) && p.length === 3) furniture.push({ at: p, kind, re }) }
   F(S.furnaces, 'furnace', /furnace|smoker/); for (const [cat, l] of Object.entries(S.chests || {})) F(l, 'chest:' + cat, STORE); F(S.respawnBeds, 'bed', /_bed$/); F(S.craftTable ? [S.craftTable] : [], 'crafting_table', /^crafting_table$/)

@@ -372,7 +372,10 @@ module.exports = ctx => {
     if (!isOver(bot)) return muster(bot, job, api, ctx2, 'stronghold: overworld work (' + dimOf(bot) + ')')
     const S = endS()
     const want = P.eyes || 6
-    const short = await need(bot, api, { ender_eye: want, torch: 32, bread: 12, cobblestone: 32 })
+    // KIT AT HOME ONLY (top model 14:2xZ): the fix is ~2 000 blocks out; a slice that begins far from the depot must not walk home for
+    // torches and bread - that is what kept every throw at the base. Out there the bot works with what it carries.
+    const mp = A.musterPos(); const farOut = mp && Math.hypot(bot.entity.position.x - mp.x, bot.entity.position.z - mp.z) > 200
+    const short = farOut ? [] : await need(bot, api, { ender_eye: want, torch: 32, bread: 12, cobblestone: 32 })
     if (A.count(bot, 'ender_eye') < 1) {
       A.result(bot, { ev: 'sh_blocked', job: job.id, why: 'no eye_of_ender to throw', short })
       A.decline(bot, job, 8 * 60000, 'stronghold: no eyes yet')

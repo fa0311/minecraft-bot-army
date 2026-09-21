@@ -1357,7 +1357,7 @@
     98,
     -77
    ],
-   "through": 1789999682050,
+   "through": 1790001492507,
    "scoutRev": 6,
    "hub": {
     "room": [
@@ -1470,7 +1470,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789969045309,
-   "back": 1789999612642,
+   "back": 1790001446042,
    "lastDeath": 1789997242231,
    "lastDeathBy": "Kanade",
    "roads": {
@@ -1932,7 +1932,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1789999164488,
+   "gatesAt": 1790000964298,
    "pairRoad": {
     "from": [
      -43,
@@ -2430,20 +2430,23 @@
       28
      ]
     },
-    "t": 1789999033383
+    "t": 1790000876981
    },
    "absorb": {
-    "coal": 480,
-    "iron_ingot": 144,
-    "flint": 600,
-    "gray_wool": 288,
-    "leather": 288,
-    "carrot": 1056,
-    "wheat": 640,
-    "pumpkin": 216,
-    "melon": 144
+    "carrot": 704,
+    "wheat": 320,
+    "pumpkin": 144,
+    "melon": 96,
+    "string": 320,
+    "coal": 960,
+    "iron_ingot": 240,
+    "chicken": 224,
+    "flint": 1176,
+    "diamond": 24,
+    "leather": 192,
+    "gray_wool": 288
    },
-   "absorbT": 1789987658258
+   "absorbT": 1790001050435
   },
   "enchantTable": [
    -344,
@@ -2453,295 +2456,74 @@
   "mine": {
    "veins": [
     {
-     "key": "-64,-7,-68/tuff_cluster",
+     "key": "-15,-7,-89/tuff_cluster",
      "at": [
-      -505,
+      -113,
       -53,
-      -538
+      -706
      ],
      "kind": "tuff_cluster",
      "seen": 6,
      "raw": 0,
-     "by": "Honoka",
-     "t": 1789998033399
+     "by": "Suzu",
+     "t": 1789999755776
     },
     {
-     "key": "-36,-7,-73/tuff_cluster",
+     "key": "-14,-7,-89/tuff_cluster",
      "at": [
-      -283,
-      -53,
-      -580
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Hazuki",
-     "t": 1789998115294
-    },
-    {
-     "key": "-14,-7,-93/tuff_cluster",
-     "at": [
-      -111,
-      -53,
-      -739
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Kaede",
-     "t": 1789998145145
-    },
-    {
-     "key": "-13,-7,-93/tuff_cluster",
-     "at": [
-      -104,
-      -53,
-      -737
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Kaede",
-     "t": 1789998157652
-    },
-    {
-     "key": "-37,-7,-74/tuff_cluster",
-     "at": [
-      -289,
-      -53,
-      -587
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Hazuki",
-     "t": 1789998186680
-    },
-    {
-     "key": "-69,-7,-67/tuff_cluster",
-     "at": [
-      -550,
-      -53,
-      -536
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Honoka",
-     "t": 1789998187911
-    },
-    {
-     "key": "-70,-7,-67/tuff_cluster",
-     "at": [
-      -555,
+      -112,
       -54,
-      -536
+      -708
      ],
      "kind": "tuff_cluster",
      "seen": 6,
      "raw": 0,
-     "by": "Honoka",
-     "t": 1789998196256
+     "by": "Suzu",
+     "t": 1789999759824
     },
     {
-     "key": "-19,-7,-67/tuff_cluster",
+     "key": "-64,-7,-89/tuff_cluster",
      "at": [
-      -145,
-      -52,
-      -531
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Noa",
-     "t": 1789998226659
-    },
-    {
-     "key": "-18,-7,-67/tuff_cluster",
-     "at": [
-      -142,
-      -53,
-      -531
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Noa",
-     "t": 1789998229157
-    },
-    {
-     "key": "-17,-7,-67/tuff_cluster",
-     "at": [
-      -135,
-      -53,
-      -532
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Noa",
-     "t": 1789998240221
-    },
-    {
-     "key": "-71,-7,-67/tuff_cluster",
-     "at": [
-      -562,
-      -53,
-      -535
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Honoka",
-     "t": 1789998244495
-    },
-    {
-     "key": "-55,-7,-75/tuff_cluster",
-     "at": [
-      -438,
-      -52,
-      -600
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Ayame",
-     "t": 1789998262060
-    },
-    {
-     "key": "-55,-7,-76/tuff_cluster",
-     "at": [
-      -438,
+      -508,
       -54,
-      -601
+      -705
      ],
      "kind": "tuff_cluster",
      "seen": 6,
      "raw": 0,
-     "by": "Ayame",
-     "t": 1789998262407
+     "by": "Sayaka",
+     "t": 1789999907639
     },
     {
-     "key": "-36,-7,-74/tuff_cluster",
+     "key": "-64,-7,-88/tuff_cluster",
      "at": [
-      -287,
-      -52,
-      -586
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Hazuki",
-     "t": 1789998379435
-    },
-    {
-     "key": "-72,-7,-67/tuff_cluster",
-     "at": [
-      -572,
-      -53,
-      -536
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Honoka",
-     "t": 1789998532067
-    },
-    {
-     "key": "-10,-7,-93/tuff_cluster",
-     "at": [
-      -78,
-      -53,
-      -739
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Kaede",
-     "t": 1789998543104
-    },
-    {
-     "key": "-25,-7,-85/tuff_cluster",
-     "at": [
-      -198,
+      -510,
       -54,
-      -674
+      -704
      ],
      "kind": "tuff_cluster",
      "seen": 6,
      "raw": 0,
-     "by": "Hazuki",
-     "t": 1789998705202
+     "by": "Sayaka",
+     "t": 1789999910160
     },
     {
-     "key": "-25,-7,-84/tuff_cluster",
+     "key": "-10,-7,-92/tuff_cluster",
      "at": [
-      -198,
-      -55,
-      -672
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Kaede",
-     "t": 1789998720605
-    },
-    {
-     "key": "-22,-7,-88/tuff_cluster",
-     "at": [
-      -176,
-      -53,
-      -698
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Honoka",
-     "t": 1789998864202
-    },
-    {
-     "key": "-21,-7,-88/tuff_cluster",
-     "at": [
-      -168,
-      -53,
-      -698
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Honoka",
-     "t": 1789998877676
-    },
-    {
-     "key": "-23,-7,-88/tuff_cluster",
-     "at": [
-      -179,
+      -73,
       -54,
-      -703
+      -732
      ],
      "kind": "tuff_cluster",
      "seen": 6,
      "raw": 0,
-     "by": "Noa",
-     "t": 1789998941708
+     "by": "Botan",
+     "t": 1790000032365
     },
     {
-     "key": "-15,-7,-88/tuff_cluster",
+     "key": "-9,-7,-92/tuff_cluster",
      "at": [
-      -118,
-      -53,
-      -699
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Honoka",
-     "t": 1789999062057
-    },
-    {
-     "key": "-27,-7,-92/tuff_cluster",
-     "at": [
-      -210,
+      -72,
       -55,
       -732
      ],
@@ -2749,358 +2531,579 @@
      "seen": 6,
      "raw": 0,
      "by": "Botan",
-     "t": 1789999719103
+     "t": 1790000034980
     },
     {
-     "key": "-26,-7,-92/tuff_cluster",
+     "key": "-10,-7,-88/tuff_cluster",
      "at": [
-      -208,
+      -75,
+      -55,
+      -699
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1790000191488
+    },
+    {
+     "key": "-9,-7,-88/tuff_cluster",
+     "at": [
+      -72,
       -53,
-      -731
+      -700
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1790000194819
+    },
+    {
+     "key": "-60,-7,-65/tuff_cluster",
+     "at": [
+      -477,
+      -54,
+      -516
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1790000567662
+    },
+    {
+     "key": "-61,-7,-65/tuff_cluster",
+     "at": [
+      -481,
+      -53,
+      -515
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1790000572689
+    },
+    {
+     "key": "-59,-7,-67/tuff_cluster",
+     "at": [
+      -468,
+      -54,
+      -529
      ],
      "kind": "tuff_cluster",
      "seen": 6,
      "raw": 0,
      "by": "Botan",
-     "t": 1789999720631
+     "t": 1790000658938
+    },
+    {
+     "key": "-72,-7,-65/tuff_cluster",
+     "at": [
+      -576,
+      -53,
+      -515
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1790000768409
+    },
+    {
+     "key": "-73,-7,-65/tuff_cluster",
+     "at": [
+      -578,
+      -54,
+      -516
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1790000770615
+    },
+    {
+     "key": "-74,-7,-65/tuff_cluster",
+     "at": [
+      -585,
+      -52,
+      -516
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1790000806010
+    },
+    {
+     "key": "-52,-7,-73/tuff_cluster",
+     "at": [
+      -412,
+      -53,
+      -579
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Nozomi",
+     "t": 1790001053195
+    },
+    {
+     "key": "-24,-7,-73/tuff_cluster",
+     "at": [
+      -189,
+      -53,
+      -582
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Nozomi",
+     "t": 1790001130934
+    },
+    {
+     "key": "-23,-7,-73/tuff_cluster",
+     "at": [
+      -184,
+      -53,
+      -583
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Nozomi",
+     "t": 1790001137513
+    },
+    {
+     "key": "-68,-7,-72/tuff_cluster",
+     "at": [
+      -541,
+      -53,
+      -574
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1790001174987
+    },
+    {
+     "key": "-53,-7,-73/tuff_cluster",
+     "at": [
+      -422,
+      -54,
+      -584
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Botan",
+     "t": 1790001194352
+    },
+    {
+     "key": "-17,-7,-73/tuff_cluster",
+     "at": [
+      -131,
+      -53,
+      -583
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Nozomi",
+     "t": 1790001290491
+    },
+    {
+     "key": "-16,-7,-73/tuff_cluster",
+     "at": [
+      -128,
+      -53,
+      -581
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Nozomi",
+     "t": 1790001294227
+    },
+    {
+     "key": "-69,-7,-72/tuff_cluster",
+     "at": [
+      -549,
+      -53,
+      -575
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1790001294953
+    },
+    {
+     "key": "-72,-7,-72/tuff_cluster",
+     "at": [
+      -571,
+      -53,
+      -572
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1790001389543
+    },
+    {
+     "key": "-73,-7,-72/tuff_cluster",
+     "at": [
+      -577,
+      -53,
+      -572
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1790001396282
     }
    ],
    "caves": [
     {
-     "key": "-15,-4,-40",
+     "key": "-27,-4,-45",
      "at": [
-      -231,
+      -417,
       -54,
-      -633
+      -714
+     ],
+     "cells": 406,
+     "klass": "big",
+     "ores": 0,
+     "iron": 0,
+     "by": "Botan",
+     "t": 1790000107025
+    },
+    {
+     "key": "-15,-4,-46",
+     "at": [
+      -237,
+      -54,
+      -735
+     ],
+     "cells": 275,
+     "klass": "big",
+     "ores": 0,
+     "iron": 0,
+     "by": "Sayaka",
+     "t": 1790000118082
+    },
+    {
+     "key": "-26,-4,-47",
+     "at": [
+      -409,
+      -54,
+      -738
+     ],
+     "cells": 1114,
+     "klass": "big",
+     "ores": 1,
+     "iron": 0,
+     "by": "Botan",
+     "t": 1790000170548
+    },
+    {
+     "key": "-21,-4,-32",
+     "at": [
+      -321,
+      -54,
+      -501
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 1,
      "iron": 0,
-     "by": "Ayame",
-     "t": 1789998487825
+     "by": "Sayaka",
+     "t": 1790000184126
     },
     {
-     "key": "-35,-4,-40",
+     "key": "-24,-4,-32",
      "at": [
-      -559,
+      -372,
       -54,
-      -633
+      -501
+     ],
+     "cells": 978,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Botan",
+     "t": 1790000244429
+    },
+    {
+     "key": "-25,-4,-32",
+     "at": [
+      -396,
+      -54,
+      -504
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 0,
      "iron": 0,
-     "by": "Botan",
-     "t": 1789998506715
+     "by": "Sayaka",
+     "t": 1790000244646
     },
     {
-     "key": "-28,-4,-40",
+     "key": "-20,-4,-32",
+     "at": [
+      -319,
+      -54,
+      -507
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 1,
+     "iron": 0,
+     "by": "Suzu",
+     "t": 1790000291747
+    },
+    {
+     "key": "-9,-4,-32",
+     "at": [
+      -143,
+      -54,
+      -510
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Sayaka",
+     "t": 1790000292082
+    },
+    {
+     "key": "-28,-4,-33",
      "at": [
       -434,
       -54,
-      -636
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 1,
-     "iron": 0,
-     "by": "Ayame",
-     "t": 1789998533730
-    },
-    {
-     "key": "-16,-4,-41",
-     "at": [
-      -242,
-      -54,
-      -651
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 1,
-     "iron": 0,
-     "by": "Hazuki",
-     "t": 1789998562151
-    },
-    {
-     "key": "-15,-4,-41",
-     "at": [
-      -239,
-      -54,
-      -654
+      -513
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 0,
      "iron": 0,
-     "by": "Ayame",
-     "t": 1789998577201
+     "by": "Suzu",
+     "t": 1790000317976
     },
     {
-     "key": "-35,-4,-41",
+     "key": "-7,-4,-33",
      "at": [
-      -554,
+      -111,
       -54,
-      -648
+      -516
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 0,
      "iron": 0,
      "by": "Botan",
-     "t": 1789998592600
+     "t": 1790000366053
     },
     {
-     "key": "-14,-4,-42",
+     "key": "-9,-4,-33",
      "at": [
-      -218,
+      -142,
       -54,
-      -660
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Hazuki",
-     "t": 1789998600995
-    },
-    {
-     "key": "-15,-4,-42",
-     "at": [
-      -240,
-      -54,
-      -666
+      -513
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 1,
      "iron": 0,
-     "by": "Botan",
-     "t": 1789998655582
+     "by": "Sayaka",
+     "t": 1790000386240
     },
     {
-     "key": "-17,-4,-42",
+     "key": "-8,-4,-33",
      "at": [
-      -269,
+      -127,
       -54,
-      -657
+      -519
      ],
-     "cells": 133,
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Botan",
+     "t": 1790000445742
+    },
+    {
+     "key": "-30,-4,-34",
+     "at": [
+      -473,
+      -54,
+      -531
+     ],
+     "cells": 1664,
      "klass": "big",
-     "ores": 1,
+     "ores": 2,
      "iron": 0,
-     "by": "Honoka",
-     "t": 1789998660809
+     "by": "Sayaka",
+     "t": 1790000636030
     },
     {
-     "key": "-22,-4,-43",
+     "key": "-30,-4,-33",
      "at": [
-      -344,
+      -471,
       -54,
-      -678
+      -528
      ],
      "cells": 2000,
      "klass": "cavern",
-     "ores": 1,
+     "ores": 2,
      "iron": 0,
      "by": "Botan",
-     "t": 1789998677006
+     "t": 1790000788771
     },
     {
-     "key": "-23,-4,-41",
+     "key": "-19,-4,-34",
      "at": [
-      -361,
+      -301,
       -54,
-      -642
+      -534
+     ],
+     "cells": 873,
+     "klass": "big",
+     "ores": 0,
+     "iron": 0,
+     "by": "Nozomi",
+     "t": 1790000814254
+    },
+    {
+     "key": "-16,-4,-35",
+     "at": [
+      -251,
+      -54,
+      -546
+     ],
+     "cells": 1121,
+     "klass": "big",
+     "ores": 0,
+     "iron": 0,
+     "by": "Nozomi",
+     "t": 1790000835766
+    },
+    {
+     "key": "-32,-4,-35",
+     "at": [
+      -502,
+      -54,
+      -546
+     ],
+     "cells": 784,
+     "klass": "big",
+     "ores": 0,
+     "iron": 0,
+     "by": "Nozomi",
+     "t": 1790000881173
+    },
+    {
+     "key": "-17,-4,-35",
+     "at": [
+      -259,
+      -54,
+      -552
+     ],
+     "cells": 1115,
+     "klass": "big",
+     "ores": 0,
+     "iron": 0,
+     "by": "Suzu",
+     "t": 1790001013953
+    },
+    {
+     "key": "-27,-4,-37",
+     "at": [
+      -419,
+      -54,
+      -579
+     ],
+     "cells": 308,
+     "klass": "big",
+     "ores": 0,
+     "iron": 0,
+     "by": "Nozomi",
+     "t": 1790001066469
+    },
+    {
+     "key": "-25,-4,-37",
+     "at": [
+      -397,
+      -54,
+      -588
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 0,
      "iron": 0,
-     "by": "Noa",
-     "t": 1789998695270
+     "by": "Nozomi",
+     "t": 1790001447573
     },
     {
-     "key": "-13,-4,-43",
-     "at": [
-      -208,
-      -54,
-      -684
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Botan",
-     "t": 1789998709011
-    },
-    {
-     "key": "-25,-4,-43",
+     "key": "-25,-4,-38",
      "at": [
       -398,
       -54,
-      -687
+      -594
      ],
-     "cells": 230,
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Nozomi",
+     "t": 1790001477655
+    },
+    {
+     "key": "-24,-4,-38",
+     "at": [
+      -369,
+      -54,
+      -597
+     ],
+     "cells": 351,
      "klass": "big",
      "ores": 0,
      "iron": 0,
-     "by": "Noa",
-     "t": 1789998726490
+     "by": "Suzu",
+     "t": 1790001491821
     },
     {
-     "key": "-14,-4,-44",
+     "key": "-29,-4,-37",
      "at": [
-      -215,
+      -454,
       -54,
-      -693
+      -585
      ],
      "cells": 2000,
      "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Honoka",
-     "t": 1789998775952
-    },
-    {
-     "key": "-28,-4,-44",
-     "at": [
-      -445,
-      -54,
-      -699
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Noa",
-     "t": 1789998875515
-    },
-    {
-     "key": "-36,-4,-44",
-     "at": [
-      -561,
-      -54,
-      -690
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
+     "ores": 2,
      "iron": 0,
      "by": "Botan",
-     "t": 1789999005604
+     "t": 1790001520393
     },
     {
-     "key": "-13,-4,-45",
+     "key": "-28,-4,-38",
      "at": [
-      -194,
+      -446,
       -54,
-      -705
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Botan",
-     "t": 1789999076990
-    },
-    {
-     "key": "-31,-4,-45",
-     "at": [
-      -486,
-      -54,
-      -708
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Botan",
-     "t": 1789999130564
-    },
-    {
-     "key": "-24,-4,-45",
-     "at": [
-      -373,
-      -54,
-      -717
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Botan",
-     "t": 1789999220071
-    },
-    {
-     "key": "-17,-4,-46",
-     "at": [
-      -258,
-      -54,
-      -726
-     ],
-     "cells": 193,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Botan",
-     "t": 1789999473876
-    },
-    {
-     "key": "-12,-4,-44",
-     "at": [
-      -190,
-      -54,
-      -696
+      -603
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 0,
      "iron": 0,
      "by": "Suzu",
-     "t": 1789999522179
-    },
-    {
-     "key": "-35,-4,-46",
-     "at": [
-      -548,
-      -54,
-      -726
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Botan",
-     "t": 1789999529942
-    },
-    {
-     "key": "-32,-4,-46",
-     "at": [
-      -504,
-      -54,
-      -723
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Suzu",
-     "t": 1789999584193
-    },
-    {
-     "key": "-34,-4,-46",
-     "at": [
-      -541,
-      -54,
-      -729
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 1,
-     "iron": 0,
-     "by": "Botan",
-     "t": 1789999621604
+     "t": 1790001527020
     }
    ]
   },
@@ -3142,8 +3145,8 @@
     "width": 5,
     "spur": false,
     "cells": 997,
-    "built": "13/24",
-    "checked": 1789999623480
+    "built": "14/24",
+    "checked": 1790001411501
    }
   ],
   "dash": true,
@@ -3286,8 +3289,43 @@
      "dy": 2.5,
      "by": "Hina",
      "t": 1789999635941
+    },
+    {
+     "at": [
+      -340,
+      69,
+      -499
+     ],
+     "dir": [
+      0.21088195964740308,
+      0.9775115339960297
+     ],
+     "dy": 2.6,
+     "by": "Hina",
+     "t": 1789999818171
+    },
+    {
+     "at": [
+      -12,
+      110,
+      -443
+     ],
+     "dir": [
+      0.05487928460742787,
+      0.9984929965307603
+     ],
+     "dy": 7.1,
+     "by": "Hina",
+     "t": 1789999912480
     }
-   ]
+   ],
+   "fix": {
+    "x": 96,
+    "z": 1522,
+    "t": 1789999912488,
+    "legs": 2,
+    "den": 0.2
+   }
   }
  },
  "enlisted": [
@@ -3937,7 +3975,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789999857493
+   "restUntil": 1790001470941
   },
   {
    "id": "fill_ring_field1",
@@ -4483,7 +4521,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 1,
    "site": [
     -311,
     69,
@@ -4723,7 +4761,7 @@
     ],
     "bare": true
    },
-   "rev": 110,
+   "rev": 112,
    "desc": "MEASURED 16:3xZ by probe: 44 columns (444 cells) still open to the sky = this job (narrow deep shafts: step off / water drop in, pillar out = the column is filled); 3172 air cells lie UNDER the crust below grade = NOT reachable from above, they belong to the cavity job (owner algorithm: shaft down, fill riding up). `left` counts both - do not judge this job by `left`, and do not raise the crew over the number of open shafts",
    "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -333,58,-483",
    "restUntil": 1789906650052,
@@ -4950,14 +4988,14 @@
     "-289,67,-466": 1790004184874
    },
    "way": {
-    "by": "Shiori",
-    "t": 1789993629159,
+    "by": "Noa",
+    "t": 1790000086262,
     "at": [
      -300,
-     64,
-     -480
+     61,
+     -485
     ],
-    "drop": 5
+    "drop": 8
    }
   },
   {
@@ -6595,7 +6633,7 @@
      ]
     ]
    },
-   "restUntil": 1789999491230,
+   "restUntil": 1790001652575,
    "rev": 3
   },
   {
@@ -7360,7 +7398,7 @@
        "shoulder": 2,
        "toY": 116
       },
-      "idle": 3,
+      "idle": 0,
       "blocked": null
      },
      {
@@ -7418,7 +7456,7 @@
        "shoulder": 2,
        "toY": 94
       },
-      "idle": 0,
+      "idle": 1,
       "blocked": null
      },
      {
@@ -7554,7 +7592,7 @@
       ],
       "len": 29,
       "rise": 2,
-      "built": false,
+      "built": true,
       "args": {
        "toX": -638,
        "toZ": -49,
@@ -7566,7 +7604,8 @@
        "toY": 96
       },
       "idle": 0,
-      "blocked": null
+      "blocked": null,
+      "at": 1789999974923
      },
      {
       "i": 17,
@@ -7594,20 +7633,8 @@
        "shoulder": 2,
        "toY": 96
       },
-      "idle": 31,
-      "blocked": {
-       "at": 1789997909513,
-       "left": 17,
-       "of": 65,
-       "cells": [
-        "-640,95,-44=air",
-        "-639,95,-44=air",
-        "-640,95,-43=air",
-        "-639,95,-43=air",
-        "-637,96,-42=short_grass",
-        "-636,96,-42=air"
-       ]
-      }
+      "idle": 0,
+      "blocked": null
      },
      {
       "i": 18,
@@ -7664,7 +7691,7 @@
        "shoulder": 2,
        "toY": 74
       },
-      "idle": 0,
+      "idle": 1,
       "blocked": null
      },
      {
@@ -7755,20 +7782,8 @@
        "shoulder": 2,
        "toY": 68
       },
-      "idle": 15,
-      "blocked": {
-       "at": 1789996492514,
-       "left": 48,
-       "of": 110,
-       "cells": [
-        "-716,73,0=air",
-        "-716,73,1=air",
-        "-715,73,1=air",
-        "-716,73,2=air",
-        "-715,73,2=air",
-        "-714,73,2=air"
-       ]
-      }
+      "idle": 0,
+      "blocked": null
      },
      {
       "i": 23,
@@ -7945,7 +7960,7 @@
     "target": 16,
     "bare": true
    },
-   "restUntil": 1790000190819,
+   "restUntil": 1790001676733,
    "rev": 1
   },
   {
@@ -8110,7 +8125,7 @@
     "shear": false,
     "cull": false
    },
-   "restUntil": 1789999888984
+   "restUntil": 1790001721026
   },
   {
    "id": "end_stronghold",
@@ -8133,13 +8148,13 @@
     "work": "stronghold",
     "eyes": 3,
     "leg": 320,
-    "hop": 120,
+    "hop": 400,
     "near": 90,
     "minutes": 12,
     "toY": 10,
     "bare": true
    },
-   "rev": 2
+   "rev": 3
   },
   {
    "id": "end_portal",
@@ -9518,7 +9533,7 @@
      "d": 15
     }
    },
-   "rev": 18,
+   "rev": 19,
    "restUntil": 1789912916108,
    "voidFix": {
     "n": 2,
@@ -9628,7 +9643,7 @@
    "type": "build",
    "priority": 70,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 4,
    "site": [
@@ -9658,14 +9673,15 @@
     "key": "rev1",
     "cells": {}
    },
-   "rev": 3,
+   "rev": 4,
    "after": "void_fix_base_field_2",
    "voidFix": {
     "n": 1,
     "id": "void_fix_base_field_2",
     "cols": 3,
     "t": 1789998782241
-   }
+   },
+   "note": "auto-activated: `after` void_fix_base_field_2 finished (auto-paused: build complete)"
   },
   {
    "id": "void_fix_base_field_2_pad",
@@ -9838,7 +9854,7 @@
    "type": "build",
    "priority": 70,
    "front": "works",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "site": [
@@ -9888,6 +9904,12 @@
      -493
     ],
     "drop": 8
+   },
+   "note": "auto-paused: build complete",
+   "cap": {
+    "id": "cap_void_fix_base_field_2",
+    "cols": 3,
+    "t": 1789999788213
    }
   },
   {
@@ -9978,7 +10000,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 3,
+   "bots": 1,
    "site": [
     -390,
     68,
@@ -10015,6 +10037,225 @@
       "gravel"
      ]
     }
+   },
+   "way": {
+    "by": "Koharu",
+    "t": 1789999923980,
+    "at": [
+     -405,
+     62,
+     -509
+    ],
+    "drop": 7
+   },
+   "stuckBy": {
+    "key": "rev0",
+    "bots": [
+     "Hotaru"
+    ]
+   },
+   "rev": 3
+  },
+  {
+   "id": "cap_void_fix_base_field_2",
+   "type": "build",
+   "priority": 38,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -287,
+    69,
+    -493
+   ],
+   "after": "void_fix_base_field_2_pad",
+   "plan": "the finished fill_void of void_fix_base_field_2 is bare stone: cap the grade layer y68 of x -288..-286 / z -493..-493 with DIRT (grass spreads by itself). Only where bare stone, gravel or air stands - never paving, a field, a crop or another blueprint of ours - and only out of the dirt SURPLUS over targets.dirt 128",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -287,
+     68,
+     -493
+    ],
+    "args": {
+     "w": 3,
+     "d": 1,
+     "cap": true,
+     "fill": "dirt"
+    },
+    "needStock": {
+     "dirt": 128
+    },
+    "order": "near"
+   }
+  },
+  {
+   "id": "base_field_4",
+   "type": "build",
+   "priority": 66,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -390,
+    69,
+    -507
+   ],
+   "requires": {
+    "minHp": 6
+   },
+   "plan": "BASE PLAN zone field_4 x -403..-377 / z -520..-494 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): field block 27x27 in a 29x29 slot (its torch ring): nine 9x9 plots, water cells BUILT by the blueprint",
+   "params": {
+    "blueprint": "field_block",
+    "origin": [
+     -403,
+     68,
+     -520
+    ],
+    "args": {},
+    "waterFrom": [
+     -441,
+     62,
+     -422
+    ]
+   },
+   "after": "base_field_4_pad",
+   "rev": 8,
+   "water": {
+    "key": "rev7",
+    "cells": {
+     "-390,68,-498": {
+      "fail": 1,
+      "why": "no water_bucket"
+     }
+    }
+   },
+   "desc": "re-activated 14:3xZ by the top model: base audit - 9 WATER cells of the field read dirt (-381/-390/-399,68,-516 ...), 59 soil tiles untilled; the build job IS the repair"
+  },
+  {
+   "id": "base_pen_1_pad",
+   "type": "build",
+   "priority": 90,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 13,
+   "site": [
+    -389,
+    69,
+    -534
+   ],
+   "requires": {
+    "minHp": 6
+   },
+   "plan": "BASE PLAN zone pen_1 x -403..-375 / z -541..-527 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. animal pen 27x13: fence ring, ONE gate onto the road beside it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -389,
+     68,
+     -534
+    ],
+    "args": {
+     "w": 29,
+     "d": 15
+    }
+   },
+   "rev": 5,
+   "after": "void_fix_base_pen_1_pad",
+   "voidFix": {
+    "n": 1,
+    "id": "void_fix_base_pen_1_pad",
+    "cols": 2,
+    "t": 1790000715834
+   },
+   "cap": {
+    "id": "cap_base_pen_1_pad",
+    "cols": 435,
+    "t": 1790000718208
+   }
+  },
+  {
+   "id": "void_fix_base_pen_1_pad",
+   "type": "build",
+   "priority": 70,
+   "front": "works",
+   "status": "active",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -382,
+    68,
+    -538
+   ],
+   "plan": "void under the finished pad base_pen_1_pad: 2 columns of x -384..-380 / z -541..-535 are a deck over air (void_under_pad) - fill SOLID from the natural ground up to grade y68, never deck a hole; base_pen_1_pad is `after` this job and re-checks the columns when it is done",
+   "params": {
+    "blueprint": "fill_void",
+    "origin": [
+     -382,
+     68,
+     -538
+    ],
+    "unlid": 3,
+    "args": {
+     "box": [
+      -384,
+      -541,
+      -380,
+      -535
+     ],
+     "depth": 5,
+     "fill": "cobblestone",
+     "mats": [
+      "cobbled_deepslate",
+      "cobblestone",
+      "stone",
+      "deepslate",
+      "tuff",
+      "andesite",
+      "diorite",
+      "granite",
+      "dirt",
+      "gravel"
+     ]
+    }
+   },
+   "rev": 1
+  },
+  {
+   "id": "cap_base_pen_1_pad",
+   "type": "build",
+   "priority": 30,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -389,
+    69,
+    -534
+   ],
+   "after": "void_fix_base_pen_1_pad",
+   "plan": "the finished level of base_pen_1_pad is bare stone: cap the grade layer y68 of x -403..-375 / z -541..-527 with DIRT (grass spreads by itself). Only where bare stone, gravel or air stands - never paving, a field, a crop or another blueprint of ours - and only out of the dirt SURPLUS over targets.dirt 128",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -389,
+     68,
+     -534
+    ],
+    "args": {
+     "w": 29,
+     "d": 15,
+     "cap": true,
+     "fill": "dirt"
+    },
+    "needStock": {
+     "dirt": 128
+    },
+    "order": "near"
    }
   }
  ]
