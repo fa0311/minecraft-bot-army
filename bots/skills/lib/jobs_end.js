@@ -574,13 +574,18 @@ module.exports = ctx => {
     // KIT AT HOME ONLY (the door is ~2 000 blocks out): stone for walls and floors over caves, pickaxes (a stone one is 131 blocks),
     // torches, bread. Out there the bot works with what it carries.
     const mp = A.musterPos(); const farOut = mp && Math.hypot(bot.entity.position.x - mp.x, bot.entity.position.z - mp.z) > 200
+    // BARE BEFORE THE DOOR (09-21 15:5xZ: Ayame set off for the way with a diamond pickaxe, sword and axe - kitUp's 5-min throttle had
+    // skipped bareDown because she had kitted for her previous job): forced here, at home, before the kit is drawn
+    const rich = () => bot.inventory.items().concat([5, 6, 7, 8].map(k => bot.inventory.slots[k]).filter(Boolean)).filter(i => /^(diamond|netherite)/.test(i.name)).map(i => i.name)
+    if (farOut && P.bare && rich().length) { A.decline(bot, job, 30 * 60000, 'bare job, carrying ' + rich().join(',')); A.result(bot, { ev: 'end_way', job: job.id, ok: false, why: 'bare job but carrying valuables far from the depot - released', items: rich() }); return muster(bot, job, api, ctx2, 'end way: a bare job, and I carry ' + rich().join(', ') + ' - not out there') }
+    if (!farOut && P.bare) await A.kitUp(bot, { force: true, why: job.id + ' (bare)', stop: api.stop }).catch(e_ => swallow('jobs_end:wayBare', e_))
     const short = farOut ? [] : await need(bot, api, { cobblestone: P.stone || 96, stone_pickaxe: P.picks || 4, torch: 32, bread: 12 })
     if (!bot.inventory.items().some(i => /_pickaxe$/.test(i.name))) { A.decline(bot, job, 10 * 60000, 'end way: no pickaxe'); return muster(bot, job, api, ctx2, 'end way: no pickaxe to cut with (' + short.join(', ') + ')') }
     const until = t0 + Math.min(Math.max(4, P.minutes || 14), 18) * 60000
     const W = wayOf() || {}
     if (!onWay(bot, plan)) {
       const at = await toDoor(bot, api, door, t0 + 20 * 60000)
-      if (!at) { A.result(bot, { ev: 'end_way', job: job.id, ok: false, why: 'no route to the door', door, at: xyz(bot.entity.position) }); return 'end way: no route to the door ' + door.join(',') }
+      if (!at) { if (api.stop()) return 'end way: slice stopped on the way to the door'; A.result(bot, { ev: 'end_way', job: job.id, ok: false, why: 'no route to the door', door, at: xyz(bot.entity.position) }); return 'end way: no route to the door ' + door.join(',') }
     }
     if (W.done && !P.cutOnly) {
       // THE PROOF: down, into the room, frames read, back up - timed both ways

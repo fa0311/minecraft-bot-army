@@ -2677,6 +2677,10 @@ async function build (bot, job, api, ctx) {
   // muster yard is no safer than a pad worked by a crowd). A job that must stop at night says so: params.dayOnly:true.
   if (P.dayOnly && isNight(api)) return muster(bot, job, api, ctx, 'build: night (params.dayOnly)')
   let cells; try { cells = blueprintCells(P) } catch (e) { return muster(bot, job, api, ctx, 'build: blueprint error ' + String(e.message).slice(0, 60)) }
+  // TERRAIN NEVER OVERWRITES A STRUCTURE'S CELL (top model 09-21 15:4xZ: `void_fix_base_field_2_pad` / `_4_pad` - fill_void over a field's pad - laid their
+  // dirt SKIN on the field's own WATER cells at y68 (base audit: 9 + 8 water cells read dirt, farm_4 'dry 100' all day; `dig:ours` x45). Two blueprints that want
+  // different blocks in one cell: the structure (field, pen, road…) owns it, the ground job skips it. Same registry as tidy (army.js ours()).
+  if (A.TERRAIN_BP.test(String(P.blueprint)) && !job.dim) { try { const oc = A.ours().cells; if (oc && oc.size) cells = cells.filter(c => !oc.has(c.x + ',' + c.y + ',' + c.z)) } catch (e_) { swallow('army_jobs:terrainOurs', e_) } }
   const o = v(P.origin)
   // params.needStock {item:n} = A SURPLUS JOB (the dirt cap a finished terrain fill puts on the board, 11:4xZ): while the DEPOT holds no more than n of the item the
   // builder is handed back at once - checked BEFORE the walk, so a short reserve costs nothing - and says why once per 10 min. The job stays ACTIVE and resumes by
