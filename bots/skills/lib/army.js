@@ -1623,7 +1623,26 @@ async function bank (bot, keep = {}, opts = {}) {
 const MATERIAL_RE = /^(cobblestone|cobbled_deepslate|stone|deepslate|andesite|diorite|granite|tuff|dirt|coarse_dirt|gravel|sand|red_sand|sandstone|[a-z_]+_planks|[a-z_]+_log)$/
 const KEEPS_MATERIAL = /^(build|deck|tidy|light|steps|delegate|haul|scan|portal)$/ // + `portal`: a bot going through the gate carries 128 stone on purpose (docs/NETHER.md safety)
 const OFF = { allow: 16, near: 24, far: 96, min: 32, every: 180000, overdue: 600000, recheck: 20000 }
+// EVERYTHING A BOT CARRIES IS LOST WHEN IT DIES (owner 09-21: 「アイテム整理出来てないやつ多くない？持ち物にゴミ持ってるやつ多い / 死んだ時に消えるアイテムが
+// 多いのはこれが原因では」 - measured that minute: 44 of 50 bots carried 3 843 items that their job does not use - 2 273 cobbled_deepslate, 560 wool,
+// 336 paper, 323 wheat, 192 rotten flesh, 32 stone hoes, 13 bookshelves). So a depot pass banks the MATERIAL cap (below) AND anything that is not
+// kit, not rations and not what THIS job works with. The whitelist is per job type; a `steps`/`scan`/`trade`/`haul`/`depot` load is CARGO and untouched.
+const JOB_MATERIAL = { build: /^(cobble|cobbled_deepslate|stone|deepslate|andesite|diorite|granite|tuff|dirt|coarse_dirt|gravel|sand|[a-z_]+_planks|[a-z_]+_log|torch|ladder|water_bucket|bucket|[a-z_]+_fence|[a-z_]+_fence_gate|chest|furnace|crafting_table|[a-z_]+_bed|stone_bricks)$/, deck: /^(cobble|cobbled_deepslate|stone|dirt|gravel|sand|torch)$/, tidy: /^(cobble|cobbled_deepslate|stone|dirt|gravel|torch|[a-z_]+_sapling)$/, light: /^(torch|cobblestone)$/, cavity: /^(cobble|cobbled_deepslate|stone|deepslate|dirt|gravel|sand|torch|water_bucket|bucket)$/, delegate: /^(cobble|cobbled_deepslate|stone|deepslate|torch|ladder|dirt|gravel|water_bucket|bucket|rail|[a-z_]+_fence)$/, ores: /^(cobble|cobbled_deepslate|torch|dirt|gravel)$/, farm: /^(wheat_seeds|[a-z_]+_seeds|carrot|potato|beetroot_seeds|bone_meal|torch)$/, cane: /^(sugar_cane|torch)$/, herd: /^(wheat|carrot|[a-z_]+_seeds|lead|shears|torch)$/, hunt: /^(torch)$/, guard: /^(torch|arrow|bow)$/, portal: /^(cobble|cobbled_deepslate|netherrack|obsidian|torch|gravel|sand|flint_and_steel|gold_ingot|[a-z_]+_fence|rail)$/, fish: /^(fishing_rod)$/, sleeper: /^$/, muster: /^$/ }
+const ALWAYS_KIT = /_pickaxe$|_axe$|_sword$|_shovel$|_hoe$|^shield$|^bow$|^arrow$|_helmet$|_chestplate$|_leggings$|_boots$|^bread$|^cooked_|^golden_carrot$|^apple$|^torch$|^water_bucket$|^bucket$|^flint_and_steel$|^crafting_table$|^ender_pearl$|^blaze_rod$|^ender_eye$/
 function surplusOf (bot) { const m = inv(bot); const out = {}; for (const k of Object.keys(m)) if (MATERIAL_RE.test(k) && m[k] > OFF.allow) out[k] = m[k] - OFF.allow; return out }
+// JUNK = what this job does not work with. It rides along until the bot dies, and then it is gone (owner 09-21). Banked on every depot pass,
+// whatever the job type - a `build` bot keeps its stone (KEEPS_MATERIAL) but not 88 rotten flesh, 13 bookshelves or 560 wool.
+function surplusJunk (bot, job) {
+  const m = inv(bot); const out = {}
+  const type = String((job && job.type) || '')
+  if (!type || TOOL_CARGO.test(type)) return out // a steps/scan/trade/haul/depot load is CARGO
+  const mine = JOB_MATERIAL[type]; if (!mine) return out // an unknown job type keeps its pockets: never guess a job's materials away
+  for (const k of Object.keys(m)) {
+    if (ALWAYS_KIT.test(k) || mine.test(k) || MATERIAL_RE.test(k)) continue
+    out[k] = m[k]
+  }
+  return out
+}
 // KIT IS ONE OF EACH KIND (owner 09-20: "鉄装備2セット持ってるやつとかいるぞ"; measured the same minute: 164 pickaxes on 50 bots, 133 of them stone,
 // Honoka 28 and Chino 27 AT THE MUSTER, 28 bots with more than one pickaxe, Aoi with 3 diamond pickaxes + 2 diamond swords + 2 diamond axes - and
 // everything a bot carries is lost when it dies, 267 deaths ate ~1300 iron). So: the BEST `allow` of each tool kind is kit, the rest is surplus and
@@ -1661,12 +1680,13 @@ async function offload (bot, target, opts = {}) {
   const now = Date.now()
   if (now - (bot.__armyOffT || 0) < OFF.every || now - (bot.__armyOffCheckT || 0) < OFF.recheck) return false
   bot.__armyOffCheckT = now
-  const sur = surplusOf(bot); const n = Object.values(sur).reduce((a, b) => a + b, 0)
   const job = (assignment(bot) || {}).job || {}
+  const sur = surplusOf(bot); const n = Object.values(sur).reduce((a, b) => a + b, 0)
   const surT = surplusTools(bot, job); const nT = Object.values(surT).reduce((a, b) => a + b, 0)
+  const junk = surplusJunk(bot, job); const nJ = Object.values(junk).reduce((a, b) => a + b, 0)
   // MATERIAL surplus is held by the jobs that consume filler; a duplicate TOOL is surplus on every job (it is dead weight the bot drops when it dies)
   const mats = n >= OFF.min && !KEEPS_MATERIAL.test(String(job.type))
-  if (!mats && nT < 2) { bot.__armyOffHold = 0; if (KEEPS_MATERIAL.test(String(job.type))) bot.__armyOffJob = job.id; return false }
+  if (!mats && nT < 2 && nJ < 8) { bot.__armyOffHold = 0; if (KEEPS_MATERIAL.test(String(job.type))) bot.__armyOffJob = job.id; return false }
   if (bot.__armyOffJob !== job.id) { bot.__armyOffJob = job.id; bot.__armyOffHold = now - OFF.overdue } // ON A JOB CHANGE the load is surplus at once: a detour is allowed
   if (!bot.__armyOffHold) bot.__armyOffHold = now
   const fy = surfaceFloor(bot); if (fy != null && bot.entity.position.y < fy) return false // underground: the mine hauls its own stone up
@@ -1682,6 +1702,7 @@ async function offload (bot, target, opts = {}) {
     for (const i of bot.inventory.items()) keep[i.name] = (keep[i.name] || 0) + i.count
     for (const [k, v] of Object.entries(surplusTools(bot, job))) keep[k] = Math.max(0, (keep[k] || 0) - v)
     if (mats) for (const k of Object.keys(sur)) keep[k] = OFF.allow
+    for (const k of Object.keys(junk)) keep[k] = 0 // the whole junk stack goes back on the shelf
     const moved = await bank(bot, keep, { job: (job.id || 'idle') + ' (surplus)', stop: opts.stop })
     bot.__armyOffHold = 0
     return Object.keys(moved || {}).length > 0

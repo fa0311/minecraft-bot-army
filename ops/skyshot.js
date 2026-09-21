@@ -20,19 +20,24 @@ function png (w, h, rgb) {
 }
 
 // survey(bot, tp, cx, cz, half, step) -> {n, step, x0, z0, cols:[ [name,y] | null ], biomes:{name:count}, bots:[[x,z,name]]}
-async function survey (bot, tp, cx, cz, half = 256, step = 4) {
+// `opts.dim` = 'the_nether' (the camera is tped with `execute in`), `opts.top` = the Y the scan starts from. The NETHER HAS A BEDROCK ROOF at y127
+// (owner 09-21 「skyeyeってネザーでもうまく動く仕組みなのか？」 - it did not: a survey from y220 down rendered the ceiling and nothing else). Under a roof
+// the camera flies at `opts.fly` (default 100) and the scan starts just below it, which is what a player sees standing on the shelf.
+async function survey (bot, tp, cx, cz, half = 256, step = 4, opts = {}) {
   const mcData = require(NM + 'minecraft-data')(bot.version); bot.physicsEnabled = false
   const x0 = cx - half; const z0 = cz - half; const n = Math.floor(2 * half / step); const cols = new Array(n * n).fill(null); const biomes = {}; const bots = new Map()
   for (let tz = z0 + 128; tz < cz + half + 128; tz += 256) {
     for (let tx = x0 + 128; tx < cx + half + 128; tx += 256) {
-      tp(tx, 180, tz); bot.entity.position.set(tx, 180, tz)
+      const FLY = opts.fly || (opts.dim && !/overworld/.test(opts.dim) ? 100 : 180)
+      tp(tx, FLY, tz); bot.entity.position.set(tx, FLY, tz)
       const t = Date.now(); const loaded = () => [[-126, -126], [126, -126], [-126, 126], [126, 126], [0, 0]].every(([a, b]) => bot.world.getColumnAt(new Vec3(tx + a, 0, tz + b)))
       while (!loaded() && Date.now() - t < 45000) { await sleep(500); bot.entity.position.set(tx, 180, tz) }
       for (let x = tx - 128; x < tx + 128; x += step) {
         for (let z = tz - 128; z < tz + 128; z += step) {
           const gx = Math.floor((x - x0) / step); const gz = Math.floor((z - z0) / step); if (gx < 0 || gz < 0 || gx >= n || gz >= n) continue
           let top = null
-          for (let y = 220; y > 40; y--) { const b = bot.blockAt(new Vec3(x, y, z)); if (b && b.name !== 'air' && b.name !== 'cave_air' && b.name !== 'void_air') { top = b; break } }
+          const TOP = opts.top != null ? opts.top : (opts.dim && !/overworld/.test(opts.dim) ? (opts.fly || 100) - 1 : 220); const BOT = opts.dim && !/overworld/.test(opts.dim) ? 5 : 40
+          for (let y = TOP; y > BOT; y--) { const b = bot.blockAt(new Vec3(x, y, z)); if (b && b.name !== 'air' && b.name !== 'cave_air' && b.name !== 'void_air') { top = b; break } }
           if (!top) continue
           cols[gz * n + gx] = [top.name, top.position.y]
           const bn = (top.biome && (top.biome.name || (mcData.biomes[top.biome.id] || {}).name)) || '?'; biomes[bn] = (biomes[bn] || 0) + 1
@@ -114,8 +119,10 @@ function lock (who) {
 }
 module.exports = { survey, render, flatSites, fly, lock, png, colour }
 if (require.main === module) {
-  const [x, z, half = 256, out = '/tmp/skyshot.png'] = process.argv.slice(2)
-  if (x == null || z == null) { console.log('usage: node ops/skyshot.js <x> <z> [half=256] [out.png]   (dotted grid = 128 blocks; north is up; white = bots)'); process.exit(1) }
+  const argv = process.argv.slice(2).filter(a => !/^--/.test(a)); const DIM = (process.argv.find(a => /^--dim=/.test(a)) || '').split('=')[1] || 'overworld'
+  const FLY = +((process.argv.find(a => /^--fly=/.test(a)) || '').split('=')[1] || 0) || null
+  const [x, z, half = 256, out = '/tmp/skyshot.png'] = argv
+  if (x == null || z == null) { console.log('usage: node ops/skyshot.js <x> <z> [half=256] [out.png] [--dim=the_nether] [--fly=100]   (dotted grid = 128 blocks; north is up; white = bots)'); process.exit(1) }
   const release = lock('skyshot'); if (!release) { console.log('another SkyEye session is flying (' + LOCK + ') - try again in a minute'); process.exit(1) } process.on('exit', release)
   const mineflayer = require(NM + 'mineflayer'); const rcon = c => { try { execFileSync('node', ['/root/workspace/bots/rcon.js', c], { timeout: 15000 }) } catch (e) { console.log('rcon failed:', e.message) } }
   const bot = mineflayer.createBot({ host: '127.0.0.1', port: 25565, username: 'SkyEye', version: process.env.MC_VERSION || '26.1', auth: 'offline', viewDistance: 'far' })
@@ -123,7 +130,8 @@ if (require.main === module) {
   bot.once('spawn', async () => {
     try {
       await sleep(2500); if (bot.game.gameMode !== 'spectator') { console.log('SkyEye is not a spectator (datapack modes missing?) - refusing to fly'); bot.quit(); process.exit(1) }
-      const M = await survey(bot, (a, b, c) => rcon('tp SkyEye ' + a + ' ' + b + ' ' + c), +x, +z, +half)
+      const tp = /overworld/.test(DIM) ? ((a, b, c) => rcon('tp SkyEye ' + a + ' ' + b + ' ' + c)) : ((a, b, c) => rcon('execute in minecraft:' + DIM + ' run tp SkyEye ' + a + ' ' + b + ' ' + c))
+      const M = await survey(bot, tp, +x, +z, +half, 4, { dim: DIM, fly: FLY })
       console.log(render(M, out, [[+x, +z, [255, 0, 0]]])); console.log('bots in view:', M.bots.map(b => b[2] + '@' + b[0] + ',' + b[1]).join(' ') || '-'); for (const o of flatSites(M, 128)) console.log('flat 128x128 centre', (o.x + ',' + o.z).padEnd(11), 'level y' + o.level, 'relief', o.relief, 'water', o.water + '%', 'trees', o.trees + '%', 'holes', o.holes + (o.holes ? ' (down to y' + o.deep + ')' : ''), o.near ? 'water<=48' : 'NO water near', 'score', o.score)
       fs.writeFileSync(out.replace(/\.png$/, '') + '.json', JSON.stringify(M)); console.log('png', out, ' 1 px =', M.step / 2, 'blocks; x', M.x0, '..', M.x0 + M.n * M.step, ' z', M.z0, '..', M.z0 + M.n * M.step)
     } catch (e) { console.log('failed:', e.message) }

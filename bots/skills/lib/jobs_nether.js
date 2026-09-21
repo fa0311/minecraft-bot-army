@@ -756,51 +756,145 @@ module.exports = ctx => {
     return { work: 'fortress', bearing: b[2], walked, bridged, legs, sighted: found ? found.at : null, kind: found ? found.kind : null }
   }
 
-  // ---------------------------------------------------------------- BARTER: 1006 gold ingots in the depot doing nothing
-  // (owner 14:0xZ "在庫の有効活用はしないのか？"). A piglin that is not angry takes a gold ingot you drop and throws something back:
-  // ender pearls (P6!), fire resistance potions (the Nether's real armour), obsidian (more gates), string, glowstone. The rules a
-  // player follows and a bot must too: wear at least ONE GOLD armour piece or every piglin in sight turns hostile; NEVER attack a
-  // piglin, not even one that is already angry; drop ONE ingot at a time at an ADULT within 6 blocks and pick up what comes back;
-  // babies barter nothing. The squad stands still on ground it can stand on - no chasing a piglin across a lava lake.
+  // ---------------------------------------------------------------- BARTER NEEDS A PLACE, AND THE PLACE IS NOT WHERE WE LAND
+  // 09-21 04:0x-05:1xZ `nether_barter` crossed and came home **36 times and traded nothing**. Every pass ended
+  // `nether_pass {work:'barter', why:"too near the hub chest at -37,98,-79"}`: the old test was the bot's CURRENT position and the
+  // arrival cells are 10 blocks from that chest, so the job could do nothing but bounce. The spectator camera, flown under the
+  // bedrock roof this shift, then measured WHY there was nothing to trade with either — and both facts are terrain, not code:
+  //  * our arrival shelf is ONE connected ground of 383 standable cells (x -56..-30 / z -96..-72, y95-103) and it IS nether_wastes
+  //    — but **Minecraft never spawns a mob within 24 blocks of a player**, and no cell of that shelf is further than 24 from a
+  //    squad standing on it. No piglin can ever appear there, and the census found none: 0 of the 6 in the region.
+  //  * all 6 piglins and 17 of the 69 zombified piglins stand on ONE other ground: 291 standable cells, x -69..-52 / z -83..-47,
+  //    y100-116, netherrack, with natural rock at y113 three cells over its y109/110 plateau — a roof no ghast can shoot through.
+  //  * the cheapest walkable line from our shelf to that plateau (Dijkstra over the camera's solid/air map, cost = blocks that
+  //    must be PLACED) is **26 blocks**: west along z-75, a 13-cell span at y96 over the void at x-57, then up the natural ramp.
+  // So bartering gets a lane and a pad of its own (`work:'barterspot'`), registered in `settings.nether.barterSpot`, and
+  // `work:'barter'` walks there and trades. The pad centre -65,110,-72 is 32 blocks from the hub chest, which is the distance
+  // Paper's `piglins-guard-chests: true` asks for (vanilla angers every piglin within 16 of a container that is OPENED or BROKEN;
+  // we never open one over there — the loot is banked at home).
+  // The trading rules a player follows and a bot must too: wear at least ONE gold armour piece or every piglin in sight turns
+  // hostile; NEVER attack a piglin (`util.js HOSTILE` has neither `piglin` nor `zombified_piglin`, so the melee reflex leaves the
+  // 17 zombified piglins on that ground alone); drop ONE ingot at a time at an ADULT within 8 and pick up what comes back;
+  // babies barter nothing. Paper `entity-activation-range.monsters: 32`: a piglin further than 32 from a bot barely ticks and will
+  // never finish examining the gold, so the squad STANDS among them.
+  const barterOf = P => {
+    const S = netherOf().barterSpot || {}
+    const at = Array.isArray(P.at) ? P.at : (Array.isArray(S.at) ? S.at : null)
+    const stand = Array.isArray(P.stand) ? P.stand : (Array.isArray(S.stand) ? S.stand : at)
+    const route = (Array.isArray(P.route) && P.route.length) ? P.route : (Array.isArray(S.route) ? S.route : [])
+    return { at, stand, route, built: !!S.built }
+  }
+  // A LANE IS A ROAD FOR THE NEXT 1000 TRIPS (owner 09-21 「何度も通るであろう道は先に整備し」), never a private shortcut: the measured
+  // line is the spine, the lane is `width` walkable cells wide with a one-block kerb on each rim (a ghast's fireball SHOVES, it
+  // does not kill — the kerb is what keeps the shoved bot on the road), 3 cells of headroom, and a torch on top of the kerb every
+  // `torchEvery` legs. Cells that already read solid cost nothing (`cellOK` skips them), so a lane over rock is free and only the
+  // spans over void are actually built. `seq` = the leg index, so `buildCells` lays floor, then that leg's rails, then moves on.
+  function laneCells (route, width, torchEvery) {
+    const at = new Map() // one block per cell: floor (rank 0) beats kerb (1) beats torch (2) beats cleared headroom (3)
+    const put = (x, y, z, block, rank, rim, seq) => { const k = x + ',' + y + ',' + z; const cur = at.get(k); if (cur && cur.rank <= rank) return; at.set(k, { x, y, z, block, rim: !!rim, seq, rank }) }
+    const w = Math.max(1, Math.min(width || 3, 5)); const half = Math.floor(w / 2)
+    for (let i = 0; i < route.length; i++) {
+      const p = route[i]; const a = route[i - 1] || p; const b = route[i + 1] || p
+      const lat = Math.abs(b[0] - a[0]) >= Math.abs(b[2] - a[2]) ? [0, 1] : [1, 0] // perpendicular to travel
+      for (let o = -half - 1; o <= half + 1; o++) {
+        const x = p[0] + lat[0] * o; const z = p[2] + lat[1] * o; const rim = Math.abs(o) > half
+        put(x, p[1] - 1, z, 'stone', 0, false, i)
+        if (rim) put(x, p[1], z, 'stone', 1, true, i)
+        else for (let k = 0; k < 3; k++) put(x, p[1] + k, z, 'air', 3, false, i)
+      }
+      if (torchEvery && i && i % torchEvery === 0) put(p[0] + lat[0] * (half + 1), p[1] + 1, p[2] + lat[1] * (half + 1), 'torch', 2, false, i)
+    }
+    return [...at.values()]
+  }
+  // THE PAD: ONE SITE, ONE HEIGHT (owner, both dimensions). The level is the MEDIAN ground of the whole box read back from the
+  // world — never the centre column's own knoll, which is what left `pair_built overVoid:139 of 225` floating over the shelf —
+  // and a column with no support within 3 below is dropped from the plan, never bridged. Kerb on the whole boundary, torches on a
+  // pitch of 8 (nether mobs ignore light, so the torches are for OUR eyes and the camera, not for spawn-proofing), no roof: the
+  // rock over this ground already stands 3 cells up.
+  function padCells (bot, at, half, seq0) {
+    const cx = Math.floor(at[0]); const cz = Math.floor(at[2]); const y0 = Math.floor(at[1])
+    const ground = new Map(); const ys = []
+    for (let dx = -half - 1; dx <= half + 1; dx++) for (let dz = -half - 1; dz <= half + 1; dz++) {
+      for (let dy = 2; dy >= -3; dy--) {
+        const b = bot.blockAt(new Vec3(cx + dx, y0 - 1 + dy, cz + dz))
+        if (b && b.boundingBox === 'block' && !/^(lava|magma_block)$/.test(b.name)) { ground.set(dx + ',' + dz, y0 - 1 + dy); if (Math.abs(dx) <= half && Math.abs(dz) <= half) ys.push(y0 - 1 + dy); break }
+      }
+    }
+    ys.sort((a, b) => a - b)
+    const floorY = ys.length >= (2 * half + 1) ? ys[Math.floor(ys.length / 2)] : y0 - 1
+    const cells = []; let overVoid = 0
+    for (let dx = -half - 1; dx <= half + 1; dx++) for (let dz = -half - 1; dz <= half + 1; dz++) {
+      const rim = Math.abs(dx) > half || Math.abs(dz) > half
+      const g = ground.get(dx + ',' + dz)
+      if (g == null || g < floorY - 3) { overVoid++; continue } // no support within 3: dropped from the plan, never bridged
+      cells.push({ x: cx + dx, y: floorY, z: cz + dz, block: 'stone', rim: false, seq: seq0 })
+      if (rim) cells.push({ x: cx + dx, y: floorY + 1, z: cz + dz, block: 'stone', rim: true, seq: seq0 + 1 })
+      else for (let k = 1; k <= 3; k++) cells.push({ x: cx + dx, y: floorY + k, z: cz + dz, block: 'air', rim: false, seq: seq0 + 2 })
+    }
+    for (const [dx, dz] of [[-half - 1, -half - 1], [half + 1, -half - 1], [-half - 1, half + 1], [half + 1, half + 1]]) {
+      if (ground.get(dx + ',' + dz) == null) continue
+      cells.push({ x: cx + dx, y: floorY + 2, z: cz + dz, block: 'torch', rim: false, seq: seq0 + 3 })
+    }
+    return { cells, floorY, overVoid, box: [cx - half - 1, cz - half - 1, cx + half + 1, cz + half + 1] }
+  }
   async function barter (bot, job, api, P, until) {
-    // the gold that keeps them neutral: any gold piece worn will do, a helmet is the cheapest (5 ingots)
+    // 1. THE GOLD THAT KEEPS THEM NEUTRAL: any worn gold piece will do, a helmet is the cheapest (5 ingots)
     const worn = [5, 6, 7, 8].map(q => bot.inventory.slots[q]).filter(Boolean).map(i => i.name)
     if (!worn.some(n => /^golden_/.test(n))) {
       if (!A.count(bot, 'golden_helmet')) await A.obtain(bot, 'golden_helmet', 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:goldHelm', e_))
       const gh = bot.inventory.items().find(i => /^golden_(helmet|chestplate|leggings|boots)$/.test(i.name))
       if (gh) { try { await U.withTimeout(bot.equip(gh, gh.name === 'golden_helmet' ? 'head' : gh.name === 'golden_chestplate' ? 'torso' : gh.name === 'golden_leggings' ? 'legs' : 'feet'), 5000, 'wearGold') } catch (e_) { swallow('jobs_nether:wearGold', e_) } }
     }
-    const goldOn = [5, 6, 7, 8].map(q => bot.inventory.slots[q]).filter(Boolean).some(i => /^golden_/.test(i.name))
-    if (!goldOn) return { work: 'barter', why: 'no gold armour piece to wear - every piglin in sight would turn hostile' }
-    // PAPER, NOT VANILLA (owner 15:1xZ). `server/spigot.yml entity-activation-range.monsters: 32`: a piglin further than 32 from a
-    // bot barely ticks, so it will never finish examining the gold — the squad must STAND among them, not shout from 60 blocks.
-    // `paper-world-defaults.yml piglins-guard-chests: true`: opening or breaking a chest near piglins angers every one of them,
-    // and the hub's chest is at settings.nether.hub.chest — so we never barter within 24 of it. Loot is banked at HOME.
-    const hubChest = (netherOf().hub || {}).chest
-    if (Array.isArray(hubChest) && bot.entity.position.distanceTo(v(hubChest)) < 24) return { work: 'barter', why: 'too near the hub chest at ' + hubChest.join(',') + ' - paper piglins-guard-chests:true would anger every piglin in sight' }
-    const adults = () => Object.values(bot.entities).filter(e => e && e.name === 'piglin' && e.position && e.position.distanceTo(bot.entity.position) <= 8 && !(e.metadata && e.metadata[17] === true))
-    const nearby = r => Object.values(bot.entities).filter(e => e && e.name === 'piglin' && e.position && e.position.distanceTo(bot.entity.position) <= r).length
-    let traded = 0; let got = 0; const t0 = Date.now()
+    if (![5, 6, 7, 8].map(q => bot.inventory.slots[q]).filter(Boolean).some(i => /^golden_/.test(i.name))) return { work: 'barter', why: 'no gold armour piece to wear - every piglin in sight would turn hostile' }
+    // 2. WALK TO THE SPOT. Never trade where we land: the arrival shelf has no piglins and, being all inside 24 of the squad,
+    //    never will. `nTravel` carries the whole edge doctrine, so a lane that is not finished ends in a REPORT, not a fall.
+    const { stand } = barterOf(P)
+    if (!Array.isArray(stand)) return { work: 'barter', why: 'settings.nether.barterSpot is not built yet - staff work:"barterspot" first' }
+    const roster = A.settings().roster || []
+    const idx = Math.max(0, roster.indexOf(bot.username))
+    const tgt = v(stand).offset((idx % 5) - 2, 0, (Math.floor(idx / 5) % 5) - 2) // fifty bots, not one: a pad cell each
+    if (bot.entity.position.distanceTo(tgt) > 5) {
+      task(bot, 'nether barter: walking to the spot ' + stand.join(','))
+      await nTravel(bot, tgt, { range: 2, ms: Math.min(150000, Math.max(20000, until - Date.now() - 60000)), stop: api.stop })
+    }
+    const d = bot.entity.position.distanceTo(v(stand))
+    if (d > 10) return { work: 'barter', at: xyz(bot.entity.position), dToSpot: Math.round(d), why: 'no way to the barter spot ' + stand.join(',') + ' yet - the lane is unfinished: keep work:"barterspot" staffed' }
+    // 3. A CONTAINER OF OURS WITHIN 16 IS THE ONE THING THAT WOULD ANGER THEM. We never open one here; it is reported, not obeyed.
+    const cids = ['chest', 'trapped_chest', 'barrel'].map(n => bot.registry.blocksByName[n]).filter(Boolean).map(b => b.id)
+    const box2 = cids.length ? bot.findBlocks({ matching: cids, maxDistance: 16, count: 1 }) : []
+    if (box2.length) A.result(bot, { ev: 'barter_chest_near', job: job.id, at: xyz(box2[0]), why: 'a container of ours stands within 16 of the barter spot - opening or breaking it would anger every piglin here (paper piglins-guard-chests)' })
+    // 4. TRADE, and MEASURE: pearls per 64 gold is the number this whole front is judged by.
+    const isAdult = e => e && e.name === 'piglin' && e.position && !(e.metadata && e.metadata[17] === true)
+    const adults = r => Object.values(bot.entities).filter(e => isAdult(e) && e.position.distanceTo(bot.entity.position) <= r)
+    const anyPig = r => Object.values(bot.entities).filter(e => e && /^(piglin|zombified_piglin)$/.test(e.name) && e.position && e.position.distanceTo(bot.entity.position) <= r).length
+    const roam = Math.max(4, Math.min(P.roam || 16, 32))
+    const pearls0 = A.count(bot, 'ender_pearl'); const gold0 = A.count(bot, 'gold_ingot')
+    let offered = 0; let back = 0; let seen = 0; const t0 = Date.now()
     while (Date.now() < until && !api.stop() && A.count(bot, 'gold_ingot') > 0) {
-      let t = adults()[0]
-      if (!t) { // walk INTO the activation range (32) rather than wait outside it
-        const far2 = Object.values(bot.entities).filter(e => e && e.name === 'piglin' && e.position).sort((a, b) => a.position.distanceTo(bot.entity.position) - b.position.distanceTo(bot.entity.position))[0]
-        if (far2 && far2.position.distanceTo(bot.entity.position) < 40) await nTravel(bot, far2.position, { range: 5, ms: 30000, stop: api.stop })
-        t = adults()[0]
+      seen = Math.max(seen, anyPig(32))
+      let t = adults(8)[0]
+      if (!t) {
+        const far2 = Object.values(bot.entities).filter(isAdult).sort((a, b) => a.position.distanceTo(bot.entity.position) - b.position.distanceTo(bot.entity.position))[0]
+        // walk INTO the activation range, but never off our own pad and never past the edge doctrine (nTravel refuses a goal with
+        // no floor within 3 or lava on a face, so a piglin standing over a drop is simply not followed)
+        if (far2 && far2.position.distanceTo(v(stand)) <= roam) await nTravel(bot, far2.position, { range: 4, ms: 25000, stop: api.stop })
+        t = adults(8)[0]
+        if (!t) { task(bot, 'nether barter: waiting for a piglin (' + anyPig(32) + ' pigs within 32)'); await sleep(3000); continue }
       }
-      if (!t) { await sleep(2000); if (Date.now() - t0 > 60000 && !traded) break; continue }
       const it = bot.inventory.items().find(i => i.name === 'gold_ingot'); if (!it) break
-      task(bot, 'nether barter: ' + traded + ' ingots offered, ' + got + ' back')
-      try { await bot.lookAt(t.position.offset(0, 1, 0), true); await U.withTimeout(bot.toss(it.type, null, 1), 5000, 'tossGold'); traded++ } catch (e_) { swallow('jobs_nether:toss', e_); break }
+      task(bot, 'nether barter: ' + offered + ' offered, ' + (A.count(bot, 'ender_pearl') - pearls0) + ' pearls')
+      try { await bot.lookAt(t.position.offset(0, 1, 0), true); await U.withTimeout(bot.toss(it.type, null, 1), 5000, 'tossGold'); offered++ } catch (e_) { swallow('jobs_nether:toss', e_); break }
       await sleep(7000) // a piglin examines the gold for about 6 s before it throws something back
       const before = Object.values(A.inv(bot)).reduce((n, x) => n + x, 0)
       await A.pickup(bot, 7, 4000)
-      const after = Object.values(A.inv(bot)).reduce((n, x) => n + x, 0)
-      got += Math.max(0, after - before)
+      back += Math.max(0, Object.values(A.inv(bot)).reduce((n, x) => n + x, 0) - before)
     }
-    const loot = {}; for (const [k, n] of Object.entries(A.inv(bot))) if (/pearl|potion|obsidian|glowstone|string|quartz|leather|soul_sand|crying/.test(k)) loot[k] = n
-    if (traded) A.result(bot, { ev: 'nether_barter', job: job.id, offered: traded, itemsBack: got, loot, piglinsNear: nearby(32), at: xyz(bot.entity.position) })
-    return { work: 'barter', offered: traded, itemsBack: got, loot, min: Math.round((Date.now() - t0) / 6000) / 10 }
+    const pearls = A.count(bot, 'ender_pearl') - pearls0
+    const loot = {}; for (const [k, n] of Object.entries(A.inv(bot))) if (/pearl|potion|obsidian|glowstone|string|quartz|leather|soul_sand|crying|arrow|iron_nugget/.test(k)) loot[k] = n
+    const out = { work: 'barter', offered, itemsBack: back, pearls, per64: offered ? Math.round(pearls / offered * 64 * 10) / 10 : null, pigsSeen: seen, goldLeft: A.count(bot, 'gold_ingot'), goldTook: gold0, loot, min: Math.round((Date.now() - t0) / 6000) / 10 }
+    if (offered || seen) A.result(bot, Object.assign({ ev: 'nether_barter', job: job.id, at: xyz(bot.entity.position) }, out))
+    else A.result(bot, { ev: 'nether_barter', job: job.id, at: xyz(bot.entity.position), offered: 0, pigsSeen: 0, why: 'stood on the barter spot for ' + out.min + ' min and not one piglin came within 32 - the spot is on the wrong ground' })
+    return out
   }
   // ---------------------------------------------------------------- PAIR THE GATES EXACTLY (top model 15:4xZ)
   // A gate's partner is not "somewhere near": it is floor(x/8), floor(z/8). Home is -327,68,-518, so its Nether partner is
@@ -1053,6 +1147,18 @@ module.exports = ctx => {
       return await explore(bot, job, api, P, until)
     } else if (work === 'barter') {
       return await barter(bot, job, api, P, until)
+    } else if (work === 'barterspot') {
+      // THE LANE AND THE PAD THAT MAKE BARTERING POSSIBLE (see the note over `barter`): the spine was measured by the camera and
+      // lives on the BOARD (`params.route`, or `settings.nether.barterSpot.route`), never in this file — a coordinate in code is
+      // a coordinate nobody can fix from the board.
+      const b2 = barterOf(P)
+      if (!Array.isArray(b2.at)) return { work, why: 'params.at [x,y,z] (the pad centre on the piglin ground) is missing' }
+      if (!b2.route.length) return { work, why: 'params.route (the measured line from the arrival shelf to the piglin ground) is missing' }
+      const lane = laneCells(b2.route, P.width || 3, 8)
+      const pad = padCells(bot, b2.at, Math.max(3, Math.min(P.pad || 4, 7)), b2.route.length + 1)
+      cells = lane.concat(pad.cells); meta = { at: b2.at, route: b2.route, floorY: pad.floorY, overVoid: pad.overVoid, padBox: pad.box, lane: lane.length, pad: pad.cells.length }
+      const xs2 = cells.map(c => c.x); const zs2 = cells.map(c => c.z)
+      box = [Math.min(...xs2) - 2, Math.min(...zs2) - 2, Math.max(...xs2) + 2, Math.max(...zs2) + 2]
     } else return { work, why: 'unknown params.work' }
 
     if (!cells || !cells.length) return { work, why: 'nothing to build' }
@@ -1095,6 +1201,14 @@ module.exports = ctx => {
       netherEdit({ stair: { from: Array.isArray(P.from) ? P.from : null, bearing: meta.bearing, end: meta.end, toY: meta.toY, box: meta.box, left: r.left, unloaded: r.unloaded, at: Date.now(), done: reached } })
       if (reached) netherEdit({ floorHub: meta.end })
       out.bearing = meta.bearing; out.end = meta.end; out.toY = meta.toY
+    }
+    if (work === 'barterspot' && meta) {
+      // the pad's own cells decide whether it is finished, not the lane's (a lane pass works only what is within `reach`)
+      const padLeft = cells.filter(c => c.seq > meta.route.length && loadedAt(bot, c) && !cellOK(bot, c)).length
+      const laneLeft = cells.filter(c => c.seq <= meta.route.length && loadedAt(bot, c) && !cellOK(bot, c)).length
+      const built = !padLeft && !laneLeft && !r.outOfRange && !r.unloaded
+      netherEdit({ barterSpot: Object.assign({}, N.barterSpot || {}, { at: meta.at, stand: [meta.at[0], meta.floorY + 1, meta.at[2]], route: meta.route, pad: meta.padBox, floorY: meta.floorY, overVoid: meta.overVoid, laneLeft, padLeft, built, t: Date.now() }) })
+      out.at2 = meta.at; out.floorY = meta.floorY; out.overVoid = meta.overVoid; out.laneLeft = laneLeft; out.padLeft = padLeft; out.built = built
     }
     if (work === 'road' && meta) {
       const roads = Object.assign({}, N.roads || {}); roads[meta.bearing] = { from: Array.isArray(P.from) ? P.from : (N.hub || {}).outside, end: meta.end, length: meta.length, box: meta.box, left: r.left, at: Date.now() }
@@ -1388,6 +1502,7 @@ module.exports = ctx => {
     if (w === 'landing') return N.landingSafe ? 'the landing reads safe' : false
     if (w === 'road') { const r = (N.roads || {})[P.bearing || (N.hub || {}).bearing || 'x+']; return r && r.left === 0 ? 'the road reaches ' + (r.end || []).join(',') : false }
     if (w === 'fortress') { const f = (N.sightings || []).find(e => e && e.kind === 'fortress'); return f ? 'a fortress is sighted at ' + (f.at || []).join(',') : false }
+    if (w === 'barterspot') { const b = N.barterSpot || {}; return b.built ? 'the barter lane and pad stand at ' + (b.stand || []).join(',') : false }
     return false // barter and anything else: a standing job that ends when an operator pauses it
   }
   // ================================================================ the job

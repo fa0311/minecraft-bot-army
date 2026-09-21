@@ -791,6 +791,30 @@ async function probeShards () {
 // commits what changed and pushes it (the wrapper refuses staged tokens / passwords / addresses; the token comes from this process's environment). No new daemon:
 // one child process from this loop, never awaited, one at a time.
 let _pubT = Date.now() - 20 * 60000; let _pubBusy = false
+// EVERY BELIEF ABOUT THE WORLD EXPIRES (owner 09-21: 「ネザー側、壊れたポータルが3つもあるの把握してる？」 - the board said ONE frame per dimension and was
+// hours old; the camera found a whole one, a dark one and two wrecks). The gate census re-measures BOTH dimensions every 30 min, writes
+// `settings.nether.gates`, and raises `audit_gates` when the invariant breaks: exactly ONE lit frame per dimension, each frame 10 obsidian, no wrecks.
+let _gateT = 0; let _gateBusy = false
+function gateTick () {
+  if (_gateBusy || Date.now() - _gateT < 30 * 60000) return
+  const B = readJSON(path.join(WS, 'bots', 'army', 'jobs.json'), null); const S = (B && B.settings) || {}
+  const g = S.nether && S.nether.gate; if (!g) return // no gate in this world yet
+  _gateT = Date.now(); _gateBusy = true
+  const { execFile } = require('child_process')
+  const nx = Math.floor(g[0] / 8); const nz = Math.floor(g[2] / 8)
+  const run = (args, next) => execFile('node', [path.join(WS, 'ops', 'gate-census.js')].concat(args), { timeout: 240000 }, (e, out) => { log('gates: ' + String(out || (e && e.message)).split('\n').filter(Boolean).slice(0, 5).join(' | ')); next && next() })
+  run([String(nx), String(nz), '96', '--dim=the_nether'], () => run([String(g[0]), String(g[2]), '160', '--dim=overworld'], () => {
+    _gateBusy = false
+    const b2 = readJSON(path.join(WS, 'bots', 'army', 'jobs.json'), null); const rows = ((b2 && b2.settings && b2.settings.nether) || {}).gates || []
+    const bad = []
+    for (const d of ['overworld', 'the_nether']) {
+      const mine = rows.filter(r => r.dim === d); const lit = mine.filter(r => r.lit)
+      if (lit.length !== 1) bad.push(d + ': ' + lit.length + ' LIT frames (want exactly 1)')
+      for (const r of mine) { if (!r.lit) bad.push(d + ': a ' + r.state + ' frame stands at ' + r.at.join(',') + ' (' + r.frame + ' obsidian) - take it down and bank the obsidian'); else if (r.frame > 14) bad.push(d + ': the lit frame at ' + r.at.join(',') + ' carries ' + r.frame + ' obsidian (a gate is 10) - leftovers of an older frame') }
+    }
+    if (bad.length) { try { fs.appendFileSync(path.join(BOTS, 'army', 'results.jsonl'), JSON.stringify({ t: Date.now(), bot: 'audit', ev: 'audit_gates', bad, gates: rows.map(r => r.dim + ' ' + r.state + ' ' + r.at.join(',')) }) + '\n') } catch (e) { log('gates: ' + e.message) } log('gates: AUDIT ' + bad.join(' ; ')) }
+  }))
+}
 function publishTick () {
   if (_pubBusy || Date.now() - _pubT < 30 * 60000 || !process.env.GITHUB_TOKEN) return
   _pubT = Date.now(); _pubBusy = true
@@ -802,6 +826,7 @@ let tick = 0
 async function loop () {
   try {
     publishTick()
+    gateTick() // both dimensions' portal frames re-measured every 30 min (fire and forget)
     gembaTick() // fire-and-forget: a 60 s field watch every 10 min, never awaited
     await probeShards()
     const snap = await sample(tick % 2 === 0)

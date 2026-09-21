@@ -94,7 +94,7 @@ function coder (registry) {
 function newGrid (box, yMin, yTop) {
   const x1 = Math.min(box[0], box[2]); const z1 = Math.min(box[1], box[3]); const x2 = Math.max(box[0], box[2]); const z2 = Math.max(box[1], box[3])
   const W = x2 - x1 + 1; const D = z2 - z1 + 1; const H = yTop - yMin + 1
-  return { box: [x1, z1, x2, z2], yMin, yTop, W, D, H, code: new Uint8Array(W * D * H), mask: new Uint8Array(W * D * H), top: new Int16Array(W * D).fill(NOTOP), seen: new Uint8Array(W * D), lights: [], cols: 0 }
+  return { box: [x1, z1, x2, z2], yMin, yTop, W, D, H, code: new Uint8Array(W * D * H), mask: new Uint8Array(W * D * H), top: new Int16Array(W * D).fill(NOTOP), seen: new Uint8Array(W * D), lights: [], lava: [], cols: 0 }
 }
 const gIdx = (G, x, y, z) => (((z - G.box[1]) * G.W) + (x - G.box[0])) * G.H + (y - G.yMin)
 const gCol = (G, x, z) => ((z - G.box[1]) * G.W) + (x - G.box[0])
@@ -680,7 +680,9 @@ module.exports = ctx => {
     if (!A.bestOf(bot, 'pickaxe')) await A.obtain(bot, 'stone_pickaxe', 1, { stop: api.stop })
     holdPockets(bot)
     const have = carried()
-    if (have < 32) { A.result(bot, { ev: 'cavity_no_filler', why: 'the chests gave ' + JSON.stringify(got) + ' of ' + want, stock, free: U.freeSlots(bot), at: xyzOf(bot.entity.position) }); A.decline(bot, job, 90000, 'cavity: the depot holds ' + JSON.stringify(stock) + ' and ' + have + ' arrived'); return null }
+    // A FETCH IS NOT AN EMPTY DEPOT: while ANY inside-fill stone stands over the reserve this is never called "no filler" and never rests the job for minutes
+    // (owner's brief 09-21: `no filler: depot cobblestone 6230` with 7 000 cobblestone and 5 500 cobbled_deepslate on the shelf).
+    if (have < 32) { A.result(bot, { ev: rich.length ? 'cavity_fetch_failed' : 'cavity_no_filler', why: 'the chests gave ' + JSON.stringify(got) + ' of ' + want + (rich.length ? ' while ' + rich[0] + ' ' + stock[rich[0]] + ' stands in the depot: a WALK problem' : ''), stock, free: U.freeSlots(bot), at: xyzOf(bot.entity.position) }); A.decline(bot, job, rich.length ? 20000 : 300000, 'cavity: ' + have + ' filler arrived of ' + want); return null }
     return fillerIn(bot, rich[0])
   }
 
@@ -809,6 +811,22 @@ module.exports = ctx => {
     return true
   }
 
+  // RIDE THE WAY IN OUT AGAIN (the owner's algorithm, step 3: 「埋めながら上まで上がる」; this function was CALLED and never existed - `error: rideOut is not defined`
+  // killed 7 of the 12 cavity passes of the last hour with `placed:0`, which is most of the 0.6 blocks/bot-minute). The bot standing in its own 1x1 shaft jumps,
+  // places a block under its feet and rises with it until the surface cell is reached. `A.fillInside` is the army's one implementation of that move.
+  async function rideOut (bot, api, col, topY, item) {
+    const [x, z] = col; let n = 0
+    for (let k = 0; k < 64 && !api.stop(); k++) {
+      const f = bot.entity.position.floored()
+      if (f.x !== x || f.z !== z || f.y >= topY) break // not standing in that column (a scar, a wide hole, already out): nothing to ride
+      const it = (INSIDE_FILL_RE.test(item) && A.count(bot, item) > 0) ? item : (STONE.find(q => A.count(bot, q) > 0) || item)
+      if (!A.count(bot, it)) break
+      if (!await A.fillInside(bot, new Vec3(x, f.y, z), it, { stop: api.stop })) break
+      n++; await sleep(120)
+    }
+    return n
+  }
+
   // ---- THE FILL: lowest cell first, from inside, standing on its own fill (a player never decks a hole)
   // THE FILL. One walk per BATCH, not per block (measured 17:0xZ: 0.6 blocks/min/bot - the loop took the lowest cell, walked to it, placed
   // one block and walked again). A player standing in a hole lays every block he can reach before he moves his feet, lowest first, and only
@@ -864,19 +882,22 @@ module.exports = ctx => {
           }
         }
         stands.sort((p1, p2) => p1.distanceTo(me) - p2.distanceTo(me))
-        for (const st2 of stands.slice(0, 3)) { if (api.stop()) break; if (await A.travel(bot, st2, { range: 0, ms: 15000, stop: api.stop, quiet: true })) { moved = true; break } }
+        // A WALK THAT FAILS IS THE WHOLE COST OF THIS JOB (MEASURED 09-21 on five passes: `fillS` 193/291/263/70 s of passes of 238/309/318/80 s, for 1-2 blocks placed.
+        // Every one of those seconds was here - three pathfinder attempts of 15 s each, plus a 45 s bridge, repeated up to twenty times because `dry > 20` kept the loop
+        // alive). Geometry does not change because we ask again: two tries of 6 s, and a target that beats us twice is retired (bad() at 5).
+        for (const st2 of stands.slice(0, 2)) { if (api.stop()) break; if (await A.travel(bot, st2, { range: 0, ms: 6000, stop: api.stop, quiet: true })) { moved = true; break } }
         // a cell across a gap in the cavern floor is not "unreachable", it is a BRIDGE - moves.bridgeTo (pathfinder scaffolding + sneak) is
         // the army's one implementation of it, and the blocks it lays down here ARE the fill, so they stay
-        if (!moved && stands.length && bridges < 4 && tgt.distanceTo(me) > 3) {
+        if (!moved && stands.length && bridges < 2 && tgt.distanceTo(me) > 3) {
           bridges++
           const br = await require('./moves').bridgeTo(bot, [stands[0].x, stands[0].y, stands[0].z], { blocks: STONE, ms: 45000, half: 2, stop: api.stop }).catch(e_ => { swallow('jobs_cavity:bridge', e_); return { ok: false } })
           placed += br.placed || 0
           if (br.ok) moved = true
         }
-        if (!moved) bump(tgt, 2)
+        if (!moved) bump(tgt, 3) // two failed approaches retire the cell (bad() at 5): the next one may still be reachable
       }
       dry = did ? 0 : dry + 1
-      if (dry > 20) break // twenty passes in a row that changed nothing: the rest of this hole is out of reach from in here
+      if (dry > 6) break // six rounds in a row that changed nothing: the rest of this hole is out of reach from in here, and standing here costs bot-minutes
     }
     prune()
     return { placed, left: want.size, item, bridges }

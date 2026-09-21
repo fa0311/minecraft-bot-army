@@ -1094,7 +1094,9 @@
    "iron_pickaxe": 12,
    "iron_sword": 12,
    "iron_shovel": 8,
-   "enchanted_book": 8
+   "enchanted_book": 8,
+   "gravel": 512,
+   "sand": 256
   },
   "base": {
    "x": -320,
@@ -1280,7 +1282,7 @@
     98,
     -77
    ],
-   "through": 1789966843561,
+   "through": 1789969045123,
    "scoutRev": 4,
    "hub": {
     "room": [
@@ -1392,8 +1394,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789966843701,
-   "back": 1789966856287,
+   "landingAt": 1789969045309,
+   "back": 1789969057926,
    "lastDeath": 1789964551171,
    "lastDeathBy": "Sakura",
    "roads": {
@@ -1450,29 +1452,415 @@
    "gatePolicy": "LIT PERMANENTLY (owner 15:0xZ): closing it made the game generate spare gates",
    "gates": [
     {
-     "dim": "overworld",
+     "dim": "the_nether",
      "at": [
-      -328,
-      70,
-      -518
+      -49,
+      97,
+      -77
      ],
-     "frame": 10,
+     "box": [
+      [
+       -49,
+       97,
+       -77
+      ],
+      [
+       -42,
+       101,
+       -77
+      ]
+     ],
+     "frame": 28,
      "lit": true,
-     "near": "home"
+     "cells": 6,
+     "state": "WHOLE"
     },
     {
      "dim": "the_nether",
      "at": [
-      -39,
-      100,
-      -76
+      -45,
+      97,
+      -80
      ],
-     "frame": 28,
+     "box": [
+      [
+       -45,
+       97,
+       -80
+      ],
+      [
+       -42,
+       101,
+       -80
+      ]
+     ],
+     "frame": 14,
+     "lit": false,
+     "cells": 0,
+     "state": "DARK"
+    },
+    {
+     "dim": "the_nether",
+     "at": [
+      -43,
+      103,
+      -75
+     ],
+     "box": [
+      [
+       -43,
+       103,
+       -75
+      ],
+      [
+       -43,
+       105,
+       -75
+      ]
+     ],
+     "frame": 3,
+     "lit": false,
+     "cells": 0,
+     "state": "DEAD"
+    },
+    {
+     "dim": "the_nether",
+     "at": [
+      -40,
+      104,
+      -75
+     ],
+     "box": [
+      [
+       -40,
+       104,
+       -75
+      ],
+      [
+       -40,
+       105,
+       -75
+      ]
+     ],
+     "frame": 2,
+     "lit": false,
+     "cells": 0,
+     "state": "DEAD"
+    },
+    {
+     "dim": "overworld",
+     "at": [
+      -328,
+      68,
+      -518
+     ],
+     "box": [
+      [
+       -328,
+       68,
+       -518
+      ],
+      [
+       -325,
+       72,
+       -518
+      ]
+     ],
+     "frame": 10,
      "lit": true,
-     "near": "partner"
+     "cells": 6,
+     "state": "WHOLE"
+    },
+    {
+     "dim": "overworld",
+     "at": [
+      -304,
+      -55,
+      -533
+     ],
+     "box": [
+      [
+       -304,
+       -55,
+       -533
+      ],
+      [
+       -302,
+       -55,
+       -530
+      ]
+     ],
+     "frame": 12,
+     "lit": false,
+     "cells": 0,
+     "state": "DARK"
+    },
+    {
+     "dim": "overworld",
+     "at": [
+      -284,
+      30,
+      -604
+     ],
+     "box": [
+      [
+       -284,
+       30,
+       -604
+      ],
+      [
+       -282,
+       30,
+       -601
+      ]
+     ],
+     "frame": 7,
+     "lit": false,
+     "cells": 0,
+     "state": "DEAD"
+    },
+    {
+     "dim": "overworld",
+     "at": [
+      -279,
+      30,
+      -604
+     ],
+     "box": [
+      [
+       -279,
+       30,
+       -604
+      ],
+      [
+       -279,
+       31,
+       -601
+      ]
+     ],
+     "frame": 5,
+     "lit": false,
+     "cells": 0,
+     "state": "DEAD"
+    },
+    {
+     "dim": "overworld",
+     "at": [
+      -320,
+      -55,
+      -508
+     ],
+     "box": [
+      [
+       -320,
+       -55,
+       -508
+      ],
+      [
+       -319,
+       -55,
+       -508
+      ]
+     ],
+     "frame": 2,
+     "lit": false,
+     "cells": 0,
+     "state": "DEAD"
+    },
+    {
+     "dim": "overworld",
+     "at": [
+      -281,
+      30,
+      -604
+     ],
+     "box": [
+      [
+       -281,
+       30,
+       -604
+      ],
+      [
+       -281,
+       30,
+       -604
+      ]
+     ],
+     "frame": 1,
+     "lit": false,
+     "cells": 0,
+     "state": "DEAD"
+    },
+    {
+     "dim": "overworld",
+     "at": [
+      -322,
+      -55,
+      -506
+     ],
+     "box": [
+      [
+       -322,
+       -55,
+       -506
+      ],
+      [
+       -322,
+       -55,
+       -506
+      ]
+     ],
+     "frame": 1,
+     "lit": false,
+     "cells": 0,
+     "state": "DEAD"
+    },
+    {
+     "dim": "overworld",
+     "at": [
+      -323,
+      -55,
+      -505
+     ],
+     "box": [
+      [
+       -323,
+       -55,
+       -505
+      ],
+      [
+       -323,
+       -55,
+       -505
+      ]
+     ],
+     "frame": 1,
+     "lit": false,
+     "cells": 0,
+     "state": "DEAD"
+    },
+    {
+     "dim": "overworld",
+     "at": [
+      -324,
+      -55,
+      -503
+     ],
+     "box": [
+      [
+       -324,
+       -55,
+       -503
+      ],
+      [
+       -324,
+       -55,
+       -503
+      ]
+     ],
+     "frame": 1,
+     "lit": false,
+     "cells": 0,
+     "state": "DEAD"
+    },
+    {
+     "dim": "overworld",
+     "at": [
+      -318,
+      -55,
+      -505
+     ],
+     "box": [
+      [
+       -318,
+       -55,
+       -505
+      ],
+      [
+       -318,
+       -55,
+       -505
+      ]
+     ],
+     "frame": 1,
+     "lit": false,
+     "cells": 0,
+     "state": "DEAD"
+    },
+    {
+     "dim": "overworld",
+     "at": [
+      -319,
+      -55,
+      -504
+     ],
+     "box": [
+      [
+       -319,
+       -55,
+       -504
+      ],
+      [
+       -319,
+       -55,
+       -504
+      ]
+     ],
+     "frame": 1,
+     "lit": false,
+     "cells": 0,
+     "state": "DEAD"
+    },
+    {
+     "dim": "overworld",
+     "at": [
+      -323,
+      -55,
+      -502
+     ],
+     "box": [
+      [
+       -323,
+       -55,
+       -502
+      ],
+      [
+       -323,
+       -55,
+       -502
+      ]
+     ],
+     "frame": 1,
+     "lit": false,
+     "cells": 0,
+     "state": "DEAD"
+    },
+    {
+     "dim": "overworld",
+     "at": [
+      -320,
+      -55,
+      -503
+     ],
+     "box": [
+      [
+       -320,
+       -55,
+       -503
+      ],
+      [
+       -320,
+       -55,
+       -503
+      ]
+     ],
+     "frame": 1,
+     "lit": false,
+     "cells": 0,
+     "state": "DEAD"
     }
    ],
-   "gatesAt": 1789918640836,
+   "gatesAt": 1789968480529,
    "pairRoad": {
     "from": [
      -43,
@@ -1614,18 +2002,19 @@
     "t": 1789924913245
    },
    "absorb": {
-    "rabbit": 64,
-    "porkchop": 112,
-    "coal": 240,
-    "iron_ingot": 48,
+    "iron_ingot": 144,
+    "coal": 480,
+    "flint": 600,
+    "gray_wool": 595,
     "leather": 192,
-    "flint": 312,
-    "carrot": 352,
-    "wheat": 280,
-    "pumpkin": 72,
-    "melon": 48
+    "carrot": 704,
+    "wheat": 580,
+    "pumpkin": 144,
+    "melon": 96,
+    "rabbit": 64,
+    "porkchop": 112
    },
-   "absorbT": 1789966443806
+   "absorbT": 1789968779217
   },
   "enchantTable": [
    -344,
@@ -1862,7 +2251,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 1,
    "site": [
     -367,
     69,
@@ -1898,7 +2287,7 @@
      ]
     ]
    },
-   "rev": 81,
+   "rev": 84,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789965580527
   },
@@ -2023,8 +2412,8 @@
     "fuel",
     "cobblestone"
    ],
-   "minBots": 6,
-   "maxBots": 8,
+   "minBots": 14,
+   "maxBots": 30,
    "requires": {
     "minHp": 14,
     "minFood": 10
@@ -2043,9 +2432,9 @@
     }
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
-   "bots": 8,
-   "rev": 68,
-   "restUntil": 1789966965975
+   "bots": 20,
+   "rev": 70,
+   "restUntil": 1789969383098
   },
   {
    "id": "base_dorm",
@@ -2233,7 +2622,7 @@
    },
    "rev": 27,
    "bots": 1,
-   "restUntil": 1789967753067
+   "restUntil": 1789969779286
   },
   {
    "id": "sleeper",
@@ -2320,7 +2709,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789967044529
+   "restUntil": 1789969077179
   },
   {
    "id": "fill_ring_field1",
@@ -2864,9 +3253,9 @@
    "type": "build",
    "priority": 70,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 1,
+   "bots": 2,
    "site": [
     -311,
     69,
@@ -3095,21 +3484,182 @@
       ]
      ]
     },
-    "order": "near"
+    "order": "near",
+    "waterFrom": [
+     -408,
+     62,
+     -455
+    ]
    },
-   "rev": 74,
+   "rev": 83,
    "desc": "MEASURED 16:3xZ by probe: 44 columns (444 cells) still open to the sky = this job (narrow deep shafts: step off / water drop in, pillar out = the column is filled); 3172 air cells lie UNDER the crust below grade = NOT reachable from above, they belong to the cavity job (owner algorithm: shaft down, fill riding up). `left` counts both - do not judge this job by `left`, and do not raise the crew over the number of open shafts",
    "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -333,58,-483",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Yui",
-    "t": 1789936807296,
+    "by": "Ayame",
+    "t": 1789968906263,
     "at": [
-     -300,
-     65,
-     -478
+     -320,
+     58,
+     -482
     ],
-    "drop": 4
+    "drop": 11
+   },
+   "noDig": {
+    "-323,42,-466": 1789983040661,
+    "-323,41,-468": 1789983040661,
+    "-322,42,-465": 1789983040661,
+    "-322,42,-467": 1789983040661,
+    "-323,42,-465": 1789983060720,
+    "-322,42,-466": 1789983040661,
+    "-324,42,-467": 1789983040661,
+    "-322,41,-469": 1789983040661,
+    "-320,42,-468": 1789983040661,
+    "-329,42,-472": 1789983040661,
+    "-329,42,-471": 1789983040661,
+    "-329,42,-470": 1789983040661,
+    "-328,42,-474": 1789983040661,
+    "-328,41,-473": 1789983045510,
+    "-328,42,-473": 1789983040661,
+    "-328,41,-472": 1789983040661,
+    "-328,42,-472": 1789983040661,
+    "-328,41,-471": 1789983040661,
+    "-328,42,-471": 1789983040661,
+    "-328,41,-470": 1789983040661,
+    "-328,42,-470": 1789983040661,
+    "-328,41,-469": 1789983040661,
+    "-328,42,-469": 1789983040661,
+    "-328,41,-468": 1789983040661,
+    "-328,42,-468": 1789983040661,
+    "-327,42,-475": 1789983040661,
+    "-327,41,-474": 1789983040661,
+    "-327,42,-474": 1789983040661,
+    "-327,41,-473": 1789983040661,
+    "-327,42,-473": 1789983040661,
+    "-327,41,-472": 1789983040661,
+    "-327,42,-472": 1789983040661,
+    "-327,41,-471": 1789983040661,
+    "-327,42,-471": 1789983040661,
+    "-327,41,-470": 1789983040661,
+    "-327,42,-470": 1789983040661,
+    "-327,41,-469": 1789983040661,
+    "-327,42,-469": 1789983040661,
+    "-327,41,-468": 1789983040661,
+    "-327,42,-468": 1789983040661,
+    "-326,41,-475": 1789983040661,
+    "-326,42,-475": 1789983040661,
+    "-326,41,-474": 1789983040661,
+    "-326,42,-474": 1789983040661,
+    "-326,41,-473": 1789983040661,
+    "-326,42,-473": 1789983040661,
+    "-326,41,-472": 1789983040661,
+    "-326,42,-472": 1789983040661,
+    "-326,41,-471": 1789983040661,
+    "-326,42,-471": 1789983040661,
+    "-326,41,-470": 1789983040661,
+    "-326,42,-470": 1789983040661,
+    "-326,41,-469": 1789983040661,
+    "-326,42,-469": 1789983040661,
+    "-326,41,-468": 1789983040661,
+    "-326,42,-468": 1789983040661,
+    "-326,42,-467": 1789983040661,
+    "-325,41,-475": 1789983040661,
+    "-325,42,-475": 1789983040661,
+    "-325,41,-474": 1789983040661,
+    "-325,42,-474": 1789983040661,
+    "-325,41,-473": 1789983040661,
+    "-325,42,-473": 1789983040661,
+    "-325,41,-472": 1789983040661,
+    "-325,42,-472": 1789983040661,
+    "-325,41,-471": 1789983040661,
+    "-325,42,-471": 1789983040661,
+    "-325,41,-470": 1789983040661,
+    "-325,42,-470": 1789983040661,
+    "-325,41,-469": 1789983040661,
+    "-325,42,-469": 1789983040661,
+    "-325,41,-468": 1789983040661,
+    "-325,42,-468": 1789983040661,
+    "-325,42,-467": 1789983040661,
+    "-324,41,-475": 1789983040661,
+    "-324,42,-475": 1789983040661,
+    "-324,41,-474": 1789983040661,
+    "-324,42,-474": 1789983040661,
+    "-324,41,-473": 1789983040661,
+    "-324,42,-473": 1789983040661,
+    "-324,41,-472": 1789983040661,
+    "-324,42,-472": 1789983040661,
+    "-324,41,-471": 1789983040661,
+    "-324,42,-471": 1789983040661,
+    "-324,41,-470": 1789983040661,
+    "-324,42,-470": 1789983040661,
+    "-324,41,-469": 1789983040661,
+    "-324,42,-469": 1789983040661,
+    "-324,41,-468": 1789983040661,
+    "-324,42,-468": 1789983040661,
+    "-324,42,-466": 1789983040661,
+    "-323,42,-475": 1789983040661,
+    "-323,41,-474": 1789983040661,
+    "-323,42,-474": 1789983040661,
+    "-323,41,-473": 1789983040661,
+    "-323,42,-473": 1789983040661,
+    "-323,41,-472": 1789983040661,
+    "-323,42,-472": 1789983040661,
+    "-323,41,-471": 1789983040661,
+    "-323,42,-471": 1789983040661,
+    "-323,41,-470": 1789983040661,
+    "-323,42,-470": 1789983040661,
+    "-323,41,-469": 1789983040661,
+    "-323,42,-469": 1789983040661,
+    "-323,42,-468": 1789983040661,
+    "-323,41,-467": 1789983040661,
+    "-323,42,-467": 1789983040661,
+    "-322,42,-475": 1789983040661,
+    "-322,41,-474": 1789983040661,
+    "-322,42,-474": 1789983040661,
+    "-322,41,-472": 1789983040661,
+    "-322,42,-472": 1789983040661,
+    "-322,41,-471": 1789983040661,
+    "-322,42,-471": 1789983040661,
+    "-322,41,-470": 1789983040661,
+    "-322,42,-470": 1789983040661,
+    "-322,42,-469": 1789983040661,
+    "-322,41,-468": 1789983040661,
+    "-322,42,-468": 1789983040661,
+    "-321,41,-474": 1789983040661,
+    "-321,42,-474": 1789983040661,
+    "-321,41,-473": 1789983040661,
+    "-321,42,-473": 1789983040661,
+    "-321,41,-472": 1789983040661,
+    "-321,42,-472": 1789983040661,
+    "-321,41,-471": 1789983040661,
+    "-321,42,-471": 1789983040661,
+    "-321,42,-470": 1789983040661,
+    "-321,42,-469": 1789983040661,
+    "-321,42,-468": 1789983040661,
+    "-321,42,-467": 1789983040661,
+    "-321,42,-466": 1789983040661,
+    "-320,41,-474": 1789983040661,
+    "-320,42,-474": 1789983040661,
+    "-320,41,-473": 1789983040661,
+    "-320,42,-473": 1789983040661,
+    "-320,41,-472": 1789983040661,
+    "-320,42,-472": 1789983040661,
+    "-320,41,-471": 1789983040661,
+    "-320,42,-471": 1789983040661,
+    "-320,42,-470": 1789983040661,
+    "-320,42,-469": 1789983040661,
+    "-319,42,-474": 1789983040661,
+    "-319,41,-473": 1789983040661,
+    "-319,42,-473": 1789983040661,
+    "-319,41,-472": 1789983040661,
+    "-319,42,-472": 1789983040661,
+    "-319,41,-471": 1789983040661,
+    "-319,42,-471": 1789983040661,
+    "-319,42,-470": 1789983040661,
+    "-319,42,-469": 1789983040661,
+    "-318,42,-473": 1789983040661,
+    "-318,42,-472": 1789983040661,
+    "-318,42,-471": 1789983040661
    }
   },
   {
@@ -3374,7 +3924,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789967973771
+   "restUntil": 1789969799352
   },
   {
    "id": "nether_landing_2",
@@ -3961,7 +4511,7 @@
    "type": "build",
    "priority": 60,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "site": [
@@ -3989,13 +4539,14 @@
     "order": "near"
    },
    "rev": 22,
-   "note": "needs: dirt (17 cells wait; every cell whose material exists is done or in work)",
-   "restUntil": 1789966768758,
+   "note": "auto-paused: 17 cells nobody could do: -343,68,-537 | -343,68,-538 | -343,68,-539 | -343,68,-542 | -343,68,-543 | -344,68,-537",
+   "restUntil": 1789968297004,
    "stuckBy": {
     "key": "rev22",
     "bots": [
      "Nanami",
-     "Misaki"
+     "Misaki",
+     "Hina"
     ]
    }
   },
@@ -4004,9 +4555,9 @@
    "type": "portal",
    "priority": 92,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "day",
-   "bots": 1,
+   "bots": 8,
    "shiftMin": 20,
    "site": [
     -326,
@@ -4026,16 +4577,17 @@
     },
     "buildJob": "base_portal",
     "go": true,
-    "landing": true,
+    "landing": false,
     "work": "barter",
     "ingots": 64,
-    "minutes": 7,
-    "cobble": 128,
-    "crossS": 45,
-    "maxDeaths": 6
+    "minutes": 8,
+    "cobble": 64,
+    "crossS": 30,
+    "maxDeaths": 2,
+    "roam": 16
    },
    "desc": "EYE OF ENDER, pearl half (owner: eyes are missing after 22 h): 1291 gold in the depot, 4 golden_boots exist. Bartering stands at the hub - it does NOT walk the open Nether, so it runs before the fortress road. 2 bots, maxDeaths 2: measure pearls per gold before it grows",
-   "rev": 4,
+   "rev": 5,
    "maxDeaths": 2
   },
   {
@@ -4571,9 +5123,9 @@
    "id": "cavity_base",
    "type": "cavity",
    "priority": 73,
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 1,
+   "bots": 8,
    "site": [
     -311,
     68,
@@ -4610,7 +5162,7 @@
     ],
     "carry": 320
    },
-   "rev": 15,
+   "rev": 16,
    "restUntil": 1789943188975
   },
   {
@@ -4783,7 +5335,7 @@
     "legS": 300
    },
    "bots": 1,
-   "rev": 2
+   "rev": 4
   },
   {
    "id": "bake_bread_industry",
@@ -4846,8 +5398,8 @@
     ],
     "rev": 2
    },
-   "rev": 100,
-   "restUntil": 0
+   "rev": 99,
+   "restUntil": 1789968980606
   },
   {
    "id": "mine_sweep",
@@ -4884,8 +5436,8 @@
     "radius": 150,
     "bankAt": 48
    },
-   "restUntil": 1789968420323,
-   "rev": 18
+   "restUntil": 1789970461687,
+   "rev": 19
   },
   {
    "id": "craft_gold_boots",
@@ -5012,7 +5564,9 @@
      }
     ]
    },
-   "note": "auto-paused: plan failed"
+   "note": "auto-paused: plan failed",
+   "desc": "DONE 60 beds (10 are enough for the dragon); the plan_failed tail is the last craft batch",
+   "rev": 1
   },
   {
    "id": "cap_base_core_pad",
@@ -5113,7 +5667,472 @@
     ]
    },
    "rev": 4,
-   "restUntil": 1789968525755
+   "restUntil": 1789970331180
+  },
+  {
+   "id": "tidy_portal",
+   "type": "tidy",
+   "priority": 74,
+   "front": "works",
+   "status": "active",
+   "when": "any",
+   "bots": 4,
+   "site": [
+    -327,
+    69,
+    -512
+   ],
+   "plan": "GROUNDSKEEPING of the Nether gate surroundings x -348..-306 / z -532..-492 (owner 09-21 「ネザーポータル周りの荒れ具合がスゴい、botが適当にブロック置きすぎ」: the camera shows dozens of stray single blocks and RED floating cells around the apron - escape pillars, bridge leftovers, careless placements). Strays and floats removed, holes closed, the 16x15 apron and the frame left alone",
+   "params": {
+    "box": [
+     -348,
+     -532,
+     -306,
+     -492
+    ],
+    "y": 68,
+    "kinds": "float",
+    "exclude": [
+     [
+      -335,
+      -526,
+      -319,
+      -511
+     ]
+    ]
+   },
+   "restUntil": 1789970167978,
+   "rev": 1
+  },
+  {
+   "id": "road_mine",
+   "type": "road",
+   "priority": 72,
+   "front": "roads",
+   "status": "active",
+   "when": "any",
+   "bots": 8,
+   "site": [
+    -367,
+    69,
+    -488
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "TRUNK ROAD road_mine (docs/ROADS.md): -367,-488 -> -330,-500 in overworld, 5 wide, 50 cells in 3 straight one-height segments (0 bridged), ~260 paving blocks. Designed from the spectator camera (ops/road-plan.js, picture /tmp/road-road_mine.png): the line follows the contour, no step over 1 block, no keep-out or zone crossed.",
+   "params": {
+    "road": "road_mine",
+    "dim": "overworld",
+    "width": 5,
+    "block": "stone",
+    "from": [
+     -367,
+     68,
+     -488
+    ],
+    "to": [
+     -330,
+     68,
+     -500
+    ],
+    "spur": false,
+    "segments": [
+     {
+      "i": 0,
+      "kind": "road",
+      "origin": [
+       -367,
+       68,
+       -488
+      ],
+      "to": [
+       -341,
+       68,
+       -488
+      ],
+      "len": 27,
+      "built": false,
+      "args": {
+       "toX": -341,
+       "toZ": -488,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 1,
+      "kind": "road",
+      "origin": [
+       -341,
+       68,
+       -488
+      ],
+      "to": [
+       -341,
+       68,
+       -500
+      ],
+      "len": 13,
+      "built": false,
+      "args": {
+       "toX": -341,
+       "toZ": -500,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 2,
+      "kind": "road",
+      "origin": [
+       -341,
+       68,
+       -500
+      ],
+      "to": [
+       -330,
+       68,
+       -500
+      ],
+      "len": 12,
+      "built": false,
+      "args": {
+       "toX": -330,
+       "toZ": -500,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     }
+    ]
+   },
+   "restUntil": 1789969522827
+  },
+  {
+   "id": "base_yard_pad",
+   "type": "build",
+   "priority": 85,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -355,
+    69,
+    -483
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone yard x -370..-340 / z -490..-476 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. muster yard 29x13 (settings.muster): a level pad, nothing built on it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -355,
+     68,
+     -483
+    ],
+    "args": {
+     "w": 31,
+     "d": 15
+    }
+   },
+   "rev": 16,
+   "restUntil": 1789912916108,
+   "voidFix": {
+    "n": 2,
+    "id": "void_fix_base_yard_pad",
+    "cols": 4,
+    "t": 1789913775086
+   },
+   "cap": {
+    "id": "cap_base_yard_pad",
+    "cols": 465,
+    "t": 1789912978111
+   },
+   "note": "auto-paused: build complete - BUT 5 columns are a deck over air (void_under_pad): -368,65,-490 | -368,65,-489 | -367,65,-485 | -367,65,-484 | -359,66,-490"
+  },
+  {
+   "id": "nether_barter_road",
+   "type": "portal",
+   "status": "active",
+   "bots": 6,
+   "prio": 78,
+   "desc": "EYE OF ENDER, pearl half: the lane + pad that make bartering possible at all. 3-wide lit lane with kerbs + a 9x9 pad at -65,110,-72. 213 blocks to place, 22 to dig (dry run against the camera map).",
+   "plan": "zone portal (docs/WORLD.md): THE BARTER SPOT IS A PLACE, NOT THE CELL WE LAND ON. The spectator camera measured this shift: (1) the arrival shelf is one connected ground of 383 standable cells (x -56..-30 / z -96..-72, y95-103) and no mob EVER spawns within 24 blocks of a player, so no piglin can appear on it - the census found 0 of 6 there; (2) all 6 piglins and 17 of 69 zombified piglins stand on ONE other ground, 291 cells at x -69..-52 / z -83..-47 / y100-116, with natural rock at y113 three cells over its y109/110 plateau (a roof no ghast shoots through); (3) the cheapest walkable line to it is 26 placed blocks (Dijkstra over the camera solid/air map). So this job lays that line as a proper road - 3 walkable cells wide, a one-block kerb on each rim so a fireball cannot shove a bot off, 3 of headroom, a torch every 8 legs - and levels a 9x9 pad at -65,110,-72 to the MEDIAN ground of its box (never a knoll: that is what left the pair platform 139 of 225 cells over void). Columns with no support within 3 below are dropped from the plan, never bridged. Pad centre is 32 blocks from the hub chest -37,98,-79, the distance paper piglins-guard-chests:true wants. Every builder sneaks (buildCells) and every walk goes through nTravel (edge doctrine). maxDeaths 2: two deaths on this design and it stops itself.",
+   "params": {
+    "blueprint": "nether_portal",
+    "origin": [
+     -326,
+     68,
+     -518
+    ],
+    "args": {
+     "axis": "x"
+    },
+    "buildJob": "base_portal",
+    "go": true,
+    "landing": false,
+    "work": "barterspot",
+    "at": [
+     -65,
+     110,
+     -72
+    ],
+    "route": [
+     [
+      -50,
+      98,
+      -75
+     ],
+     [
+      -51,
+      98,
+      -75
+     ],
+     [
+      -52,
+      98,
+      -75
+     ],
+     [
+      -53,
+      98,
+      -75
+     ],
+     [
+      -54,
+      98,
+      -75
+     ],
+     [
+      -55,
+      98,
+      -75
+     ],
+     [
+      -56,
+      97,
+      -75
+     ],
+     [
+      -56,
+      97,
+      -74
+     ],
+     [
+      -56,
+      97,
+      -73
+     ],
+     [
+      -57,
+      96,
+      -73
+     ],
+     [
+      -57,
+      96,
+      -72
+     ],
+     [
+      -57,
+      96,
+      -71
+     ],
+     [
+      -57,
+      96,
+      -70
+     ],
+     [
+      -57,
+      96,
+      -69
+     ],
+     [
+      -57,
+      96,
+      -68
+     ],
+     [
+      -57,
+      96,
+      -67
+     ],
+     [
+      -57,
+      96,
+      -66
+     ],
+     [
+      -57,
+      96,
+      -65
+     ],
+     [
+      -57,
+      96,
+      -64
+     ],
+     [
+      -57,
+      96,
+      -63
+     ],
+     [
+      -57,
+      96,
+      -62
+     ],
+     [
+      -57,
+      96,
+      -61
+     ],
+     [
+      -57,
+      97,
+      -60
+     ],
+     [
+      -57,
+      98,
+      -59
+     ],
+     [
+      -58,
+      99,
+      -59
+     ],
+     [
+      -59,
+      100,
+      -59
+     ],
+     [
+      -59,
+      101,
+      -60
+     ],
+     [
+      -59,
+      102,
+      -61
+     ],
+     [
+      -60,
+      102,
+      -61
+     ],
+     [
+      -61,
+      102,
+      -61
+     ],
+     [
+      -61,
+      103,
+      -62
+     ],
+     [
+      -61,
+      104,
+      -63
+     ],
+     [
+      -61,
+      104,
+      -64
+     ],
+     [
+      -61,
+      105,
+      -65
+     ],
+     [
+      -61,
+      106,
+      -66
+     ],
+     [
+      -61,
+      107,
+      -67
+     ],
+     [
+      -60,
+      106,
+      -67
+     ],
+     [
+      -60,
+      107,
+      -68
+     ],
+     [
+      -60,
+      108,
+      -69
+     ],
+     [
+      -61,
+      109,
+      -69
+     ],
+     [
+      -62,
+      110,
+      -69
+     ],
+     [
+      -63,
+      110,
+      -69
+     ],
+     [
+      -64,
+      110,
+      -69
+     ],
+     [
+      -65,
+      110,
+      -69
+     ],
+     [
+      -65,
+      110,
+      -70
+     ],
+     [
+      -65,
+      110,
+      -71
+     ],
+     [
+      -65,
+      110,
+      -72
+     ]
+    ],
+    "width": 3,
+    "pad": 4,
+    "minutes": 8,
+    "cobble": 256,
+    "crossS": 30,
+    "maxDeaths": 2,
+    "reach": 64
+   }
   }
  ]
 }
