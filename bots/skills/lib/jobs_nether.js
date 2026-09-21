@@ -1529,6 +1529,43 @@ module.exports = ctx => {
     })
     return out
   }
+  // THE SECOND LANE (09-21 10:2xZ: the crew's second bot waited 676 s of a 13.6-min pass behind the head in a 2-wide tunnel). The
+  // tunnel is two lanes wide, so the second bot of a crew walks the OTHER lane - the interior cell beside each walk cell - and digs
+  // its own half of the face. Corners where no beside-cell exists share the walk cell; diagonal joins get the open mid cell.
+  function laneWalkOf (W, interior) {
+    const ok = q => interior.has(K3(q[0], q[1], q[2])) && interior.has(K3(q[0], q[1] + 1, q[2])) && !interior.has(K3(q[0], q[1] - 1, q[2])) // body clear, floor planned
+    const dirOf = (a, b) => [Math.sign(b[0] - a[0]), Math.sign(b[2] - a[2])]
+    let side = null // the lateral offset, chosen on the first straight cell and kept (a corner turns it with the path)
+    const lane = W.map((w, k) => {
+      const nx = W[k + 1]; const pv = W[k - 1]
+      const d1 = nx ? dirOf(w.p, nx.p) : pv ? dirOf(pv.p, w.p) : [0, 0]
+      const d0 = pv ? dirOf(pv.p, w.p) : d1
+      if (Math.abs(d1[0]) + Math.abs(d1[1]) !== 1 || d0[0] !== d1[0] || d0[1] !== d1[1]) return { p: w.p, seq: w.seq } // a corner: share the walk cell
+      const opts = [[-d1[1], d1[0]], [d1[1], -d1[0]]].filter(o => ok([w.p[0] + o[0], w.p[1], w.p[2] + o[1]]))
+      if (!opts.length) return { p: w.p, seq: w.seq }
+      const o = (side && opts.find(q => q[0] === side[0] && q[1] === side[1])) || opts[0]; side = o
+      return { p: [w.p[0] + o[0], w.p[1], w.p[2] + o[1]], seq: w.seq }
+    })
+    const out = []
+    for (const e of lane) {
+      const pr = out[out.length - 1]
+      if (pr && pr.p.join() === e.p.join()) continue
+      if (out.length > 1 && out[out.length - 2].p.join() === e.p.join()) { out.pop(); continue } // A-B-A at a corner: stay on A
+      if (pr && Math.abs(pr.p[0] - e.p[0]) + Math.abs(pr.p[2] - e.p[2]) === 2) {
+        const ms = [[e.p[0], pr.p[1], pr.p[2]], [pr.p[0], pr.p[1], e.p[2]], [e.p[0], e.p[1], pr.p[2]], [pr.p[0], e.p[1], e.p[2]]].filter(q => q.join() !== pr.p.join() && q.join() !== e.p.join())
+        const m = ms.find(ok); if (m) out.push({ p: m, seq: pr.seq })
+      }
+      out.push(e)
+    }
+    return out
+  }
+  // the crew of a job right now (fresh assignment files), sorted - a bot's index in it picks its lane
+  function crewOf (job) {
+    try {
+      const dir = path.dirname(A.F.assign('x'))
+      return fs.readdirSync(dir).filter(f => /\.json$/.test(f)).map(f => A.readJSON(path.join(dir, f), null)).filter(a => a && a.job && a.job.id === job.id && Date.now() - (a.t || 0) < 180000).map(a => a.bot).sort()
+    } catch (e_) { swallow('jobs_nether:crewOf', e_); return [] }
+  }
   const bodyClear = b => !!b && b.boundingBox !== 'block' && !/^(lava|fire|soul_fire)$/.test(b.name)
   function walkable (bot, p) {
     const q = v(p)
@@ -1619,29 +1656,58 @@ module.exports = ctx => {
   }
   // back along the route to its start, from wherever on it we stand (nothing done if we are not on it)
   async function routeHome (bot, api, legs) {
-    const r = bpCells('nether_route', [0, 0, 0], { legs }); const W = routeWalkOf(r.meta, r.cells)
-    const me = bot.entity.position; let best = 2.5; let i = -1
-    for (let k = 0; k < W.length; k++) { const d = Math.hypot(W[k].p[0] + 0.5 - me.x, W[k].p[1] - me.y, W[k].p[2] + 0.5 - me.z); if (d < best) { best = d; i = k } }
-    const from = xyz(me); let walked = 0
-    if (i < 0) return { ok: false, from, walked }
-    if (!bot.entity.position.floored().equals(v(W[i].p)) && !(await routeStep(bot, api, W[i].p)) && !(await nTravel(bot, v(W[i].p), { range: 0, ms: 10000, stop: api.stop }))) return { ok: false, from, walked }
-    for (let k = i - 1; k >= 0 && !api.stop(); k--) {
-      task(bot, 'nether route: walking home along the route (' + W[k].seq + ')')
-      if (await routeStep(bot, api, W[k].p)) { walked++; continue }
-      if (!await nTravel(bot, v(W[k].p), { range: 0, ms: 15000, stop: api.stop })) return { ok: false, from, walked }
-      walked++
+    // greedy down the seq over BOTH lanes: from where we stand, the adjacent walkable cell of either walk with the lowest seq below
+    // ours (09-21 10:4xZ: lane 1 crossed a cave whose lane-0 floor was never laid - a lane-0-only walk home would strand the bot there)
+    const r = bpCells('nether_route', [0, 0, 0], { legs }); const W0 = routeWalkOf(r.meta, r.cells)
+    const interior = new Set(r.cells.filter(c => c.block !== 'stone').map(c => K3(c.x, c.y, c.z)))
+    const all = W0.concat(laneWalkOf(W0, interior)); const seqAt = new Map(); for (const w of all) { const k = w.p.join(); if (!seqAt.has(k) || seqAt.get(k) > w.seq) seqAt.set(k, w.seq) }
+    const from = xyz(bot.entity.position); let walked = 0
+    let here = bot.entity.position.floored(); let cur = seqAt.get([here.x, here.y, here.z].join())
+    if (cur == null) { // not on a walk cell: the nearest one within 2.5
+      let best = 2.5; let pick = null; for (const w of all) { const d = Math.hypot(w.p[0] + 0.5 - bot.entity.position.x, w.p[1] - bot.entity.position.y, w.p[2] + 0.5 - bot.entity.position.z); if (d < best && walkable(bot, w.p)) { best = d; pick = w } }
+      if (!pick || !((await routeStep(bot, api, pick.p)) || (await nTravel(bot, v(pick.p), { range: 0, ms: 10000, stop: api.stop })))) return { ok: false, from, walked }
+      here = bot.entity.position.floored(); cur = seqAt.get([here.x, here.y, here.z].join()); if (cur == null) return { ok: false, from, walked }
+    }
+    const seen = new Set([[here.x, here.y, here.z].join()])
+    while (!api.stop() && !(here.x === W0[0].p[0] && here.y === W0[0].p[1] && here.z === W0[0].p[2])) {
+      const nb = []
+      for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) for (const dy of [0, 1, -1]) { const k = [here.x + dx, here.y + dy, here.z + dz].join(); const sq = seqAt.get(k); if (sq != null && sq <= cur && !seen.has(k)) nb.push({ p: [here.x + dx, here.y + dy, here.z + dz], seq: sq, k }) }
+      nb.sort((a2, b2) => a2.seq - b2.seq)
+      let moved = false
+      for (const n of nb) { if (!walkable(bot, n.p)) continue; task(bot, 'nether route: walking home along the route (' + n.seq + ')'); if (await routeStep(bot, api, n.p)) { seen.add(n.k); cur = n.seq; walked++; moved = true; break } }
+      if (!moved) return { ok: false, from, walked, at: xyz(bot.entity.position) }
+      here = bot.entity.position.floored()
     }
     return { ok: true, from, walked }
+  }
+  // can an eye see a solid face beside cell q (a face to place q against)? The world's own ray, nothing ignored.
+  function seesFace (bot, eyeP, q) {
+    for (const d of [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]) {
+      const nb = q.offset(d[0], d[1], d[2]); const b = bot.blockAt(nb); if (!b || b.boundingBox !== 'block') continue
+      const n = new Vec3(-d[0], -d[1], -d[2])
+      const pt = nb.offset(0.5 + n.x * 0.5, 0.5 + n.y * 0.5, 0.5 + n.z * 0.5)
+      if ((eyeP.x - pt.x) * n.x + (eyeP.y - pt.y) * n.y + (eyeP.z - pt.z) * n.z < 0.02) continue
+      const dist = eyeP.distanceTo(pt); if (dist > 4.3) continue
+      let hit = null
+      try { hit = bot.world.raycast(eyeP, pt.minus(eyeP).normalize(), dist + 0.3) } catch (e_) { swallow('jobs_nether:seesFace', e_) }
+      if (hit && hit.position.equals(nb)) return true
+    }
+    return false
   }
   const routeItem = bot => ['cobblestone', 'cobbled_deepslate', 'blackstone', 'andesite', 'diorite', 'granite', 'tuff', 'stone', 'deepslate', 'netherrack', 'dirt'].find(k => A.count(bot, k) >= 1) || null
   async function routeTunnel (bot, job, api, P, meta, allR, head, body, until) {
     const t0 = Date.now()
     const gate = new Set()
     for (const q of body) for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) gate.add(K3(q.x + dx, q.y + dy, q.z + dz))
-    const cells = allR.filter(c => !gate.has(K3(c.x, c.y, c.z)))
+    // `params.stopAt` (seq): the crew works and walks nothing beyond it (09-21 10:4xZ: the far end of the route lies 11 blocks from the
+    // blaze spawner, and a bare bot there woke six blazes - the last cells wait for the breach decision)
+    const stopAt = Number.isFinite(P.stopAt) ? P.stopAt : Infinity
+    const cells = allR.filter(c => !gate.has(K3(c.x, c.y, c.z)) && c.seq <= stopAt)
     const bySeq = new Map(); for (const c of cells) { if (!bySeq.has(c.seq)) bySeq.set(c.seq, []); bySeq.get(c.seq).push(c) }
-    const W = routeWalkOf(meta, allR)
+    const W0 = routeWalkOf(meta, allR) // lane 0: the path the head is measured on
     const interior = new Set(allR.filter(c => c.block !== 'stone').map(c => K3(c.x, c.y, c.z)))
+    const crew = crewOf(job); const lane = P.lanes === 1 ? 0 : Math.max(0, crew.indexOf(bot.username)) % 2
+    const W = (lane ? laneWalkOf(W0, interior) : W0).filter(w => w.seq <= stopAt)
     const feetY = s => meta.path[Math.max(0, Math.min(meta.length - 1, s))][1]
     let placed = 0; let dug = 0; let steps = 0; let back = 0; let waited = 0; const why = {}; const fails = {}
     let i = -1; let stuck = null
@@ -1660,7 +1726,7 @@ module.exports = ctx => {
     if (walkable(bot, W[k0].p)) { if (await nTravel(bot, v(W[k0].p), { range: 0, ms: 30000, stop: api.stop }) && bot.entity.position.floored().equals(v(W[k0].p))) i = k0 }
     else await nTravel(bot, v(W[k0].p), { range: 2, ms: 30000, stop: api.stop })
     const lastI = () => i
-    const reserve = () => 20000 + Math.max(0, lastI()) * 1000 // the walk back to the start
+    const reserve = () => 20000 + Math.max(0, lastI()) * 600 // the walk back to the start (measured 0.38 s a cell, 09-21)
     const eye = () => eyeOf(bot)
     const rank = (c, s0) => {
       const b = bot.blockAt(v([c.x, c.y, c.z]))
@@ -1679,6 +1745,8 @@ module.exports = ctx => {
       const burn = () => [0, 1].some(dy => { const b = bot.blockAt(bot.entity.position.floored().offset(0, dy, 0)); return !!b && /^(lava|fire)$/.test(b.name) })
       if (burn() && i > 0) { A.result(bot, { ev: 'route_burn', job: job.id, at: xyz(bot.entity.position), hp: Math.round(bot.health) }); if (await routeStep(bot, api, W[i - 1].p)) i--; else { stuck = 'lava at my feet and no step back'; break } continue }
       const s0 = i >= 0 ? W[i].seq : -1
+      // STANDING AT A RIM IS CROUCHED (a bridged cell over a cave has no rails yet; a shove there is a fall): re-read every round
+      try { bot.setControlState('sneak', rimAt(bot, bot.entity.position.floored()) || bot.__netherHold > 0) } catch (e_) { swallow('jobs_nether:routeRim', e_) }
       const todo = []
       for (let s = Math.max(0, s0 - 6); s <= s0 + 3; s++) for (const c of (bySeq.get(s) || [])) if (loadedAt(bot, c) && !routeOK(bot, c) && (fails[K3(c.x, c.y, c.z)] || 0) < 3) todo.push(c)
       todo.sort((a, b) => (rank(a, s0) - rank(b, s0)) || (a.seq - b.seq) || (eye().distanceTo(v([a.x, a.y, a.z])) - eye().distanceTo(v([b.x, b.y, b.z]))))
@@ -1689,7 +1757,10 @@ module.exports = ctx => {
         if (eye().distanceTo(q.offset(0.5, 0.5, 0.5)) > 4.4) { why[k] = 'out of reach'; continue }
         if (routeOK(bot, c)) continue
         const b = bot.blockAt(q); if (!b) continue
-        if (/obsidian|portal|bedrock|chest|crafting/.test(b.name)) { why[k] = 'never touched: ' + b.name; fails[k] = 9; continue }
+        if (/obsidian|portal|bedrock|chest|crafting|spawner/.test(b.name)) { why[k] = 'never touched: ' + b.name; fails[k] = 9; continue }
+        // THE FORTRESS WALL IS THE BREACH, and a breach is a decision (blazes, a spawner 3 blocks in): the head stops at the first
+        // nether brick until the board says `params.breach: true`
+        if (/nether_brick/.test(b.name) && !P.breach) { why[k] = 'fortress wall: waiting for params.breach'; fails[k] = 9; continue }
         task(bot, 'nether route: seq ' + s0 + '/' + meta.length + ', ' + placed + ' placed, ' + dug + ' dug')
         const dig = c.block !== 'stone' && b.boundingBox === 'block'
         const fire = c.block !== 'stone' && /fire/.test(b.name)
@@ -1733,7 +1804,14 @@ module.exports = ctx => {
         if (!item) { why[k] = 'nothing to place'; continue }
         if (c.block === 'torch') { const u = bot.blockAt(q.offset(0, -1, 0)); if (!u || u.boundingBox !== 'block') continue }
         if (!hasRef(bot, q)) { why[k] = 'no face to place against'; fails[k] = (fails[k] || 0) + 1; continue }
-        const pr = await placeStill(bot, api, q, item)
+        let pr = await placeStill(bot, api, q, item)
+        // NO FACE IN SIGHT FROM HERE (09-21 10:1xZ: a floor cell over a cave at 121,109,-84 - the only faces beside it look away from
+        // the walk cell behind it): one step to the tunnel cell beside us that sees a face, place, step back
+        if (c.block !== 'torch' && (bot.blockAt(q) || {}).boundingBox !== 'block' && /unreachable|noref/.test(String(pr.reason)) && fails[k] === undefined) {
+          const here1 = bot.entity.position.floored()
+          const alt = [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1]].map(d => here1.offset(d[0], 0, d[2])).filter(sp => !sp.equals(q) && interior.has(K3(sp.x, sp.y, sp.z)) && walkable(bot, [sp.x, sp.y, sp.z])).find(sp => seesFace(bot, sp.offset(0.5, 1.62, 0.5), q))
+          if (alt && await routeStep(bot, api, [alt.x, alt.y, alt.z])) { pr = await placeStill(bot, api, q, item); await routeStep(bot, api, [here1.x, here1.y, here1.z]) }
+        }
         const nb = bot.blockAt(q)
         if (nb && (c.block === 'torch' ? /torch/.test(nb.name) : nb.boundingBox === 'block')) { placed++; prog++; delete why[k] } else { why[k] = 'place: ' + String(pr.reason).slice(0, 40); fails[k] = (fails[k] || 0) + 1 }
       }
@@ -1753,6 +1831,21 @@ module.exports = ctx => {
         if (fails['step' + (i + 1)] >= 3) { stuck = 'cannot step onto ' + nx.p.join(',') + ' (seq ' + nx.seq + ')'; break }
         continue
       }
+      // A FLOOR OVER A CAVE (09-21 10:3xZ, seq 380 at 176,109,41: every face beside the missing floor looks away from the tunnel, from
+      // both lanes): the one proven way over a gap here is `moves.bridgeTo` - pathfinder scaffolding + sneak, a 1-wide corridor, ONE cell
+      if (!prog && i >= 0 && P.bridge !== false && (fails['bridge' + (i + 1)] || 0) < 2) {
+        const f = v(nx.p); const fl = bot.blockAt(f.offset(0, -1, 0))
+        if (nx.p[1] === W[i].p[1] && bodyClear(bot.blockAt(f)) && bodyClear(bot.blockAt(f.offset(0, 1, 0))) && fl && fl.boundingBox !== 'block' && !/lava|magma/.test(fl.name) && !(lavaSet(bot, true), lavaNear(f, 2, 3, 2))) {
+          fails['bridge' + (i + 1)] = (fails['bridge' + (i + 1)] || 0) + 1
+          const r = await require('./moves').bridgeTo(bot, nx.p, { half: 0, ms: 20000, stop: api.stop }).catch(e => ({ ok: false, why: String(e && e.message) }))
+          const at = bot.entity.position.floored()
+          A.result(bot, { ev: 'route_bridge', job: job.id, to: nx.p, seq: nx.seq, ok: !!r.ok, placed: r.placed || 0, at: xyz(at), why: r.why, hp: Math.round(bot.health) })
+          placed += r.placed || 0
+          if (at.equals(f)) { i++; steps++; stuck = null; continue }
+          if (!at.equals(v(W[i].p)) && !(await routeStep(bot, api, W[i].p)) && !(await nTravel(bot, v(W[i].p), { range: 0, ms: 10000, stop: api.stop }))) { stuck = 'off the walk after a bridge attempt at ' + xyz(at).join(','); break }
+          continue
+        }
+      }
       if (!prog) {
         const blockers = [[0, -1, 0], [0, 0, 0], [0, 1, 0]].map(d => { const q = v(nx.p).offset(d[0], d[1], d[2]); const b = bot.blockAt(q); return K3(q.x, q.y, q.z) + '=' + (b ? b.name : '?') + (why[K3(q.x, q.y, q.z)] ? ' (' + why[K3(q.x, q.y, q.z)] + ')' : '') })
         stuck = 'seq ' + nx.seq + ' not walkable and nothing more in reach: ' + blockers.join(' ')
@@ -1762,6 +1855,20 @@ module.exports = ctx => {
       } else fails.idle = 0
     }
     const reached = i >= 0 ? W[i].seq : -1
+    // ...read HERE, at the far end, before the walk home (09-21 10:2xZ: read after it, the cells 100+ blocks back were unloaded and
+    // the head stuck at 192 while the bot had cut to 303)
+    // THE HEAD = HOW FAR THE WAY IS WALKABLE, as the world shows it (walls and roofs do not hold it; they are worked 6 seq behind
+    // whoever passes). Read from the old head forward over the cells that are loaded.
+    // Read over the WALK, corner cells included (09-21 09:4xZ: the head read 16 while the corner cell between seq 12 and 13 had no
+    // floor - the path's own cells stood, the way between them did not).
+    let head2 = head; let kW = W0.findIndex(w => w.seq >= Math.max(0, head - 1)); if (kW < 0) kW = W0.length
+    for (; kW < W0.length; kW++) {
+      const f = W0[kW].p
+      if (!loadedAt(bot, { x: f[0], y: f[1] - 1, z: f[2] })) break // unknown is not a verdict either way
+      if (!walkable(bot, f)) { head2 = W0[kW].seq; break }
+      head2 = W0[kW].seq + 1
+    }
+    if (lane === 0 && reached > head2) head2 = reached // every lane-0 cell up to `reached` was stood on this pass (a far-back cell may already be unloaded)
     // HOME END FIRST: walk the finished way back to the start, so the gate beside the hub is the way home
     for (let k = i - 1; k >= 0 && !api.stop(); k--) {
       task(bot, 'nether route: walking back (' + W[k].seq + ')')
@@ -1770,22 +1877,12 @@ module.exports = ctx => {
       i = k
     }
     try { bot.setControlState('sneak', bot.__netherHold > 0) } catch (e_) { swallow('jobs_nether:routeEnd', e_) }
-    // THE HEAD = HOW FAR THE WAY IS WALKABLE, as the world shows it (walls and roofs do not hold it; they are worked 6 seq behind
-    // whoever passes). Read from the old head forward over the cells that are loaded.
-    // Read over the WALK, corner cells included (09-21 09:4xZ: the head read 16 while the corner cell between seq 12 and 13 had no
-    // floor - the path's own cells stood, the way between them did not).
-    let head2 = head; let kW = W.findIndex(w => w.seq >= Math.max(0, head - 1)); if (kW < 0) kW = W.length
-    for (; kW < W.length; kW++) {
-      const f = W[kW].p
-      if (!loadedAt(bot, { x: f[0], y: f[1] - 1, z: f[2] }) || !walkable(bot, f)) { head2 = W[kW].seq; break }
-      head2 = W[kW].seq + 1
-    }
     const done = head2 >= meta.length
     netherEdit({ route: { legsKey: JSON.stringify(P.legs), head: head2, length: meta.length, end: meta.end, headAt: meta.path[Math.min(head2, meta.length - 1)], done, reached, at: Date.now(), by: bot.username } })
     const min = Math.max(0.1, (Date.now() - t0) / 60000)
     const left = cells.filter(c => c.seq < head2 && loadedAt(bot, c) && !routeOK(bot, c))
     return {
-      work: 'route', head: head2, headWas: head, length: meta.length, reached, done, placed, dug, steps, back, waited, stuck,
+      work: 'route', lane, crew: crew.length, head: head2, headWas: head, length: meta.length, reached, done, placed, dug, steps, back, waited, stuck,
       behindLeft: left.length, leftAt: left.slice(0, 4).map(c => K3(c.x, c.y, c.z) + '=' + c.block + ' (' + (why[K3(c.x, c.y, c.z)] || '?') + ')'),
       min: Math.round(min * 10) / 10, perBotMin: Math.round((placed + dug) / min * 10) / 10, carried: stoneCarried(bot), item: routeItem(bot)
     }

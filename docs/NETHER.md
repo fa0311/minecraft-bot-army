@@ -79,7 +79,10 @@ new hole (`plugSight`, traced before the dig), the lava is plugged at once, and 
 **The v2 stair flooded the hub corner** (09-21 09:09Z): a lava SOURCE -53,111,-81 in its leg-2 wall; the stream runs down the v2 stair
 (z-75/-74) into x-44..-37 z-75..-73 at y98. v3 legs start at -55,98,-82 and climb WEST in the solid core (z-82/-81) to -67,110,-82, then
 east on z-84/-83 (camera: 0 lava/precious seq 0-30; sources beside the way at seq 57, 255, 356, 377, 449). `nether_unflood` (`work:'steps'`,
-verbs go/route/walk/place/dig/wait) shuts the source from route seq 27 through the wall cell -53,111,-82.
+verbs go/route/walk/place/dig/wait) shut the source from route seq 27 through the wall cell -53,111,-82 (09-21 10:0xZ; hub corner dry).
+Crew of 2 = two lanes (`laneWalkOf`, lane by crew order); a floor over a cave goes in by `moves.bridgeTo` one cell at a time (`route_bridge`);
+4 spare stone picks (a pick lasts ~130 netherrack); `params.stopAt:452` keeps the crew 16+ from the spawner (seq 463+ is 11 away and woke six
+blazes); nether bricks are never dug without `params.breach:true` - that, and the blaze fight, is the next decision (`work:'blaze'`).
 
 ## What stands / what is paused
 | job | state |

@@ -1350,13 +1350,13 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Aika",
+   "by": "Juri",
    "portal": [
-    -47,
+    -48,
     98,
-    -77
+    -81
    ],
-   "through": 1789985311954,
+   "through": 1789986882134,
    "scoutRev": 67,
    "hub": {
     "room": [
@@ -1457,7 +1457,7 @@
    ],
    "shellY": 98,
    "returnJob": "nether_return",
-   "deaths": 2,
+   "deaths": 1,
    "deathsResetAt": 1789910779294,
    "deathsResetWhy": "owner 13:2xZ: death is an accepted cost of exploring the Nether; the brake is 6 in 30 min",
    "landing": [
@@ -1469,9 +1469,9 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789969045309,
-   "back": 1789985215736,
-   "lastDeath": 1789984419911,
-   "lastDeathBy": "Ichika",
+   "back": 1789987107835,
+   "lastDeath": 1789986305860,
+   "lastDeathBy": "Aoi",
    "roads": {
     "x+": {
      "from": [
@@ -1498,8 +1498,7 @@
    "outAt": 1789915921402,
    "outBy": "Rin",
    "deathLog": [
-    1789983204149,
-    1789984419911
+    1789986305860
    ],
    "sightings": [],
    "fortress": null,
@@ -1545,6 +1544,30 @@
       ]
      ],
      "frame": 24,
+     "lit": false,
+     "cells": 0,
+     "state": "DARK"
+    },
+    {
+     "dim": "the_nether",
+     "at": [
+      -49,
+      97,
+      -81
+     ],
+     "box": [
+      [
+       -49,
+       97,
+       -81
+      ],
+      [
+       -46,
+       101,
+       -81
+      ]
+     ],
+     "frame": 14,
      "lit": true,
      "cells": 6,
      "state": "WHOLE"
@@ -1934,7 +1957,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1789984762810,
+   "gatesAt": 1789986562785,
    "pairRoad": {
     "from": [
      -43,
@@ -2212,17 +2235,17 @@
    },
    "barterGoal": {
     "at": [
-     -48,
+     -50,
      98,
-     -81
+     -78
     ],
-    "t": 1789985320981,
-    "by": "Aika",
+    "t": 1789986891084,
+    "by": "Juri",
     "why": "the head of the barter stair - every bot extends the same one"
    },
    "route": {
     "legsKey": "[{\"kind\":\"stair\",\"from\":[-67,110,-82],\"bearing\":\"x+\",\"toY\":98,\"reverse\":true},{\"kind\":\"road\",\"from\":[-67,110,-84],\"bearing\":\"x+\",\"length\":244},{\"kind\":\"road\",\"from\":[176,110,-82],\"bearing\":\"z+\",\"length\":174},{\"kind\":\"stair\",\"from\":[176,110,92],\"bearing\":\"z+\",\"toY\":77},{\"kind\":\"road\",\"from\":[177,77,124],\"bearing\":\"x+\",\"length\":8,\"noTorch\":true}]",
-    "head": 109,
+    "head": 448,
     "length": 473,
     "end": [
      184,
@@ -2230,14 +2253,14 @@
      124
     ],
     "headAt": [
-     29,
-     110,
-     -84
+     176,
+     93,
+     109
     ],
     "done": false,
-    "reached": 105,
-    "at": 1789984409939,
-    "by": "Suzu"
+    "reached": 448,
+    "at": 1789987053781,
+    "by": "Hotaru"
    }
   },
   "industry": {
@@ -2368,11 +2391,11 @@
       28
      ]
     },
-    "t": 1789984758673
+    "t": 1789986483781
    },
    "absorb": {
-    "coal": 720,
     "iron_ingot": 192,
+    "coal": 720,
     "gray_wool": 288,
     "flint": 888,
     "leather": 288,
@@ -2382,7 +2405,7 @@
     "pumpkin": 72,
     "melon": 48
    },
-   "absorbT": 1789983816622
+   "absorbT": 1789985706541
   },
   "enchantTable": [
    -344,
@@ -2392,654 +2415,654 @@
   "mine": {
    "veins": [
     {
-     "key": "-66,-4,-74/tuff_cluster",
+     "key": "-42,-7,-43/iron",
      "at": [
-      -522,
-      -32,
-      -592
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Sumire",
-     "t": 1789984846991
-    },
-    {
-     "key": "-66,-5,-74/tuff_cluster",
-     "at": [
-      -524,
-      -34,
-      -592
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Sumire",
-     "t": 1789984882210
-    },
-    {
-     "key": "-69,-4,-91/tuff_cluster",
-     "at": [
-      -552,
-      -32,
-      -722
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Tamaki",
-     "t": 1789984884777
-    },
-    {
-     "key": "-23,-4,-84/tuff_cluster",
-     "at": [
-      -181,
-      -31,
-      -667
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Sakura",
-     "t": 1789984895195
-    },
-    {
-     "key": "-23,-5,-84/tuff_cluster",
-     "at": [
-      -179,
-      -33,
-      -667
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Sakura",
-     "t": 1789984899661
-    },
-    {
-     "key": "-22,-4,-84/tuff_cluster",
-     "at": [
-      -176,
-      -31,
-      -666
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Sakura",
-     "t": 1789984902955
-    },
-    {
-     "key": "-22,-5,-84/tuff_cluster",
-     "at": [
-      -171,
-      -33,
-      -667
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Sakura",
-     "t": 1789984910902
-    },
-    {
-     "key": "-68,-4,-75/tuff_cluster",
-     "at": [
-      -539,
-      -32,
-      -593
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Sumire",
-     "t": 1789984925261
-    },
-    {
-     "key": "-68,-5,-74/tuff_cluster",
-     "at": [
-      -542,
-      -33,
-      -592
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Sumire",
-     "t": 1789984928420
-    },
-    {
-     "key": "-20,-4,-84/tuff_cluster",
-     "at": [
-      -159,
-      -32,
-      -666
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Sakura",
-     "t": 1789984955289
-    },
-    {
-     "key": "-65,-4,-86/tuff_cluster",
-     "at": [
-      -516,
-      -31,
-      -688
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Mio",
-     "t": 1789984955456
-    },
-    {
-     "key": "-65,-4,-87/tuff_cluster",
-     "at": [
-      -517,
-      -31,
-      -689
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Mio",
-     "t": 1789984958843
-    },
-    {
-     "key": "-65,-5,-86/tuff_cluster",
-     "at": [
-      -519,
-      -33,
-      -688
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Mio",
-     "t": 1789984962613
-    },
-    {
-     "key": "-37,-6,-60/tuff_cluster",
-     "at": [
-      -295,
-      -47,
-      -476
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Tamaki",
-     "t": 1789985110961
-    },
-    {
-     "key": "-37,-6,-59/tuff_cluster",
-     "at": [
-      -292,
-      -48,
-      -471
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Tamaki",
-     "t": 1789985123555
-    },
-    {
-     "key": "-70,-4,-86/tuff_cluster",
-     "at": [
-      -560,
-      -31,
-      -688
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Mio",
-     "t": 1789985129119
-    },
-    {
-     "key": "-37,-7,-59/tuff_cluster",
-     "at": [
-      -292,
+      -333,
       -50,
-      -469
+      -337
      ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Tamaki",
-     "t": 1789985130614
+     "kind": "iron",
+     "seen": 105,
+     "raw": 1,
+     "by": "Ichika",
+     "t": 1789986662681
     },
     {
-     "key": "-71,-4,-86/tuff_cluster",
+     "key": "-71,-6,-58/tuff_cluster",
      "at": [
-      -561,
-      -31,
-      -687
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Mio",
-     "t": 1789985132497
-    },
-    {
-     "key": "-71,-4,-87/tuff_cluster",
-     "at": [
-      -563,
-      -32,
-      -689
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Mio",
-     "t": 1789985136258
-    },
-    {
-     "key": "-42,-6,-59/tuff_cluster",
-     "at": [
-      -330,
+      -568,
       -47,
-      -468
+      -457
      ],
      "kind": "tuff_cluster",
      "seen": 6,
      "raw": 0,
-     "by": "Honoka",
-     "t": 1789985138945
+     "by": "Mio",
+     "t": 1789986667435
     },
     {
-     "key": "-43,-7,-58/tuff_cluster",
+     "key": "-72,-6,-58/tuff_cluster",
      "at": [
-      -338,
-      -51,
-      -462
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Yukina",
-     "t": 1789985297524
-    },
-    {
-     "key": "-39,-6,-58/tuff_cluster",
-     "at": [
-      -309,
+      -569,
       -47,
       -458
      ],
      "kind": "tuff_cluster",
      "seen": 6,
      "raw": 0,
-     "by": "Shiori",
-     "t": 1789985333089
+     "by": "Mio",
+     "t": 1789986670884
     },
     {
-     "key": "-39,-6,-57/tuff_cluster",
+     "key": "-42,-6,-43/tuff_cluster",
      "at": [
-      -305,
+      -335,
+      -46,
+      -341
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Ichika",
+     "t": 1789986674589
+    },
+    {
+     "key": "-42,-7,-43/tuff_cluster",
+     "at": [
+      -335,
+      -49,
+      -340
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Ichika",
+     "t": 1789986675950
+    },
+    {
+     "key": "-62,-7,-49/tuff_cluster",
+     "at": [
+      -494,
+      -49,
+      -385
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Yukina",
+     "t": 1789986690737
+    },
+    {
+     "key": "-73,-6,-58/tuff_cluster",
+     "at": [
+      -584,
       -48,
-      -456
+      -457
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Mio",
+     "t": 1789986709465
+    },
+    {
+     "key": "-30,-6,-44/tuff_cluster",
+     "at": [
+      -239,
+      -46,
+      -351
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1789986712458
+    },
+    {
+     "key": "-45,-7,-42/tuff_cluster",
+     "at": [
+      -359,
+      -51,
+      -329
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Nanami",
+     "t": 1789986727327
+    },
+    {
+     "key": "-44,-7,-41/iron",
+     "at": [
+      -352,
+      -51,
+      -328
+     ],
+     "kind": "iron",
+     "seen": 121,
+     "raw": 0,
+     "by": "Shiori",
+     "t": 1789986782009
+    },
+    {
+     "key": "-36,-6,-43/tuff_cluster",
+     "at": [
+      -282,
+      -46,
+      -337
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Mio",
+     "t": 1789986848424
+    },
+    {
+     "key": "-23,-6,-44/tuff_cluster",
+     "at": [
+      -180,
+      -48,
+      -348
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1789986849395
+    },
+    {
+     "key": "-36,-6,-42/tuff_cluster",
+     "at": [
+      -281,
+      -48,
+      -336
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Mio",
+     "t": 1789986850629
+    },
+    {
+     "key": "-35,-6,-43/tuff_cluster",
+     "at": [
+      -279,
+      -48,
+      -337
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Mio",
+     "t": 1789986852142
+    },
+    {
+     "key": "-22,-6,-44/tuff_cluster",
+     "at": [
+      -176,
+      -47,
+      -350
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1789986853949
+    },
+    {
+     "key": "-22,-7,-44/tuff_cluster",
+     "at": [
+      -171,
+      -49,
+      -349
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1789986861924
+    },
+    {
+     "key": "-50,-6,-54/iron",
+     "at": [
+      -398,
+      -48,
+      -425
+     ],
+     "kind": "iron",
+     "seen": 107,
+     "raw": 0,
+     "by": "Nagisa",
+     "t": 1789986886936
+    },
+    {
+     "key": "-35,-6,-42/tuff_cluster",
+     "at": [
+      -280,
+      -47,
+      -333
      ],
      "kind": "tuff_cluster",
      "seen": 6,
      "raw": 0,
      "by": "Shiori",
-     "t": 1789985338026
+     "t": 1789986941046
     },
     {
-     "key": "-33,-6,-60/tuff_cluster",
+     "key": "-51,-6,-54/tuff_cluster",
      "at": [
-      -263,
+      -401,
       -48,
-      -476
+      -426
      ],
      "kind": "tuff_cluster",
      "seen": 6,
      "raw": 0,
-     "by": "Yuzu",
-     "t": 1789985338163
+     "by": "Nagisa",
+     "t": 1789986964257
+    },
+    {
+     "key": "-51,-6,-53/tuff_cluster",
+     "at": [
+      -401,
+      -48,
+      -423
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Nagisa",
+     "t": 1789986971117
+    },
+    {
+     "key": "-51,-7,-54/tuff_cluster",
+     "at": [
+      -401,
+      -50,
+      -426
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Nagisa",
+     "t": 1789986986545
+    },
+    {
+     "key": "-51,-7,-53/tuff_cluster",
+     "at": [
+      -402,
+      -49,
+      -424
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Nagisa",
+     "t": 1789986988851
+    },
+    {
+     "key": "-36,-7,-42/tuff_cluster",
+     "at": [
+      -282,
+      -49,
+      -336
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Shiori",
+     "t": 1789987013431
+    },
+    {
+     "key": "-41,-7,-38/tuff_cluster",
+     "at": [
+      -323,
+      -51,
+      -304
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Mio",
+     "t": 1789987133434
     }
    ],
    "caves": [
     {
-     "key": "-31,-2,-45",
+     "key": "-17,-3,-31",
      "at": [
-      -483,
-      -32,
-      -709
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Tamaki",
-     "t": 1789984731701
-    },
-    {
-     "key": "-26,-2,-44",
-     "at": [
-      -414,
-      -32,
-      -691
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Karin",
-     "t": 1789984742294
-    },
-    {
-     "key": "-32,-2,-46",
-     "at": [
-      -497,
-      -32,
-      -733
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Hina",
-     "t": 1789984759020
-    },
-    {
-     "key": "-11,-2,-35",
-     "at": [
-      -162,
-      -32,
-      -556
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 1,
-     "iron": 0,
-     "by": "Shiori",
-     "t": 1789984759056
-    },
-    {
-     "key": "-31,-2,-44",
-     "at": [
-      -489,
-      -32,
-      -703
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Sakura",
-     "t": 1789984778233
-    },
-    {
-     "key": "-30,-2,-45",
-     "at": [
-      -479,
-      -32,
-      -715
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Noa",
-     "t": 1789984787618
-    },
-    {
-     "key": "-15,-2,-47",
-     "at": [
-      -231,
-      -32,
-      -742
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Honoka",
-     "t": 1789984798747
-    },
-    {
-     "key": "-32,-2,-47",
-     "at": [
-      -511,
-      -32,
-      -742
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Tamaki",
-     "t": 1789984800021
-    },
-    {
-     "key": "-11,-2,-45",
-     "at": [
-      -174,
-      -32,
-      -715
-     ],
-     "cells": 734,
-     "klass": "big",
-     "ores": 4,
-     "iron": 0,
-     "by": "Ichika",
-     "t": 1789984811676
-    },
-    {
-     "key": "-26,-2,-40",
-     "at": [
-      -407,
-      -32,
-      -634
-     ],
-     "cells": 285,
-     "klass": "big",
-     "ores": 0,
-     "iron": 0,
-     "by": "Shiori",
-     "t": 1789984821400
-    },
-    {
-     "key": "-29,-2,-47",
-     "at": [
-      -458,
-      -32,
-      -739
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Juri",
-     "t": 1789984848562
-    },
-    {
-     "key": "-34,-2,-38",
-     "at": [
-      -536,
-      -32,
-      -595
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 5,
-     "iron": 0,
-     "by": "Botan",
-     "t": 1789984859212
-    },
-    {
-     "key": "-9,-2,-34",
-     "at": [
-      -142,
-      -32,
-      -532
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Hina",
-     "t": 1789984873654
-    },
-    {
-     "key": "-5,-2,-45",
-     "at": [
-      -71,
-      -32,
-      -706
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Ume",
-     "t": 1789984873841
-    },
-    {
-     "key": "-35,-2,-45",
-     "at": [
-      -546,
-      -32,
-      -718
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Aoi",
-     "t": 1789984875376
-    },
-    {
-     "key": "-15,-2,-46",
-     "at": [
-      -229,
-      -32,
-      -736
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Shiori",
-     "t": 1789984884440
-    },
-    {
-     "key": "-35,-2,-46",
-     "at": [
-      -548,
-      -32,
-      -721
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 1,
-     "iron": 0,
-     "by": "Tamaki",
-     "t": 1789984910823
-    },
-    {
-     "key": "-31,-2,-46",
-     "at": [
-      -492,
-      -32,
-      -736
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Honoka",
-     "t": 1789984921982
-    },
-    {
-     "key": "-16,-2,-35",
-     "at": [
-      -248,
-      -32,
-      -559
-     ],
-     "cells": 1079,
-     "klass": "big",
-     "ores": 0,
-     "iron": 0,
-     "by": "Nozomi",
-     "t": 1789984960127
-    },
-    {
-     "key": "-22,-3,-30",
-     "at": [
-      -343,
-      -48,
-      -472
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 1,
-     "iron": 0,
-     "by": "Noa",
-     "t": 1789985202992
-    },
-    {
-     "key": "-22,-3,-31",
-     "at": [
-      -337,
+      -261,
       -48,
       -481
      ],
      "cells": 2000,
      "klass": "cavern",
-     "ores": 2,
-     "iron": 0,
-     "by": "Honoka",
-     "t": 1789985238176
-    },
-    {
-     "key": "-24,-3,-30",
-     "at": [
-      -373,
-      -48,
-      -475
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
+     "ores": 3,
      "iron": 0,
      "by": "Shiori",
-     "t": 1789985272897
+     "t": 1789985747712
     },
     {
-     "key": "-22,-3,-29",
+     "key": "-22,-3,-28",
      "at": [
-      -342,
+      -346,
       -48,
-      -463
+      -433
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 6,
      "iron": 0,
-     "by": "Iroha",
-     "t": 1789985273897
+     "by": "Sakura",
+     "t": 1789985776911
     },
     {
-     "key": "-21,-3,-31",
+     "key": "-23,-3,-27",
      "at": [
-      -336,
+      -360,
       -48,
-      -484
+      -427
      ],
      "cells": 2000,
      "klass": "cavern",
+     "ores": 4,
+     "iron": 0,
+     "by": "Mio",
+     "t": 1789985932222
+    },
+    {
+     "key": "-20,-3,-28",
+     "at": [
+      -317,
+      -48,
+      -436
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 13,
+     "iron": 5,
+     "by": "Noa",
+     "t": 1789985958184
+    },
+    {
+     "key": "-21,-3,-27",
+     "at": [
+      -321,
+      -48,
+      -427
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 14,
+     "iron": 2,
+     "by": "Honoka",
+     "t": 1789985959984
+    },
+    {
+     "key": "-21,-3,-26",
+     "at": [
+      -321,
+      -48,
+      -415
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 7,
+     "iron": 0,
+     "by": "Nanami",
+     "t": 1789985969881
+    },
+    {
+     "key": "-20,-3,-27",
+     "at": [
+      -309,
+      -48,
+      -418
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 5,
+     "iron": 0,
+     "by": "Shiori",
+     "t": 1789985969970
+    },
+    {
+     "key": "-20,-3,-25",
+     "at": [
+      -305,
+      -48,
+      -394
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 5,
+     "iron": 0,
+     "by": "Nanami",
+     "t": 1789985982893
+    },
+    {
+     "key": "-26,-3,-26",
+     "at": [
+      -415,
+      -48,
+      -406
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 8,
+     "iron": 0,
+     "by": "Noa",
+     "t": 1789986015834
+    },
+    {
+     "key": "-21,-3,-24",
+     "at": [
+      -325,
+      -48,
+      -379
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 7,
+     "iron": 0,
+     "by": "Nanami",
+     "t": 1789986201613
+    },
+    {
+     "key": "-22,-3,-24",
+     "at": [
+      -345,
+      -48,
+      -376
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 1,
+     "iron": 3,
+     "by": "Nanami",
+     "t": 1789986254455
+    },
+    {
+     "key": "-21,-3,-25",
+     "at": [
+      -325,
+      -48,
+      -385
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 6,
+     "iron": 0,
+     "by": "Yuzu",
+     "t": 1789986256797
+    },
+    {
+     "key": "-19,-3,-24",
+     "at": [
+      -296,
+      -48,
+      -373
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 7,
+     "iron": 4,
+     "by": "Noa",
+     "t": 1789986401601
+    },
+    {
+     "key": "-19,-3,-23",
+     "at": [
+      -300,
+      -48,
+      -364
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 3,
+     "iron": 0,
+     "by": "Noa",
+     "t": 1789986455176
+    },
+    {
+     "key": "-27,-3,-26",
+     "at": [
+      -418,
+      -48,
+      -409
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 11,
+     "iron": 0,
+     "by": "Iroha",
+     "t": 1789986467082
+    },
+    {
+     "key": "-22,-3,-23",
+     "at": [
+      -345,
+      -48,
+      -361
+     ],
+     "cells": 137,
+     "klass": "big",
      "ores": 2,
      "iron": 0,
-     "by": "Nozomi",
-     "t": 1789985274084
+     "by": "Nanami",
+     "t": 1789986524220
+    },
+    {
+     "key": "-23,-3,-23",
+     "at": [
+      -361,
+      -48,
+      -355
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 3,
+     "iron": 2,
+     "by": "Nanami",
+     "t": 1789986569200
+    },
+    {
+     "key": "-23,-3,-22",
+     "at": [
+      -354,
+      -48,
+      -352
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 7,
+     "iron": 2,
+     "by": "Iroha",
+     "t": 1789986662996
+    },
+    {
+     "key": "-21,-3,-22",
+     "at": [
+      -336,
+      -48,
+      -340
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 3,
+     "iron": 0,
+     "by": "Shiori",
+     "t": 1789986803837
+    },
+    {
+     "key": "-22,-3,-22",
+     "at": [
+      -350,
+      -48,
+      -349
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 8,
+     "iron": 5,
+     "by": "Ichika",
+     "t": 1789986976223
+    },
+    {
+     "key": "-21,-3,-21",
+     "at": [
+      -330,
+      -48,
+      -331
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 4,
+     "iron": 1,
+     "by": "Iroha",
+     "t": 1789987021288
+    },
+    {
+     "key": "-18,-3,-21",
+     "at": [
+      -287,
+      -48,
+      -334
+     ],
+     "cells": 1116,
+     "klass": "big",
+     "ores": 3,
+     "iron": 4,
+     "by": "Shiori",
+     "t": 1789987044250
+    },
+    {
+     "key": "-6,-3,-22",
+     "at": [
+      -86,
+      -48,
+      -340
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Nanami",
+     "t": 1789987102428
+    },
+    {
+     "key": "-25,-3,-27",
+     "at": [
+      -390,
+      -48,
+      -430
+     ],
+     "cells": 240,
+     "klass": "big",
+     "ores": 2,
+     "iron": 11,
+     "by": "Nagisa",
+     "t": 1789987102505
     }
    ]
   },
@@ -3082,7 +3105,7 @@
     "spur": false,
     "cells": 997,
     "built": "10/24",
-    "checked": 1789985333704
+    "checked": 1789986984144
    }
   ],
   "dash": true
@@ -3322,7 +3345,7 @@
      ]
     ]
    },
-   "rev": 88,
+   "rev": 89,
    "note": "06:35Z mine engineer: the sponge held 16 of 49 bots at priority 60 while mine_iron (92, deficit 0.96 of iron 31/800) stood at ZERO staffed. A sponge exists so nobody idles, not to starve the roadmap: 16 -> 4. Raise it again when iron is met",
    "restUntil": 1789965580527
   },
@@ -3734,7 +3757,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789985453194
+   "restUntil": 1789987246368
   },
   {
    "id": "fill_ring_field1",
@@ -4521,14 +4544,14 @@
    "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -333,58,-483",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Aoi",
-    "t": 1789982847554,
+    "by": "Hina",
+    "t": 1789985729775,
     "at": [
-     -331,
-     62,
-     -483
+     -320,
+     64,
+     -485
     ],
-    "drop": 7
+    "drop": 5
    },
    "noDig": {
     "-323,42,-466": 1789983040661,
@@ -6355,7 +6378,7 @@
      ]
     ]
    },
-   "restUntil": 1789986060900,
+   "restUntil": 1789988392896,
    "rev": 1
   },
   {
@@ -7212,7 +7235,20 @@
        "shoulder": 2,
        "toY": 94
       },
-      "idle": 0
+      "idle": 6,
+      "blocked": {
+       "at": 1789986525585,
+       "left": 337,
+       "of": 405,
+       "cells": [
+        "-542,113,-161=air",
+        "-543,113,-161=air",
+        "-550,111,-164=air",
+        "-550,111,-163=air",
+        "-550,111,-162=air",
+        "-550,111,-161=grass_block"
+       ]
+      }
      },
      {
       "i": 12,
@@ -7300,7 +7336,7 @@
        "shoulder": 2,
        "toY": 93
       },
-      "idle": 1
+      "idle": 2
      },
      {
       "i": 15,
@@ -7410,7 +7446,20 @@
        "shoulder": 2,
        "toY": 96
       },
-      "idle": 28
+      "idle": 30,
+      "blocked": {
+       "at": 1789985590158,
+       "left": 23,
+       "of": 65,
+       "cells": [
+        "-640,95,-48=air",
+        "-638,95,-47=air",
+        "-639,95,-46=air",
+        "-638,95,-46=air",
+        "-637,95,-46=air",
+        "-640,95,-45=air"
+       ]
+      }
      },
      {
       "i": 18,
@@ -7438,7 +7487,20 @@
        "shoulder": 2,
        "toY": 94
       },
-      "idle": 6
+      "idle": 8,
+      "blocked": {
+       "at": 1789985848346,
+       "left": 40,
+       "of": 75,
+       "cells": [
+        "-640,95,-32=air",
+        "-640,95,-31=air",
+        "-640,95,-30=air",
+        "-640,95,-29=grass_block",
+        "-639,95,-29=air",
+        "-637,95,-29=air"
+       ]
+      }
      },
      {
       "i": 19,
@@ -7548,7 +7610,20 @@
        "shoulder": 2,
        "toY": 74
       },
-      "idle": 9
+      "idle": 14,
+      "blocked": {
+       "at": 1789986102323,
+       "left": 54,
+       "of": 55,
+       "cells": [
+        "-716,73,-11=air",
+        "-715,73,-11=short_grass",
+        "-714,73,-11=grass_block",
+        "-713,73,-11=grass_block",
+        "-712,73,-11=grass_block",
+        "-716,73,-10=air"
+       ]
+      }
      },
      {
       "i": 22,
@@ -7576,7 +7651,20 @@
        "shoulder": 2,
        "toY": 68
       },
-      "idle": 4
+      "idle": 10,
+      "blocked": {
+       "at": 1789986501943,
+       "left": 110,
+       "of": 110,
+       "cells": [
+        "-716,73,0=air",
+        "-715,73,0=grass_block",
+        "-714,73,0=grass_block",
+        "-713,73,0=grass_block",
+        "-712,73,0=grass_block",
+        "-716,73,1=air"
+       ]
+      }
      },
      {
       "i": 23,
@@ -7604,11 +7692,25 @@
        "shoulder": 2,
        "toY": 72
       },
-      "idle": 8
+      "idle": 12,
+      "blocked": {
+       "at": 1789986498646,
+       "left": 28,
+       "of": 30,
+       "cells": [
+        "-716,69,22=dirt",
+        "-715,69,22=dirt",
+        "-714,69,22=dirt_path",
+        "-713,69,22=dirt_path",
+        "-712,69,22=dirt_path",
+        "-716,70,23=dirt"
+       ]
+      }
      }
     ]
    },
-   "rev": 8
+   "rev": 8,
+   "restUntil": 1789987563237
   },
   {
    "id": "smelt_and_buckets",
@@ -7815,9 +7917,10 @@
     "minHp": 8,
     "needsNight": true,
     "bare": true,
-    "dy": 8
+    "dy": 8,
+    "when": "night"
    },
-   "rev": 8,
+   "rev": 9,
    "shiftMin": 20
   },
   {
@@ -7838,7 +7941,7 @@
     "target": 16,
     "bare": true
    },
-   "restUntil": 1789985667565
+   "restUntil": 1789987153693
   },
   {
    "id": "farm_2",
@@ -8042,7 +8145,7 @@
     "shear": false,
     "cull": false
    },
-   "restUntil": 1789985371830
+   "restUntil": 1789987309882
   },
   {
    "id": "end_stronghold",
@@ -8201,10 +8304,11 @@
     "cobble": 128,
     "crossS": 30,
     "maxDeaths": 2,
-    "bare": true
+    "bare": true,
+    "stopAt": 452
    },
    "desc": "EXPERIMENT (bare): work:route v3 09-21 by the Nether engineer: the tunneler (routeTunnel) + legs re-sited off the flooded v2 stair: a stair cut WEST into the solid rock core x-67..-55 z-83..-80 (lanes z-82/-81, bottom -55,98,-82 on the shelf, top -67,110,-82), then the verified leg east along z-84/-83 from x-67. Camera: seq 0-30 no lava/precious; v2 leg-2 wall holds a lava SOURCE -53,111,-81 that now floods the v2 stair + hub corner.",
-   "rev": 5
+   "rev": 6
   },
   {
    "id": "base_cane",
@@ -8251,7 +8355,8 @@
       "why": "no water_bucket"
      }
     }
-   }
+   },
+   "restUntil": 1789986687416
   },
   {
    "id": "fix_depot_slot_351",
@@ -8478,6 +8583,63 @@
    "desc": "EXPERIMENT (bare): Nether engineer 09-21 10:1xZ - close the lava SOURCE -53,111,-81 (old v2 leg-2 wall) from the new route: walk the route to seq 27 (-53,110,-84), open the wall cell -53,111,-82 between them, plug the source through it at once, close the wall again. The v2 stair and the hub corner drain when it is shut. v1 of this plan (plug the stair foot) only moved the flow.",
    "rev": 2,
    "note": "auto-paused: all 5 steps done by Aika"
+  },
+  {
+   "id": "fill_depot_slots",
+   "type": "steps",
+   "priority": 95,
+   "status": "active",
+   "bots": 1,
+   "names": [
+    "Tamaki"
+   ],
+   "when": "any",
+   "plan": "zone depot: chest rows z-512 and z-509 each miss ONE chest (1x1 sunken slots that trapped Akari at -343,67,-512 and Kotori at -363,67,-509, BUGS lines 594/597). A chest in each slot restores the row and removes the trap (same fix as fix_depot_slot_351).",
+   "params": {
+    "steps": [
+     {
+      "do": "withdraw",
+      "item": "chest",
+      "n": 2
+     },
+     {
+      "do": "goto",
+      "to": [
+       -343,
+       69,
+       -510
+      ],
+      "range": 2
+     },
+     {
+      "do": "place",
+      "block": "chest",
+      "at": [
+       -343,
+       67,
+       -512
+      ]
+     },
+     {
+      "do": "goto",
+      "to": [
+       -363,
+       69,
+       -507
+      ],
+      "range": 2
+     },
+     {
+      "do": "place",
+      "block": "chest",
+      "at": [
+       -363,
+       67,
+       -509
+      ]
+     }
+    ]
+   }
   }
  ]
 }
