@@ -62,7 +62,9 @@ const NOTOP = -32768
 const vv = p => Array.isArray(p) ? new Vec3(p[0], p[1], p[2]) : new Vec3(p.x, p.y, p.z)
 const xyzOf = p => [Math.floor(p.x), Math.floor(p.y), Math.floor(p.z)]
 const keyOf = p => Math.floor(p.x) + ',' + Math.floor(p.y) + ',' + Math.floor(p.z)
-const isAirB = b => !!b && b.boundingBox === 'empty' && !LIQUID_RE.test(b.name)
+// A PORTAL IS NOT A HOLE (foreman 09-21 12:1xZ: place_failed x173/30 min by 11 bots into the nether_portal cells -327,70..71,-518 - `empty` bounding box read as air)
+const PORTAL_RE = /^(nether_portal|end_portal|end_gateway)$/
+const isAirB = b => !!b && b.boundingBox === 'empty' && !LIQUID_RE.test(b.name) && !PORTAL_RE.test(b.name)
 const isSolidB = b => !!b && b.boundingBox === 'block'
 
 // A CODER, not a name lookup per cell: 3 million cells per survey, so every question about a block is answered once per STATE id.
@@ -74,7 +76,8 @@ function coder (registry) {
     if (sid == null) return C_UNKNOWN
     let c = cCode[sid]; if (c >= 0) return c
     const b = registry.blocksByStateId[sid]; const n = b ? b.name : 'air'
-    c = AIR_RE.test(n) ? C_AIR
+    c = PORTAL_RE.test(n) ? C_SOLID // never part of a void (and HARD_RE keeps every shaft off it)
+      : AIR_RE.test(n) ? C_AIR
       : LIQUID_RE.test(n) ? C_LIQUID
         : (b && b.boundingBox === 'block') ? (SKY_BLIND_RE.test(n) ? C_THIN : C_SOLID)
           : C_AIR // torches, plants, rails, snow layers, buttons: a mob stands there and the fill must close it
@@ -864,23 +867,26 @@ module.exports = ctx => {
   // the tunnel at depth, when the ground straight over the hole is a building, a field, a pen or a road. Cells come shaft side first, two per column (feet +
   // head); the worker digs a column and WALKS INTO IT (09-21: a tunnel of up to `tunnelMax` cells is out of reach from the shaft's foot).
   async function digTunnel (bot, api, cells) {
-    const B = BL()
+    const B = BL(); const dug = []
+    const no = why => ({ ok: false, why, dug })
     const cols = []
     for (const c of cells || []) { const k = c[0] + ',' + c[2]; let e = cols.find(q => q.k === k); if (!e) { e = { k, x: c[0], z: c[2], cells: [] }; cols.push(e) } e.cells.push(vv(c)) }
     for (const col of cols) {
-      if (api.stop()) return false
+      if (api.stop()) return no('stopped')
       for (const p of col.cells.slice().sort((a, b) => b.y - a.y)) {
         const b = bot.blockAt(p)
-        if (!b || isAirB(b)) continue
-        if (HARD_RE.test(b.name) || GRAVITY_RE.test(b.name) || A.ourBlock(p, b.name) || U.protectedBlock(b)) return false
-        for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0], [0, -1, 0]]) { const n = bot.blockAt(p.offset(dx, dy, dz)); if (n && n.name === 'lava') return false }
-        const r = await B.digBlock(bot, p, { collect: true, requireHarvest: false })
-        if (!r.ok) return false
+        if (!b) return no('not loaded ' + keyOf(p))
+        if (isAirB(b)) continue
+        if (HARD_RE.test(b.name) || GRAVITY_RE.test(b.name) || A.ourBlock(p, b.name) || U.protectedBlock(b)) return no(b.name + ' at ' + keyOf(p))
+        for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0], [0, -1, 0]]) { const n = bot.blockAt(p.offset(dx, dy, dz)); if (n && n.name === 'lava') return no('lava beside ' + keyOf(p)) }
+        const r = await B.digBlock(bot, p, { collect: true, requireHarvest: false, allowUnderFeet: true }) // the tunnel floor was READ (census: solid under every cell); stepping down 1 into our own tunnel is safe
+        if (!r.ok) return no('dig ' + keyOf(p) + ': ' + r.reason)
+        dug.push([p.x, p.y, p.z])
         await sleep(200)
       }
-      if (col.cells.length >= 2) { const L = Math.min(...col.cells.map(q => q.y)); if (!await A.travel(bot, new Vec3(col.x, L, col.z), { range: 0, ms: 8000, stop: api.stop, quiet: true, anyDepth: true })) return false }
+      if (col.cells.length >= 2) { const L = Math.min(...col.cells.map(q => q.y)); const f1 = bot.entity.position.floored(); const adj = Math.abs(f1.x - col.x) + Math.abs(f1.z - col.z) === 1 && Math.abs(f1.y - L) <= 1; if (!(adj && await A.stepInto(bot, new Vec3(col.x, L, col.z))) && !await A.travel(bot, new Vec3(col.x, L, col.z), { range: 0, ms: 8000, stop: api.stop, quiet: true, anyDepth: true })) return no('could not walk into ' + [col.x, L, col.z].join(',')) }
     }
-    return true
+    return { ok: true, dug }
   }
 
   // THE RETREAT (09-21): out of a sideways tunnel, pocket side first, into the shaft's foot - after every step the tunnel cells just left (feet + head) are
@@ -893,11 +899,19 @@ module.exports = ctx => {
     const path = cols.concat([{ k: 'shaft', x: got.at[0], z: got.at[2], cells: [] }])
     try {
       // stand at the pocket end of the tunnel first (the pass may have left the worker anywhere in the pocket)
-      const f0 = bot.entity.position.floored()
-      if (!(f0.x === path[0].x && f0.z === path[0].z) && !await A.travel(bot, new Vec3(path[0].x, L, path[0].z), { range: 0, ms: 15000, stop: api.stop, quiet: true, anyDepth: true })) return { ok: false, placed, item, why: 'cannot reach the tunnel end ' + [path[0].x, L, path[0].z].join(',') }
-      for (let i = 0; i < cols.length && !api.stop(); i++) {
+      // (the pocket-side end may already be closed over by the pass - a 1-high cell under a filled pocket: start at the first column the worker can stand in;
+      // what lies behind that is in reach of the second pass)
+      let i0 = -1
+      for (let i = 0; i < cols.length && i0 < 0 && !api.stop(); i++) {
+        const f0 = bot.entity.position.floored()
+        if ((f0.x === path[i].x && f0.z === path[i].z) || await A.travel(bot, new Vec3(path[i].x, L, path[i].z), { range: 0, ms: 12000, stop: api.stop, quiet: true, anyDepth: true })) i0 = i
+      }
+      if (i0 < 0) return { ok: false, placed, item, why: 'cannot stand in any tunnel cell (' + cols.length + ' columns)' }
+      for (let i = i0; i < cols.length && !api.stop(); i++) {
         const nx = path[i + 1]
-        if (!await A.travel(bot, new Vec3(nx.x, L, nx.z), { range: 0, ms: 12000, stop: api.stop, quiet: true, anyDepth: true })) return { ok: false, placed, item, why: 'stuck in the tunnel at ' + xyzOf(bot.entity.position).join(',') }
+        const f1 = bot.entity.position.floored(); const adj = Math.abs(f1.x - nx.x) + Math.abs(f1.z - nx.z) === 1 && Math.abs(f1.y - L) <= 1
+        // the next column is one step away in a 1x2 corridor: a plain step (the read-only pathfinder gave up on exactly this 4x in the first hour)
+        if (!(adj && await A.stepInto(bot, new Vec3(nx.x, L, nx.z))) && !await A.travel(bot, new Vec3(nx.x, L, nx.z), { range: 0, ms: 12000, stop: api.stop, quiet: true, anyDepth: true })) return { ok: false, placed, item, why: 'stuck in the tunnel at ' + xyzOf(bot.entity.position).join(',') + ' -> ' + [nx.x, L, nx.z].join(',') }
         for (const p of cols[i].cells.slice().sort((a, b) => a.y - b.y)) {
           const b = bot.blockAt(p); if (!b || !isAirB(b)) continue
           if (A.count(bot, item) < 1) { item = fillerIn(bot); if (!item) return { ok: false, placed, item, why: 'out of filler in the tunnel' } }
@@ -1132,7 +1146,22 @@ module.exports = ctx => {
         if (!sb || !isSolidB(sb) || GRAVITY_RE.test(sb.name) || HARD_RE.test(sb.name) || A.ourBlock(vv(t.at), sb.name) || A.penAt(t.at[0], t.at[1], t.at[2], bot)) { skipped.push(t.at.join(',') + ':' + (sb ? sb.name : 'not loaded')); continue }
         task(bot, 'cavity: shaft at ' + t.at.join(',') + ' down to ' + t.entryY + (t.tunnel && t.tunnel.length ? ' + ' + t.tunnel.length + ' tunnel cells' : ''))
         const r = await digShaft(bot, job, api, t, log)
-        if (r.ok && t.tunnel && t.tunnel.length && !await digTunnel(bot, api, t.tunnel)) { A.result(bot, { ev: 'cavity_shaft_failed', at: t.at, why: 'the sideways tunnel to ' + (t.to || []).join(',') + ' could not be cut' }); continue }
+        if (r.ok && t.tunnel && t.tunnel.length) {
+          const tr = await digTunnel(bot, api, t.tunnel)
+          if (!tr.ok) {
+            // A FAILED TUNNEL IS CLOSED BEFORE ANYTHING ELSE (09-21): what was cut is walked back and filled, the shaft ridden up and its top restored - an open
+            // shaft + half a tunnel is exactly the scar this job exists to remove, and a bot left standing in it is the next `entombed`
+            const part = { at: t.at, entryY: t.entryY, tunnel: t.tunnel.filter(c => tr.dug.some(d => d[0] === c[0] && d[1] === c[1] && d[2] === c[2])) }
+            const item = fillerIn(bot)
+            let closed = 0
+            if (part.tunnel.length && item) closed += (await retreat(bot, api, part, item)).placed
+            if (item) closed += await rideOut(bot, api, [t.at[0], t.at[2]], t.at[1], fillerIn(bot) || item)
+            const top = bot.blockAt(vv(t.at)); const ri = restoreItem(bot, sb.name)
+            if (top && isAirB(top) && A.count(bot, ri)) { const f = bot.entity.position.floored(); if (f.x === t.at[0] && f.z === t.at[2] && f.y === t.at[1]) await A.fillInside(bot, vv(t.at), ri, { stop: api.stop }); else await A.placeHard(bot, vv(t.at), ri, { stop: api.stop, fill: true, noRest: true }) }
+            A.result(bot, { ev: 'cavity_shaft_failed', at: t.at, why: 'the sideways tunnel to ' + (t.to || []).join(',') + ' could not be cut: ' + String(tr.why).slice(0, 70), closed })
+            continue
+          }
+        }
         if (r.ok) { got = Object.assign({ name: sb.name }, t); entered = r.via || 'dig'; break }
         A.result(bot, { ev: 'cavity_shaft_failed', at: t.at, why: String(r.why).slice(0, 90) })
       }
@@ -1284,6 +1313,9 @@ module.exports = ctx => {
     task(bot, 'cavity: ' + ent.type + ' ' + ent.at.join(',') + ' (' + ent.cells + ' cells, ' + ent.spawnable + ' spawnable)')
     let r = null
     try { r = await fillOne(bot, job, api, P, ent) } catch (e_) { swallow('jobs_cavity:fillOne', e_); r = { ok: false, why: 'error: ' + String(e_ && e_.message).slice(0, 80) } }
+    // NOBODY IS LEFT IN THE HOLE (09-21 12:4xZ: Rin area 1 at -355,64,-513 and Sakura area 3 at -356,62,-498 after passes that ended inside a tunnel - the next
+    // slice banked from down there, `no_route` every 30 s). A worker that is still boxed in below grade leaves NOW with the army's escape (pillar / sideExit).
+    try { if (!api.stop() && A.islandOf(bot).size < A.TRAP_ISLAND && !A.skyAbove(bot)) { task(bot, 'cavity: out of the hole'); await A.digOut(bot, false, {}) } } catch (e_) { swallow('jobs_cavity:out', e_) }
     if (r.ok) {
       await claimEnd(bot, key, { done: true, placed: r.placed })
       markDone(ent.id, { type: 'filled', spawnable: 0, filled: Date.now(), by: bot.username })

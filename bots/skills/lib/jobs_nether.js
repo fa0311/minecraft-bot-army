@@ -1954,7 +1954,7 @@ module.exports = ctx => {
     }
     if (reached > head2 && k0 === 0) head2 = reached // every cell up to `reached` was stood on this pass - only when the pass began at the start (09-21 12:5xZ: a pass that began deep in the tunnel called the route done while its corner was walled up behind it)
     // HOME END FIRST: walk the finished way back to the start, so the gate beside the hub is the way home
-    if (i > 0) { const hb = await routeWalkSeq(bot, api, P.legs, 0, 'walking back').catch(e => ({ walked: 0, why: String(e && e.message) })); back = hb.walked || 0 } // both lanes, greedy
+    if (i > 0 && !P.stayAtEnd) { const hb = await routeWalkSeq(bot, api, P.legs, 0, 'walking back').catch(e => ({ walked: 0, why: String(e && e.message) })); back = hb.walked || 0 } // both lanes, greedy
     try { bot.setControlState('sneak', bot.__netherHold > 0) } catch (e_) { swallow('jobs_nether:routeEnd', e_) }
     // `params.complete: seq` - the way is only done when every cell from that seq on stands too (a booth whose walls are missing is
     // walkable but not a post; 09-21 12:4xZ the barter post read done with its west wall open to the cavern)
@@ -1965,7 +1965,7 @@ module.exports = ctx => {
     const left = cells.filter(c => c.seq < head2 && loadedAt(bot, c) && !routeOK(bot, c))
     return {
       work: 'route', lane, crew: crew.length, finisher, openFrom: Number.isFinite(P.complete) ? openFrom.length : undefined, head: head2, headWas: head, length: meta.length, reached, done, placed, dug, steps, back, waited, stuck,
-      behindLeft: left.length, leftAt: left.slice(0, 4).map(c => K3(c.x, c.y, c.z) + '=' + c.block + ' (' + (why[K3(c.x, c.y, c.z)] || '?') + ')'),
+      behindLeft: left.length, leftAt: left.slice(0, 4).map(c => K3(c.x, c.y, c.z) + '=' + c.block + ' (' + (why[K3(c.x, c.y, c.z)] || '?') + ')'), leftNear: left.filter(c => reached >= 0 && Math.abs(c.seq - reached) <= 8).slice(0, 6).map(c => K3(c.x, c.y, c.z) + '=' + c.block + ' (' + (why[K3(c.x, c.y, c.z)] || '?') + ')'),
       min: Math.round(min * 10) / 10, perBotMin: Math.round((placed + dug) / min * 10) / 10, carried: stoneCarried(bot), item: routeItem(bot)
     }
   }
@@ -2833,6 +2833,9 @@ module.exports = ctx => {
       st.kitted = true
     }
     if (api.stop()) return 'portal: kitted, crossing next slice'
+    // THE KIT IS RE-READ BEFORE THE GATE (09-21 13:0xZ: Misaki kitted, missed the gate, and the between-slice banking took her 64 gold;
+    // `st.kitted` stayed true and she crossed to the barter post with none). What the trip is FOR must be in the pockets now.
+    if ((P.work === 'barter' && A.count(bot, 'gold_ingot') < 16) || (/^(route|steps)$/.test(String(P.work)) && stoneCarried(bot) < 32)) { st.kitted = false; return 'portal: the cargo left my pockets between slices - kitting again' }
 
     // CROSS
     st.fromDim = dimOf(bot); st.deathsAtGo = bot.__armyDeaths || 0; st.through = 0; st.looked = false; st.landed = false; st.sealed = false; st.worked = false

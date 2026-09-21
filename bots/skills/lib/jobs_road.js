@@ -375,7 +375,17 @@ module.exports = ctx => {
     const dist = s => Math.min(Math.hypot(s.origin[0] - me.x, s.origin[2] - me.z), Math.hypot(s.to[0] - me.x, s.to[2] - me.z))
 
     // ---- every segment built? the job is a build order, not a standing post: it reads the nearest one back, then pauses itself
-    const left = cur.filter(s => !s.built && !s.blocked)
+    // A BLOCK IS A PAUSE, NOT A VERDICT (09-21 13:0xZ: all 14 unbuilt segments of road_village carried a `blocked` mark - most set while the
+    // crews' paving was being banked away as surplus - and this check then read the road as COMPLETE at 10/24 and paused it; 20 bots
+    // stood at muster). A mark older than 45 min is retried, and a road with unbuilt segments is never 'complete'.
+    const BLOCK_MS = 45 * 60000
+    const blockedNow = s => !!(s.blocked && Date.now() - (s.blocked.at || 0) < BLOCK_MS)
+    const left = cur.filter(s => !s.built && !blockedNow(s))
+    if (!left.length && cur.some(s => !s.built)) {
+      const b = cur.filter(s => !s.built)
+      A.decline(bot, job, 10 * 60000, 'road: the ' + b.length + ' unbuilt segments are all blocked (retried 45 min after each mark)')
+      return muster(bot, job, api, ctx2, 'road: every unbuilt segment is blocked for now (' + b.map(s => s.i).join(',') + ')')
+    }
     if (!left.length) {
       const near = cur.slice().sort((a, b) => dist(a) - dist(b))[0]
       const st = near ? segState(bot, P, near) : { wrong: [], seen: 1, total: 1 }
@@ -461,8 +471,15 @@ module.exports = ctx => {
       // leftovers NAMED: the road audit keeps watching them and `road_blocked` is a line an operator can act on.
       // the counter lives ON THE SEGMENT, not on the bot (measured 06:0xZ: with 5 bots on a 12-cell segment every bot got exactly
       // ONE pass before the dispatcher rotated it away, so a per-bot counter never reached two and the last 3 cells span for ever)
-      const idle = done > 0 ? 0 : ((s.idle || 0) + 1)
-      if (idle !== (s.idle || 0)) { segEdit(job.id, s.i, { idle }); s.idle = idle }
+      // A PASS THAT NEVER REACHED THE SEGMENT SAYS NOTHING ABOUT IT (09-21 13:0xZ: seg 8/10 were re-blocked within one slice of their
+      // retry - `travel_fail timeout/stop` 12-70 blocks short, `build_pass done 0`, and the old counter was still 8). Only a pass that
+      // ended within 16 blocks of the segment's line counts; a retried (expired) block starts the count again.
+      const me2 = bot.entity.position
+      const lx = [Math.min(s.origin[0], s.to[0]), Math.max(s.origin[0], s.to[0])]; const lz = [Math.min(s.origin[2], s.to[2]), Math.max(s.origin[2], s.to[2])]
+      const reached = Math.hypot(Math.max(lx[0] - me2.x, 0, me2.x - lx[1]), Math.max(lz[0] - me2.z, 0, me2.z - lz[1])) <= 16
+      const idle0 = (s.blocked && Date.now() - (s.blocked.at || 0) >= 45 * 60000) ? 0 : (s.idle || 0)
+      const idle = done > 0 ? 0 : reached ? idle0 + 1 : idle0
+      if (idle !== (s.idle || 0) || (s.blocked && idle < 8)) { segEdit(job.id, s.i, Object.assign({ idle }, s.blocked && idle < 8 ? { blocked: null } : {})); s.idle = idle }
       const leftover = idle >= 3 && st.wrong.length <= Math.max(3, Math.ceil(st.total * 0.03))
       // …AND A SEGMENT THAT CANNOT BE FINISHED AT ALL SAYS SO ONCE AND STEPS ASIDE (owner 09-21「幹線道路、全然置けてない」: seg 1 of
       // road_mine repeated `road_seg_start` for 7 minutes with four bots and `idle` reached 225 - five cells it could not lay were

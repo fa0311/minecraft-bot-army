@@ -1229,6 +1229,9 @@ function capAbove (bot, x, y0, z, up = 40) {
 async function placeInto (bot, pos) {
   const b0 = bot.blockAt(pos); if (!b0 || b0.boundingBox !== 'empty' || /water|lava/.test(b0.name)) return false
   const fill = FILLERS.find(f => count(bot, f)); if (!fill) return false
+  // the proven primitive first (line of sight, squared aim, no walking), the plain click only as a fallback
+  const r0 = await require('./blocks').placeBlock(bot, pos, fill, { retries: 1, noMove: true }).catch(e_ => { swallow('army:placeIntoBL', e_); return { ok: false } })
+  if (r0 && r0.ok) return true
   const it = bot.inventory.items().find(i => i.name === fill); if (!it) return false
   try { await bot.equip(it, 'hand') } catch (e_) { swallow('army:placeIntoEquip', e_); return false }
   for (const d of [new Vec3(0, -1, 0), new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1), new Vec3(0, 1, 0)]) {
@@ -2600,7 +2603,7 @@ async function pickup (bot, r = 6, ms = 6000) { try { await U.pickupNear(bot, ms
 
 module.exports = { digPlaceCost,
   DIR, F, sleep, readJSON, writeJSON, boardEdit, decline, result, settings, inv, count, bestOf, equipBest, heartbeat, assignment,
-  strictMovements, larderFull, larderGate, escapeMovements, skyAbove, capAbove, sideExit, digOut, fillShaft, inShaft, walkableArea, walkCells, islandOf, trapped, TRAP_ISLAND, pillarEscape, debt, travel, dist2, categoryOf, chestsOf, index, record, openChest, closeWin, bank, withdraw,
+  strictMovements, larderFull, larderGate, escapeMovements, skyAbove, capAbove, sideExit, stepInto, digOut, fillShaft, inShaft, walkableArea, walkCells, islandOf, trapped, TRAP_ISLAND, pillarEscape, debt, travel, dist2, categoryOf, chestsOf, index, record, openChest, closeWin, bank, withdraw,
   scanChests, stockOf, stockMap, dumpJunk, askHelp, helpAnswer, placeHard, fillInside, gravityDrop, obtain, craftSpot, stash, unstash, siteInfo, siteSet, hostiles, startGuard, stopGuard, kill, pickup, HOSTILE, CATS,
   kitUp, kitPlan, wear, riskJob, carried, liveBots, musterPos, surfaceFloor, SEA_LEVEL, DROP, stairUp, furnaces, registerFurnaces, openAt, pickFuel, smelt, blueprintCellsOf, buildJobs, ours, ourBlock, penAt, insideOurs, zoneAt, TERRAIN_BP,
   dimOf, offload, surplusOf
