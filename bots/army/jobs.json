@@ -1280,7 +1280,7 @@
     98,
     -80
    ],
-   "through": 1789950680933,
+   "through": 1789952456700,
    "scoutRev": 4,
    "hub": {
     "room": [
@@ -1392,8 +1392,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789950681111,
-   "back": 1789950693778,
+   "landingAt": 1789952456864,
+   "back": 1789952469462,
    "lastDeath": 1789924669079,
    "lastDeathBy": "Fuuka",
    "roads": {
@@ -1615,20 +1615,9 @@
     "t": 1789924913245
    },
    "absorb": {
-    "iron_ingot": 192,
-    "coal": 960,
-    "rabbit": 64,
-    "porkchop": 112,
-    "leather": 192,
-    "flint": 888,
-    "carrot": 704,
-    "wheat": 640,
-    "pumpkin": 216,
-    "melon": 144,
-    "diamond": 24,
-    "beetroot": 240
+    "iron_ingot": 48
    },
-   "absorbT": 1789949414031
+   "absorbT": 1789951351384
   },
   "enchantTable": [
    -344,
@@ -1865,7 +1854,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 1,
+   "bots": 10,
    "site": [
     -367,
     69,
@@ -1901,9 +1890,9 @@
      ]
     ]
    },
-   "rev": 74,
+   "rev": 75,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
-   "restUntil": 1789936495499
+   "restUntil": 1789952556334
   },
   {
    "id": "farm_1",
@@ -2048,7 +2037,7 @@
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 8,
    "rev": 67,
-   "restUntil": 1789951037818
+   "restUntil": 1789953209412
   },
   {
    "id": "base_dorm",
@@ -2234,9 +2223,9 @@
     "radius": 150,
     "bankAt": 32
    },
-   "rev": 19,
-   "bots": 0,
-   "restUntil": 1789951645068
+   "rev": 20,
+   "bots": 1,
+   "restUntil": 1789953560578
   },
   {
    "id": "sleeper",
@@ -2323,7 +2312,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789950837723
+   "restUntil": 1789952481611
   },
   {
    "id": "fill_ring_field1",
@@ -2867,7 +2856,7 @@
    "type": "build",
    "priority": 70,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 1,
    "site": [
@@ -3100,7 +3089,7 @@
     },
     "order": "near"
    },
-   "rev": 71,
+   "rev": 74,
    "desc": "MEASURED 16:3xZ by probe: 44 columns (444 cells) still open to the sky = this job (narrow deep shafts: step off / water drop in, pillar out = the column is filled); 3172 air cells lie UNDER the crust below grade = NOT reachable from above, they belong to the cavity job (owner algorithm: shaft down, fill riding up). `left` counts both - do not judge this job by `left`, and do not raise the crew over the number of open shafts",
    "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -333,58,-483",
    "restUntil": 1789906650052,
@@ -3377,7 +3366,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789951509525
+   "restUntil": 1789953324800
   },
   {
    "id": "nether_landing_2",
@@ -4850,7 +4839,7 @@
     ],
     "rev": 99
    },
-   "rev": 99,
+   "rev": 100,
    "restUntil": 1789950979786
   },
   {
@@ -4888,7 +4877,7 @@
     "radius": 150,
     "bankAt": 48
    },
-   "restUntil": 1789950395879,
+   "restUntil": 1789952888445,
    "rev": 13
   },
   {
