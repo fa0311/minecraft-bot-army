@@ -2882,6 +2882,26 @@ async function build (bot, job, api, ctx) {
     for (const c of cells) { if (!c.solid || TOPS.has(K(c))) continue; if (c.x > x1 && c.x < x2 && c.z > z1 && c.z < z2) continue; if (c.y >= c.g - 1) TOPS.add(K(c)) } // a VISIBLE FLANK is a surface too: the outer ring shows its side
   }
   const isTop = c => TOPS.has(K(c))
+  // A MIGRATION CAP WORKS THE CAMERA'S LIST, NOT A WHOLE BOX (owner 09-21 「現状は土被せがないとマイグレーションされないからね」): the top-layer rule above only fixes
+  // ground filled FROM NOW ON, so the caps stay - but with a shape that cannot fight a fill. Their work is exactly the columns `ops/base-audit.js` MEASURED as wrong or
+  // rubble (`base_audit.json -> surface.wrongCols/rubbleCols`, refreshed every ~30 min); every one of them is re-read in the world before it is touched (the list may be
+  // half an hour old), a column an ACTIVE fill still owns is left alone (ownedCols, below), only the skin block is laid - and a column that is NOT on the list is not
+  // this job's business at all, so it is not counted as `left` either and the cap pauses itself the moment its area is clean.
+  let _capCols = { t: 0, s: null }
+  const capCols = () => {
+    if (_capCols.s !== null && Date.now() - _capCols.t < 120000) return _capCols.s
+    let s2 = null
+    try {
+      const a = auditWork(); const su = a && a.surface
+      if (su && (Array.isArray(su.wrongCols) || Array.isArray(su.rubbleCols))) {
+        s2 = new Set()
+        for (const q of su.wrongCols || []) if (Array.isArray(q)) s2.add(q[0] + ',' + q[2])
+        for (const q of su.rubbleCols || []) if (Array.isArray(q)) s2.add(q[0] + ',' + q[2])
+      }
+    } catch (e_) { swallow('army_jobs:capCols', e_) }
+    _capCols = { t: Date.now(), s: s2 }
+    return s2
+  }
   const topOK = name => name === topMat || (HARD_SOIL.test(topMat) && HARD_SOIL.test(name)) // grass/podzol/farmland over dirt are all "the ground is there"
   const nearWater = c => { if (!waterKeys.size) return false; for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) if (waterKeys.has((c.x + dx) + ',' + (c.y + dy) + ',' + (c.z + dz))) return true; return false }
   const revKey = 'rev' + (job.rev || 0)
@@ -2927,6 +2947,7 @@ async function build (bot, job, api, ctx) {
       // mode: bare stone, gravel or air becomes dirt; paving, a crop, a chest, soil that is already soil are none of the cap's business)
       if (c.only && !c.only.includes(b.name)) continue
       // the column still belongs to an active fill/pad (see ownedCols): not this cap's cell this minute
+      if (capJob) { const cl = capCols(); if (cl && !cl.has(c.x + ',' + c.z)) continue } // not on the audit's wrong/rubble list: not this migration's column, and not `left`
       if (capJob) { const ys = ownedCols().get(c.x + ',' + c.z); if (ys && ys.some(y => !solid(at(c.x, y, c.z)))) { owned++; wait++; continue } }
       // A BLOCK THAT STANDS WHERE ANOTHER BLUEPRINT OF OURS PUT IT IS NEVER THIS JOB'S TO DIG (a pad's headroom inside the dorm walls, a road shoulder in the hall): not work, not `left`
       // ...and this was an IIFE run for EVERY cell of the blueprint although only the four branches below ever read it: 747 k - 887 k `A.ourBlock` calls in 45 s on one

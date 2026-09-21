@@ -477,6 +477,24 @@ async function takeFortunePick (bot, opts, took) {
     }
   } catch (e_) { swallow('army:takeFortunePick', e_) }
 }
+// what a bot may hold on an experimental job: stone tools, food, torches, blocks, buckets - nothing that hurts to lose
+const BARE_OK = /^(stone_|wooden_|cobble|cobbled_deepslate|stone$|deepslate$|andesite|diorite|granite|tuff|dirt|gravel|sand|netherrack|torch|bread|cooked_|apple|golden_carrot|water_bucket|bucket|flint_and_steel|ladder|crafting_table|[a-z_]+_planks|[a-z_]+_log|[a-z_]+_fence|obsidian|wheat_seeds|rail)/
+function bareJob (bot) { const j = (assignment(bot) || {}).job || {}; const p = j.params || {}; return !!(p.bare || /experiment/i.test(String(p.risk || j.risk || ''))) }
+async function bareDown (bot, opts = {}) {
+  const keep = {}
+  for (const i of bot.inventory.items()) if (BARE_OK.test(i.name)) keep[i.name] = (keep[i.name] || 0) + i.count
+  const rich = bot.inventory.items().filter(i => !BARE_OK.test(i.name)).reduce((n, i) => n + i.count, 0)
+  const worn = [5, 6, 7, 8].map(sl => bot.inventory.slots[sl]).filter(Boolean)
+  if (!rich && !worn.length) { // already bare: make sure it at least has a stone pickaxe to work with
+    for (const n of ['stone_pickaxe', 'stone_shovel', 'stone_axe']) if (!U.count(bot, n) && stockOf(n) > 0) await withdraw(bot, n, 1, { stop: opts.stop }).catch(() => 0)
+    return
+  }
+  for (const it of worn) { try { await bot.unequip(it.name.includes('helmet') ? 'head' : it.name.includes('chestplate') ? 'torso' : it.name.includes('leggings') ? 'legs' : 'feet') } catch (e_) { swallow('army:bareUnequip', e_) } }
+  const moved = await bank(bot, keep, { job: ((assignment(bot) || {}).job || {}).id + ' (bare: experimental job)', stop: opts.stop, noKit: true })
+  for (const n of ['stone_pickaxe', 'stone_shovel', 'stone_axe']) if (!U.count(bot, n) && stockOf(n) > 0) await withdraw(bot, n, 1, { stop: opts.stop }).catch(() => 0)
+  result(bot, { ev: 'bare_handed', job: ((assignment(bot) || {}).job || {}).id || null, banked: moved || {}, why: 'experimental job: nothing valuable goes out there' })
+}
+
 async function kitUp (bot, opts = {}) {
   if (bot.__armyKitBusy || !bot.entity) return []
   bot.__armyKitBusy = true; const took = []
@@ -485,6 +503,12 @@ async function kitUp (bot, opts = {}) {
     if (!overworldBot(bot)) { offWorld(bot, 'kit'); return took }
     if (opts.fetch === false || Date.now() - (bot.__armyKitT || 0) < (opts.force ? 0 : 300000)) return took
     bot.__armyKitT = Date.now()
+    // BARE-HANDED FOR AN EXPERIMENT (owner 09-21: 「実験的な試みは丸腰でさせたら？」). A job whose design is NOT PROVEN kills bots in ways nobody has
+    // foreseen - 1 519 iron-equivalents and 580 diamonds have gone that way - and in the Nether nothing is ever recovered. So a job marked
+    // `params.bare:true` (or `risk:'experimental'`) is worked WITHOUT valuables: the good gear goes back on the shelf before the bot leaves, it
+    // carries stone tools, food and the job's materials, and a death costs almost nothing. The flag is removed by hand once the design has
+    // carried a crew with 0 deaths - that is what turns an experiment into a job.
+    if (bareJob(bot)) { await bareDown(bot, opts); return took }
     const myEnch = {}
     for (const i of bot.inventory.items()) { const f = fortuneOf(bot, i); if (f > 0) myEnch[i.name] = Math.max(myEnch[i.name] || 0, f) }
     const wants = kitPlan(carried(bot), stockMap(), liveBots().filter(h => h.bot !== bot.username).map(h => h.inv || {}), !!opts.risk, myEnch)

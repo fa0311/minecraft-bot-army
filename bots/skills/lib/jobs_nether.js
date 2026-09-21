@@ -317,9 +317,26 @@ module.exports = ctx => {
   // AN UNLOADED CELL IS NOT A FINISHED CELL (measured 13:06:55Z: the first road squad came home with `left:0` on a 64-block road
   // it had not laid a single block of — the far end was outside the bots' loaded chunks, `blockAt` gave null, and null read as
   // "already right"). Unloaded cells are counted on their own so a pass can never claim a road it cannot even see.
-  const loadedAt = (bot, c) => !!bot.blockAt(v([c.x, c.y, c.z]))
+  // ---------------------------------------------------------------- A CHUNK THAT READS NULL IS UNKNOWN, AND UNKNOWN IS NEVER SAFE
+  // THE bug behind both deaths of 09-21 (Erika -51,27,-75, Chika -52,27,-75, 46 iron + 7 diamond in six minutes; owner: 「もったいな」).
+  // Every pass reported `unloaded: 1053 of 1053` — 30 s after arrival `blockAt` was null across a work area 25 blocks away — and the
+  // two halves of this file then disagreed about what that meant: `cellOK()` counted an unreadable cell as DONE, while `noFloor` /
+  // `edgeNear` counted it as a DROP. So a bot stood at the lip of a 70-block void placing blocks it could not read back, and the
+  // second one went over the rim having taken no `safeStep` at all (`steps: 0`).
+  // The rule, asserted HERE so every Nether routine inherits it: a cell whose column is not loaded is not work, not floor, not
+  // safe — it is unknown. Nothing is placed on it, dug from it, stepped towards it or judged about it; the pass waits for the
+  // chunk (the loaded-check of `ops/skyshot.js survey()`: ask `bot.world.getColumnAt`, not `blockAt`) and reports what never came.
+  const knownAt = (bot, p) => { try { const q = v(p); return !!bot.world.getColumnAt(q) && !!bot.blockAt(q) } catch (e_) { swallow('jobs_nether:knownAt', e_); return false } }
+  // a cell we might STAND on is only known when its ring is: the floor under it, the body space, and the neighbours a shove could take us to
+  const knownRing = (bot, c, r = 1, below = 3, above = 2) => {
+    const q = v(c)
+    for (let dx = -r; dx <= r; dx++) for (let dz = -r; dz <= r; dz++) for (let dy = -below; dy <= above; dy++) if (!knownAt(bot, q.offset(dx, dy, dz))) return false
+    return true
+  }
+  const loadedAt = (bot, c) => knownAt(bot, [c.x, c.y, c.z])
   const cellOK = (bot, c) => {
-    const b = bot.blockAt(v([c.x, c.y, c.z])); if (!b) return true // not loaded: skipped this pass, counted as `unloaded`, never as done
+    if (!knownAt(bot, [c.x, c.y, c.z])) return false // UNKNOWN is never "already right": it is counted as `unloaded` and waited for
+    const b = bot.blockAt(v([c.x, c.y, c.z])); if (!b) return false
     if (c.block === 'stone') return b.boundingBox === 'block' && !/^(lava|water)$/.test(b.name)
     if (c.block === 'air') return b.boundingBox !== 'block'
     if (c.block === 'torch') return /torch/.test(b.name)

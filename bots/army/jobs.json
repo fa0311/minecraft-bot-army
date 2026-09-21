@@ -2716,7 +2716,7 @@
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 20,
    "rev": 70,
-   "restUntil": 1789969383098
+   "restUntil": 1789971079097
   },
   {
    "id": "base_dorm",
@@ -2991,7 +2991,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789970185641
+   "restUntil": 1789970416902
   },
   {
    "id": "fill_ring_field1",
@@ -3537,7 +3537,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 8,
+   "bots": 2,
    "site": [
     -311,
     69,
@@ -3773,13 +3773,13 @@
      -455
     ]
    },
-   "rev": 87,
+   "rev": 88,
    "desc": "MEASURED 16:3xZ by probe: 44 columns (444 cells) still open to the sky = this job (narrow deep shafts: step off / water drop in, pillar out = the column is filled); 3172 air cells lie UNDER the crust below grade = NOT reachable from above, they belong to the cavity job (owner algorithm: shaft down, fill riding up). `left` counts both - do not judge this job by `left`, and do not raise the crew over the number of open shafts",
    "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -333,58,-483",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Sumire",
-    "t": 1789970189167,
+    "by": "Suzu",
+    "t": 1789970250261,
     "at": [
      -323,
      59,
@@ -4453,10 +4453,11 @@
     "cobble": 128,
     "crossS": 45,
     "maxDeaths": 6,
-    "hop": 16
+    "hop": 16,
+    "bare": true
    },
    "note": "auto-paused: the gate is lit and the round trip is done (bump rev to send another expedition)",
-   "rev": 5,
+   "rev": 6,
    "desc": "PAUSED 17:2xZ by the top model: two bots lost to lava in 2 min at the_nether -54..-55,28..29,-80 (47 iron + 5 diamonds) - the expedition walks the open Nether WITHOUT the edge rules the pair job has (sneak within 3 of an unrailed edge, never a pathfinder goal next to a drop, floor re-read before the step). Re-activate only after the Nether engineer applies those to work:fortress",
    "maxDeaths": 2
   },
@@ -4625,7 +4626,7 @@
    "front": "base",
    "status": "paused",
    "when": "any",
-   "bots": 5,
+   "bots": 6,
    "site": [
     -355,
     69,
@@ -4650,17 +4651,17 @@
     },
     "order": "near"
    },
-   "rev": 1,
-   "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -368,68,-478"
+   "rev": 2,
+   "note": "auto-paused: build complete"
   },
   {
    "id": "cap_fill_ne_valley",
    "type": "build",
    "priority": 38,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 1,
+   "bots": 6,
    "site": [
     -256,
     68,
@@ -4685,10 +4686,17 @@
     },
     "order": "near"
    },
-   "rev": 8,
+   "rev": 9,
    "note": "needs: dirt (835 cells wait; every cell whose material exists is done or in work)",
    "restUntil": 1789922437833,
-   "desc": "PAUSED 17:3xZ top model: 107 passes with done:0 (left 857), its cells sit over the UNFILLED fill_ne_valley (paused) - a cap over an open fill can only fail. Re-activate after fill_ne_valley closes its columns"
+   "desc": "PAUSED 17:3xZ top model: 107 passes with done:0 (left 857), its cells sit over the UNFILLED fill_ne_valley (paused) - a cap over an open fill can only fail. Re-activate after fill_ne_valley closes its columns",
+   "stuckBy": {
+    "key": "rev9",
+    "bots": [
+     "Akari",
+     "Fuuka"
+    ]
+   }
   },
   {
    "id": "base_depot_south",
@@ -4740,7 +4748,7 @@
    "front": "base",
    "status": "paused",
    "when": "any",
-   "bots": 1,
+   "bots": 6,
    "site": [
     -291,
     68,
@@ -4765,15 +4773,13 @@
     },
     "order": "near"
    },
-   "rev": 22,
-   "note": "auto-paused: 17 cells nobody could do: -343,68,-537 | -343,68,-538 | -343,68,-539 | -343,68,-542 | -343,68,-543 | -344,68,-537",
+   "rev": 23,
+   "note": "auto-paused: build complete",
    "restUntil": 1789968297004,
    "stuckBy": {
-    "key": "rev22",
+    "key": "rev23",
     "bots": [
-     "Nanami",
-     "Misaki",
-     "Hina"
+     "Akari"
     ]
    }
   },
@@ -4811,10 +4817,11 @@
     "cobble": 64,
     "crossS": 30,
     "maxDeaths": 2,
-    "roam": 16
+    "roam": 16,
+    "bare": true
    },
    "desc": "EYE OF ENDER, pearl half (owner: eyes are missing after 22 h): 1291 gold in the depot, 4 golden_boots exist. Bartering stands at the hub - it does NOT walk the open Nether, so it runs before the fortress road. 2 bots, maxDeaths 2: measure pearls per gold before it grows",
-   "rev": 5,
+   "rev": 6,
    "maxDeaths": 2
   },
   {
@@ -4908,7 +4915,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 6,
    "site": [
     -330,
     69,
@@ -4934,11 +4941,19 @@
     },
     "order": "near"
    },
-   "rev": 1,
+   "rev": 2,
    "noDig": {
     "-333,68,-499": 1789984296154,
     "-330,68,-498": 1789984297173,
     "-335,68,-500": 1789984305891
+   },
+   "note": "needs: dirt (6 cells wait; every cell whose material exists is done or in work)",
+   "stuckBy": {
+    "key": "rev2",
+    "bots": [
+     "Erika",
+     "Hinata"
+    ]
    }
   },
   {
@@ -5347,9 +5362,10 @@
      62,
      -455
     ],
-    "carry": 320
+    "carry": 320,
+    "bare": true
    },
-   "rev": 16,
+   "rev": 17,
    "restUntil": 1789943188975
   },
   {
@@ -5728,7 +5744,7 @@
    "front": "base",
    "status": "paused",
    "when": "any",
-   "bots": 4,
+   "bots": 6,
    "site": [
     -356,
     69,
@@ -5753,7 +5769,7 @@
     },
     "order": "near"
    },
-   "note": "auto-paused: 4 cells nobody could do: -345,68,-503 | -344,68,-500 | -369,67,-497 | -345,67,-515",
+   "note": "auto-paused: build complete",
    "restUntil": 1789930271637,
    "stuckBy": {
     "key": "rev0",
@@ -5762,7 +5778,8 @@
      "Yui",
      "Rin"
     ]
-   }
+   },
+   "rev": 1
   },
   {
    "id": "op_bank_wheat",
@@ -6299,10 +6316,11 @@
     "cobble": 192,
     "crossS": 60,
     "maxDeaths": 2,
-    "reach": 64
+    "reach": 64,
+    "bare": true
    },
    "restUntil": 0,
-   "rev": 8,
+   "rev": 9,
    "priority": 97,
    "zone": "base",
    "names": [
@@ -9408,11 +9426,10 @@
    "rev": 8,
    "note": "auto-restored from the archive: 31 cells damaged",
    "stuckBy": {
-    "key": "rev6",
+    "key": "rev8",
     "bots": [
-     "Aoi",
-     "Madoka",
-     "Nanami"
+     "Chika",
+     "Yui"
     ]
    }
   }
