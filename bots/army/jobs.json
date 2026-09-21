@@ -1280,7 +1280,7 @@
     98,
     -80
    ],
-   "through": 1789948868382,
+   "through": 1789950680933,
    "scoutRev": 4,
    "hub": {
     "room": [
@@ -1392,8 +1392,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789948868554,
-   "back": 1789948881140,
+   "landingAt": 1789950681111,
+   "back": 1789950693778,
    "lastDeath": 1789924669079,
    "lastDeathBy": "Fuuka",
    "roads": {
@@ -1615,19 +1615,20 @@
     "t": 1789924913245
    },
    "absorb": {
-    "leather": 96,
-    "coal": 720,
-    "iron_ingot": 144,
-    "flint": 288,
-    "diamond": 12,
-    "carrot": 352,
-    "wheat": 320,
-    "pumpkin": 72,
-    "melon": 48,
+    "iron_ingot": 192,
+    "coal": 960,
     "rabbit": 64,
-    "porkchop": 112
+    "porkchop": 112,
+    "leather": 192,
+    "flint": 888,
+    "carrot": 704,
+    "wheat": 640,
+    "pumpkin": 216,
+    "melon": 144,
+    "diamond": 24,
+    "beetroot": 240
    },
-   "absorbT": 1789947571864
+   "absorbT": 1789949414031
   },
   "enchantTable": [
    -344,
@@ -2047,7 +2048,7 @@
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 8,
    "rev": 67,
-   "restUntil": 0
+   "restUntil": 1789951037818
   },
   {
    "id": "base_dorm",
@@ -2235,7 +2236,7 @@
    },
    "rev": 19,
    "bots": 0,
-   "restUntil": 1789949694083
+   "restUntil": 1789951645068
   },
   {
    "id": "sleeper",
@@ -2322,7 +2323,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789948806614
+   "restUntil": 1789950837723
   },
   {
    "id": "fill_ring_field1",
@@ -3376,7 +3377,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789949689059
+   "restUntil": 1789951509525
   },
   {
    "id": "nether_landing_2",
@@ -3965,7 +3966,7 @@
    "front": "base",
    "status": "paused",
    "when": "any",
-   "bots": 3,
+   "bots": 1,
    "site": [
     -291,
     68,
@@ -3990,15 +3991,15 @@
     },
     "order": "near"
    },
-   "rev": 15,
-   "note": "auto-paused: 17 cells nobody could do: -345,68,-542 | -345,68,-543 | -345,68,-538 | -344,68,-543 | -344,68,-538 | -346,68,-537",
-   "restUntil": 1789922783977,
+   "rev": 18,
+   "note": "auto-paused: 17 cells nobody could do: -343,68,-537 | -343,68,-538 | -343,68,-539 | -343,68,-542 | -343,68,-543 | -344,68,-537",
+   "restUntil": 1789950143852,
    "stuckBy": {
-    "key": "rev15",
+    "key": "rev18",
     "bots": [
-     "Misaki",
-     "Ichika",
-     "Rin"
+     "Kotori",
+     "Mashiro",
+     "Misaki"
     ]
    }
   },
@@ -4850,7 +4851,7 @@
     "rev": 99
    },
    "rev": 99,
-   "restUntil": 1789947781364
+   "restUntil": 1789950979786
   },
   {
    "id": "mine_sweep",
@@ -4888,7 +4889,7 @@
     "bankAt": 48
    },
    "restUntil": 1789950395879,
-   "rev": 12
+   "rev": 13
   },
   {
    "id": "craft_gold_boots",
