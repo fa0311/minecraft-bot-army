@@ -1362,14 +1362,14 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Yukina",
+   "by": "Riko",
    "portal": [
-    -48,
+    -47,
     98,
     -77
    ],
-   "through": 1790012187068,
-   "scoutRev": 0,
+   "through": 1790014136417,
+   "scoutRev": 73,
    "hub": {
     "room": [
      -41,
@@ -1481,7 +1481,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789969045309,
-   "back": 1790012293053,
+   "back": 1790014103571,
    "lastDeath": 1790012273059,
    "lastDeathBy": "Yukina",
    "roads": {
@@ -1509,10 +1509,7 @@
    },
    "outAt": 1789915921402,
    "outBy": "Rin",
-   "deathLog": [
-    1790012098611,
-    1790012273059
-   ],
+   "deathLog": [],
    "sightings": [],
    "fortress": null,
    "stair": {
@@ -1564,30 +1561,6 @@
     {
      "dim": "the_nether",
      "at": [
-      -45,
-      97,
-      -80
-     ],
-     "box": [
-      [
-       -45,
-       97,
-       -80
-      ],
-      [
-       -42,
-       101,
-       -80
-      ]
-     ],
-     "frame": 11,
-     "lit": false,
-     "cells": 0,
-     "state": "DARK"
-    },
-    {
-     "dim": "the_nether",
-     "at": [
       -43,
       103,
       -75
@@ -1612,6 +1585,54 @@
     {
      "dim": "the_nether",
      "at": [
+      -45,
+      97,
+      -80
+     ],
+     "box": [
+      [
+       -45,
+       97,
+       -80
+      ],
+      [
+       -44,
+       97,
+       -80
+      ]
+     ],
+     "frame": 2,
+     "lit": false,
+     "cells": 0,
+     "state": "DEAD"
+    },
+    {
+     "dim": "the_nether",
+     "at": [
+      -45,
+      101,
+      -80
+     ],
+     "box": [
+      [
+       -45,
+       101,
+       -80
+      ],
+      [
+       -44,
+       101,
+       -80
+      ]
+     ],
+     "frame": 2,
+     "lit": false,
+     "cells": 0,
+     "state": "DEAD"
+    },
+    {
+     "dim": "the_nether",
+     "at": [
       -40,
       104,
       -75
@@ -1629,6 +1650,54 @@
       ]
      ],
      "frame": 2,
+     "lit": false,
+     "cells": 0,
+     "state": "DEAD"
+    },
+    {
+     "dim": "the_nether",
+     "at": [
+      -42,
+      97,
+      -80
+     ],
+     "box": [
+      [
+       -42,
+       97,
+       -80
+      ],
+      [
+       -42,
+       97,
+       -80
+      ]
+     ],
+     "frame": 1,
+     "lit": false,
+     "cells": 0,
+     "state": "DEAD"
+    },
+    {
+     "dim": "the_nether",
+     "at": [
+      -42,
+      101,
+      -80
+     ],
+     "box": [
+      [
+       -42,
+       101,
+       -80
+      ],
+      [
+       -42,
+       101,
+       -80
+      ]
+     ],
+     "frame": 1,
      "lit": false,
      "cells": 0,
      "state": "DEAD"
@@ -1946,7 +2015,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1790011763818,
+   "gatesAt": 1790013563837,
    "pairRoad": {
     "from": [
      -43,
@@ -2256,7 +2325,9 @@
     1789989557363,
     1789990715685,
     1789995648549,
-    1789997242231
+    1789997242231,
+    1790012098611,
+    1790012273059
    ],
    "barterPost": {
     "legsKey": "[{\"kind\":\"stair\",\"from\":[-67,110,-82],\"bearing\":\"x+\",\"toY\":98,\"reverse\":true},{\"kind\":\"stair\",\"from\":[-67,112,-79],\"bearing\":\"z-\",\"toY\":110,\"reverse\":true},{\"kind\":\"road\",\"from\":[-66,112,-78],\"bearing\":\"z+\",\"length\":1,\"noTorch\":true}]",
@@ -2324,11 +2395,11 @@
     ],
     "y": 98,
     "h": 4,
-    "left": 688,
+    "left": 173,
     "unloaded": 0,
     "done": false,
-    "at": 1790012287207,
-    "by": "Hazuki"
+    "at": 1790014076976,
+    "by": "Nanami"
    }
   },
   "industry": {
@@ -2459,7 +2530,7 @@
       28
      ]
     },
-    "t": 1790012108841
+    "t": 1790013933238
    },
    "absorb": {
     "string": 320,
@@ -4119,7 +4190,7 @@
    "note": "06:3xZ mine engineer: readiness no longer hands a WELL-FED miner back when the depot cannot give 8 food units (48 mine_not_ready from 24 bots in 20 min left the squad at ZERO); caves at a branch face are now harvested, not walled off. rev bump voids the stale not-ready declines",
    "bots": 4,
    "rev": 92,
-   "restUntil": 1790012262205
+   "restUntil": 1790014443279
   },
   {
    "id": "base_dorm",
@@ -4299,7 +4370,7 @@
    },
    "rev": 30,
    "bots": 0,
-   "restUntil": 1790010151758
+   "restUntil": 1790014608946
   },
   {
    "id": "sleeper",
@@ -4386,7 +4457,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1790012382753
+   "restUntil": 1790014110219
   },
   {
    "id": "fill_ring_field1",
@@ -4715,7 +4786,7 @@
      ]
     }
    },
-   "rev": 10,
+   "rev": 11,
    "note": "op_nether 03:25Z: depot obsidian 6, nether_pair needs 10+ (declined x6) - want raised 40->80 (37 cast obsidian left at -54/29:-1)",
    "restUntil": 1789920160291,
    "names": []
@@ -6585,7 +6656,7 @@
     "bare": true
    },
    "rev": 18,
-   "restUntil": 1790013422779
+   "restUntil": 1790015578829
   },
   {
    "id": "nether_gate_old_down",
@@ -6904,7 +6975,7 @@
      ]
     ]
    },
-   "restUntil": 1790013437788,
+   "restUntil": 1790015278683,
    "rev": 3
   },
   {
@@ -8838,7 +8909,7 @@
    "type": "portal",
    "priority": 97,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 2,
    "shiftMin": 30,
@@ -8875,7 +8946,7 @@
     "radius": 16
    },
    "desc": "EXPERIMENT (bare): blaze test (top model 09-21): ONE bot holds the covered doorway 2 cells inside the route end (seq 470), sword + shield (shield up while a blaze is in sight out of reach, down to strike in reach), back 12 cells to eat under 10 hp. Reports blaze_pass {kills, rods, hits, retreats, hpLow, ate}.",
-   "note": "13:3xZ pass 4 (Kanade, iron, stone axe + bow): 4 kills, 14 hits, 15 arrows, 0 rods home, DIED retreating at 10 hp at 176,81,121. Post moved 4 deeper (seq 456, stair, no line to the doorway), retreat at 14 hp.",
+   "note": "auto-paused: 2 deaths in 30 min on the far side ([-48,98,-77]). Fix the cause you can see, clear settings.nether.deathLog, re-activate - do not wait",
    "rev": 6
   },
   {
@@ -9083,7 +9154,7 @@
     "bare": true
    },
    "rev": 1,
-   "restUntil": 1790012522924
+   "restUntil": 1790014688996
   },
   {
    "id": "nether_bridge_roof",
@@ -9736,12 +9807,12 @@
     "drop": 7
    },
    "stuckBy": {
-    "key": "rev5",
+    "key": "rev7",
     "bots": [
-     "Sakura"
+     "Kokoro"
     ]
    },
-   "rev": 6
+   "rev": 7
   },
   {
    "id": "cap_void_fix_base_field_2",
@@ -10800,7 +10871,7 @@
      "d": 35
     }
    },
-   "rev": 14,
+   "rev": 15,
    "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -345,67,-515",
    "cap": {
     "id": "cap_base_core_pad",
@@ -10809,11 +10880,11 @@
    },
    "restUntil": 1789963308637,
    "stuckBy": {
-    "key": "rev14",
+    "key": "rev15",
     "bots": [
-     "Erika",
-     "Akari",
-     "Aoi"
+     "Ume",
+     "Rin",
+     "Kotori"
     ]
    }
   },
@@ -11060,9 +11131,9 @@
    "type": "build",
    "priority": 98,
    "front": "works",
-   "status": "active",
+   "status": "paused",
    "when": "day",
-   "bots": 3,
+   "bots": 1,
    "site": [
     -518,
     88,
@@ -11522,21 +11593,23 @@
     "Yui",
     "Yukina"
    ],
-   "rev": 1,
+   "rev": 2,
    "stuckBy": {
-    "key": "rev1",
+    "key": "rev2",
     "bots": [
-     "Aoi",
-     "Hina"
+     "Chika",
+     "Kurumi",
+     "Tamaki"
     ]
-   }
+   },
+   "note": "auto-paused: 2 cells nobody could do: -519,86,-262 | -521,86,-262"
   },
   {
    "id": "nether_dead_frame_z80",
    "type": "portal",
    "priority": 97,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 1,
    "shiftMin": 20,
@@ -11587,9 +11660,9 @@
    "type": "portal",
    "priority": 97,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 3,
+   "bots": 2,
    "shiftMin": 20,
    "site": [
     -326,
@@ -11629,7 +11702,8 @@
      "block": "cobblestone",
      "doors": false,
      "furniture": false,
-     "torchEvery": 5
+     "torchEvery": 5,
+     "footprint": true
     },
     "yieldTo": [
      "nether_route",
@@ -11639,7 +11713,8 @@
     "reach": 40
    },
    "desc": "GATE HALL (owner 09-21 17:2xZ 「もっと空間空けて、丸石とかで壁作ったほうが良い、見栄えも悪いし」): a 21x21 COBBLESTONE hall round the z-77 gate, x -55..-35 / z -88..-68, floor y97, 4 high, roof y102, torch grid; its only ways out are the routes that cross its walls (yieldTo: v3 stair foot at x-55 z-82/-81, the escape road z-84/-83). Camera 17:3xZ: 2647 cells, 190 dig, 781 place, 318 replaced to cobblestone, 36 floor cells over a drop kept, 46 obsidian/portal cells never touched, 0 lava.",
-   "note": "auto-paused: 2 deaths in 30 min on the far side ([-48,98,-77]). Fix the cause you can see, clear settings.nether.deathLog, re-activate - do not wait"
+   "note": "17:4xZ v2: footprint (only columns over rock; the wall ring stands on the rim and is never stood on); gold piece worn. v1 pass: 3 deaths in 6 min at the open edges (piglin - no gold; fall off the E drop; ghast into lava).",
+   "rev": 1
   },
   {
    "id": "base_field_4_pad",
@@ -11683,6 +11758,46 @@
     "t": 1789935260724
    },
    "note": "auto-paused: build complete - BUT 2 columns are a deck over air (void_under_pad): -404,67,-511 | -376,67,-511"
+  },
+  {
+   "id": "probe_village_suzu2",
+   "type": "steps",
+   "priority": 60,
+   "status": "active",
+   "when": "any",
+   "names": [
+    "Suzu"
+   ],
+   "plan": "read-only probe (engineer 09-21 route layer): depot -> village -> depot on the strategic route (road_village)",
+   "params": {
+    "bare": true,
+    "steps": [
+     {
+      "do": "goto",
+      "to": [
+       -714,
+       null,
+       27
+      ],
+      "range": 6,
+      "s": 900
+     },
+     {
+      "do": "wait",
+      "s": 10
+     },
+     {
+      "do": "goto",
+      "to": [
+       -371,
+       null,
+       -500
+      ],
+      "range": 4,
+      "s": 900
+     }
+    ]
+   }
   }
  ]
 }

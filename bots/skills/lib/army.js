@@ -116,7 +116,7 @@ function lineText (bot, r) {
     case 'chest_added': return '倉庫を増設しました（' + r.cat + '：' + (r.at || []).join(',') + '）'
     case 'chest_rebuilt': return 'チェストを建て直しました（' + (r.at || []).join(',') + '）'
     case 'creeper': return 'クリーパーを' + (r.killed ? '倒しました' : '拠点から引き離しています') + '！'
-    case 'bank_unreachable': return ({ food: '食料', tools: '道具', ores: '鉱石', build: '建材', salvage: '素材' }[r.cat] || r.cat) + 'の倉庫に届きません！'
+    case 'bank_unreachable': return r.cat ? ({ food: '食料', tools: '道具', ores: '鉱石', build: '建材', salvage: '素材' }[r.cat] || r.cat) + 'の倉庫に届きません！' : 'ここから倉庫まで行けません…' // the whole-visit abort (09-21) carries no category: it printed 'undefinedの倉庫' (owner)
     case 'chest_full': return ({ food: '食料', tools: '道具', ores: '鉱石', build: '建材', salvage: '素材' }[r.cat] || r.cat) + 'のチェストがいっぱいです！'
     default: return null
   }
@@ -711,6 +711,29 @@ let _larder = { t: 0, ok: true }
 // Half the target is the honest line ("we are still fine"), never more than the old 256 and never less than 64.
 function larderGate () { const t = (settings().targets || {}).food; return Math.max(64, Math.min(256, t > 0 ? t / 2 : 256)) }
 function larderFull () { if (Date.now() - _larder.t > 120000) { _larder.t = Date.now(); try { _larder.ok = require('../../army/stock.js').have('food') >= larderGate() } catch (e_) { _larder.ok = true } } return _larder.ok } // stock.js reads 50 heartbeat files: once per 2 min, not per trip
+// HEIGHT HAS A PRICE (owner 09-21 17:5xZ 「高さ方向の重みは？」): mineflayer-pathfinder prices a 1-block jump up at 2 (flat 1) and EVERY drop at 1 whatever its height -
+// so a route over a hill and down its far side cost the same as the flat road round it, and a drop is ONE-WAY (the cherry-grove hill and the water cave caught
+// 25+ bots on 09-21 exactly like that). Extra cost per move: up +up per block, down +down[n] for a drop of n (1/2/3+). `settings.heightCost` tunes it.
+const HEIGHT_W = { up: 1, down: [0, 1, 4, 8] }
+function heightRule (mv) {
+  if (!mv || mv.__armyHeight === 2) return mv
+  if (mv.__armyHeight) for (const n of ['getMoveJumpUp', 'getMoveDropDown', 'getMoveDown', 'getMoveUp', 'getMoveParkourForward']) if (Object.prototype.hasOwnProperty.call(mv, n)) delete mv[n] // the broken v1 wrapper: back to the prototype's method first
+  const W = () => { const h = (settings().heightCost) || {}; return { up: h.up == null ? HEIGHT_W.up : h.up, down: Array.isArray(h.down) ? h.down : HEIGHT_W.down } }
+  for (const name of ['getMoveJumpUp', 'getMoveDropDown', 'getMoveDown', 'getMoveUp', 'getMoveParkourForward']) {
+    const orig = mv[name]; if (typeof orig !== 'function') continue
+    // the signatures differ: getMoveUp/getMoveDown are (node, neighbors), the others (node, dir, neighbors) - the neighbour list is the LAST argument
+    // (18:0xZ: wrapping all five as (node, dir, neighbors) threw inside the A* for every ladder/vertical move = no_route across the base for ~15 min)
+    mv[name] = function (...args) {
+      const neighbors = args[args.length - 1]; const node = args[0]
+      if (!Array.isArray(neighbors)) return orig.apply(this, args)
+      const n0 = neighbors.length; const r = orig.apply(this, args); const w = W()
+      for (let i = n0; i < neighbors.length; i++) { const m = neighbors[i]; const dy = m.y - node.y; if (dy > 0) m.cost += w.up * dy; else if (dy < 0) m.cost += w.down[Math.min(-dy, w.down.length - 1)] || 0 }
+      return r
+    }
+  }
+  mv.__armyHeight = 2
+  return mv
+}
 function climbRule (mv) { // idempotent, and applied to the LIVE Movements object in travel() too: it is built once per worker start, so a hot-reloaded rule would otherwise never reach the 50 bots that are already walking
   if (!mv || mv.__armyClimb || typeof mv.getLandingBlock !== 'function') return mv
   const glb = mv.getLandingBlock.bind(mv)
@@ -741,7 +764,14 @@ function fieldCost (bot, mv) {
   // TRAPS THE ARMY KNOWS (09-21 13:3xZ): `settings.avoid = [{box:[x1,z1,x2,z2], why}]` - ground every bot walks round, e.g. the lake W of the
   // base whose cliffs let a bot in but never out (Hazuki, Fuuka, Riko, Chika, Riko again: frozen or stranded in it today). A weight, not a veto.
   const avoid = ((settings().avoid) || []).filter(a => a && Array.isArray(a.box) && a.box.length === 4) // {box, why, w} - w = weight per cell (default 60)
-  const f = b => { if (!b || !b.position) return 0; const { x, z } = b.position; for (const a of avoid) { const q = a.box; if (x >= q[0] && x <= q[2] && z >= q[1] && z <= q[3]) return a.w || 60 } if (mineToo) return 0; for (const q of boxes) if (x >= q[0] - 1 && x <= q[2] + 1 && z >= q[1] - 1 && z <= q[3] + 1) return 40; return 0 }
+  // WATER IS AVOIDED HARD, FLOWING WATER HARDER (owner 09-21 17:5xZ 「交易のpath finderガチでおかしい、水流は極端に避けるようにしたほうが良い」): a bot in a current
+  // is pushed off its line and the pathfinder cannot hold it - 10 bots sat up to 2 h in a flowing lane, the village traders wade through rivers. liquidCost alone
+  // (30) still lets a long route choose the river; this adds +80 per still-water body cell and +200 per FLOWING one (level > 0). A weight, not a veto.
+  const waterW = b => { if (!b || b.name !== 'water') return 0; let lv = 0; try { lv = Number((b.getProperties && b.getProperties().level) || 0) } catch (e_) { lv = 0 } return lv > 0 ? 200 : 80 }
+  // A GATE IS NOT A SHORTCUT (Nether engineer 09-21 18:1xZ: Noa came home, her `tidying pockets` walk to the depot passed through the home gate 41 s later and she
+  // died in the lava sea - the pathfinder treats portal blocks as walkable air). Only a job that means to cross (type portal / end) may path through one.
+  const crossing = /^(portal|end)$/.test(jt)
+  const f = b => { if (!b || !b.position) return 0; if (b.name === 'nether_portal' || b.name === 'end_portal') return crossing ? 0 : 1000; const ww = waterW(b); if (ww) return ww; const { x, z } = b.position; for (const a of avoid) { const q = a.box; if (x >= q[0] && x <= q[2] && z >= q[1] && z <= q[3]) return a.w || 60 } if (mineToo) return 0; for (const q of boxes) if (x >= q[0] - 1 && x <= q[2] + 1 && z >= q[1] - 1 && z <= q[3] + 1) return 40; return 0 }
   mv.exclusionAreasStep = (mv.exclusionAreasStep || []).filter(g => !g.__armyField).concat(Object.assign(f, { __armyField: true }))
   return mv
 }
@@ -842,7 +872,7 @@ function strictMovements (bot) {
   // `physical` - and lands on the rock 14 below, over maxDropDown. One rule: a step down into a ladder cell lands ON THE LADDER, one block, cost 1 - so the A* chains
   // the run cell by cell, in and out, and the way in a fill builds (army_jobs `ladderWay`) is a way for all 50. Nothing else in the world is climbable (vines are off
   // in mineflayer-pathfinder), so no other route changes price.
-  climbRule(mv)
+  climbRule(mv); heightRule(mv)
   try { require('./terrain_guard').install(bot) } catch (e_) { swallow('army:tgInstall', e_) } // idempotent; a new guard VERSION reaches running bots here (the manager installs it only at spawn)
   try { require('./jobs_road').roadCost(bot, mv) } catch (e_) { swallow('army:roadCost', e_) } // roads are cheap, off-road is not (jobs_road.roadCost; a no-op until a segment is built)
   bot.pathfinder.setMovements(mv)
@@ -1092,9 +1122,14 @@ function digHazard (bot, q) {
 // it cannot be done once you are out, so it is done on the way up. Whatever stays open is reported as `escape_scar`.
 async function sealBehind (bot, feet) {
   try {
-    if (FILLERS.reduce((n, f) => n + count(bot, f), 0) < 3) return 0 // the last blocks belong to the climb itself, not to the plaster
+    // THE WHOLE COLUMN WE LEFT (owner 09-21 17:5xZ 「階段を斜めに埋めながら登る処理、ちゃんと埋めれてない」; MEASURED: 170 stair escapes dug 709 cells and
+    // left 628 open): a step opens THREE cells of the old column - feet, head and the head room above it (dug first so the jump clears) - and only the first
+    // two were filled, so every step left one hole: the diagonal line of pockets under the base. And it plastered nothing below 3 fillers in the pockets.
+    // Now: the three cells bottom-up, while at least ONE filler is left over for the next step's floor.
+    if (FILLERS.reduce((n, f) => n + count(bot, f), 0) < 2) return 0
     let n = 0
-    for (const q of [feet, feet.offset(0, 1, 0)]) {
+    for (const q of [feet, feet.offset(0, 1, 0), feet.offset(0, 2, 0)]) {
+      if (FILLERS.reduce((m, f) => m + count(bot, f), 0) < 2) break
       const me = bot.entity.position.floored()
       if (me.x === q.x && me.z === q.z && Math.abs(me.y - q.y) <= 1) continue // never wall in the climber
       if (penAt(q.x, q.y, q.z, bot) || ourBlock(q, (bot.blockAt(q) || {}).name, bot)) continue
@@ -1590,9 +1625,36 @@ function noRoute (bot, target) {
   } catch (e_) { swallow('army:noRoute', e_); return false }
 }
 
-// travel to target {x,y,z} (y may be null). Hops <= 40 blocks (pathfinder is capped at 12 ms/tick).
+// travel to target {x,y,z} (y may be null). Hops <= 40 blocks (pathfinder is capped at 12 ms/tick); a far SURFACE target is walked along the
+// STRATEGIC route of lib/route.js (roads first, a coarse A* over the loaded chunks round lakes, cliffs and avoid boxes), not the beeline.
 // opts: range, ms, stop() -> true aborts, via: [[x,y,z],...] waypoints walked first
+// A TRIP IS MEASURED (09-21, the route layer's before/after): every outermost trip of > 120 blocks writes ONE `journey` event - seconds, cells walked,
+// of them in water and on a built road, hops by route/beeline - so "does it wade / does it use the road" is a number, not an impression.
 async function travel (bot, target, opts = {}) {
+  let tr = null
+  try {
+    const p = bot.entity.position
+    if (!bot.__armyTrip && target && isFinite(target.x) && isFinite(target.z) && Math.hypot(target.x - p.x, target.z - p.z) > 120) {
+      const R = require('./route'); const RD = R.roads(); const seen = new Set(); const t0 = Date.now()
+      tr = bot.__armyTrip = { t0, d0: Math.round(Math.hypot(target.x - p.x, target.z - p.z)), cells: 0, water: 0, road: 0, route: 0, line: 0, planMs: 0, via: null }
+      tr.timer = setInterval(() => {
+        try {
+          const e = bot.entity; if (!e) return; const q = e.position.floored(); const k = q.x + ',' + q.z; if (seen.has(k)) return; seen.add(k); tr.cells++
+          if (e.isInWater) tr.water++; if (R.onRoad(RD, q.x, q.y, q.z)) tr.road++
+        } catch (e_) { swallow('army:tripTick', e_) }
+      }, 500)
+      if (tr.timer.unref) tr.timer.unref()
+    }
+  } catch (e_) { swallow('army:tripStart', e_) }
+  let ok = false
+  try { ok = await travelLegs(bot, target, opts); return ok } finally {
+    if (tr) {
+      clearInterval(tr.timer); bot.__armyTrip = null
+      try { const e = bot.entity.position; result(bot, { ev: 'journey', ok, job: ((assignment(bot) || {}).job || {}).id, to: [Math.round(target.x), target.y == null ? null : Math.round(target.y), Math.round(target.z)], d0: tr.d0, left: Math.round(Math.hypot(target.x - e.x, target.z - e.z)), s: Math.round((Date.now() - tr.t0) / 1000), cells: tr.cells, water: tr.water, road: tr.road, hops: { route: tr.route, line: tr.line }, planMs: tr.planMs, via: tr.via }) } catch (e_) { swallow('army:tripEnd', e_) }
+    }
+  }
+}
+async function travelLegs (bot, target, opts = {}) {
   // WRONG WORLD = NO WALK (nether engineer): a job/plan that names the dimension it belongs to (`opts.dim`) never starts a path in another one —
   // overworld coordinates are meaningless in the Nether (a bot "walked" towards the depot under the Nether roof, 12:1xZ).
   if (opts.dim && dimOf(bot) !== opts.dim) { offWorld(bot, 'travel:' + opts.dim); return false }
@@ -1637,7 +1699,7 @@ async function travel (bot, target, opts = {}) {
   const mv0 = bot.pathfinder.movements
   // RUN: the Movements object lives for hours (strictMovements runs at worker start / after a death) - the larder is asked per TRIP, and a new terrain-guard
   // version is installed here (measured 09-20 06:20Z: 50/50 bots allowSprinting=false, the guard's old timer kept switching it off)
-  try { require('./terrain_guard').install(bot); climbRule(mv0); if (mv0) mv0.allowSprinting = larderFull() && bot.food > 6 } catch (e_) { swallow('army:travelSprint', e_) }
+  try { require('./terrain_guard').install(bot); climbRule(mv0); heightRule(mv0); if (mv0) mv0.allowSprinting = larderFull() && bot.food > 6 } catch (e_) { swallow('army:travelSprint', e_) }
   try { require('./jobs_road').roadCost(bot, mv0) } catch (e_) { swallow('army:roadCost', e_) }
   try { fieldCost(bot, mv0) } catch (e_) { swallow('army:fieldCost', e_) } // a field is not a shortcut (owner 09-21: 「他のタスクやってるやつが畑の上でジャンプしている」)
   try { dashRule(bot) } catch (e_) { swallow('army:dashRule', e_) } // sprint-JUMP on a long open leg (owner 09-21: 「マイクラ最速移動、ダッシュジャンプ」), never over a field // a built road is cheap, off-road underground/Nether is dear (owner 09-21: 「空が見えているか、ディメンションがどこか、によって重み付け」)
@@ -1660,6 +1722,22 @@ async function travel (bot, target, opts = {}) {
       result(bot, { ev: 'marooned', at: [p1.x, p1.y, p1.z], on: u1 && u1.name, island: rev, area: walkableArea(bot) })
     }
   }
+  // THE STRATEGIC LAYER (lib/route.js) for a surface trip in the overworld; its cost context = the rules of THIS trip, read live per plan
+  const R = require('./route')
+  const strat = surfaceTrip && overworldBot(bot) && !opts.noRoute
+  const rctx = () => {
+    const S = settings(); const jt = String(((assignment(bot) || {}).job || {}).type || ''); const h = S.heightCost || {}
+    const m = bot.pathfinder.movements || {}
+    return {
+      maxDrop: Math.max(1, (m.maxDropDown || DROP.surface) - 1), // the pathfinder counts to the landing's floor: real drop = maxDropDown - 1
+      floorY: m.exclusionAreasStep && m.exclusionAreasStep.includes(floorRule) ? floorY : null,
+      inKO: keepOn ? inKO : null,
+      avoid: (S.avoid || []).filter(a => a && Array.isArray(a.box) && a.box.length === 4),
+      fields: /^(farm|cane|tidy)$/.test(jt) ? [] : fieldBoxes(),
+      heightW: { up: h.up == null ? HEIGHT_W.up : h.up, down: Array.isArray(h.down) ? h.down : HEIGHT_W.down }
+    }
+  }
+  let lastHop = null
   while (!stop()) {
     while (sheltering(bot) && !stop()) await sleep(300) // the enderman-shelter reflex owns the legs for a few seconds
     dbg.n++
@@ -1671,22 +1749,37 @@ async function travel (bot, target, opts = {}) {
     const db = Math.hypot(Math.floor(p.x) - Math.floor(target.x), Math.floor(p.z) - Math.floor(target.z))
     if ((d <= range + 0.5 || db <= range) && dy <= Math.max(2, range)) { dropRule(); if (relaxed) strictMovements(bot); return true }
     let goal
-    if (d > 44) {
+    // STRATEGIC HOP (lib/route.js): a far surface target is reached along a planned route - the road where one runs that way, round a lake /
+    // cliff / avoid box where the beeline would walk into it. null = nothing better known: the old 38-block hop along the beeline.
+    let hop = null
+    if (d > 44 && strat) {
+      try { hop = await R.hop(bot, target, rctx()) } catch (e_) { swallow('army:routeHop', e_) }
+      try { const T = bot.__armyTrip; const L = (bot.__armyRoute || {}).last; if (T) { T[hop ? 'route' : 'line']++; if (L) { T.planMs = Math.max(T.planMs, L.ms); if (L.via) T.via = L.via } } } catch (e_) { swallow('army:tripHop', e_) }
+      if (stop()) break
+    }
+    if (hop) goal = new goals.GoalNear(hop.x, hop.y, hop.z, 2)
+    else if (d > 44) {
       const t = 38 / d
       goal = new goals.GoalNearXZ(Math.round(p.x + (target.x - p.x) * t), Math.round(p.z + (target.z - p.z) * t), 4)
     } else goal = target.y == null ? new goals.GoalNearXZ(target.x, target.z, range) : new goals.GoalNear(target.x, target.y, target.z, range)
+    // progress is measured on the ROUTE of this hop (what is left of it), on the beeline for a beeline hop: a detour round the lake that walks AWAY
+    // from the target is progress, not a failure (otherwise the relaxed retry, digOut and no_route would fire on every good detour)
+    if (hop) best = hop.left0; else if (lastHop) best = Infinity
+    lastHop = hop
+    const gone = () => hop ? R.left(bot, hop) : dist2(bot, target.x, target.z)
     const r = await U.pathTo(bot, goal, Math.min(45000, Math.max(5000, end - Date.now()))).catch(() => 'fail')
     dbg.last = r
     if (sheltering(bot)) continue // interrupted by the shelter reflex: not a failed attempt
     if (r === 'ok') {
       // 'ok' without getting closer = the pathfinder thinks it arrived and we do not (or a zero-length path): count it, never spin on it
-      const dOk = dist2(bot, target.x, target.z)
+      const dOk = gone()
       if (dOk <= best - 1) { dbg.ok = 0; fails = 0; best = dOk; await sleep(50); continue }
       dbg.ok++ // no progress: fall through and count it as a failed attempt (partial/empty path)
     }
     // progress = getting CLOSER to the target, not just moving: a bot pacing around inside a dug-out hollow moves plenty and arrives never
-    const d2 = dist2(bot, target.x, target.z)
+    const d2 = gone()
     if (d2 > best - 3) {
+      if (hop) R.fail(bot, hop) // that hop goal is BAD for 5 min: the next plan goes round it
       fails++
       // standing on a partial block (dirt_path, farmland, soul sand: y = n.9) puts the A* start node INSIDE a block -> instant noPath.
       // No edit needed: step off it towards the target by hand.

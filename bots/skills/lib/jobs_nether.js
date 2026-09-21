@@ -490,6 +490,10 @@ module.exports = ctx => {
   async function safeStep (bot, api, c, box) {
     try {
       if (!box || c.x < box[0] || c.x > box[2] || c.z < box[1] || c.z > box[3]) return false
+      if (box.noStand && box.noStand.has(c.x + ',' + c.z)) return false
+      // NEVER A STAND IN OR BESIDE A PORTAL CELL (09-21 17:4xZ: a hall builder stepped into the gate it was building round and went on
+      // "waiting for the world" in the overworld): a portal cell is a teleporter, and one beside it is a shove away from one
+      for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) for (const dy of [0, 1]) { const pb = bot.blockAt(c.offset(dx, dy, dz)); if (pb && pb.name === 'nether_portal') return false }
       if (!knownRing(bot, c, 1)) return false // the destination and its ring must be READABLE before a foot leaves the ground
       if (!BL().standable(bot, c)) return false
       const u = bot.blockAt(c.offset(0, -1, 0)); if (!u || u.boundingBox !== 'block' || /lava|magma/.test(u.name)) return false
@@ -525,6 +529,7 @@ module.exports = ctx => {
       // own rock, so every round walked to another one and placed nothing). Forty steps without a block is this pass's answer:
       // the trip has a walk to retry and a gate to catch.
       if (steps >= 40 && placed + dug === 0) break
+      if (held && !netherHere(bot)) break // the gate took us (a step too close to it): nothing here is ours to build
       const todo = cells.filter(c => !done.has(c.x + ',' + c.y + ',' + c.z) && loadedAt(bot, c) && !cellOK(bot, c))
       // AN EMPTY todo IS NOT A FINISHED JOB WHILE THE WORLD IS STILL ARRIVING (measured 09-21 05:46-05:47Z: two passes of the
       // barter lane came home after 30 s of a 9-minute slice with `placed:0-4, unloaded:1053 of 1053`). The wait above stops as
@@ -2162,6 +2167,8 @@ module.exports = ctx => {
         cells = cells.filter(c => IN.has(c.x + ',' + c.z)).map(c => (c.block === 'air' && c.y > fy && c.y < fy + 1 + meta.h && edge(c.x, c.z)) ? Object.assign({}, c, { block: P.args2.block || 'stone' }) : c)
         cells = cells.filter(c => !(c.block === 'torch' && edge(c.x, c.z)))
         box = unionBox([R[0], R[1], R[2], R[3]], null, null)
+        const ring = new Set(); for (const k of IN) { const [x, z] = k.split(',').map(Number); if (edge(x, z)) ring.add(k) }
+        box.noStand = ring // the wall ring is the rim of the drop: built from inside, never stood on
         st.hallCols = IN.size
       }
       if (Array.isArray(P.yieldTo)) {
@@ -2348,6 +2355,7 @@ module.exports = ctx => {
         const me = bot.entity.position; const eye = me.offset(0, 1.62, 0)
         const bl = Object.values(bot.entities).filter(e => e && e.name === 'blaze' && e.position && e.position.distanceTo(me) <= radius).sort((a2, c) => a2.position.distanceTo(me) - c.position.distanceTo(me))
         for (const e of bl) st.seen.add(e.id)
+        if (bl.length) st.quietSince = 0
         const near = bl.find(e => eye.distanceTo(e.position.offset(0, 0.9, 0)) <= 3.4)
         if (near) { // IN REACH: shield down, one full-strength blow (sword cooldown 0.625 s)
           shieldUp(false)
@@ -2379,6 +2387,18 @@ module.exports = ctx => {
           const w = walkBoth.find(q => q.p.join() === k)
           if (w && walkable(bot, w.p)) { await routeWalkSeq(bot, api, legs, w.seq, 'picking up a drop'); await sleep(600); picked = true } else st.rodsLeft = Math.max(st.rodsLeft, drops.length)
         }
+        // RODS ON THEIR DOORSTEP (09-21 17:4xZ: Chino 7 kills, Chika 4 kills, 0 rods - arrows kill them over the platform): after 5 s with
+        // no blaze in sight, a dash through the doorway to drops within `grab` (4) cells of it, and straight back into the tunnel
+        st.quietSince = st.quietSince || Date.now()
+        const door = meta.path[L - 1]
+        const outside = drops.filter(d => d.position.distanceTo(v(door).offset(0.5, 0, 0.5)) <= (P.grab || 4) && !walkBoth.some(q => q.p.join() === xyz(d.position).join()))
+        if (!picked && outside.length && Date.now() - st.quietSince > 5000 && bot.health >= 16 && P.grab !== 0) {
+          await routeWalkSeq(bot, api, legs, L - 1, 'to the doorway for the rods')
+          for (const d of outside) { if (api.stop() || Object.values(bot.entities).some(e => e && e.name === 'blaze' && e.position && e.position.distanceTo(bot.entity.position) <= 10)) break; await nTravel(bot, d.position.floored(), { range: 0, ms: 6000, stop: api.stop }).catch(e_ => swallow('jobs_nether:grab', e_)); await sleep(400) }
+          st.grabs = (st.grabs || 0) + 1
+          await routeWalkSeq(bot, api, legs, L - 1, 'back in through the doorway').catch(e_ => swallow('jobs_nether:grabBack', e_))
+          picked = true
+        }
         if (picked || bot.entity.position.floored().distanceTo(v(post)) > 0.5) await routeWalkSeq(bot, api, legs, postSeq, 'back to the blaze doorway')
         task(bot, 'nether blaze: holding the doorway (' + st.kills + ' killed, ' + (A.count(bot, 'blaze_rod') - rods0) + ' rods)')
         await sleep(400)
@@ -2386,7 +2406,7 @@ module.exports = ctx => {
     } finally { bot.removeListener('entityDead', onDead); shieldUp(false) }
     // home end: the walk back is the caller's (comeHome walks the route from anywhere on it)
     const rods = A.count(bot, 'blaze_rod') - rods0
-    const out = { work: 'blaze', noFood: !!st.noFood, kills: st.kills, rods, hits: st.hits, arrows: st.arrows || 0, retreats: st.retreats, seen: st.seen.size, hpLow: Math.round(st.hpLow), ate: st.ate, dropsOutOfReach: st.rodsLeft, hp: Math.round(bot.health), carried: A.count(bot, 'blaze_rod') }
+    const out = { work: 'blaze', grabs: st.grabs || 0, noFood: !!st.noFood, kills: st.kills, rods, hits: st.hits, arrows: st.arrows || 0, retreats: st.retreats, seen: st.seen.size, hpLow: Math.round(st.hpLow), ate: st.ate, dropsOutOfReach: st.rodsLeft, hp: Math.round(bot.health), carried: A.count(bot, 'blaze_rod') }
     A.result(bot, Object.assign({ ev: 'blaze_pass', job: job.id, at: xyz(bot.entity.position) }, out))
     await routeWalkSeq(bot, api, legs, 0).catch(e_ => swallow('jobs_nether:blazeHome', e_))
     return out
