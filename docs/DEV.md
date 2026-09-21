@@ -43,7 +43,7 @@ Unstaffed/ineligible bots get the built-in `muster` job: walk to their slot at b
 | layer | who | runs | examples |
 |---|---|---|---|
 | **reflexes** | code, every tick / loop | always, LLM-free | eat, hit what is in reach, swim up, read-only travel, escape when boxed in, heartbeat |
-| **verbs + routine jobs** | code, verified | when the board says so | verbs: goto, withdraw, bank, place, dig, collect, fell, craft, smelt, kill, till, sleep… · routines: `fish`, `hunt`, `scan`, `scout`, `delegate` |
+| **verbs + routine jobs** | code, verified | when the board says so | verbs: goto, withdraw, bank, place, dig, collect, fell, craft, smelt, kill, till, use (gate open/shut), sleep… · routines: `fish`, `hunt`, `scan`, `scout`, `delegate` |
 | **judgement** | the LLM operator (any model) | only on events: session start, `plan_failed`, `no_route`, `stranded`, a gate reached | what to do next, where, with how many bots, in which order; reading the land; re-planning after a failure |
 
 Pure algorithms cannot play Minecraft (every situation is new) and an LLM steering every tick is unaffordable. So the LLM writes

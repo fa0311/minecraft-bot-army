@@ -19,13 +19,16 @@
 //                     Then walk the fix down in legs and throw again to refine; within `near` the eye DIPS and the squad digs a
 //                     lit staircase (never straight down under the feet) until a stone-brick wall or an end_portal_frame is read.
 //                     Events: eye_thrown · eye_lost · sh_fix · sh_leg · sh_arrived · sh_stairs · sh_found · sh_blocked.
+//   work:'way'        THE WAY DOWN when the stronghold is under water: a covered switchback from dry land, legs read with the camera,
+//                     cut by jobs_nether's route cutter (route.work), head in settings.end.way; then a timed proof walk
+//                     door -> portal room -> door and the job pauses itself. Events: end_way · end_way_walked.
 //   work:'portal'     fill the 12 end_portal_frame cells with eyes (activateBlock, read the `eye` property back) -> the portal
 //                     lights itself. Events: frame_filled · end_portal_lit · portal_frames.
 //   work:'dragon'     THE STRIKE SQUAD, in its best gear (never `bare`): through the portal, bridge off the arrival platform,
 //                     shoot every end crystal out of the sky FIRST (a live crystal heals the dragon 1 hp / 0.5 s), then hit the
 //                     head while it perches on the fountain. Events: end_arrived · crystal_down · crystal_caged · dragon_hit ·
 //                     dragon_perch · dragon_dead · end_retreat.
-// BOARD: settings.end = {throws:[{at,dir,by,t}], fix:{x,z,t,legs}, room:{frames:[[x,y,z]…], portal:[x,y,z], at}, lit, pearls}
+// BOARD: settings.end = {throws:[{at,dir,by,t}], fix:{x,z,t,legs}, room:{frames:[[x,y,z]…], portal:[x,y,z], stand:[x,y,z], at}, way:{legs,head,done,walked}, lit, pearls}
 // WHAT THIS FILE MUST NOT DO: no cheats (no /give, /tp, no creative, no /locate for the army), no new state file, no new daemon.
 const { Vec3 } = require('vec3')
 
@@ -507,6 +510,95 @@ module.exports = ctx => {
     } catch (e_) { swallow('jobs_end:noteFrames', e_); return 0 }
   }
 
+  // ================================================================ 3b. THE WAY DOWN — work:'way'
+  // THE STRONGHOLD LIES UNDER A RIVER (camera 09-21 15:4xZ): the confirm eye dipped at 96,61,1514 in the middle of the water, the
+  // river is 23 deep there (bed y39), and the portal room is x93..109 z1511..1521, floor y-43, frames at y-40. A stair cut from the
+  // river opens into it; so the way down starts on DRY land (the north bank) and is a covered, lit switchback cut by the ONE route
+  // cutter (jobs_nether `route.work`, rule 5) along legs that were read cell by cell with the SkyEye camera before they went on the
+  // board: no water or lava within 2 of any cell, no stronghold brick in the way until the room's own east wall (its doorway).
+  // params.legs = nether_route legs · routeKey 'way' (head in settings.end.way) · minutes (pass, <= 18) · stone/pickaxes to carry.
+  // Once the head reaches the end, the next slice is the PROOF: door -> down the way -> into the room -> frames read -> back up ->
+  // out, both directions timed (`end_way_walked`); then the job pauses itself. portal/dragon walk the same way (`viaWay`).
+  let _nr = null
+  const NR = () => { if (!_nr) _nr = require('./jobs_nether')(ctx); return _nr.route }
+  function wayOf () { const w = endS().way; return (w && Array.isArray(w.legs) && w.legs.length) ? w : null }
+  const wayIO = { read: () => endS().way || {}, edit: patch => endEdit(e => { for (const k of Object.keys(patch)) e[k] = Object.assign({}, e[k] || {}, patch[k]) }) }
+  // on the walk already? (the nearest walk cell within 2.5)
+  function onWay (bot, plan) { const me = bot.entity.position; return plan.walk.some(w => Math.hypot(w.p[0] + 0.5 - me.x, w.p[1] - me.y, w.p[2] + 0.5 - me.z) < 2.5) }
+  // to the way's door from anywhere in the overworld: read-only hops (the stronghold is ~2 000 blocks from the base)
+  async function toDoor (bot, api, door, until) {
+    const me = () => bot.entity.position
+    for (let n = 0; n < 30 && !api.stop() && now() < until; n++) {
+      const d = Math.hypot(me().x - door[0] - 0.5, me().z - door[2] - 0.5)
+      if (d <= 1.5 && Math.abs(me().y - door[1]) < 2) return true
+      const near = d <= 150; const a = Math.atan2(door[2] - me().z, door[0] - me().x)
+      const to = near ? { x: door[0], y: door[1], z: door[2] } : { x: Math.round(me().x + Math.cos(a) * 150), y: null, z: Math.round(me().z + Math.sin(a) * 150) }
+      task(bot, 'end way: to the door ' + door.join(',') + ' (' + Math.round(d) + ' left)')
+      const ok = await A.travel(bot, to, { range: near ? 0 : 8, ms: 240000, stop: api.stop })
+      if (!ok && near) return false
+      if (!ok && n > 2) return false
+    }
+    return false
+  }
+  // THE WAY IN: a bot far from `target` goes to the door and walks the cut stair down hand step by hand step (both lanes, shortest
+  // way); null = no finished way on the board (the caller travels on its own)
+  async function viaWay (bot, api, target, until) {
+    const W = wayOf(); if (!W || !W.done) return null
+    if (bot.entity.position.distanceTo(v(target)) < 16) return true
+    const R = NR(); const plan = R.plan(W.legs); const last = plan.meta.length - 1
+    if (!onWay(bot, plan) && !(await toDoor(bot, api, plan.meta.path[0], until))) return false
+    const r = await R.walk(bot, api, W.legs, last, 'end way: down to the portal room')
+    if (!r.ok) return false
+    return !!await A.travel(bot, v(target), { range: 1, ms: 60000, stop: api.stop, anyDepth: true, quiet: true })
+  }
+  // THE WAY OUT: from the room (or anywhere on the way) up to the door
+  async function wayHome (bot, api) {
+    const W = wayOf(); if (!W || !W.done) return null
+    const R = NR(); const plan = R.plan(W.legs); const end = plan.meta.path[plan.meta.length - 1]
+    if (!onWay(bot, plan)) {
+      if (bot.entity.position.distanceTo(v(end)) > 40) return null // not down there
+      if (!await A.travel(bot, v(end), { range: 0, ms: 60000, stop: api.stop, anyDepth: true, quiet: true })) return false
+    }
+    const r = await R.walk(bot, api, W.legs, 0, 'end way: up to the door')
+    return !!r.ok
+  }
+  async function way (bot, job, api, ctx2, P) {
+    if (!isOver(bot)) return muster(bot, job, api, ctx2, 'end way: overworld work (' + dimOf(bot) + ')')
+    if (!Array.isArray(P.legs) || !P.legs.length) return muster(bot, job, api, ctx2, 'end way: params.legs (the route legs) are missing')
+    const R = NR(); const plan = R.plan(P.legs); const door = plan.meta.path[0]; const key = JSON.stringify(P.legs)
+    if ((endS().way || {}).legsKey !== key || !wayOf()) endEdit(e => { e.way = Object.assign({}, (e.way && e.way.legsKey === key) ? e.way : {}, { legs: P.legs, legsKey: key, door, end: plan.meta.end, length: plan.meta.length, job: job.id }) })
+    // THE ROOM AS THE CAMERA READ IT (params.room = {frames, portal, stand, filled}) goes on the board once; what a bot later sees in the
+    // room (noteFrames) overwrites it, the stand stays
+    if (P.room && Array.isArray(P.room.frames)) { const R0 = endS().room || {}; if (!Array.isArray(R0.frames) || !Array.isArray(R0.stand)) endEdit(e => { e.room = Object.assign({}, P.room, e.room || {}); if (!Array.isArray(e.room.stand)) e.room.stand = P.room.stand; if (!e.room.at) e.room.at = now() }) }
+    const t0 = now()
+    // KIT AT HOME ONLY (the door is ~2 000 blocks out): stone for walls and floors over caves, pickaxes (a stone one is 131 blocks),
+    // torches, bread. Out there the bot works with what it carries.
+    const mp = A.musterPos(); const farOut = mp && Math.hypot(bot.entity.position.x - mp.x, bot.entity.position.z - mp.z) > 200
+    const short = farOut ? [] : await need(bot, api, { cobblestone: P.stone || 96, stone_pickaxe: P.picks || 4, torch: 32, bread: 12 })
+    if (!bot.inventory.items().some(i => /_pickaxe$/.test(i.name))) { A.decline(bot, job, 10 * 60000, 'end way: no pickaxe'); return muster(bot, job, api, ctx2, 'end way: no pickaxe to cut with (' + short.join(', ') + ')') }
+    const until = t0 + Math.min(Math.max(4, P.minutes || 14), 18) * 60000
+    const W = wayOf() || {}
+    if (!onWay(bot, plan)) {
+      const at = await toDoor(bot, api, door, t0 + 20 * 60000)
+      if (!at) { A.result(bot, { ev: 'end_way', job: job.id, ok: false, why: 'no route to the door', door, at: xyz(bot.entity.position) }); return 'end way: no route to the door ' + door.join(',') }
+    }
+    if (W.done && !P.cutOnly) {
+      // THE PROOF: down, into the room, frames read, back up - timed both ways
+      const room = endS().room || {}; const stand = Array.isArray(room.stand) ? room.stand : null
+      const td = now(); const down = await R.walk(bot, api, P.legs, plan.meta.length - 1, 'end way: walking down (proof)'); const downS = Math.round((now() - td) / 1000)
+      let inRoom = false; let frames = 0
+      if (down.ok && stand) { inRoom = !!await A.travel(bot, v(stand), { range: 0, ms: 30000, stop: api.stop, anyDepth: true, quiet: true }); frames = await noteFrames(bot, job) }
+      const tu = now(); const up = await wayHome(bot, api); const upS = Math.round((now() - tu) / 1000)
+      const ok = !!(down.ok && inRoom && up)
+      A.result(bot, { ev: 'end_way_walked', job: job.id, ok, down: { ok: down.ok, seq: down.seq, walked: down.walked, s: downS }, room: inRoom, frames, up: { ok: up, s: upS }, at: xyz(bot.entity.position), hp: Math.round(bot.health) })
+      if (ok) { endEdit(e => { e.way = Object.assign({}, e.way, { walked: { t: now(), by: bot.username, downS, upS } }) }); pauseSelf(job, 'auto-paused: the way is cut and walked door -> portal room -> door by ' + bot.username + ' (' + downS + ' s down, ' + upS + ' s up)') }
+      return 'end way: proof walk ' + (ok ? 'OK' : 'FAILED') + ' (down ' + downS + ' s, room ' + inRoom + ', up ' + upS + ' s)'
+    }
+    const r = await R.work(bot, job, api, Object.assign({ routeKey: 'way' }, P), until, wayIO)
+    A.result(bot, Object.assign({ ev: 'end_way', job: job.id }, r, { at: xyz(bot.entity.position), hp: Math.round(bot.health) }))
+    return 'end way: head ' + r.head + '/' + r.length + (r.done ? ' DONE' : '') + ', ' + r.dug + ' dug, ' + r.placed + ' placed' + (r.stuck ? ' - ' + r.stuck : '')
+  }
+
   // ================================================================ 4. THE PORTAL
   async function portal (bot, job, api, ctx2, P) {
     if (!isOver(bot)) return muster(bot, job, api, ctx2, 'end portal: overworld work (' + dimOf(bot) + ')')
@@ -517,9 +609,14 @@ module.exports = ctx => {
     const short = await need(bot, api, { ender_eye: need12, torch: 16, bread: 8 })
     if (A.count(bot, 'ender_eye') < 1) { A.result(bot, { ev: 'portal_frames', job: job.id, blocked: 'no eye_of_ender carried', short }); A.decline(bot, job, 6 * 60000, 'end portal: no eyes'); return muster(bot, job, api, ctx2, 'end portal: no eye to place (' + short.join(', ') + ')') }
     const c = v(centre)
-    if (bot.entity.position.distanceTo(c) > 6) {
+    // THE ROOM IS REACHED BY THE WAY (settings.end.way, cut by work:'way') and a bot stands on the room's floor (room.stand), never at
+    // the centre: the centre is the portal's 3x3 over the lava pool
+    const stand = Array.isArray(room.stand) ? v(room.stand) : null
+    if (bot.entity.position.distanceTo(c) > 8) {
       task(bot, 'end portal: to the portal room')
-      if (!await A.travel(bot, c, { range: 3, ms: 300000, stop: api.stop, anyDepth: true })) return 'end portal: no route to the portal room ' + centre.join(',')
+      const w = await viaWay(bot, api, stand || c, now() + 20 * 60000)
+      if (w === false) return 'end portal: could not walk the way down to the portal room'
+      if (w === null && !await A.travel(bot, stand || c, { range: stand ? 0 : 3, ms: 300000, stop: api.stop, anyDepth: true })) return 'end portal: no route to the portal room ' + centre.join(',')
     }
     await noteFrames(bot, job)
     const fr = bot.registry.blocksByName.end_portal_frame
@@ -561,6 +658,8 @@ module.exports = ctx => {
       return 'end portal: LIT at ' + xyz(lit[0]).join(',')
     }
     A.result(bot, { ev: 'portal_frames', job: job.id, placed, filled, of: total, carried: A.count(bot, 'ender_eye'), why: total < 12 ? 'fewer than 12 frames in view — walk the room' : 'frames still open' })
+    // out of eyes and the frames still open: back up the way (the next eyes come from the depot, 2 000 blocks off)
+    if (!A.count(bot, 'ender_eye') && filled < 12) await wayHome(bot, api).catch(e_ => swallow('jobs_end:portalHome', e_))
     return 'end portal: ' + placed + ' eyes set, ' + filled + '/' + total + ' frames full'
   }
 
@@ -604,6 +703,7 @@ module.exports = ctx => {
       }
       const g = v(gate)
       task(bot, 'dragon: to the end portal')
+      if (bot.entity.position.distanceTo(g) > 8) { const w = await viaWay(bot, api, Array.isArray(room.stand) ? room.stand : gate, now() + 20 * 60000); if (w === false) return 'dragon: could not walk the way down to the portal room' }
       if (bot.entity.position.distanceTo(g) > 3 && !await A.travel(bot, g, { range: 1, ms: 420000, stop: api.stop, anyDepth: true })) return 'dragon: no route to the end portal ' + gate.join(',')
       task(bot, 'dragon: stepping into the portal')
       const dim0 = dimOf(bot)
@@ -697,8 +797,9 @@ module.exports = ctx => {
       case 'eyes': return await eyes(bot, job, api, ctx2, P)
       case 'stronghold': return await stronghold(bot, job, api, ctx2, P)
       case 'portal': return await portal(bot, job, api, ctx2, P)
+      case 'way': return await way(bot, job, api, ctx2, P)
       case 'dragon': return await dragon(bot, job, api, ctx2, P)
-      default: return muster(bot, job, api, ctx2, 'end: unknown params.work "' + work + '" (enderhunt|eyes|stronghold|portal|dragon)')
+      default: return muster(bot, job, api, ctx2, 'end: unknown params.work "' + work + '" (enderhunt|eyes|stronghold|way|portal|dragon)')
     }
   }
 

@@ -1746,7 +1746,10 @@ module.exports = ctx => {
     return false
   }
   const routeItem = bot => ['cobblestone', 'cobbled_deepslate', 'blackstone', 'andesite', 'diorite', 'granite', 'tuff', 'stone', 'deepslate', 'netherrack', 'dirt'].find(k => A.count(bot, k) >= 1) || null
-  async function routeTunnel (bot, job, api, P, meta, allR, head, body, until) {
+  // `io` (optional, End engineer 09-21): another job file's board slot for the head ({edit(patch)}); default settings.nether. In the
+  // overworld WATER behind a cell is plugged exactly like lava (a river over the way down is what floods a stair).
+  async function routeTunnel (bot, job, api, P, meta, allR, head, body, until, io) {
+    const wetToo = !netherHere(bot)
     const t0 = Date.now()
     const gate = new Set()
     for (const q of body) for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) gate.add(K3(q.x + dx, q.y + dy, q.z + dz))
@@ -1844,7 +1847,7 @@ module.exports = ctx => {
           // and the lava ran down the whole stair into the hub). A player closes it through the hole he just made, at once: every
           // lava face of the cell (sides and top - lava never rises) is plugged from here if it can already be seen; what cannot be
           // seen is plugged THROUGH the new hole straight after the dig, and if it will not close, the hole is closed again.
-          const hot = () => [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0]].map(d => q.offset(d[0], d[1], d[2])).filter(n => { const nb = bot.blockAt(n); return !!nb && nb.name === 'lava' })
+          const hot = () => [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0]].map(d => q.offset(d[0], d[1], d[2])).filter(n => { const nb = bot.blockAt(n); return !!nb && (nb.name === 'lava' || (wetToo && nb.name === 'water')) })
           let lv = hot()
           if (lv.length && !fire) {
             for (const n of lv) { const it = routeItem(bot); if (it) await placeStill(bot, api, n, it) }
@@ -1960,7 +1963,7 @@ module.exports = ctx => {
     // walkable but not a post; 09-21 12:4xZ the barter post read done with its west wall open to the cavern)
     const openFrom = Number.isFinite(P.complete) ? cells.filter(c => c.seq >= P.complete && loadedAt(bot, c) && !routeOK(bot, c)) : []
     const done = head2 >= meta.length && !openFrom.length
-    netherEdit({ [P.routeKey || 'route']: { legsKey: JSON.stringify(P.legs), head: head2, length: meta.length, end: meta.end, headAt: meta.path[Math.min(head2, meta.length - 1)], done, reached, at: Date.now(), by: bot.username } })
+    ;((io && io.edit) || netherEdit)({ [P.routeKey || 'route']: { legsKey: JSON.stringify(P.legs), head: head2, length: meta.length, end: meta.end, headAt: meta.path[Math.min(head2, meta.length - 1)], done, reached, at: Date.now(), by: bot.username } })
     const min = Math.max(0.1, (Date.now() - t0) / 60000)
     const left = cells.filter(c => c.seq < head2 && loadedAt(bot, c) && !routeOK(bot, c))
     return {
@@ -2872,7 +2875,21 @@ module.exports = ctx => {
     return await netherSide(bot, job, api, ctx2, st, P)
   }
 
-  return { types: { portal }, verbs: {} }
+  // ONE TUNNELLER FOR EVERY DIMENSION (End engineer 09-21, rule 5): the End's way down to the stronghold is cut by THIS route cutter, not
+  // by a third one. `route.work` = one pass of work:'route' for a job of another file (params.legs, params.routeKey; `io.read()` returns
+  // the stored head record, `io.edit(patch)` stores it) - no gate body, and the Nether walk rules are taken off again in the overworld.
+  // `route.walk` = routeWalkSeq (both lanes, hand steps) · `route.plan(legs)` = {cells, meta, walk} of the merged blueprint.
+  async function routeWork (bot, job, api, P, until, io = {}) {
+    if (!Array.isArray(P.legs) || !P.legs.length) return { work: 'route', why: 'params.legs (the route legs) are missing' }
+    const r = bpCells('nether_route', [0, 0, 0], { legs: P.legs })
+    const R0 = (io.read ? io.read() : netherOf()[P.routeKey || 'route']) || {}
+    const head = Math.max(0, Math.min(r.meta.length - 1, (R0.legsKey === JSON.stringify(P.legs) ? R0.head : 0) || 0))
+    try { return await routeTunnel(bot, job, api, P, r.meta, r.cells, head, [], until, io) } finally { if (!netherHere(bot)) netherWalkOff(bot) }
+  }
+  function routePlan (legs) { const r = bpCells('nether_route', [0, 0, 0], { legs }); return { cells: r.cells, meta: r.meta, walk: routeWalkOf(r.meta, r.cells) } }
+  async function routeWalk (bot, api, legs, target, label) { try { return await routeWalkSeq(bot, api, legs, target, label) } finally { if (!netherHere(bot)) netherWalkOff(bot) } }
+
+  return { types: { portal }, verbs: {}, route: { work: routeWork, walk: routeWalk, plan: routePlan } }
 }
 module.exports.TYPES = ['portal']
 module.exports.VERBS = []

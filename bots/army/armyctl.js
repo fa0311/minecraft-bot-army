@@ -141,7 +141,7 @@ const HOWTO = {
   arrow: 'flint + stick + feather -> 4 arrows: gravel gives flint (10%), chickens give feathers; skeletons drop arrows and bows.'
 }
 const KNOWN_TYPES = ['ores', 'lumber', 'tidy', 'build', 'berries', 'light', 'sleeper', 'guard', 'muster', 'hunt', 'herd', 'fish', 'scan', 'delegate', 'scout', 'depot', 'farm', 'cane', 'deck', 'haul', 'steps']
-const KNOWN_VERBS = ['goto', 'bank', 'withdraw', 'stash', 'unstash', 'place', 'dig', 'collect', 'fell', 'craft', 'smelt', 'kill', 'pickup', 'drop', 'shear', 'till', 'equip', 'eat', 'sleep', 'wait', 'say', 'sample', 'fill', 'pour']
+const KNOWN_VERBS = ['goto', 'bank', 'withdraw', 'stash', 'unstash', 'place', 'dig', 'collect', 'fell', 'craft', 'smelt', 'kill', 'pickup', 'drop', 'shear', 'till', 'equip', 'eat', 'sleep', 'wait', 'use', 'say', 'sample', 'fill', 'pour']
 // extension modules bots/skills/lib/jobs_<name>.js bring their own job types and verbs (static TYPES / VERBS lists): see the end of army_jobs.js
 try { for (const f of fs.readdirSync(path.join(__dirname, '..', 'skills', 'lib')).filter(q => /^jobs_[a-z0-9]+\.js$/.test(q))) { const m = require(path.join(__dirname, '..', 'skills', 'lib', f)); for (const t of m.TYPES || []) if (!KNOWN_TYPES.includes(t)) KNOWN_TYPES.push(t); for (const v of m.VERBS || []) if (!KNOWN_VERBS.includes(v)) KNOWN_VERBS.push(v) } } catch (e_) { console.error('armyctl: extension list failed: ' + (e_ && e_.message)) }
 const stockKey = k => typeof k === 'string' && (!!STOCK().groups[k] || !!mc().itemsByName[k]) // a stock group (log, planks, food, fuel …) or an item name

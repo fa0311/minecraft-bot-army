@@ -1295,6 +1295,7 @@ async function depot (bot, job, api, ctx) {
 // No new code for a new situation — a new plan. Every step reports; a failed step stops the plan and says why, so the LLM can re-plan.
 //   params.steps = [ {do:'withdraw', item:'chest', n:5}, {do:'goto', to:[x,y,z], range:3}, {do:'place', block:'chest', at:[x,y,z]}, … ]
 //   params.repeat = true  -> start over after the last step (production loops);  params.onFail = 'continue' -> don't stop on a failed step
+//   {do:'use', at:[x,y,z], open:false} = right-click a block (shut/open a fence gate, press a button); with `open` it clicks only when needed and reads it back
 // Verbs (all bounded, all cancel-aware):
 //   goto {to:[x,y,z]|[x,null,z], range, via}        bank {keep:{item:n}}            withdraw {item, n}
 //   stash {at:[x,y,z], keep:{item:n}} / unstash {at}   put into / empty a SITE chest (work-site storage outside the base index)
@@ -1561,6 +1562,18 @@ const VERBS = {
   async equip (bot, st) { const it = bot.inventory.items().find(i => i.name === st.item); if (!it) return 'no ' + st.item; await U.withTimeout(bot.equip(it, st.dest || 'hand'), 5000, 'equip'); return true },
   async eat (bot) { if (bot.food >= 20) return true; try { await U.withTimeout(lib('feed').eat(bot, { rawOk: true }), 20000, 'eatStep') } catch (e_) { swallow('army_jobs:eatStep', e_) } return true }, // full or nothing edible = done at once (helpdesk 09-19 20:04Z: Fuuka "hung" 3 min on step eat with food 20 and empty pockets)
   async sleep (bot) { const bed = bot.findBlock({ matching: b => bot.isABed(b), maxDistance: 24 }); if (!bed) return 'no bed within 24'; if (!await A.travel(bot, bed.position, { range: 2, ms: 60000 })) return 'bed unreachable'; try { await bot.sleep(bed); return true } catch (e) { return 'sleep: ' + String(e.message).slice(0, 60) } },
+  // USE = right-click a block (09-21 15:2xZ: a pen gate stood OPEN for 2 h and no verb could shut it - dig refuses our protected gate).
+  // {do:'use', at:[x,y,z], open:false} clicks only when the block's `open` state differs, and reads it back; without `open` it clicks once.
+  async use (bot, st, api) {
+    const p = v(st.at); if (!await A.travel(bot, p, { range: 3, ms: 60000, stop: api.stop, quiet: true })) return 'cannot reach ' + st.at.join(',')
+    const openOf = () => { try { const b = bot.blockAt(p); return b && b.getProperties && b.getProperties().open != null ? String(b.getProperties().open) === 'true' : null } catch (e_) { return null } }
+    if (st.open != null && openOf() === !!st.open) return true
+    const b = bot.blockAt(p); if (!b) return 'no block at ' + st.at.join(',')
+    try { await U.withTimeout(bot.activateBlock(b), 5000, 'use') } catch (e) { return 'use failed: ' + String(e && e.message || e).slice(0, 60) }
+    await sleep(400)
+    if (st.open != null && openOf() !== !!st.open) return 'clicked, but ' + b.name + ' reads open=' + openOf()
+    return true
+  },
   async wait (bot, st, api) { const end = Date.now() + (st.s || 5) * 1000; while (Date.now() < end && !api.stop()) await sleep(500); return true },
   async say (bot, st) { bot.chat(String(st.text || '').replace(/^[/!]+/, '').slice(0, 100)); return true },
   async sample (bot) { const s = sampleLand(bot); s.t = Date.now(); s.bot = bot.username; require('fs').appendFileSync(require('path').join(A.DIR, 'scout.jsonl'), JSON.stringify(s) + '\n'); return true }

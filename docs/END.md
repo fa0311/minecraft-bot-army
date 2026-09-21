@@ -93,6 +93,21 @@ stronghold is **700-2300 blocks out** — this is an expedition, not an errand.
 6. A camera confirmation of what the eyes found is allowed once the bots are close (`ops/skyshot.js` pattern) — that is
    perception, not gameplay. `/locate` is not.
 
+### 3b. THE WAY DOWN — `work:'way'` (job `end_way`) — the stronghold is under a river
+Camera read 09-21 15:4xZ (SkyEye, `findBlocks` from 96,30,1514): the confirm eye dipped in a river 23 deep (bed y39). **Portal room:
+x93..109 z1511..1521, floor y-43 (stand on y-42), 12 `end_portal_frame` at y-40 — 102,*,1515..1517 · 103..105,*,1514 · 103..105,*,1518 ·
+106,*,1515..1517; portal 3x3 = 103..105 x 1515..1517 over a lava pool at y-42; 1 frame pre-filled (102,-40,1517); silverfish spawner
+100,-40,1516 on the dais stair.** Stronghold extent x41..113 z1456..1583 y-49..3. On the board: `settings.end.room` (+ `stand`
+108,-42,1515 — never the centre: it is the portal over the lava) via `end_way.params.room`.
+The way: a covered, lit, 2-wide **switchback** from DRY land on the north bank — door **116,96,1494** (walk in from 115,96,1494),
+flights of 12 along x (z1494/95 east, z1497/98 west, shared wall z1496), landings of 5, down to y-42, then a level tunnel S along
+x120/121 to z1515 and W through the room's east wall at 109,-42,1514..1515 (223 walk cells, 3631 blueprint cells). Every cell was
+read from a camera volume dump before it went on the board: no water/lava within 2, no stronghold brick until the room wall, 1 gravel,
+1 cave cell (scratch tools: `vol.js` dump, `sw.js` legs + checker, `search.js`). It is cut by the Nether's route cutter —
+`jobs_nether.js` exports `route.{work,walk,plan}` (one implementation; in the overworld it also plugs WATER behind a cell), head in
+`settings.end.way`. When the head reaches the end the next slice is the proof walk door -> room -> door (`end_way_walked`), then the
+job pauses itself. `portal` and `dragon` walk this way in and out (`viaWay`/`wayHome`) — the stronghold is ~2 000 blocks from the base.
+
 ## 4. THE PORTAL — `work:'portal'`
 Walk the room, `noteFrames` writes every `end_portal_frame` to `settings.end.room`, then for each frame whose `eye` property
 reads false: eye in hand, `activateBlock`, **read the property back**. ~10 % of frames generate pre-filled. When the 12 are full
