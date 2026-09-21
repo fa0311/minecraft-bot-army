@@ -52,8 +52,10 @@ const SURFACE_BLOCK = 'dirt'
 const SURFACE_OK = ['dirt', 'grass_block', 'coarse_dirt', 'rooted_dirt', 'podzol', 'mycelium', 'farmland', 'dirt_path', 'moss_block']
 // what a `natural:true` air cell (a road shoulder) may take away — everything else standing there belongs to somebody else
 const NATURAL = /^(dirt|grass_block|coarse_dirt|rooted_dirt|podzol|mycelium|mud|clay|stone|granite|diorite|andesite|tuff|calcite|deepslate|gravel|sand|red_sand|sandstone|terracotta|moss_block|snow|snow_block|powder_snow|short_grass|tall_grass|fern|large_fern|dead_bush|.*_ore)$/
-// a block that does not COVER the cell below it (the one below is still visible ground, i.e. still `surface`)
-const THIN = /torch|lantern|button|_sign$|carpet|_door$|ladder|lever|rail$|sapling|_pressure_plate$|^air$|^water$|^lava$|flower|grass|fern|crop|wheat|carrots|potatoes|beetroots|^snow$/
+// A block that does not COVER the cell below it (the one below is still the visible ground, i.e. still `surface`), and — in the
+// diff — never something a build job may clear out of an `air` cell: our torch grid, the cane we planted, a crop, a sapling.
+// (`grass_block` must NOT match: it is solid ground. An earlier /grass/ here made every cell under turf read as `surface`.)
+const THIN = /^(air|cave_air|void_air|water|lava|torch|wall_torch|soul_torch|soul_fire|fire|lantern|soul_lantern|snow|ladder|lever|tripwire|vine|light|short_grass|tall_grass|fern|large_fern|dead_bush|bush|sugar_cane|bamboo|bamboo_sapling|cactus|wheat|carrots|potatoes|beetroots|melon_stem|pumpkin_stem|sweet_berry_bush|kelp|seagrass|cobweb|scaffolding|dandelion|poppy|blue_orchid|allium|azure_bluet|oxeye_daisy|cornflower|lily_of_the_valley|sunflower|lilac|rose_bush|peony|wildflowers|pink_petals|leaf_litter|firefly_bush|torchflower)$|_button$|_sign$|_carpet$|_door$|_pressure_plate$|_sapling$|_tulip$|_rail$|^rail$|_banner$|_candle$/
 // furniture is a STRUCTURE cell whatever blueprint placed it (a chest in a pad's footprint is not ground)
 const FURNITURE = /_bed$|^(chest|trapped_chest|barrel|furnace|smoker|blast_furnace|crafting_table|enchanting_table|bookshelf|anvil|campfire|lantern|torch)$/
 
@@ -74,7 +76,19 @@ function cellsOf (params) {
 // Everything that says what SHOULD stand somewhere. One shape: {id, owner, kind, dim, blueprint, params, priority, status, zone}.
 function sourcesOf (board, opt) {
   const dim = opt.dim || 'overworld'; const out = []
-  for (const j of board.jobs || []) {
+  // THE PLAN IS BIGGER THAN THE BOARD. `prune` archives a finished one-off job, but the hall it built still stands and is still
+  // the authoritative target for its cells (ops/base-audit.js reads the same archive, and a damaged structure's own job is
+  // re-activated as the repair). A target map that forgot them would call every finished wall "stray".
+  const jobs = (board.jobs || []).slice(); const known = new Set(jobs.map(j => j.id))
+  if (opt.archive !== false) {
+    try {
+      for (const l of fs.readFileSync(path.join(DIR, 'jobs-archive.jsonl'), 'utf8').split('\n')) {
+        if (!l) continue
+        try { const j = JSON.parse(l); if (j && j.type === 'build' && j.params && j.params.blueprint && Array.isArray(j.params.origin) && !known.has(j.id)) { known.add(j.id); jobs.push(Object.assign({}, j, { status: 'done' })) } } catch (e_) { swallow('plan:archiveLine', e_) }
+      }
+    } catch (e_) { swallow('plan:archive', e_) }
+  }
+  for (const j of jobs) {
     if ((j.dim || 'overworld') !== dim) continue
     const p = j.params || {}
     if (j.type === 'build' && p.blueprint && Array.isArray(p.origin)) {
@@ -131,7 +145,7 @@ function build (file, opt, key) {
     let x1 = Infinity; let z1 = Infinity; let x2 = -Infinity; let z2 = -Infinity; const cols = new Set()
     for (const c of cs) { if (c.x < x1) x1 = c.x; if (c.x > x2) x2 = c.x; if (c.z < z1) z1 = c.z; if (c.z > z2) z2 = c.z; cols.add(c.x + ',' + c.z) }
     s.n = cs.length; s.rect = cs.length ? [x1, z1, x2, z2] : null; s.area = cs.length ? (x2 - x1 + 1) * (z2 - z1 + 1) : 0; s.cols = cols.size
-    s.rank = RANK[s.kind]
+    s.rank = RANK[s.kind]; s.live = s.status !== 'done'
     cells.push(cs)
   }
 
@@ -153,8 +167,16 @@ function build (file, opt, key) {
   const note = (a, b, c, ok) => { // a's cell lost to b's at cell c
     if (a.owner === b.owner) return // segments of ONE road share their joint columns by design: that is a ramp, not a conflict
     const k = a.owner + '|' + b.owner; let e = contest.get(k)
-    if (!e) { e = { a: a.owner, b: b.owner, ka: a.kind, kb: b.kind, za: a.zone, zb: b.zone, cells: 0, disagree: 0, cols: new Set(), sample: [c.x, c.y, c.z], at: null }; contest.set(k, e) }
+    if (!e) { e = { a: a.owner, b: b.owner, ka: a.kind, kb: b.kind, za: a.zone, zb: b.zone, live: a.live && b.live, chain: chained(a.owner, b.owner), cells: 0, disagree: 0, cols: new Set(), sample: [c.x, c.y, c.z], at: null }; contest.set(k, e) }
     e.cells++; e.cols.add(c.x + ',' + c.z); if (!ok) { e.disagree++; if (!e.at) e.at = [c.x, c.y, c.z] }
+  }
+  // A PAD AND THE THING BUILT ON IT ARE NOT RIVALS. `plan-base` chains them (`after`) and names them `<zone>_pad` -> `<zone>`:
+  // the pad's headroom exists so the wall can stand there. Such a pair overlaps by design; only UNCHAINED pairs are the war.
+  const afterOf = new Map(); for (const j of (board.jobs || [])) if (j.after) afterOf.set(j.id, j.after)
+  function chained (a, b) {
+    const up = id => { const out = new Set(); let c = id; for (let i = 0; i < 12 && afterOf.get(c); i++) { c = afterOf.get(c); out.add(c) } return out }
+    if (up(a).has(b) || up(b).has(a)) return true
+    return a.replace(/_pad$/, '') === b.replace(/_pad$/, '') // `<zone>_pad` -> `<zone>` (a cap_* is NOT a chain: it is a second, contradictory spec for the same ground)
   }
   for (let si = 0; si < src.length; si++) {
     for (const c of cells[si]) {
@@ -173,6 +195,12 @@ function build (file, opt, key) {
   // order the jobs happen to stand in on the board.
   function winner (a, b) { // returns the index of the winner (a.i / b.i are set below)
     if (a.rank !== b.rank) return a.rank > b.rank ? a.i : b.i
+    // THE BOARD IS THE PRESENT TENSE, the archive only remembers. Within one rank a LIVE terrain job beats a finished one:
+    // the two day-one quarry pits are archived `quarry` jobs whose cells are AIR, and fill_ravine_s exists precisely to fill
+    // them (docs/WORLD.md) - without this rule 2052 cells of the ravine fill were "owned" by a pit nobody wants any more.
+    // STRUCTURES are not remediable that way: a live building inside a finished building is a planning mistake, so they keep
+    // the priority tie-break and the pair is reported as a `buried` plan error for a human.
+    if (a.kind !== 'structure' && a.live !== b.live) return a.live ? a.i : b.i
     if ((a.priority || 0) !== (b.priority || 0)) return (a.priority || 0) > (b.priority || 0) ? a.i : b.i
     if (a.area !== b.area) return a.area < b.area ? a.i : b.i
     return a.id <= b.id ? a.i : b.i
@@ -231,14 +259,16 @@ function build (file, opt, key) {
   const left = new Map(); for (const s of src) left.set(s.owner, (left.get(s.owner) || 0) + s.stats.cells)
   const had = new Map(); for (const s of src) had.set(s.owner, (had.get(s.owner) || 0) + s.n)
   for (const e of contest.values()) {
-    overlaps.push({ loser: e.a, winner: e.b, cells: e.cells, disagree: e.disagree, columns: e.cols.size, at: e.at || e.sample, ka: e.ka, kb: e.kb, kinds: e.ka + ' < ' + e.kb, zones: e.za + ' / ' + e.zb, lostAll: left.get(e.a) === 0, resolution: resolutionText(e) })
+    overlaps.push({ loser: e.a, winner: e.b, cells: e.cells, disagree: e.disagree, columns: e.cols.size, at: e.at || e.sample, ka: e.ka, kb: e.kb, kinds: e.ka + ' < ' + e.kb, zones: e.za + ' / ' + e.zb, live: e.live, chain: e.chain, lostAll: left.get(e.a) === 0, resolution: resolutionText(e) })
   }
-  overlaps.sort((p, q) => q.disagree - p.disagree || q.columns - p.columns || q.cells - p.cells)
+  // worst first: a LIVE, UNCHAINED pair that disagrees about a block is a dig/place war on the board right now
+  const war = o => (o.live ? 2 : 0) + (o.chain ? 0 : 1)
+  overlaps.sort((p, q) => war(q) - war(p) || q.disagree - p.disagree || q.columns - p.columns || q.cells - p.cells)
   // 1. TWO HEIGHTS FOR ONE COLUMN. "One site = ONE height" (CLAUDE.md §1b). Two terrain sources whose surface cells sit at
   //    different y in the same column cannot both be right, whatever wins: the loser's crew will keep finding the ground wrong.
   const gradeOf = new Map()   // 'x,z' -> Map(owner -> top y of its solid cells)
   for (let si = 0; si < src.length; si++) {
-    if (src[si].kind === 'structure') continue
+    if (src[si].kind === 'structure' || !src[si].live) continue
     for (const c of cells[si]) { if (c.block === 'air') continue; const k = c.x + ',' + c.z; let m = gradeOf.get(k); if (!m) { m = new Map(); gradeOf.set(k, m) } const cur = m.get(src[si].owner); if (cur === undefined || c.y > cur) m.set(src[si].owner, c.y) }
   }
   const grade = new Map()
@@ -253,22 +283,31 @@ function build (file, opt, key) {
     }
   }
   // dy >= 2 is always a plan error; a 1-block step is a junction ramp until it covers a whole shared area (>= 8 columns)
-  for (const g of grade.values()) if (g.dy >= 2 ? g.columns >= (opt.minGrade || 4) : g.columns >= 8) errors.push({ kind: 'grade_conflict', a: g.a, b: g.b, columns: g.columns, at: g.at, why: g.a + ' wants the ground at y' + g.ys[0] + ' and ' + g.b + ' at y' + g.ys[1] + ' in ' + g.columns + ' shared columns (one site = ONE height): re-site one of them, cut its box, or make the step a planned ramp' })
+  for (const g of grade.values()) if (!chained(g.a, g.b) && (g.dy >= 2 ? g.columns >= (opt.minGrade || 4) : g.columns >= 8)) errors.push({ kind: 'grade_conflict', a: g.a, b: g.b, columns: g.columns, at: g.at, why: g.a + ' wants the ground at y' + g.ys[0] + ' and ' + g.b + ' at y' + g.ys[1] + ' in ' + g.columns + ' shared columns (one site = ONE height): re-site one of them, cut its box, or make the step a planned ramp' })
   // 2. SAME PRECEDENCE, DIFFERENT TARGET — nobody outranks anybody, so the compiler decides on footprint/id alone and a human
   //    should say which box is wrong. Only pairs that actually DISAGREE about a block count (a shared cell both want identical
   //    is harmless duplication).
   for (const o of overlaps) {
-    if (o.ka !== o.kb || !o.disagree || o.disagree < (opt.minCells || 8)) continue
+    if (o.ka !== o.kb || o.chain || !o.live || !o.disagree || o.disagree < (opt.minCells || 8)) continue
     errors.push({ kind: 'same_rank', a: o.loser, b: o.winner, columns: o.columns, at: o.at, why: 'same precedence class (' + o.ka + ') and ' + o.disagree + ' cells where the two want DIFFERENT blocks — decided only by footprint/id; one of the two boxes is wrong' })
   }
   // 3. A STRUCTURE OR ROAD PLANNED INSIDE A KEEP-OUT (the ravine, the pond): plan-base lays the lattice around them for a reason.
   for (const s of src) {
-    if (!s.rect || s.kind === 'fill' || s.kind === 'pad') continue
+    if (!s.rect || !s.live || s.kind === 'fill' || s.kind === 'pad') continue
     for (const k of keepOut) if (overlap(s.rect, k.box)) errors.push({ kind: 'keepout', a: s.id, b: k.id, at: [k.box[0], 0, k.box[1]], why: s.kind + ' ' + s.id + ' is planned inside keep-out ' + k.id + ' — ' + String(k.why).slice(0, 80) })
   }
   // 4. SUBSUMED: a job with (next to) nothing left of its own. Not an error — an ACTION: take it off the board.
   const subsumed = []
-  for (const [owner, n] of had) { const lf = left.get(owner) || 0; if (n > 0 && lf < 0.05 * n) subsumed.push({ id: owner, kind: (src.find(s => s.owner === owner) || {}).kind, had: n, left: lf, why: lf === 0 ? 'every cell belongs to a higher-precedence plan' : '95 %+ of its cells belong to a higher-precedence plan' }) }
+  for (const [owner, n] of had) {
+    const s0 = src.find(q => q.owner === owner); if (!s0 || !s0.live) continue // a finished job has nothing to take off the board
+    const lf = left.get(owner) || 0; if (!(n > 0 && lf < 0.05 * n)) continue
+    const by = [...new Set(overlaps.filter(o => o.loser === owner).map(o => o.winner))]
+    // A CAP with nothing left is the material rule doing its job: strike it off the board. A real job buried under FINISHED
+    // work is something else — somebody planned a building inside a building, and a human has to say which one is wrong.
+    const buried = s0.kind !== 'deco' && by.every(id => { const q = src.find(r => r.owner === id); return q && !q.live })
+    subsumed.push({ id: owner, kind: s0.kind, status: s0.status, had: n, left: lf, by: by.slice(0, 4), verdict: buried ? 'plan error' : 'remove', why: lf === 0 ? 'every cell belongs to a higher-precedence plan' : '95 %+ of its cells belong to a higher-precedence plan' })
+    if (buried) errors.push({ kind: 'buried', a: owner, b: by[0], at: s0.rect ? [s0.rect[0], 0, s0.rect[1]] : null, why: owner + ' (' + s0.kind + ', ' + n + ' cells) lies entirely inside FINISHED work (' + by.slice(0, 3).join(', ') + '): it can never build anything — re-site it or take it off the board' })
+  }
 
   return {
     key, file, dim: opt.dim || 'overworld', t: Date.now(), settings: S, keepOut, sources: src, chunks, pal, variants, cellCount: total, chunkCount: chunks.size,

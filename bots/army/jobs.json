@@ -1086,10 +1086,10 @@
    "arrow": 512,
    "diamond_chestplate": 10,
    "diamond_leggings": 10,
-   "iron_helmet": 30,
+   "iron_helmet": 12,
    "iron_chestplate": 30,
-   "iron_leggings": 30,
-   "iron_boots": 30,
+   "iron_leggings": 24,
+   "iron_boots": 16,
    "iron_axe": 8,
    "iron_pickaxe": 12,
    "iron_sword": 12,
@@ -1383,7 +1383,7 @@
    ],
    "shellY": 98,
    "returnJob": "nether_return",
-   "deaths": 1,
+   "deaths": 0,
    "deathsResetAt": 1789910779294,
    "deathsResetWhy": "owner 13:2xZ: death is an accepted cost of exploring the Nether; the brake is 6 in 30 min",
    "landing": [
@@ -1423,9 +1423,7 @@
    },
    "outAt": 1789915921402,
    "outBy": "Rin",
-   "deathLog": [
-    1789969593942
-   ],
+   "deathLog": [],
    "sightings": [],
    "fortress": null,
    "stair": {
@@ -2262,19 +2260,19 @@
     "t": 1789924913245
    },
    "absorb": {
-    "iron_ingot": 144,
-    "coal": 480,
-    "flint": 600,
-    "gray_wool": 595,
-    "leather": 192,
-    "carrot": 704,
-    "wheat": 580,
+    "leather": 288,
+    "carrot": 352,
+    "wheat": 320,
     "pumpkin": 144,
     "melon": 96,
-    "rabbit": 64,
-    "porkchop": 112
+    "coal": 960,
+    "iron_ingot": 240,
+    "flint": 1176,
+    "gray_wool": 540,
+    "diamond": 12,
+    "beetroot": 240
    },
-   "absorbT": 1789968779217
+   "absorbT": 1789970749891
   },
   "enchantTable": [
    -344,
@@ -2591,7 +2589,7 @@
     "wheat_seeds"
    ],
    "minBots": 0,
-   "maxBots": 7,
+   "maxBots": 3,
    "plan": "BASE PLAN zone field_1: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
    "params": {
     "box": [
@@ -2605,7 +2603,7 @@
     "forage": true,
     "bankAt": 64
    },
-   "rev": 11,
+   "rev": 12,
    "bots": 2
   },
   {
@@ -2757,7 +2755,7 @@
    "type": "farm",
    "priority": 80,
    "front": "farm",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "site": [
     -390,
@@ -2770,7 +2768,7 @@
     "wheat_seeds"
    ],
    "minBots": 0,
-   "maxBots": 1,
+   "maxBots": 3,
    "plan": "BASE PLAN zone field_3: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
    "params": {
     "box": [
@@ -2784,9 +2782,10 @@
     "forage": true,
     "bankAt": 64
    },
-   "rev": 8,
+   "rev": 9,
    "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)",
-   "bots": 1
+   "bots": 1,
+   "desc": "owner 09-21: 「採集する畑が偏る farm_1とfarm_6しか使ってない」 - the third planted block joins the rotation so 20+ bots do not cycle through two plots"
   },
   {
    "id": "farm_6",
@@ -2806,7 +2805,7 @@
     "wheat_seeds"
    ],
    "minBots": 0,
-   "maxBots": 7,
+   "maxBots": 3,
    "plan": "BASE PLAN zone field_6: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
    "params": {
     "box": [
@@ -2820,7 +2819,7 @@
     "forage": true,
     "bankAt": 64
    },
-   "rev": 8,
+   "rev": 9,
    "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)",
    "bots": 1
   },
@@ -2991,7 +2990,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789970416902
+   "restUntil": 1789970918589
   },
   {
    "id": "fill_ring_field1",
@@ -3941,7 +3940,8 @@
     "-319,42,-469": 1789983040661,
     "-318,42,-473": 1789983040661,
     "-318,42,-472": 1789983040661,
-    "-318,42,-471": 1789983040661
+    "-318,42,-471": 1789983040661,
+    "-334,67,-464": 1789985142755
    }
   },
   {
@@ -4206,7 +4206,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789970411992
+   "restUntil": 1789971950086
   },
   {
    "id": "nether_landing_2",
@@ -4655,57 +4655,13 @@
    "note": "auto-paused: build complete"
   },
   {
-   "id": "cap_fill_ne_valley",
-   "type": "build",
-   "priority": 38,
-   "front": "base",
-   "status": "active",
-   "when": "any",
-   "bots": 6,
-   "site": [
-    -256,
-    68,
-    -386
-   ],
-   "plan": "the finished fill_void of fill_ne_valley is bare stone: cap the grade layer y67 of x -278..-234 / z -401..-371 with DIRT (grass spreads by itself). Only where bare stone, gravel or air stands - never paving, a field, a crop or another blueprint of ours - and only out of the dirt SURPLUS over targets.dirt 128",
-   "params": {
-    "blueprint": "level",
-    "origin": [
-     -256,
-     67,
-     -386
-    ],
-    "args": {
-     "w": 45,
-     "d": 31,
-     "cap": true,
-     "fill": "dirt"
-    },
-    "needStock": {
-     "dirt": 128
-    },
-    "order": "near"
-   },
-   "rev": 9,
-   "note": "needs: dirt (835 cells wait; every cell whose material exists is done or in work)",
-   "restUntil": 1789922437833,
-   "desc": "PAUSED 17:3xZ top model: 107 passes with done:0 (left 857), its cells sit over the UNFILLED fill_ne_valley (paused) - a cap over an open fill can only fail. Re-activate after fill_ne_valley closes its columns",
-   "stuckBy": {
-    "key": "rev9",
-    "bots": [
-     "Akari",
-     "Fuuka"
-    ]
-   }
-  },
-  {
    "id": "base_depot_south",
    "type": "build",
    "priority": 55,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 3,
+   "bots": 6,
    "site": [
     -364,
     69,
@@ -4730,7 +4686,7 @@
     },
     "order": "near"
    },
-   "rev": 3,
+   "rev": 4,
    "stuckBy": {
     "key": "rev2",
     "bots": [
@@ -4790,7 +4746,7 @@
    "front": "base",
    "status": "paused",
    "when": "day",
-   "bots": 8,
+   "bots": 1,
    "shiftMin": 20,
    "site": [
     -326,
@@ -4816,13 +4772,16 @@
     "minutes": 8,
     "cobble": 64,
     "crossS": 30,
-    "maxDeaths": 2,
+    "maxDeaths": 6,
     "roam": 16,
     "bare": true
    },
    "desc": "EYE OF ENDER, pearl half (owner: eyes are missing after 22 h): 1291 gold in the depot, 4 golden_boots exist. Bartering stands at the hub - it does NOT walk the open Nether, so it runs before the fortress road. 2 bots, maxDeaths 2: measure pearls per gold before it grows",
    "rev": 6,
-   "maxDeaths": 2
+   "maxDeaths": 2,
+   "names": [
+    "Chika"
+   ]
   },
   {
    "id": "nether_gate_spare_n607",
@@ -4906,54 +4865,6 @@
      -503
     ],
     "drop": 4
-   }
-  },
-  {
-   "id": "cap_base_mine_pad",
-   "type": "build",
-   "priority": 38,
-   "front": "base",
-   "status": "active",
-   "when": "any",
-   "bots": 6,
-   "site": [
-    -330,
-    69,
-    -500
-   ],
-   "after": "void_fix_base_mine_pad",
-   "plan": "the finished level of base_mine_pad is bare stone: cap the grade layer y68 of x -337..-323 / z -508..-492 with DIRT (grass spreads by itself). Only where bare stone, gravel or air stands - never paving, a field, a crop or another blueprint of ours - and only out of the dirt SURPLUS over targets.dirt 128",
-   "params": {
-    "blueprint": "level",
-    "origin": [
-     -330,
-     68,
-     -500
-    ],
-    "args": {
-     "w": 15,
-     "d": 17,
-     "cap": true,
-     "fill": "dirt"
-    },
-    "needStock": {
-     "dirt": 128
-    },
-    "order": "near"
-   },
-   "rev": 2,
-   "noDig": {
-    "-333,68,-499": 1789984296154,
-    "-330,68,-498": 1789984297173,
-    "-335,68,-500": 1789984305891
-   },
-   "note": "needs: dirt (6 cells wait; every cell whose material exists is done or in work)",
-   "stuckBy": {
-    "key": "rev2",
-    "bots": [
-     "Erika",
-     "Hinata"
-    ]
    }
   },
   {
@@ -5257,12 +5168,13 @@
     "cobble": 256,
     "crossS": 30,
     "maxDeaths": 3,
-    "obsidian": 14
+    "obsidian": 14,
+    "bare": true
    },
    "names": [
     "Nanami"
    ],
-   "rev": 10,
+   "rev": 11,
    "note": "auto-paused: 2 deaths in 30 min on the far side ([-44,98,-80]). Fix the cause you can see, clear settings.nether.deathLog, re-activate - do not wait",
    "desc": "OWNER-LOCKED top model 16:3xZ, nether front: the causeway and the 15x15 partner platform at the_nether -41,-65. Deaths in this window were operator rescues, not the Nether. Do not pause, do not rescue its bot, do not add bots - the arrival is still the old 8-cell pocket until the platform stands."
   },
@@ -5448,9 +5360,10 @@
     "minutes": 7,
     "cobble": 64,
     "crossS": 30,
-    "maxDeaths": 6
+    "maxDeaths": 6,
+    "bare": true
    },
-   "rev": 1
+   "rev": 2
   },
   {
    "id": "village_breed",
@@ -5605,7 +5518,7 @@
     "radius": 150,
     "bankAt": 48
    },
-   "restUntil": 1789970461687,
+   "restUntil": 1789971324991,
    "rev": 19
   },
   {
@@ -5835,7 +5748,7 @@
     ]
    },
    "rev": 5,
-   "restUntil": 1789970331180
+   "restUntil": 1789971279812
   },
   {
    "id": "tidy_portal",
@@ -5869,17 +5782,17 @@
      ]
     ]
    },
-   "restUntil": 1789970818231,
+   "restUntil": 1789972040452,
    "rev": 1
   },
   {
    "id": "road_mine",
    "type": "road",
-   "priority": 86,
+   "priority": 72,
    "front": "works",
    "status": "paused",
    "when": "any",
-   "bots": 3,
+   "bots": 4,
    "site": [
     -367,
     69,
@@ -6000,7 +5913,8 @@
     ]
    },
    "restUntil": 0,
-   "rev": 4
+   "rev": 7,
+   "note": "PAUSED by the roads engineer 06:0xZ: 2 of 3 segments verified in the world; the junction cells -343/-342,68,-500 are contested by cap_base_mine_pad (build_runaway, dig/place loop) because settings.roads is invisible to A.buildJobs()/ours() - re-activate after that patch lands (see docs/ROADS.md)"
   },
   {
    "id": "base_yard_pad",
@@ -6049,8 +5963,8 @@
   {
    "id": "nether_barter_road",
    "type": "portal",
-   "status": "paused",
-   "bots": 0,
+   "status": "active",
+   "bots": 1,
    "prio": 78,
    "desc": "EYE OF ENDER, pearl half: the lane + pad that make bartering possible at all. 3-wide lit lane with kerbs + a 9x9 pad at -65,110,-72. 213 blocks to place, 22 to dig (dry run against the camera map).",
    "plan": "zone portal (docs/WORLD.md): THE BARTER SPOT IS A PLACE, NOT THE CELL WE LAND ON. The spectator camera measured this shift: (1) the arrival shelf is one connected ground of 383 standable cells (x -56..-30 / z -96..-72, y95-103) and no mob EVER spawns within 24 blocks of a player, so no piglin can appear on it - the census found 0 of 6 there; (2) all 6 piglins and 17 of 69 zombified piglins stand on ONE other ground, 291 cells at x -69..-52 / z -83..-47 / y100-116, with natural rock at y113 three cells over its y109/110 plateau (a roof no ghast shoots through); (3) the cheapest walkable line to it is 26 placed blocks (Dijkstra over the camera solid/air map). So this job lays that line as a proper road - 3 walkable cells wide, a one-block kerb on each rim so a fireball cannot shove a bot off, 3 of headroom, a torch every 8 legs - and levels a 9x9 pad at -65,110,-72 to the MEDIAN ground of its box (never a knoll: that is what left the pair platform 139 of 225 cells over void). Columns with no support within 3 below are dropped from the plan, never bridged. Pad centre is 32 blocks from the hub chest -37,98,-79, the distance paper piglins-guard-chests:true wants. Every builder sneaks (buildCells) and every walk goes through nTravel (edge doctrine). maxDeaths 2: two deaths on this design and it stops itself.",
@@ -6315,12 +6229,12 @@
     "minutes": 9,
     "cobble": 192,
     "crossS": 60,
-    "maxDeaths": 2,
+    "maxDeaths": 6,
     "reach": 64,
     "bare": true
    },
    "restUntil": 0,
-   "rev": 9,
+   "rev": 12,
    "priority": 97,
    "zone": "base",
    "names": [
@@ -6333,7 +6247,7 @@
     -518
    ],
    "shiftMin": 20,
-   "note": "STOPPED 09-21 05:5xZ by the top model under its own stop rule: TWO deaths on the same design (Erika 05:46:19Z -51,27,-75 / Chika 05:52:29Z -52,27,-75, both fell ~70 blocks from the FIRST leg of the lane into the lava sea). Both passes report `unloaded:1053 of 1053` - we are placing blocks at the lip of a void on ground the client cannot read, and cellOK() treats an unreadable cell as DONE. Do not re-activate as-is: the 13-cell void span must be laid with moves.bridgeTo (proven, never lost a bot), not with hand-placed cells from a stand at the rim, and no cell may be worked while its chunk reads null."
+   "note": "09-21 06:1xZ owner deadline (dragon TODAY): BARTER FIRST. bare kit = a death costs a few stone tools, so the front does not stop - if a design kills twice, the DESIGN changes. maxDeaths 6."
   },
   {
    "id": "road_village",
@@ -9398,7 +9312,7 @@
    "type": "build",
    "priority": 80,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 3,
    "site": [
@@ -9424,12 +9338,54 @@
     }
    },
    "rev": 8,
-   "note": "auto-restored from the archive: 31 cells damaged",
+   "note": "auto-paused: build complete - BUT 5 cells are left that 3 builders could not do (build_leftover): -340,67,-519 | -339,65,-496 | -340,67,-523 | -338,67,-507 | -340,67,-505",
    "stuckBy": {
     "key": "rev8",
     "bots": [
      "Chika",
-     "Yui"
+     "Yui",
+     "Akari"
+    ]
+   }
+  },
+  {
+   "id": "base_road_2",
+   "type": "build",
+   "priority": 79,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -320,
+    69,
+    -491
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone road 2 x -404..-235 / z -492..-490 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): 3-wide AVENUE east-west, paved at ground level",
+   "params": {
+    "blueprint": "road",
+    "origin": [
+     -404,
+     68,
+     -491
+    ],
+    "args": {
+     "toX": -235,
+     "toZ": -491,
+     "width": 3
+    }
+   },
+   "rev": 8,
+   "note": "auto-paused: build complete - BUT 2 cells are left that 3 builders could not do (build_leftover): -359,67,-490 | -394,67,-492",
+   "stuckBy": {
+    "key": "rev8",
+    "bots": [
+     "Kurumi",
+     "Ichika",
+     "Honoka"
     ]
    }
   }

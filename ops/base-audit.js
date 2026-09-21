@@ -300,7 +300,8 @@ async function main () {
     for (let z = box[1]; z <= box[3]; z++) for (let x = box[0]; x <= box[2]; x++) { const i = (z - box[1]) * bw + x - box[0]; if (!(cls[i] & 16) || gY[i] !== level) continue; const n = names[lvlN[i]]; if (!n || n === '?') continue
       const pc = P.planned.get(x + ',' + level + ',' + z); if (pc && pc.block && pc.block !== 'air' && pc.block !== 'water') continue
       if (STONE.test(n) && rubCols.length < 4000) rubCols.push([x, level, z, n]) }
-    surfaceStat = { wrong: wrong.length, rubble: rubN, wrongCols: wrong.slice(0, 4000), rubbleCols: rubCols } }
+    let judged = 0; for (let z = box[1]; z <= box[3]; z++) for (let x = box[0]; x <= box[2]; x++) { const i = (z - box[1]) * bw + x - box[0]; if ((cls[i] & 16) && gY[i] === level && names[lvlN[i]] && names[lvlN[i]] !== '?') judged++ } // the DENOMINATOR (terrain engineer 09-21): share right = 1 - (wrong + rubble) / judged
+    surfaceStat = { wrong: wrong.length, rubble: rubN, judged, wrongCols: wrong.slice(0, 4000), rubbleCols: rubCols } }
 
   // ---------- a3. FILLS (owner 09-20: "花のある位置にブロックが置けず、穴が空いている ... 何故これらの問題に気が付けない？" - the ravine is a KEEP-OUT, and keep-outs were never judged:
   // the one place where 30 bots worked for hours was the one place this audit did not look at). Per fill_void job: columns still open below grade and PINHOLES = an open

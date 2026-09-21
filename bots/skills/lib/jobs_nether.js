@@ -67,6 +67,60 @@ module.exports = ctx => {
   const stoneCarried = bot => SHELL_STONE.reduce((n, k) => n + A.count(bot, k), 0)
   const stoneItem = bot => SHELL_STONE.filter(k => A.count(bot, k) > 0).sort((a, b) => A.count(bot, b) - A.count(bot, a))[0] || null
 
+  // ---------------------------------------------------------------- WHAT GOES THROUGH THE GATE IS WHAT THE ARMY LOSES
+  // Owner 09-21, reading the bill: 「もったいな」. 115 deaths have cost 1519 iron-equivalents and 580 diamonds, and two of them were
+  // mine: 46 iron + 7 diamonds in six minutes. A bot that dies over there drops everything, and no recovery run reaches another
+  // dimension inside the five minutes an item lives on the ground — so the crossing kit is the CHEAP tier. The diamond gear is
+  // banked at home and the iron one withdrawn in its place; what cannot be swapped is reported, and `portal_kit.worth` puts the
+  // price of every crossing in the events so the bill is never invisible again. Target: ~15 iron, 0 diamonds.
+  const DIA_W = { diamond: 1, diamond_pickaxe: 3, diamond_sword: 2, diamond_axe: 3, diamond_shovel: 1, diamond_hoe: 2, diamond_helmet: 5, diamond_chestplate: 8, diamond_leggings: 7, diamond_boots: 4, netherite_ingot: 4, netherite_pickaxe: 7, netherite_sword: 6 }
+  const IRON_W = { iron_ingot: 1, raw_iron: 1, iron_pickaxe: 3, iron_sword: 2, iron_axe: 3, iron_shovel: 1, iron_hoe: 2, iron_helmet: 5, iron_chestplate: 8, iron_leggings: 7, iron_boots: 4, shield: 1, bucket: 3, flint_and_steel: 1, iron_nugget: 0 }
+  function kitWorth (bot) {
+    let iron = 0; let diamond = 0
+    const all = bot.inventory.items().concat([5, 6, 7, 8, 45].map(q => bot.inventory.slots[q]).filter(Boolean))
+    for (const it of all) { const n = it.name; const c = it.count || 1; if (DIA_W[n] != null) diamond += DIA_W[n] * c; else if (IRON_W[n] != null) iron += IRON_W[n] * c; else if (/^(diamond|netherite)_/.test(n)) diamond += 3 * c }
+    return { iron, diamond }
+  }
+  // The replacement is ALWAYS fetched before the good piece is given up — a bot that loses both is worse off than one carrying
+  // diamonds. NOTE for the army.js owner: neither library primitive can bank a tier DOWN. `A.bank` force-keeps the BEST tool of
+  // every class (`bestNames`) and any armour better than what is worn; `A.stash` skips tools by name. So the deposit is done here
+  // by hand, into a tools chest, and the request upstream is `bank(bot, keep, {maxTier:'iron'})`.
+  const DIA_RE = /^(diamond|netherite)_(pickaxe|sword|axe|shovel|hoe)$/
+  async function swapDown (bot, api, keepDia) {
+    const out = { swapped: [], kept: [], deposited: 0 }
+    const spare = () => bot.inventory.items().filter(i => DIA_RE.test(i.name) && !(keepDia && keepDia.test(i.name.split('_')[1])) && A.count(bot, i.name.replace(/^(diamond|netherite)/, 'iron')) > 0)
+    // 1. ARMOUR first — it is the biggest single item on the bill (a diamond chestplate is 8 diamonds)
+    for (const [slot, part, sl] of [[5, 'helmet', 'head'], [6, 'chestplate', 'torso'], [7, 'leggings', 'legs'], [8, 'boots', 'feet']]) {
+      const w = bot.inventory.slots[slot]; if (!w || !/^(diamond|netherite)_/.test(w.name)) continue
+      const want = 'iron_' + part
+      if (!A.count(bot, want) && A.stockOf(want) > 0) await A.obtain(bot, want, 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:swapArm', e_))
+      const it = bot.inventory.items().find(i => i.name === want)
+      if (!it) { out.kept.push(w.name); continue }
+      try { await U.withTimeout(bot.equip(it, sl), 5000, 'wearIron'); out.swapped.push(w.name) } catch (e_) { swallow('jobs_nether:wearIron', e_); out.kept.push(w.name) }
+    }
+    // 2. TOOLS: fetch the iron tier, so the good one is only spare once its replacement is in the pocket
+    for (const cls of ['pickaxe', 'sword', 'axe', 'shovel']) {
+      if (keepDia && keepDia.test(cls)) continue // `pair` and `degate` genuinely need a diamond pickaxe: obsidian comes out for nothing else
+      if (!bot.inventory.items().some(i => new RegExp('^(diamond|netherite)_' + cls + '$').test(i.name))) continue
+      const want = 'iron_' + cls
+      if (!A.count(bot, want) && A.stockOf(want) > 0) await A.obtain(bot, want, 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:swapGet', e_))
+    }
+    // 3. put the good tier back in a chest by hand; any failure keeps the gear and is REPORTED, never a blocked crossing
+    if (spare().length) {
+      const chests = [].concat(A.chestsOf ? A.chestsOf('tools') : [], A.chestsOf ? A.chestsOf('build') : [])
+      for (const c of chests.slice(0, 3)) {
+        if (!spare().length || api.stop()) break
+        if (bot.entity.position.distanceTo(c) > 3.5 && !await A.travel(bot, c, { range: 2, ms: 60000, stop: api.stop, quiet: true })) continue
+        let win = null
+        try { win = await U.withTimeout(bot.openContainer(bot.blockAt(c)), 8000, 'openTools') } catch (e_) { swallow('jobs_nether:openTools', e_); continue }
+        if (!win) continue
+        try { for (const it of spare()) { await U.withTimeout(win.deposit(it.type, null, it.count), 8000, 'depositDia'); out.deposited += it.count; out.swapped.push(it.name) } } catch (e_) { swallow('jobs_nether:depositDia', e_) } finally { try { win.close() } catch (e2_) { swallow('jobs_nether:closeTools', e2_) } }
+      }
+    }
+    for (const it of bot.inventory.items()) if (DIA_RE.test(it.name) || /^(diamond|netherite)_(helmet|chestplate|leggings|boots)$/.test(it.name)) out.kept.push(it.name)
+    return out
+  }
+
   // ---------------------------------------------------------------- the gate's geometry comes from the BLUEPRINT, never from here
   let _bpM = 0
   function geomOf (P) {
@@ -393,6 +447,7 @@ module.exports = ctx => {
   // place result).
   async function sneakStep (bot, api, c) {
     try {
+      if (!knownRing(bot, c, 1)) return false // unknown ground is not stepped onto, however close it is
       const u = bot.blockAt(c.offset(0, -1, 0)); if (!u || u.boundingBox !== 'block' || /lava|magma/.test(u.name)) return false
       bot.pathfinder.setGoal(null); bot.clearControlStates(); sneakOn(bot)
       await bot.lookAt(c.offset(0.5, 0.1, 0.5), true)
@@ -407,6 +462,7 @@ module.exports = ctx => {
   async function safeStep (bot, api, c, box) {
     try {
       if (!box || c.x < box[0] || c.x > box[2] || c.z < box[1] || c.z > box[3]) return false
+      if (!knownRing(bot, c, 1)) return false // the destination and its ring must be READABLE before a foot leaves the ground
       if (!BL().standable(bot, c)) return false
       const u = bot.blockAt(c.offset(0, -1, 0)); if (!u || u.boundingBox !== 'block' || /lava|magma/.test(u.name)) return false
       for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) for (let dz = -2; dz <= 2; dz++) { const b = bot.blockAt(c.offset(dx, dy, dz)); if (b && /^(lava|fire)$/.test(b.name)) return false }
@@ -427,7 +483,12 @@ module.exports = ctx => {
     try {
     // WAIT FOR THE WORLD BEFORE DECIDING THERE IS NOTHING TO DO (measured 14:49Z: pass after pass came home `unloaded:1330 of
     // 1330` — the chunks of the stair had simply not arrived yet, ~14 s after the gate spat the bot out). Up to 20 s, then work.
-    for (let w = 0; w < 40 && !api.stop() && Date.now() < until && !cells.some(c => loadedAt(bot, c)); w++) { task(bot, 'nether ' + what + ': waiting for the world'); await sleep(500) }
+    // WAIT FOR THE COLUMNS, NOT FOR THE FIRST BLOCK (09-21: the old test stopped as soon as ONE cell read back — and the first
+    // cell to arrive is usually a piece of shelf that is already right, so the pass broke while 1049 cells were still unknown).
+    // Now it waits until MOST of the work is readable, up to 60 s, and says so when it never came.
+    const tW = Date.now(); const enough = () => cells.filter(c => loadedAt(bot, c)).length >= Math.max(1, Math.floor(cells.length * 0.6))
+    for (let w = 0; w < 120 && !api.stop() && Date.now() < until && !enough(); w++) { task(bot, 'nether ' + what + ': waiting for the world (' + cells.filter(c => loadedAt(bot, c)).length + '/' + cells.length + ' readable)'); await sleep(500) }
+    if (!enough()) A.result(bot, { ev: 'nether_unloaded', job: job.id, work: what, cells: cells.filter(c => !loadedAt(bot, c)).length, of: cells.length, waitedS: Math.round((Date.now() - tW) / 1000), at: xyz(bot.entity.position), why: 'the chunks of this work never arrived - nothing was placed, dug or judged there' })
     for (let round = 0; round < 120 && Date.now() < until && !api.stop(); round++) {
       // PACING IS NOT WORKING (measured 16:19:08Z: `steps 118, placed 2` — the cells left were pockets sealed under the shelf's
       // own rock, so every round walked to another one and placed nothing). Forty steps without a block is this pass's answer:
@@ -650,6 +711,12 @@ module.exports = ctx => {
     const mv = bot.pathfinder && bot.pathfinder.movements; if (mv) mv.maxDropDown = 1
     const tgt = target && target.x != null ? new Vec3(Math.floor(target.x), Math.floor(target.y), Math.floor(target.z)) : null
     if (tgt && netherHere(bot)) {
+      // 0. NEVER A GOAL IN GROUND WE CANNOT READ. The pathfinder plans on the chunks it has; where it has none it has no edges,
+      //    and a bot that walks to the last cell of a loaded column is standing on the lip of whatever comes next.
+      if (!knownRing(bot, tgt, 1)) {
+        A.result(bot, { ev: 'nether_unloaded', to: [tgt.x, tgt.y, tgt.z], at: xyz(bot.entity.position), why: 'the chunks at the goal are not loaded - unknown ground is not walked to' })
+        return false
+      }
       // 1. NEVER A GOAL IN A CELL WITH NO FLOOR OR ONE TOUCHING LAVA — the pathfinder happily walks to the lip of a drop
       if (noFloor(bot, tgt) || lavaTouching(bot, tgt)) {
         A.result(bot, { ev: 'nether_refused', to: [tgt.x, tgt.y, tgt.z], why: noFloor(bot, tgt) ? 'that cell has no floor within 3' : 'that cell touches lava or fire' })
@@ -889,6 +956,42 @@ module.exports = ctx => {
       cells.push({ x: cx + dx, y: floorY + 2, z: cz + dz, block: 'torch', rim: false, seq: seq0 + 3 })
     }
     return { cells, floorY, overVoid, box: [cx - half - 1, cz - half - 1, cx + half + 1, cz + half + 1] }
+  }
+  // ---------------------------------------------------------------- A SPAN OVER THE VOID IS A LIBRARY CALL, NOT HAND-PLACEMENT
+  // Both deaths of 09-21 happened the same way: a bot standing at the rim of the lane's first leg, hand-placing floor cells into
+  // 70 blocks of nothing. `moves.bridgeTo` is the one method that has never lost a bot here — the pathfinder places its own
+  // scaffolding inside a corridor, with sneak re-asserted every tick and the terrain guard's time-boxed opt-out. So: measure the
+  // gap first (`voidSize`, the terrain engineer's ONE implementation, required lazily), then bridge it in spans of <= 6, then let
+  // `buildCells` widen and rail that span from the spine before the next one is opened.
+  const VOID = () => { try { return require('./jobs_cavity').voidSize } catch (e_) { swallow('jobs_nether:voidSize', e_); return null } }
+  const MOVES = () => { try { return require('./moves') } catch (e_) { swallow('jobs_nether:moves', e_); return null } }
+  async function spanAhead (bot, job, api, route, until) {
+    const mv = MOVES(); if (!mv || !mv.bridgeTo) return { spans: 0, placed: 0, why: 'moves.bridgeTo is not available' }
+    let spans = 0; let placed = 0; const notes = []
+    for (let guard = 0; guard < 8 && Date.now() < until && !api.stop(); guard++) {
+      const here = bot.entity.position.floored()
+      // the head of the road we already have = the last route cell with a floor we can read; the next unsupported one is the gap
+      let head = -1
+      for (let i = 0; i < route.length; i++) { const c = route[i]; if (!knownRing(bot, new Vec3(c[0], c[1], c[2]), 0)) break; const u = bot.blockAt(new Vec3(c[0], c[1] - 1, c[2])); if (u && u.boundingBox === 'block' && !/lava/.test(u.name)) head = i; else break }
+      if (head < 0 || head >= route.length - 1) break
+      const from = route[head]; const to = route[Math.min(head + 6, route.length - 1)] // spans of at most 6, then widen and rail
+      // MEASURE THE GAP BEFORE TOUCHING IT (owner 09-21): a 3-cell step is bridged, the open lava sea never is
+      const vs = VOID(); let gap = null
+      if (vs) { try { gap = vs(bot, new Vec3(from[0], from[1] - 1, from[2]).offset(Math.sign(to[0] - from[0]), 0, Math.sign(to[2] - from[2])), { cap: 900, radius: 24 }) } catch (e_) { swallow('jobs_nether:gapSize', e_) } }
+      if (gap && (gap.touchesLava || gap.klass === 'cavern')) {
+        A.result(bot, { ev: 'nether_gap', job: job.id, at: from, gap: { cells: gap.cells, klass: gap.klass, h: gap.h, touchesLava: gap.touchesLava, capped: gap.capped }, why: 'this is not a step, it is the open cavern over the lava sea - the lane is not bridged across it' })
+        notes.push('cavern at ' + from.join(',')); break
+      }
+      if (bot.entity.position.distanceTo(new Vec3(from[0] + 0.5, from[1], from[2] + 0.5)) > 2 && !await nTravel(bot, new Vec3(from[0], from[1], from[2]), { range: 1, ms: 40000, stop: api.stop })) { notes.push('cannot reach the head ' + from.join(',')); break }
+      task(bot, 'nether lane: bridging ' + from.join(',') + ' -> ' + to.join(','))
+      const r = await mv.bridgeTo(bot, [to[0], to[1], to[2]], { half: 0, ms: 90000, stop: api.stop, blocks: SHELL_STONE.filter(n => A.count(bot, n) > 0) }).catch(e_ => { swallow('jobs_nether:bridgeTo', e_); return { ok: false, why: 'threw' } })
+      sneakOn(bot) // bridgeTo drops sneak in its own finally; over here it goes straight back on
+      spans++; placed += (r && r.placed) || 0
+      A.result(bot, { ev: 'nether_span', job: job.id, from, to, ok: !!(r && r.ok), placed: (r && r.placed) || 0, at: xyz(bot.entity.position), gap: gap ? gap.klass + ' ' + gap.cells : null, why: (r && r.why) || undefined })
+      if (!r || !r.ok) { notes.push(String((r && r.why) || 'span failed')); break }
+      break // ONE span per pass: it is widened and railed by buildCells before the next is opened
+    }
+    return { spans, placed, notes }
   }
   async function barter (bot, job, api, P, until) {
     // 1. THE GOLD THAT KEEPS THEM NEUTRAL: any worn gold piece will do, a helmet is the cheapest (5 ingots)
@@ -1207,8 +1310,12 @@ module.exports = ctx => {
       const b2 = barterOf(P)
       if (!Array.isArray(b2.at)) return { work, why: 'params.at [x,y,z] (the pad centre on the piglin ground) is missing' }
       if (!b2.route.length) return { work, why: 'params.route (the measured line from the arrival shelf to the piglin ground) is missing' }
+      // THE SPINE IS BRIDGED, THE LANE IS BUILT. One span of <= 6 with `moves.bridgeTo` first (that is the part that killed two
+      // bots when it was hand-placed), then `buildCells` widens and rails everything that now has a floor under it.
+      const sp = await spanAhead(bot, job, api, b2.route, Math.min(until, Date.now() + 120000))
       const lane = laneCells(b2.route, P.width || 3, 8)
       const pad = padCells(bot, b2.at, Math.max(3, Math.min(P.pad || 4, 7)), b2.route.length + 1)
+      st.span = sp
       cells = lane.concat(pad.cells); meta = { at: b2.at, route: b2.route, floorY: pad.floorY, overVoid: pad.overVoid, padBox: pad.box, lane: lane.length, pad: pad.cells.length }
       // THE BOX MUST HOLD THE CELL THE GATE PUTS US IN (measured 14:44Z on the stair: `left:840, placed:0, steps:0` — every
       // safeStep candidate was outside the job's own box and the squad could not walk into its own work)
@@ -1264,6 +1371,7 @@ module.exports = ctx => {
       const built = !padLeft && !laneLeft && !r.outOfRange && !r.unloaded
       netherEdit({ barterSpot: Object.assign({}, N.barterSpot || {}, { at: meta.at, stand: [meta.at[0], meta.floorY + 1, meta.at[2]], route: meta.route, pad: meta.padBox, floorY: meta.floorY, overVoid: meta.overVoid, laneLeft, padLeft, built, t: Date.now() }) })
       out.at2 = meta.at; out.floorY = meta.floorY; out.overVoid = meta.overVoid; out.laneLeft = laneLeft; out.padLeft = padLeft; out.built = built
+      if (st.span) { out.spans = st.span.spans; out.bridged = st.span.placed; if (st.span.notes && st.span.notes.length) out.spanWhy = st.span.notes.slice(0, 2) }
     }
     if (work === 'road' && meta) {
       const roads = Object.assign({}, N.roads || {}); roads[meta.bearing] = { from: Array.isArray(P.from) ? P.from : (N.hub || {}).outside, end: meta.end, length: meta.length, box: meta.box, left: r.left, at: Date.now() }
@@ -1680,6 +1788,13 @@ module.exports = ctx => {
     if (!st.kitted) {
       task(bot, 'portal: kitting up for the crossing')
       await A.kitUp(bot, { risk: true, force: true, why: job.id, stop: api.stop }).catch(e_ => swallow('jobs_nether:kitUp', e_))
+      // MINIMAL KIT THROUGH THE GATE (owner 09-21 「もったいな」): swap the good tier DOWN before anything is loaded up, while the
+      // pockets are still light. `pair` and `degate` keep a diamond PICKAXE — obsidian comes out of the world for nothing else.
+      st.worth0 = kitWorth(bot)
+      // `params.bare:true` (owner 09-21): army.js `bareDown` strips the valuables for the whole trip and leaves stone tools. That
+      // is the same job done better and it is not ours to duplicate - our swap would only re-fetch the iron it just took off.
+      st.swap = P.bare ? { swapped: ['(params.bare: army.js bareDown owns the kit)'], kept: [], deposited: 0 }
+        : await swapDown(bot, api, /pair|degate/.test(String(P.work)) ? /pickaxe/ : null).catch(e_ => { swallow('jobs_nether:swapDown', e_); return null })
       const want = Math.max(32, P.cobble || 128)
       for (const k of SHELL_STONE.slice().sort((a, b) => A.stockOf(b) - A.stockOf(a))) {
         if (stoneCarried(bot) >= want || api.stop()) break
@@ -1705,7 +1820,10 @@ module.exports = ctx => {
       if (!bot.registry.foodsByName || !bot.inventory.items().some(i => bot.registry.foodsByName[i.name])) await A.obtain(bot, 'bread', 16, { stop: api.stop }).catch(e_ => swallow('jobs_nether:food', e_))
       // THE KIT IS FETCHED, NOT HOPED FOR (16:4xZ: Sakura came back from a death and declined her own job with 'no sword, no
       // diamond pickaxe' while the depot held both). A sword is the difference between a piglin and a funeral.
-      if (!A.bestOf(bot, 'sword')) { for (const sw of ['diamond_sword', 'iron_sword', 'stone_sword']) { if (A.stockOf(sw) > 0 && await A.obtain(bot, sw, 1, { stop: api.stop }).catch(() => false)) break } }
+      // CHEAPEST BLADE THAT WORKS, not the best one in the depot (owner 09-21 「もったいな」): a crossing takes iron or stone and
+      // the diamond swords stay home for the overworld. Then swapDown once more, because the fetches above run AFTER the first pass.
+      if (!A.bestOf(bot, 'sword')) { for (const sw of ['iron_sword', 'stone_sword', 'diamond_sword']) { if (A.stockOf(sw) > 0 && await A.obtain(bot, sw, 1, { stop: api.stop }).catch(() => false)) break } }
+      if (!P.bare) st.swap2 = await swapDown(bot, api, /pair|degate/.test(String(P.work)) ? /pickaxe/ : null).catch(e_ => { swallow('jobs_nether:swapDown2', e_); return null })
       if ((P.work === 'degate' || P.work === 'pair') && !/diamond|netherite/.test(String((A.bestOf(bot, 'pickaxe') || {}).name || ''))) await A.obtain(bot, 'diamond_pickaxe', 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:pick2', e_))
       await A.equipBest(bot, 'sword').catch(e_ => swallow('jobs_nether:sword', e_))
       // ONE OF EACH, AND NOTHING ELSE (recover engineer 16:2xZ: TWO Nether deaths were 54 % of all the iron the army lost in half
@@ -1725,11 +1843,14 @@ module.exports = ctx => {
         if (P.work === 'fortress') { keep.bow = 1; keep.arrow = 64 }
         task(bot, 'portal: banking what this trip does not need')
         await A.bank(bot, keep, { job: job.id, stop: api.stop }).catch(e_ => swallow('jobs_nether:trim', e_))
-        A.result(bot, { ev: 'portal_kit', job: job.id, work: P.work || 'cross', tools: bot.inventory.items().filter(i => /_(pickaxe|axe|sword|shovel|hoe)$/.test(i.name)).reduce((n, i) => n + i.count, 0), spareArmour: bot.inventory.items().filter(i => /_(helmet|chestplate|leggings|boots)$/.test(i.name)).reduce((n, i) => n + i.count, 0), stone: stoneCarried(bot), obsidian: A.count(bot, 'obsidian'), why: 'a bot that dies over there drops everything and nothing of ours can fetch it back' })
+        A.result(bot, { ev: 'portal_kit', job: job.id, work: P.work || 'cross', tools: bot.inventory.items().filter(i => /_(pickaxe|axe|sword|shovel|hoe)$/.test(i.name)).reduce((n, i) => n + i.count, 0), spareArmour: bot.inventory.items().filter(i => /_(helmet|chestplate|leggings|boots)$/.test(i.name)).reduce((n, i) => n + i.count, 0), stone: stoneCarried(bot), obsidian: A.count(bot, 'obsidian'), worth: kitWorth(bot), worthBefore: st.worth0 || null, swapped: (st.swap && st.swap.swapped) || [], stillRich: (st.swap && st.swap.kept) || [], why: 'THIS is what the army loses if this bot dies over there - nothing of ours can fetch it back (target: ~15 iron, 0 diamonds)' })
       }
       const short = []
       if (stoneCarried(bot) < 32) short.push('stone to build with ' + stoneCarried(bot) + '/32 (depot: ' + SHELL_STONE.map(k => k + ' ' + A.stockOf(k)).join(', ') + ')')
-      if (!A.bestOf(bot, 'sword')) short.push('no sword')
+      // A WEAPON, NOT A SWORD (09-21 06:0xZ: the depot holds 0 swords and 0 iron of any kind - every piece is in a bot's pocket -
+      // so a lane job with an iron axe in hand was refusing to cross). `army.js startGuard` already swings `bestOf('sword') ||
+      // bestOf('axe')`, so an axe IS the army's fallback weapon and this gate may not be stricter than the code that fights.
+      if (!A.bestOf(bot, 'sword') && !A.bestOf(bot, 'axe')) short.push('no weapon (no sword and no axe; depot swords: ' + ['iron_sword', 'stone_sword', 'diamond_sword'].map(k => k + ' ' + A.stockOf(k)).join(', ') + ')')
       if (!bot.inventory.items().some(i => bot.registry.foodsByName[i.name])) short.push('no food')
       if (P.work === 'pair') {
         if (A.count(bot, 'obsidian') < 10) short.push('obsidian ' + A.count(bot, 'obsidian') + '/10 (depot: ' + A.stockOf('obsidian') + ') - a frame cannot be built without it')
