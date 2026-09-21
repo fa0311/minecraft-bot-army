@@ -485,7 +485,9 @@ async function bareDown (bot, opts = {}) {
   // stripped of the 64 gold ingots it was carrying TO TRADE and of the golden helmet that keeps the piglins calm).
   const j0 = (assignment(bot) || {}).job || {}; const mine = JOB_MATERIAL[String(j0.type || '')] || null
   const keep = {}
-  for (const i of bot.inventory.items()) if (BARE_OK.test(i.name) || (mine && mine.test(i.name)) || /^gold(en)?_/.test(i.name)) keep[i.name] = (keep[i.name] || 0) + i.count
+  const cargo = (j0.params && j0.params.cargo) ? new RegExp('^(' + [].concat(j0.params.cargo).join('|') + ')$') : null // a job NAMES what is not loot (Nether engineer 09-21: bare/bank silently removed the gold to trade, then the stone to bridge with - three lost crossings)
+  const STONE_OK = /^(cobblestone|cobbled_deepslate|stone|deepslate|andesite|diorite|granite|tuff|netherrack|dirt|gravel|sand)$/
+  for (const i of bot.inventory.items()) if (BARE_OK.test(i.name) || (mine && mine.test(i.name)) || (cargo && cargo.test(i.name)) || STONE_OK.test(i.name) || /^gold(en)?_/.test(i.name)) keep[i.name] = (keep[i.name] || 0) + i.count
   const rich = bot.inventory.items().filter(i => !BARE_OK.test(i.name)).reduce((n, i) => n + i.count, 0)
   const worn = [5, 6, 7, 8].map(sl => bot.inventory.slots[sl]).filter(Boolean)
   if (!rich && !worn.length) { // already bare: make sure it at least has a stone pickaxe to work with

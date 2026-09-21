@@ -994,14 +994,125 @@ module.exports = ctx => {
       if (gap && (gap.klass === 'cavern' || gap.capped)) A.result(bot, { ev: 'nether_gap', job: job.id, at: from, gap: { cells: gap.cells, klass: gap.klass, h: gap.h, touchesLava: false, capped: gap.capped }, why: 'an open cavern, not a step: never filled and never hand-placed from the rim - crossed only by moves.bridgeTo, which lays its own floor under a sneaking bot' })
       if (bot.entity.position.distanceTo(new Vec3(from[0] + 0.5, from[1], from[2] + 0.5)) > 2 && !await nTravel(bot, new Vec3(from[0], from[1], from[2]), { range: 1, ms: 40000, stop: api.stop })) { notes.push('cannot reach the head ' + from.join(',')); break }
       task(bot, 'nether lane: bridging ' + from.join(',') + ' -> ' + to.join(','))
-      const r = await mv.bridgeTo(bot, [to[0], to[1], to[2]], { half: 0, ms: 90000, stop: api.stop, blocks: SHELL_STONE.filter(n => A.count(bot, n) > 0) }).catch(e_ => { swallow('jobs_nether:bridgeTo', e_); return { ok: false, why: 'threw' } })
+      // CARRY THE BRIDGE OR DO NOT GO (09-21 07:07:11Z: the first real span came back `ok:false, placed:0, "No path to the goal!"`
+      // and the bot was carrying ZERO stone - the bare kit had left the builder with nothing to build from). `bridgeTo` needs
+      // |dx|+|dz|+2 blocks; the count goes into the event so this is never diagnosed twice. `half:1` gives the pathfinder a
+      // 3-wide corridor to plan in - a 1-wide line leaves it no room to step aside while it places.
+      const blocks = SHELL_STONE.filter(n => A.count(bot, n) > 0)
+      const carry = stoneCarried(bot); const need = Math.abs(to[0] - from[0]) + Math.abs(to[2] - from[2]) + 2
+      if (carry < need) { A.result(bot, { ev: 'nether_span', job: job.id, from, to, ok: false, placed: 0, carried: carry, need, why: 'nothing to bridge with: the crossing kit must carry the span (params.cobble), and params.bare must not strip it' }); notes.push('no blocks: ' + carry + '/' + need); break }
+      const r = await mv.bridgeTo(bot, [to[0], to[1], to[2]], { half: 1, ms: 90000, stop: api.stop, blocks }).catch(e_ => { swallow('jobs_nether:bridgeTo', e_); return { ok: false, why: 'threw' } })
       sneakOn(bot) // bridgeTo drops sneak in its own finally; over here it goes straight back on
       spans++; placed += (r && r.placed) || 0
-      A.result(bot, { ev: 'nether_span', job: job.id, from, to, ok: !!(r && r.ok), placed: (r && r.placed) || 0, at: xyz(bot.entity.position), gap: gap ? gap.klass + ' ' + gap.cells : null, why: (r && r.why) || undefined })
+      A.result(bot, { ev: 'nether_span', job: job.id, from, to, ok: !!(r && r.ok), placed: (r && r.placed) || 0, carried: carry, need, at: xyz(bot.entity.position), gap: gap ? gap.klass + ' ' + gap.cells : null, why: (r && r.why) || undefined })
       if (!r || !r.ok) { notes.push(String((r && r.why) || 'span failed')); break }
       break // ONE span per pass: it is widened and railed by buildCells before the next is opened
     }
     return { spans, placed, notes }
+  }
+  // ---------------------------------------------------------------- A STAIRCASE IS CHEAPER THAN A ROAD (top model 09-21, dragon deadline)
+  // The 48-cell lane to the piglin ground was sited by the camera as the cheapest walkable line AT THE ARRIVAL LEVEL, and it cost
+  // three bots at -51..-55,98,-75 (Erika, Chika, Honoka) because that line crosses a 900-cell cavern at y98 and every pass built
+  // blind over it. Asked again at step 1 with the same camera, but as a different question — "where is the nearest cell we can
+  // STAND on within 8 of an adult piglin, counting only blocks we must PLACE?" — the answer is not a road at all: from the SW
+  // corner of the arrival shelf (-55,101,-83) a SEVEN-cell staircase of SIX placed blocks,
+  //     -55,101,-82  -55,102,-81  -55,103,-80  -55,104,-79  -56,105,-79  -57,106,-79
+  // stands 6.4 blocks from the piglin at -57,110,-74. Nothing is bridged, every step is +1, and a step up onto a block placed at
+  // your own FOOT level is the one construction move that cannot drop you — you are standing on the reference block while you
+  // place it. 6 blocks against 213, and no void over a lava sea.
+  // The route is not written down here: a coordinate in code is a coordinate nobody can fix from the board, and the piglins walk
+  // about. It is SEARCHED every time over what this bot can actually READ, cost = blocks placed, minimum first (a bucket queue,
+  // so the first cell popped inside `reach` is the cheapest one). Unknown chunks are simply not in the graph — rule 1.
+  function stairSearch (bot, from, target, opts = {}) {
+    const reach = opts.reach || 8; const maxPlace = opts.maxPlace || 24; const R = opts.box || 20
+    const tx = target.x; const ty = Math.floor(target.y); const tz = target.z
+    const b1 = Math.min(from.x, Math.floor(tx)) - R; const b2 = Math.max(from.x, Math.floor(tx)) + R
+    const b3 = Math.min(from.z, Math.floor(tz)) - R; const b4 = Math.max(from.z, Math.floor(tz)) + R
+    const y1 = Math.min(from.y, ty) - 6; const y2 = Math.max(from.y, ty) + 6
+    const seen = new Map()
+    const at = (x, y, z) => {
+      const k = x + ',' + y + ',' + z; let s = seen.get(k)
+      if (s === undefined) { const b = bot.blockAt(new Vec3(x, y, z)); s = b == null ? null : (/^(lava|fire|magma_block)$/.test(b.name) ? 'hot' : b.boundingBox === 'block' ? 'solid' : 'air'); seen.set(k, s) }
+      return s
+    }
+    const body = (x, y, z) => at(x, y, z) === 'air' && at(x, y + 1, z) === 'air'
+    const cool = (x, y, z) => !lavaNear({ x, y, z }, 2, 3, 2)
+    const canStand = (x, y, z) => at(x, y - 1, z) === 'solid' && body(x, y, z) && cool(x, y, z)
+    const canLay = (x, y, z) => at(x, y - 1, z) === 'air' && body(x, y, z) && cool(x, y, z) // we place the floor under it
+    const K = (x, y, z) => x + ',' + y + ',' + z
+    const dist = new Map(); const prev = new Map()
+    const buckets = Array.from({ length: maxPlace + 2 }, () => [])
+    dist.set(K(from.x, from.y, from.z), 0); buckets[0].push([from.x, from.y, from.z])
+    let pops = 0
+    for (let c = 0; c <= maxPlace; c++) {
+      while (buckets[c].length) {
+        if (++pops > (opts.pops || 40000)) return null
+        const [x, y, z] = buckets[c].pop(); const k = K(x, y, z)
+        if (dist.get(k) !== c) continue
+        const d = Math.sqrt((x + 0.5 - tx) ** 2 + (y - target.y) ** 2 + (z + 0.5 - tz) ** 2)
+        if (d <= reach && !(x === from.x && y === from.y && z === from.z)) {
+          const route = []; for (let q = k; q && q !== K(from.x, from.y, from.z); q = prev.get(q)) route.unshift(q.split(',').map(Number))
+          return { cost: c, at: [x, y, z], d: Math.round(d * 10) / 10, route }
+        }
+        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) for (const dy of [0, 1, -1]) {
+          const nx = x + dx; const ny = y + dy; const nz = z + dz
+          if (nx < b1 || nx > b2 || nz < b3 || nz > b4 || ny < y1 || ny > y2) continue
+          if (dy === 1 && at(x, y + 2, z) !== 'air') continue // no headroom over our own head to climb
+          const w = canStand(nx, ny, nz) ? 0 : canLay(nx, ny, nz) ? 1 : null
+          if (w === null || c + w > maxPlace) continue
+          const nk = K(nx, ny, nz); if (dist.get(nk) != null && dist.get(nk) <= c + w) continue
+          dist.set(nk, c + w); prev.set(nk, k); buckets[c + w].push([nx, ny, nz])
+        }
+      }
+    }
+    return null
+  }
+  // Walk that staircase: for every cell in order, place its floor from where we already stand (never moving to place — `placeStill`),
+  // then take ONE hand-driven sneaking step onto it. Sneak is held for the whole climb and the ring of every cell is re-read before
+  // a foot leaves the ground, so an unloaded chunk stops the climb instead of ending it in the lava sea.
+  async function stairTo (bot, job, api, until, target, opts = {}) {
+    lavaSet(bot, true)
+    const t0 = Date.now(); const from = bot.entity.position.floored()
+    if (!safeStand(bot)) return { ok: false, placed: 0, why: 'the ground we stand on is not safe to build from (lava within 2, or fewer than 8 walkable cells)' }
+    if (stoneCarried(bot) < 8) return { ok: false, placed: 0, why: 'only ' + stoneCarried(bot) + ' blocks carried - a stair needs params.cobble through the gate' }
+    const plan = stairSearch(bot, from, target, opts)
+    if (!plan) return { ok: false, placed: 0, why: 'no stair of ' + (opts.maxPlace || 24) + ' blocks or fewer reaches within ' + (opts.reach || 8) + ' of ' + xyz(target).join(',') + ' through ground we can read' }
+    A.result(bot, { ev: 'nether_stair', job: job.id, from: xyz(from), to: plan.at, target: xyz(target), place: plan.cost, cells: plan.route.length, dToPig: plan.d })
+    let placed = 0; let why = null
+    sneakHold(bot, true)
+    try {
+      for (const c of plan.route) {
+        if (Date.now() > until || api.stop()) { why = 'out of time after ' + placed + ' blocks'; break }
+        const q = v(c)
+        if (!knownRing(bot, q, 1)) { why = 'the ground at ' + c.join(',') + ' stopped reading - unknown is never stepped onto'; break }
+        if (lavaTouching(bot, q) || lavaNear(q, 2, 3, 2)) { why = 'lava came within 2 of ' + c.join(','); break }
+        const floor = q.offset(0, -1, 0); const fb = bot.blockAt(floor)
+        if (!fb || fb.boundingBox !== 'block') {
+          const item = stoneItem(bot); if (!item) { why = 'ran out of stone after ' + placed + ' blocks'; break }
+          if (!hasRef(bot, floor)) { why = 'nothing to place the stair block at ' + xyz(floor).join(',') + ' against'; break }
+          if (eyeOf(bot).distanceTo(floor.offset(0.5, 0.5, 0.5)) > 4.2) { why = 'the stair block at ' + xyz(floor).join(',') + ' is out of reach from where we stand'; break }
+          const r = await placeStill(bot, api, floor, item)
+          if (!r.ok) { why = 'could not place the stair block at ' + xyz(floor).join(',') + ' (' + r.reason + ')'; break }
+          placed++
+        }
+        if (!await sneakStep(bot, api, q)) { why = 'could not step onto ' + c.join(','); break }
+      }
+      // A 1-WIDE PILLAR IS NOT A PLACE TO TRADE FROM: the gold comes back as an ITEM ON THE GROUND, so the bot needs a step or two
+      // of floor around it to pick the pearls up. The last cell gets a skirt wherever one can be reached and read.
+      if (!why) {
+        const st = bot.entity.position.floored()
+        for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]) {
+          const f = st.offset(dx, -1, dz); const b = bot.blockAt(f)
+          if (!b || b.boundingBox === 'block' || /lava|fire/.test(b.name) || !hasRef(bot, f)) continue
+          if (eyeOf(bot).distanceTo(f.offset(0.5, 0.5, 0.5)) > 4.2) continue
+          const item = stoneItem(bot); if (!item) break
+          if ((await placeStill(bot, api, f, item)).ok) placed++
+        }
+      }
+    } finally { sneakHold(bot, false) }
+    const out = { ok: !why, placed, at: xyz(bot.entity.position), planned: plan.cost, s: Math.round((Date.now() - t0) / 1000), why: why || undefined }
+    A.result(bot, Object.assign({ ev: 'nether_stair', job: job.id, target: xyz(target) }, out))
+    return out
   }
   async function barter (bot, job, api, P, until) {
     // 1. THE GOLD THAT KEEPS THEM NEUTRAL: any worn gold piece will do, a helmet is the cheapest (5 ingots)
@@ -1012,35 +1123,24 @@ module.exports = ctx => {
       if (gh) { try { await U.withTimeout(bot.equip(gh, gh.name === 'golden_helmet' ? 'head' : gh.name === 'golden_chestplate' ? 'torso' : gh.name === 'golden_leggings' ? 'legs' : 'feet'), 5000, 'wearGold') } catch (e_) { swallow('jobs_nether:wearGold', e_) } }
     }
     if (![5, 6, 7, 8].map(q => bot.inventory.slots[q]).filter(Boolean).some(i => /^golden_/.test(i.name))) return { work: 'barter', why: 'no gold armour piece to wear - every piglin in sight would turn hostile' }
-    // 2. WALK TO THE SPOT. Never trade where we land: the arrival shelf has no piglins and, being all inside 24 of the squad,
-    //    never will. `nTravel` carries the whole edge doctrine, so a lane that is not finished ends in a REPORT, not a fall.
+    // 2. GET WITHIN 8 OF AN ADULT PIGLIN — that is the WHOLE requirement of a barter (owner 09-21, dragon deadline). Not a lane,
+    //    not a pad, not a cavern crossed. THE PAD IS USED ONLY WHEN IT STANDS: while it does not, the bot never walks towards it,
+    //    because that walk is what killed Wakana (07:02:45Z, -55,28,-79, 17 diamonds and 159 items into the lava sea) — `nTravel`
+    //    refuses a GOAL over a void, but the 20 blocks of rim between here and there are the pathfinder's business, not ours.
+    //    Instead the bot goes to the nearest piglin it can SEE, and where walking cannot arrive it builds a staircase (above).
     const isAdult = e => e && e.name === 'piglin' && e.position && !(e.metadata && e.metadata[17] === true)
     const adults = r => Object.values(bot.entities).filter(e => isAdult(e) && e.position.distanceTo(bot.entity.position) <= r)
     const anyPig = r => Object.values(bot.entities).filter(e => e && /^(piglin|zombified_piglin)$/.test(e.name) && e.position && e.position.distanceTo(bot.entity.position) <= r).length
-    const { stand } = barterOf(P)
-    if (!Array.isArray(stand)) return { work: 'barter', why: 'settings.nether.barterSpot is not built yet - staff work:"barterspot" first' }
-    const roster = A.settings().roster || []
-    const idx = Math.max(0, roster.indexOf(bot.username))
-    const tgt = v(stand).offset((idx % 5) - 2, 0, (Math.floor(idx / 5) % 5) - 2) // fifty bots, not one: a pad cell each
-    if (bot.entity.position.distanceTo(tgt) > 5) {
-      task(bot, 'nether barter: walking to the spot ' + stand.join(','))
-      await nTravel(bot, tgt, { range: 2, ms: Math.min(150000, Math.max(20000, until - Date.now() - 60000)), stop: api.stop })
-    }
-    // A BARTER NEEDS NO ROAD (owner 09-21, dragon deadline): only a safe cell within 8 of an adult piglin and a gold piece worn.
-    // So an unfinished lane is NOT a reason to come home empty: if the registered spot is out of reach, go to the nearest adult
-    // piglin the edge doctrine will actually let us stand near. `nTravel` refuses unknown chunks, cells with no floor within 3 and
-    // anything touching lava, so "as near as we can safely get" is a bounded, honest answer rather than a gamble.
-    let d = bot.entity.position.distanceTo(v(stand))
-    if (d > 10) {
-      const pig = Object.values(bot.entities).filter(isAdult).sort((x, y) => x.position.distanceTo(bot.entity.position) - y.position.distanceTo(bot.entity.position))[0]
-      if (pig) {
-        task(bot, 'nether barter: the lane is short - walking to a piglin at ' + xyz(pig.position).join(','))
-        await nTravel(bot, pig.position, { range: 5, ms: 60000, stop: api.stop })
+    const nearestAdult = () => Object.values(bot.entities).filter(isAdult).sort((a, b) => a.position.distanceTo(bot.entity.position) - b.position.distanceTo(bot.entity.position))[0]
+    const S0 = barterOf(P); const stand = S0.stand; const built = !!S0.built && Array.isArray(stand)
+    if (built) {
+      const roster = A.settings().roster || []
+      const idx = Math.max(0, roster.indexOf(bot.username))
+      const tgt = v(stand).offset((idx % 5) - 2, 0, (Math.floor(idx / 5) % 5) - 2) // fifty bots, not one: a pad cell each
+      if (bot.entity.position.distanceTo(tgt) > 5) {
+        task(bot, 'nether barter: walking to the spot ' + stand.join(','))
+        await nTravel(bot, tgt, { range: 2, ms: Math.min(150000, Math.max(20000, until - Date.now() - 60000)), stop: api.stop })
       }
-      const near = adults(8)[0]
-      if (!near) return { work: 'barter', at: xyz(bot.entity.position), dToSpot: Math.round(d), pigsSeen: anyPig(48), why: 'no way to the barter spot ' + stand.join(',') + ' yet and no adult piglin within 8 of any cell we may safely stand on (' + anyPig(48) + ' pigs within 48) - the lane is what unlocks this: keep work:"barterspot" staffed' }
-      A.result(bot, { ev: 'barter_offroad', job: job.id, at: xyz(bot.entity.position), piglin: xyz(near.position), why: 'the lane is unfinished, but a piglin came within 8 of ground we can stand on - trading here' })
-      d = 0
     }
     // 3. A CONTAINER OF OURS WITHIN 16 IS THE ONE THING THAT WOULD ANGER THEM. We never open one here; it is reported, not obeyed.
     const cids = ['chest', 'trapped_chest', 'barrel'].map(n => bot.registry.blocksByName[n]).filter(Boolean).map(b => b.id)
@@ -1864,6 +1964,10 @@ module.exports = ctx => {
         if (P.work === 'pair') keep.obsidian = Math.max(10, P.obsidian || 14)
         if (P.work === 'hub') { keep.chest = 1; keep.crafting_table = 1; keep.oak_fence_gate = 1; keep.spruce_fence_gate = 1; keep.birch_fence_gate = 1 }
         if (P.work === 'barter') { keep.gold_ingot = P.ingots || 64; keep.golden_helmet = 1 }
+        // THE SPAN IS CARGO TOO (09-21 07:07Z: the first bridge attempt failed with the builder carrying zero stone). Whatever
+        // this trip is meant to build with is kept through every banking step, exactly like the barter gold.
+        for (const k of SHELL_STONE) if (A.count(bot, k)) keep[k] = Math.max(keep[k] || 0, A.count(bot, k))
+        keep.torch = Math.max(keep.torch || 0, A.count(bot, 'torch'))
         if (P.work === 'fortress') { keep.bow = 1; keep.arrow = 64 }
         task(bot, 'portal: banking what this trip does not need')
         await A.bank(bot, keep, { job: job.id, stop: api.stop }).catch(e_ => swallow('jobs_nether:trim', e_))
@@ -1883,7 +1987,15 @@ module.exports = ctx => {
         if (A.count(bot, 'gold_ingot') < 16) { await A.obtain(bot, 'gold_ingot', P.ingots || 64, { stop: api.stop }).catch(e_ => swallow('jobs_nether:goldAgain', e_)) }
         if (A.count(bot, 'gold_ingot') < 16) short.push('gold to trade ' + A.count(bot, 'gold_ingot') + '/16 (depot: ' + A.stockOf('gold_ingot') + ') - params.bare banks gold as a valuable, so it must be re-drawn after bareDown')
         const wearGold = [5, 6, 7, 8].map(q => bot.inventory.slots[q]).filter(Boolean).some(i => /^golden_/.test(i.name)) || A.count(bot, 'golden_helmet') || bot.inventory.items().some(i => /^golden_(helmet|chestplate|leggings|boots)$/.test(i.name))
-        if (!wearGold) { await A.obtain(bot, 'golden_helmet', 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:goldHelm2', e_)); if (!A.count(bot, 'golden_helmet')) short.push('no gold armour piece to wear (depot golden_helmet: ' + A.stockOf('golden_helmet') + ') - every piglin in sight would turn hostile') }
+        // ANY gold piece will do, and the cheapest is BOOTS (4 ingots vs 5). Measured 09-21 07:1xZ: `craft_gold_boots` is making
+        // them but they stay in the crafters' pockets - depot golden_helmet 0 / carried 17, golden_boots 0 / 4 - so a barter bot
+        // that only asks the DEPOT is blocked for ever. It carries 64 gold ingots of its own: if the shelf is empty it makes its
+        // own boots out of the cargo (4 of 64) rather than come home for want of 4 ingots.
+        if (!wearGold) {
+          for (const g of ['golden_boots', 'golden_helmet']) { if (A.stockOf(g) > 0) await A.obtain(bot, g, 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:goldGet', e_)); if (A.count(bot, g)) break }
+          if (!bot.inventory.items().some(i => /^golden_(helmet|chestplate|leggings|boots)$/.test(i.name)) && A.count(bot, 'gold_ingot') >= 4 + 16) await A.obtain(bot, 'golden_boots', 1, { stop: api.stop, craft: true }).catch(e_ => swallow('jobs_nether:goldCraft', e_))
+          if (!bot.inventory.items().some(i => /^golden_(helmet|chestplate|leggings|boots)$/.test(i.name))) short.push('no gold armour piece to wear (depot: helmet ' + A.stockOf('golden_helmet') + ', boots ' + A.stockOf('golden_boots') + '; carrying ' + A.count(bot, 'gold_ingot') + ' ingots) - every piglin in sight would turn hostile')
+        }
       }
       if (!bot.inventory.items().some(i => bot.registry.foodsByName[i.name])) short.push('no food')
       if (P.work === 'pair') {

@@ -145,6 +145,7 @@ blueprint `level`), then build/plant on it; never deck a hole (`fill_void`); tea
 ## 4. Where things are (read only what you need)
 | need | file |
 |---|---|
+| what the system must guarantee, the architectural debt, the refactor backlog | `docs/REQUIREMENTS.md` (owner 09-21: 要件整理) |
 | goals, doctrine, roadmap, ranked backlog, lessons of world 1, change log | `docs/GOALS.md` (design of world 2's algorithms: `docs/PLAN-world2.md`) |
 | coordinates, hazards, zones of THIS world | `docs/WORLD.md` (machine truth: `bots/army/jobs.json → settings`) |
 | code map, job schema, how to add a job, movement doctrine, HTTP API, gotchas, audits, new-world script | `docs/DEV.md` |
