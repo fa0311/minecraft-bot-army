@@ -1184,6 +1184,9 @@ async function pillarEscape (bot, opts = {}) {
   let up = 0
   for (let i = 0; i < max && !U.cancelled(bot) && !gone(); i++) {
     if (free()) break
+    // A PILLAR NEVER ENDS UNDER A CAP (09-21, see capAbove/sideExit): a column whose way up meets a chest, farmland, a blueprint cell of ours, a pen,
+    // water or gravel is left at depth - sideways to a column that reaches the sky, with the corridor closed behind the bot.
+    if (!rim) { const p0 = bot.entity.position.floored(); const cap = capAbove(bot, p0.x, p0.y, p0.z); if (cap && cap.at[1] - p0.y <= 4) { const r = await sideExit(bot); return { how: r.ok ? 'side_exit' : 'none', blocks: up + (r.blocks || 0), free: free(), capped: cap.name } } }
     if (!fillers() && !await digFiller(bot)) break
     const bad = falling()
     if (bad) { if (!await sideStep(bot)) break; continue } // gravel/sand/water over the head: one column over, never through it
@@ -1199,6 +1202,124 @@ async function pillarEscape (bot, opts = {}) {
   if (up) { try { writeJSON(path.join(__dirname, '..', '..', '.scaffold', bot.username + '.json'), []) } catch (e_) { swallow('army:pillarLedger', e_) } } // the column is the hole's fill now, nobody's scaffold
   if (up && free() && !gone()) await stepOff(bot)
   return { how, blocks: up, free: free() }
+}
+// ---- UNDER A CAP: SIDEWAYS AT DEPTH, THEN UP (top model 09-21, measured: Noa `trap` -364,45,-503 -> `pillar blocks:20` -> `shut_in base_depot` at -364,67,-500
+// 20 s later; Hotaru the same at -367,42,-504 -> -367,67,-500; Sayaka/Aoi under the farmland of base_field_4; five rescue kills in one morning. The pillar and the
+// staircase climbed straight up under the base until the next block was a CHEST or FARMLAND - never ours to dig - and stopped there, in a sealed 1x1x2 pocket:
+// the bot entombed, the pocket a dark spawn cell for ever. 261 such roofed pockets/stair tunnels were counted at y62-67 under the depot and the fields.)
+// capAbove(x, feetY, z) = the first block on the way up this column that an escape may not open: furniture/protected, a blueprint cell of ours, a pen, anything
+// that is not plain rock/soil (farmland, planks, glass, logs ...), liquid or a falling block, or something standing on the top block (a torch, a crop). null = the
+// column reaches the sky through plain ground only.
+const DIG_RE = /^(stone|cobblestone|mossy_cobblestone|deepslate|cobbled_deepslate|dirt|coarse_dirt|rooted_dirt|grass_block|podzol|mycelium|andesite|diorite|granite|tuff|calcite|clay|mud|packed_mud|dripstone_block|moss_block|smooth_basalt|basalt|blackstone|sandstone|red_sandstone|terracotta|[a-z_]+_terracotta|[a-z_]*_ore)$/
+const FALL_RE = /^(gravel|sand|red_sand|suspicious_sand|suspicious_gravel|[a-z_]+_concrete_powder)$/
+function capAbove (bot, x, y0, z, up = 40) {
+  const cap = (y, name) => ({ at: [x, y, z], name })
+  let top = null
+  for (let y = y0 + up; y >= y0 + 2; y--) { const b = bot.blockAt(new Vec3(x, y, z)); if (!b) return cap(y, 'unloaded'); if (b.boundingBox === 'block' && !/leaves|^snow$/.test(b.name)) { top = y; break } }
+  for (let y = y0 + 2; y <= (top == null ? y0 + 3 : top + 1); y++) {
+    const q = new Vec3(x, y, z); const b = bot.blockAt(q); if (!b) return cap(y, 'unloaded')
+    if (/^(water|lava|bubble_column)$/.test(b.name) || FALL_RE.test(b.name)) return cap(y, b.name)
+    if (penAt(x, y, z, bot)) return cap(y, 'pen')
+    if (b.boundingBox !== 'block') { if (!/^(air|cave_air|short_grass|grass|tall_grass|fern|large_fern|snow|dead_bush|[a-z_]*_leaves)$/.test(b.name)) return cap(y, b.name); continue }
+    if (U.protectedBlock(b) || ourBlock(q, b.name, bot) || !DIG_RE.test(b.name)) return cap(y, b.name)
+  }
+  return null
+}
+// place a filler into `pos` against a plain neighbour face (never a chest/furnace/door: clicking one opens it, it does not place)
+async function placeInto (bot, pos) {
+  const b0 = bot.blockAt(pos); if (!b0 || b0.boundingBox !== 'empty' || /water|lava/.test(b0.name)) return false
+  const fill = FILLERS.find(f => count(bot, f)); if (!fill) return false
+  const it = bot.inventory.items().find(i => i.name === fill); if (!it) return false
+  try { await bot.equip(it, 'hand') } catch (e_) { swallow('army:placeIntoEquip', e_); return false }
+  for (const d of [new Vec3(0, -1, 0), new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1), new Vec3(0, 1, 0)]) {
+    const ref = bot.blockAt(pos.plus(d)); if (!ref || ref.boundingBox !== 'block' || U.protectedBlock(ref) || /chest|barrel|furnace|smoker|table|_bed$|door|gate|shulker|anvil|lectern|hopper|dispenser|dropper|bell|note_block|lever|button/.test(ref.name)) continue
+    try { await bot.lookAt(pos.offset(0.5, 0.5, 0.5), true); await U.withTimeout(bot.placeBlock(ref, d.scaled(-1)), 6000, 'placeInto') } catch (e_) { swallow('army:placeInto', e_) }
+    await sleep(150); const nb = bot.blockAt(pos); if (nb && nb.boundingBox === 'block') return true
+  }
+  return false
+}
+async function stepInto (bot, c) {
+  for (let k = 0; k < 2; k++) {
+    await bot.lookAt(new Vec3(c.x + 0.5, c.y + 1.2, c.z + 0.5), true).catch(e_ => swallow('army:stepIntoLook', e_))
+    bot.setControlState('forward', true); const end = Date.now() + 1800
+    while (Date.now() < end) { const f = bot.entity.position.floored(); if (f.x === c.x && f.z === c.z) break; await sleep(50) }
+    bot.clearControlStates(); await sleep(250)
+    const f = bot.entity.position.floored(); if (f.x === c.x && f.z === c.z) { await require('./blocks').centreOn(bot, c).catch(e_ => swallow('army:stepIntoCentre', e_)); return true }
+  }
+  return false
+}
+// sideExit(bot) - the technique. At the level of the feet (else 1, else 2 lower: under a pad or a field the head must stay out of the blueprint layer) a flood over
+// plain rock (radius 20) finds the nearest column with capAbove() === null; the bot cuts a 1x2 corridor to it, CLOSES every cell it leaves behind it (and the
+// cell over its old head), and pillars up that column on its own filler, flush with the ground (trimPillar). Nothing stays open: the corridor and the pocket are
+// filled, the exit column is the pillar. Events `side_exit {from,to,len,sealed,left,ok}`; what it could not close is terrain debt (`kind:'side_exit'`).
+async function sideExit (bot, opts = {}) {
+  const BL = require('./blocks'); const R = opts.radius || 20
+  const from = opts.dry && opts.at ? new Vec3(opts.at[0], opts.at[1], opts.at[2]) : bot.entity.position.floored(); const life = bot.__armyDeaths || 0 // dry:true,at:[x,y,z] = plan only (probes)
+  const gone = () => (bot.__armyDeaths || 0) !== life || !!bot.__armyDied || !bot.entity || bot.health <= 0
+  if (!overworldBot(bot)) return { ok: false, why: 'off_world' }
+  const plain = (q, air) => { const b = bot.blockAt(q); if (!b) return false; if (b.boundingBox === 'empty') return air && !/water|lava/.test(b.name); return !U.protectedBlock(b) && !ourBlock(q, b.name, bot) && !penAt(q.x, q.y, q.z, bot) && DIG_RE.test(b.name) }
+  const okCell = q => { const fl = bot.blockAt(q.offset(0, -1, 0)); const hat = bot.blockAt(q.offset(0, 2, 0)); return plain(q, true) && plain(q.offset(0, 1, 0), true) && !!fl && fl.boundingBox === 'block' && !!hat && hat.boundingBox === 'block' && !FALL_RE.test(hat.name) && !digHazard(bot, q) } // ROOFED: the corridor never opens the ground's top block (a pad's skin, an aisle)
+  let route = null; let L = null
+  for (const dy of [0, -1, -2]) {
+    const s = from.offset(0, dy, 0)
+    if (dy < 0) { let ok = true; for (let y = s.y; y < from.y; y++) if (!plain(new Vec3(from.x, y, from.z), true) || digHazard(bot, new Vec3(from.x, y, from.z))) ok = false; const fl = bot.blockAt(s.offset(0, -1, 0)); if (!ok || !fl || fl.boundingBox !== 'block') continue }
+    const key = q => q.x + ',' + q.z; const par = new Map([[key(s), null]]); const q0 = [s]; let goal = null
+    while (q0.length && par.size < 2500 && !goal) {
+      const c = q0.shift()
+      for (const [dx, dz] of N4) {
+        const n = c.offset(dx, 0, dz); const k = key(n)
+        if (par.has(k) || Math.abs(n.x - from.x) > R || Math.abs(n.z - from.z) > R || !okCell(n)) continue
+        par.set(k, c); q0.push(n)
+        if (!capAbove(bot, n.x, n.y, n.z)) { goal = n; break }
+      }
+    }
+    if (goal) { route = []; for (let c = goal; c; c = par.get(key(c))) route.unshift(c); route.shift(); L = s.y; break }
+  }
+  if (opts.dry) return { ok: !!route, L, route: (route || []).map(c => [c.x, c.y, c.z]) }
+  if (!route) { result(bot, { ev: 'side_exit', from: [from.x, from.y, from.z], ok: false, why: 'no column within ' + R + ' reaches the sky through plain ground' }); return { ok: false, why: 'no exit column' } }
+  const t0 = Date.now(); let sealed = 0; let blocks = 0; const left = []
+  const seal = async q => { if (await placeInto(bot, q)) sealed++; else { const b = bot.blockAt(q); if (b && b.boundingBox === 'empty') left.push([q.x, q.y, q.z]) } }
+  try {
+    // 1. down to the corridor level, and the cells of the old pocket over the head are closed from below while they are still in reach
+    for (let y = from.y - 1; y >= L; y--) { const r = await BL.digBlock(bot, new Vec3(from.x, y, from.z), { collect: true, requireHarvest: false, allowUnderFeet: true }).catch(e_ => ({ ok: false, reason: String(e_ && e_.message) })); if (!r.ok) throw new Error('floor: ' + r.reason); await sleep(500) }
+    if (L < from.y) for (let y = L + 2; y <= from.y + 1; y++) await seal(new Vec3(from.x, y, from.z))
+    // 2. the corridor, one cell at a time; the cell just left is closed at once (feet + head)
+    for (const c of route) {
+      if (U.cancelled(bot) || gone()) throw new Error('cancelled')
+      for (const q of [c.offset(0, 1, 0), c]) { const b = bot.blockAt(q); if (b && b.boundingBox !== 'empty') { const r = await BL.digBlock(bot, q, { collect: true, requireHarvest: false }).catch(e_ => ({ ok: false, reason: String(e_ && e_.message) })); if (!r.ok) throw new Error('dig ' + [q.x, q.y, q.z].join(',') + ': ' + r.reason) } }
+      await U.pickupNear(bot, 300, 2).catch(e_ => swallow('army:sideExitPick', e_))
+      const prev = bot.entity.position.floored()
+      if (!await stepInto(bot, c)) throw new Error('could not step into ' + [c.x, c.y, c.z].join(','))
+      if (FILLERS.reduce((n, f) => n + count(bot, f), 0) >= 3) { await seal(prev); await seal(prev.offset(0, 1, 0)) } else left.push([prev.x, prev.y, prev.z], [prev.x, prev.y + 1, prev.z])
+    }
+    // 3. up the free column on our own filler; the last block is soil when the ground here is soil
+    const top = bot.entity.position.floored()
+    let T = null; for (let y = top.y + 40; y >= top.y + 2; y--) { const b = bot.blockAt(new Vec3(top.x, y, top.z)); if (b && b.boundingBox === 'block' && !/leaves|^snow$/.test(b.name)) { T = y; break } } // the ground's top block in this column
+    const soilTop = T != null && /^(dirt|grass_block|coarse_dirt|podzol|rooted_dirt|mycelium)$/.test((bot.blockAt(new Vec3(top.x, T, top.z)) || {}).name || '')
+    for (let i = 0; i < 44 && !U.cancelled(bot) && !gone(); i++) {
+      const p = bot.entity.position.floored()
+      if (T != null ? p.y > T : (skyAbove(bot) && islandOf(bot).size >= TRAP_ISLAND)) break // feet on the level of the ground around = flush, no dip, no tower
+      if (!FILLERS.some(f => count(bot, f)) && !await digFiller(bot)) break
+      const soil = soilTop && p.y === T && count(bot, 'dirt') ? { item: 'dirt' } : {} // the block that ends up EXPOSED is soil again
+      const r = await U.withTimeout(BL.pillarUp(bot, 1, soil), 45000, 'sideExitPillar').catch(e_ => { swallow('army:sideExitPillar', e_); return 0 })
+      if (!r) break
+      blocks += r
+    }
+    if (blocks && !gone()) await trimPillar(bot)
+    try { writeJSON(path.join(__dirname, '..', '..', '.scaffold', bot.username + '.json'), []) } catch (e_) { swallow('army:sideExitLedger', e_) } // the column is fill, nobody's scaffold
+    const ok = skyAbove(bot) && islandOf(bot).size >= TRAP_ISLAND
+    if (ok) await stepOff(bot)
+    const to = bot.entity.position.floored()
+    result(bot, { ev: 'side_exit', from: [from.x, from.y, from.z], via: L, exit: [top.x, top.y, top.z], to: [to.x, to.y, to.z], len: route.length, sealed, blocks, left: left.length || undefined, ok, tookS: Math.round((Date.now() - t0) / 1000) })
+    if (left.length) debt(bot, { kind: 'side_exit', from: [from.x, from.y, from.z], open: left.slice(0, 20) })
+    return { ok, blocks, sealed }
+  } catch (e_) {
+    bot.clearControlStates()
+    const at = bot.entity ? bot.entity.position.floored() : from
+    result(bot, { ev: 'side_exit', from: [from.x, from.y, from.z], at: [at.x, at.y, at.z], ok: false, why: String(e_ && e_.message).slice(0, 100), sealed, left: left.length || undefined })
+    if (left.length) debt(bot, { kind: 'side_exit', from: [from.x, from.y, from.z], open: left.slice(0, 20) })
+    return { ok: false, blocks, sealed, why: String(e_ && e_.message) }
+  }
 }
 // one column sideways (feet + head free, something to stand on): used only to get out from under gravel/sand/water while pillaring
 async function sideStep (bot) {
@@ -1335,6 +1456,12 @@ async function digOut (bot, pit, opts = {}) {
   }
   const own = insideOurs(bot); const zy = zoneAt(from.x, from.z, bot)
   if ((own || (zy != null && from.y <= zy - 1)) && await pitExit(bot, own || 'zone')) { strictMovements(bot); return }
+  // UNDER A CAP OF OURS IS NOT "IN A BUILDING" (09-21: Noa/Hotaru under a depot chest, Sayaka/Aoi under field farmland, walkable area 1, shut_in every 10 min until a
+  // rescue kill): no gate leads out of a 1x1 pocket. Not a pen, not a room (area < 12), the roof within 4 of the feet -> sideExit (at depth, sealed, never through ours).
+  if (own && !penAt(from.x, from.y, from.z, bot) && walkableArea(bot) < 12 && Date.now() - (bot.__armySideT || 0) > 180000 && !U.cancelled(bot)) {
+    const cap = capAbove(bot, from.x, from.y, from.z)
+    if (cap && cap.at[1] - from.y <= 4) { bot.__armySideT = Date.now(); const r = await sideExit(bot).catch(e_ => { swallow('army:shutInSideExit', e_); return { ok: false } }); if (r.ok) { strictMovements(bot); return } }
+  }
   if (own) { if (Date.now() - (bot.__armyShutInT || 0) > 600000) { bot.__armyShutInT = Date.now(); result(bot, { ev: 'shut_in', at: [from.x, from.y, from.z], inside: own, area: walkableArea(bot) }) } strictMovements(bot); return }
   // DELIBERATELY PLACED IS NOT TRAPPED (owner/foreman 09-20 15:2xZ: `fill_dropped_in` at a pit floor, `pillared_out` 16 s later - the reflex undid the entry).
   // A builder inside its own fill (marker `__armyInFill`, 15 min) rides up with the floor; only the REFLEX is held off, a handler that calls digOut itself is served.
@@ -1378,8 +1505,11 @@ async function digOut (bot, pit, opts = {}) {
     const out = () => skyAbove(bot) && islandOf(bot).size >= TRAP_ISLAND
     // the climber fills what it digs behind it: one wall block bought now pays for the whole seal (a bot far from the depot carries no cobblestone)
     if (FILLERS.reduce((n, f) => n + count(bot, f), 0) < 3 && !gone()) await digFiller(bot)
-    if (pit && wallsAround(bot, 4)) for (let i = 0; i < 8 && !gone() && !U.cancelled(bot) && (i === 0 || !out()); i++) { const y0 = Math.floor(bot.entity.position.y); await U.withTimeout(stairUp(bot, y0 + 4, 90000, out), 90000 + 115000, 'stairUp'); if (Math.floor(bot.entity.position.y) <= y0) break }
-    for (let i = 0; i < 12 && !skyAbove(bot) && !U.cancelled(bot) && !gone() && !insideOurs(bot); i++) await U.withTimeout(stairUp(bot, Math.floor(bot.entity.position.y) + 3, 60000, out), 60000 + 115000, 'stairUp')
+    // CAPPED AND NO SIDE EXIT (09-21): no staircase either - it would climb into the same roof and end in the next sealed pocket; the bot stays and says so
+    if (!esc.capped && pit && wallsAround(bot, 4)) for (let i = 0; i < 8 && !gone() && !U.cancelled(bot) && (i === 0 || !out()); i++) { const y0 = Math.floor(bot.entity.position.y); await U.withTimeout(stairUp(bot, y0 + 4, 90000, out), 90000 + 115000, 'stairUp'); if (Math.floor(bot.entity.position.y) <= y0) break }
+    for (let i = 0; i < 12 && !esc.capped && !skyAbove(bot) && !U.cancelled(bot) && !gone() && !insideOurs(bot); i++) await U.withTimeout(stairUp(bot, Math.floor(bot.entity.position.y) + 3, 60000, out), 60000 + 115000, 'stairUp')
+    // the staircase stops under a roof of ours (insideOurs) or a block it may not dig: that is a sealed pocket, not an exit (09-21) - sideways at depth instead
+    if (!esc.capped && !skyAbove(bot) && !U.cancelled(bot) && !gone() && islandOf(bot).size < TRAP_ISLAND) { const p = bot.entity.position.floored(); const cap = capAbove(bot, p.x, p.y, p.z); if (cap && cap.at[1] - p.y <= 4) { bot.__armySideT = Date.now(); await sideExit(bot) } }
   } catch (e_) { swallow('army:373', e_) }
   if (gone()) { result(bot, { ev: 'escape_aborted', from: [from.x, from.y, from.z], why: 'the bot died during the escape' }); bot.__stairPlaced = []; bot.__stairDug = []; strictMovements(bot); return }
   if (U.cancelled(bot)) { bot.__armyEsc = null; bot.__armyEscLog.pop(); bot.__stairPlaced = []; bot.__stairDug = []; return } // cut short by a re-assignment: try again next slice, no brake, no report
@@ -2470,7 +2600,7 @@ async function pickup (bot, r = 6, ms = 6000) { try { await U.pickupNear(bot, ms
 
 module.exports = { digPlaceCost,
   DIR, F, sleep, readJSON, writeJSON, boardEdit, decline, result, settings, inv, count, bestOf, equipBest, heartbeat, assignment,
-  strictMovements, larderFull, larderGate, escapeMovements, skyAbove, digOut, fillShaft, inShaft, walkableArea, walkCells, islandOf, trapped, TRAP_ISLAND, pillarEscape, debt, travel, dist2, categoryOf, chestsOf, index, record, openChest, closeWin, bank, withdraw,
+  strictMovements, larderFull, larderGate, escapeMovements, skyAbove, capAbove, sideExit, digOut, fillShaft, inShaft, walkableArea, walkCells, islandOf, trapped, TRAP_ISLAND, pillarEscape, debt, travel, dist2, categoryOf, chestsOf, index, record, openChest, closeWin, bank, withdraw,
   scanChests, stockOf, stockMap, dumpJunk, askHelp, helpAnswer, placeHard, fillInside, gravityDrop, obtain, craftSpot, stash, unstash, siteInfo, siteSet, hostiles, startGuard, stopGuard, kill, pickup, HOSTILE, CATS,
   kitUp, kitPlan, wear, riskJob, carried, liveBots, musterPos, surfaceFloor, SEA_LEVEL, DROP, stairUp, furnaces, registerFurnaces, openAt, pickFuel, smelt, blueprintCellsOf, buildJobs, ours, ourBlock, penAt, insideOurs, zoneAt, TERRAIN_BP,
   dimOf, offload, surplusOf

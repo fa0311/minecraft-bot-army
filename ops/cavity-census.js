@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-// ops/cavity-census.js [--box x1,z1,x2,z2] [--ymin 30] [--ytop N] [--cells 400] [--depth 8] [--dig] [--quiet] — THE CAVITY CENSUS, full coverage, LLM-free, ~2 min.
+// ops/cavity-census.js [--box x1,z1,x2,z2] [--ymin 30] [--ytop N] [--cells 400] [--depth 8] [--tunnel 3] [--dig] [--quiet] — THE CAVITY CENSUS, full coverage, LLM-free, ~2 min.
 // WHY (owner 09-20): "地下にbotが誤って掘った穴が多すぎます、敵mobが変な位置に湧く原因になります" and "地下から緊急脱出を試みる際に作った階段を埋めないのは何故か？".
 // ops/base-audit.js looks from ABOVE: a sealed pocket under a finished pad and a 1x2 escape staircase are both invisible to it. A bot only sees its
 // own loaded chunks, so the JOB's survey (`cavity` work:'survey') covers what one bot can see; this flies the spectator camera `SkyEye` over the base
@@ -21,6 +21,7 @@ const yMin = +(opt('--ymin') || 30)
 const yTop = +(opt('--ytop') || CAV.baseY(A) + 52)
 const maxCells = +(opt('--cells') || 400)
 const maxDepth = +(opt('--depth') || 8)
+const tunnelMax = +(opt('--tunnel') || 3) // how far a sideways tunnel may reach from a free column (jobs_cavity entryOf; the job's params.tunnelMax)
 const dig = process.argv.includes('--dig') // the box IS an excavation of ours (a ravine the army is filling): no depth or size cap
 if (box.length !== 4 || box.some(n => !Number.isFinite(n))) { console.log('usage: node ops/cavity-census.js [--box x1,z1,x2,z2] [--ymin 30] [--ytop 120] [--cells 400] [--depth 8] [--dig]'); process.exit(1) }
 
@@ -52,7 +53,7 @@ bot.once('spawn', async () => {
     const PS = CAV.planSets(A, G.box, true)
     CAV.markPlan(G, PS)
     console.log('plan: ' + PS.planned.size + ' blueprint cells, ' + PS.mine.size + ' mine cells, ' + PS.blockedCols.size + ' columns where no shaft may be opened, ' + PS.scars.size + ' escape-scar cells from the ledger')
-    const list = CAV.analyse(G, { maxCells, maxDepth, dig, hardCap: dig ? 60000 : 20000, blockedCol: PS.blockedCol })
+    const list = CAV.analyse(G, { maxCells, maxDepth, dig, tunnelMax, hardCap: dig ? 60000 : 20000, blockedCol: PS.blockedCol })
     const doc = CAV.writeCensus(A, G, list, 'SkyEye')
     console.log('')
     console.log(CAV.table(doc))

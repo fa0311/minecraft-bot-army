@@ -235,7 +235,10 @@ function neckOf (G, cells, mouths, neckMax, cap) {
 function entryOf (G, P, type, pts, bb, colset, nCells, perY, wet, scarHit, sky) {
   const code = G.code; const mask = G.mask
   const blocked = P.blockedCol || (() => false)
-  const near = G.lights.filter(l => l[0] >= bb[0] - 8 && l[0] <= bb[3] + 8 && l[1] >= bb[1] - 8 && l[1] <= bb[4] + 8 && l[2] >= bb[2] - 8 && l[2] <= bb[5] + 8)
+  let near = G.lights.filter(l => l[0] >= bb[0] - 8 && l[0] <= bb[3] + 8 && l[1] >= bb[1] - 8 && l[1] <= bb[4] + 8 && l[2] >= bb[2] - 8 && l[2] <= bb[5] + 8)
+  // LIGHT DOES NOT GO THROUGH ROCK (09-21: 31 of 51 sealed pockets right under the depot/fields read `spawnable 0` because a torch stood on the ground
+  // 3 blocks above them - so they were never a target). An ENCLOSED hole is lit only by a light inside it or on its wall; a sky-connected one keeps the old rule.
+  if (!sky) { const inC = new Set(pts.map(p => p.x + ',' + p.y + ',' + p.z)); near = near.filter(l => [[0, 0, 0], [1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]].some(d => inC.has((l[0] + d[0]) + ',' + (l[1] + d[1]) + ',' + (l[2] + d[2])))) }
   const dark = p => !near.some(l => Math.hypot(l[0] - p.x, l[1] - p.y, l[2] - p.z) <= 7)
   let spawnable = 0; const floors = []
   for (const p of pts) {
@@ -269,27 +272,46 @@ function entryOf (G, P, type, pts, bb, colset, nCells, perY, wet, scarHit, sky) 
   // HIS FALLBACK when the ground over the hole is a building, a field, a pen or a road: the nearest FREE surface cell, and 1-3 cells of
   // tunnel at depth. The bot walks in at foot level, so the column must offer two cells of air where the tunnel arrives.
   if (tops.length < 2) {
-    for (const k of colList) {
+    // HOW FAR, AND NOT ONLY STRAIGHT (09-21): 1-3 cells in a straight line never reach out from under the depot rows or a 29x29 field (every column there is
+    // blocked), so the 261 pockets under them had no entry and were never a target. `params.tunnelMax` (<= 16): a flood over solid, unplanned rock at the
+    // tunnel's level finds the nearest free column; the tunnel is dug walking (digTunnel) and closed by the RETREAT (fillOne).
+    const TUN = Math.max(3, Math.min(16, P.tunnelMax || 3))
+    const floorOk = (x, y, z) => { const c = cell(x, y, z); return c === C_SOLID || c === C_THIN }
+    for (const k of colList.slice(0, 12)) {
       if (tops.length >= 4) break
       const [cx, cz] = k.split(',').map(Number)
       let ey2 = null
       for (let y = topY.get(k); y >= bb[1]; y--) if (cell(cx, y, cz) === C_AIR && cell(cx, y + 1, cz) === C_AIR) { ey2 = y; break }
-      if (ey2 == null) continue
-      for (const [ux, uz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
-        for (let d = 1; d <= 3; d++) {
-          const rx = cx + ux * d; const rz = cz + uz * d
-          if (!gIn(G, rx, rz) || colset.has(rx + ',' + rz) || blocked(rx, rz)) continue
-          const ci = gCol(G, rx, rz); const sy = G.top[ci]
-          if (!G.seen[ci] || sy === NOTOP || sy <= ey2 + 1 || sy - ey2 > 28) continue
-          if (!pure(rx, rz, ey2, sy)) continue
-          const st = cell(rx, ey2 - 1, rz); if (st !== C_SOLID && st !== C_THIN) continue // something to stand on at the shaft's foot
-          const tun = []; let ok = true
-          for (let s = d - 1; s >= 1 && ok; s--) { const tx = cx + ux * s; const tz = cz + uz * s; for (const yy of [ey2, ey2 + 1]) { if (!pure(tx, tz, yy, yy)) { ok = false; break } ; tun.push([tx, yy, tz]) } }
-          if (!ok) continue
-          tops.push({ at: [rx, sy, rz], entryY: ey2, drop: 0, shaft: sy - ey2, tunnel: tun, to: [cx, cz], score: 4 + d })
-          break
+      // two levels: the pocket's own 2-high level, and ONE LOWER - a 1x1x2 pocket right under a chest/farmland has its head cell in the blueprint layer
+      // (pad dirt@68), so the tunnel comes in UNDER it: its last cell is the pocket column's floor, the pocket itself is filled from the tunnel beside it
+      const lv = []
+      if (ey2 != null) lv.push({ L: ey2, under: false })
+      const low = ey2 != null ? ey2 : bb[1]
+      if (pure(cx, cz, low - 1, low - 1) && floorOk(cx, low - 2, cz)) lv.push({ L: low - 1, under: true })
+      let found = null
+      for (const { L, under } of lv) {
+        if (found) break
+        const par = new Map([[k, null]]); const q = [[cx, cz, 0]]
+        while (q.length && !found) {
+          const [x, z, n] = q.shift()
+          if (n >= TUN) continue
+          for (const [ux, uz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+            const rx = x + ux; const rz = z + uz; const rk = rx + ',' + rz
+            if (par.has(rk) || !gIn(G, rx, rz) || colset.has(rk)) continue
+            if (!floorOk(rx, L - 1, rz)) continue
+            const ci = gCol(G, rx, rz); const sy = G.top[ci]
+            const shaftOk = !blocked(rx, rz) && G.seen[ci] && sy !== NOTOP && sy > L + 1 && sy - L <= 28 && pure(rx, rz, L, sy)
+            if (shaftOk) { par.set(rk, x + ',' + z); found = { rx, rz, sy, L, under, n: n + 1 }; break }
+            if (!pure(rx, rz, L, L + 1)) continue // a tunnel cell: two cells of solid, unplanned rock
+            par.set(rk, x + ',' + z); q.push([rx, rz, n + 1])
+          }
         }
-        if (tops.length >= 4) break
+        if (!found) continue
+        // the tunnel = the cells between the shaft and the pocket, SHAFT SIDE FIRST (the order they are dug in)
+        const tun = []
+        for (let c = par.get(found.rx + ',' + found.rz); c && c !== k; c = par.get(c)) { const [tx, tz] = c.split(',').map(Number); tun.push([tx, found.L, tz], [tx, found.L + 1, tz]) }
+        if (found.under) tun.push([cx, found.L, cz])
+        tops.push({ at: [found.rx, found.sy, found.rz], entryY: found.L, drop: 0, shaft: found.sy - found.L, tunnel: tun, to: [cx, cz], score: 4 + found.n + (found.under ? 1 : 0) })
       }
     }
   }
@@ -557,6 +579,9 @@ module.exports = ctx => {
   // regex (REQUESTED from the army_jobs.js owner), this front postpones the tidy while it is carrying its own load - it never disables it.
   const holdPockets = bot => { try { bot.__armyPocketT = Date.now() } catch (e_) { swallow('jobs_cavity:hold', e_) } }
   const paramsBox = P => Array.isArray(P.box) && P.box.length === 4 ? P.box.slice() : baseBox(A)
+  // the plan sets (no shaft through a building ...) are read for the job's box GROWN to the hole and its tunnel, so a hole at the edge of the box is judged
+  // against every building around it (planSets adds +-8 itself)
+  const entBox = (P, ent) => { const b = paramsBox(P); const bb = ent.bbox || [ent.at[0], 0, ent.at[2], ent.at[0], 0, ent.at[2]]; return [Math.min(b[0], b[2], bb[0] - 16), Math.min(b[1], b[3], bb[2] - 16), Math.max(b[0], b[2], bb[3] + 16), Math.max(b[1], b[3], bb[5] + 16)] }
   const paramsYMin = P => Number.isFinite(P.yMin) ? P.yMin : 30
   const paramsYTop = P => Number.isFinite(P.yTop) ? P.yTop : baseY(A) + 52
 
@@ -576,7 +601,7 @@ module.exports = ctx => {
     if (!G.cols) return 'cavity: not one column of the box is loaded here'
     const PS = planSets(A, box)
     markPlan(G, PS)
-    const list = analyse(G, { maxCells: P.maxCells || 400, maxDepth: P.maxDepth, dig: !!P.dig, hardCap: P.dig ? 60000 : 20000, blockedCol: PS.blockedCol })
+    const list = analyse(G, { maxCells: P.maxCells || 400, maxDepth: P.maxDepth, dig: !!P.dig, hardCap: P.dig ? 60000 : 20000, blockedCol: PS.blockedCol, tunnelMax: P.tunnelMax })
     const doc = writeCensus(A, G, list, bot.username)
     const worst = doc.list.filter(isTarget).slice(0, 5).map(e => ({ at: e.at, cells: e.cells, depth: e.depth }))
     A.result(bot, { ev: 'cavity_census', n: doc.targets, cells: doc.list.filter(isTarget).reduce((n, e) => n + e.cells, 0), spawnable: doc.spawnable, coverage: doc.coverage, counts: doc.counts, worst, ms: Date.now() - t0 })
@@ -836,20 +861,52 @@ module.exports = ctx => {
     return { ok: false, why: why.slice(0, 4).join(' | ') || 'no neighbour column could be opened' }
   }
 
-  // 1-3 cells of tunnel at depth, when the ground straight over the hole is a building, a field, a pen or a road
+  // the tunnel at depth, when the ground straight over the hole is a building, a field, a pen or a road. Cells come shaft side first, two per column (feet +
+  // head); the worker digs a column and WALKS INTO IT (09-21: a tunnel of up to `tunnelMax` cells is out of reach from the shaft's foot).
   async function digTunnel (bot, api, cells) {
     const B = BL()
-    for (const c of cells || []) {
+    const cols = []
+    for (const c of cells || []) { const k = c[0] + ',' + c[2]; let e = cols.find(q => q.k === k); if (!e) { e = { k, x: c[0], z: c[2], cells: [] }; cols.push(e) } e.cells.push(vv(c)) }
+    for (const col of cols) {
       if (api.stop()) return false
-      const p = vv(c); const b = bot.blockAt(p)
-      if (!b || isAirB(b)) continue
-      if (HARD_RE.test(b.name) || GRAVITY_RE.test(b.name) || A.ourBlock(p, b.name) || U.protectedBlock(b)) return false
-      for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0], [0, -1, 0]]) { const n = bot.blockAt(p.offset(dx, dy, dz)); if (n && n.name === 'lava') return false }
-      const r = await B.digBlock(bot, p, { collect: true, requireHarvest: false })
-      if (!r.ok) return false
-      await sleep(200)
+      for (const p of col.cells.slice().sort((a, b) => b.y - a.y)) {
+        const b = bot.blockAt(p)
+        if (!b || isAirB(b)) continue
+        if (HARD_RE.test(b.name) || GRAVITY_RE.test(b.name) || A.ourBlock(p, b.name) || U.protectedBlock(b)) return false
+        for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0], [0, -1, 0]]) { const n = bot.blockAt(p.offset(dx, dy, dz)); if (n && n.name === 'lava') return false }
+        const r = await B.digBlock(bot, p, { collect: true, requireHarvest: false })
+        if (!r.ok) return false
+        await sleep(200)
+      }
+      if (col.cells.length >= 2) { const L = Math.min(...col.cells.map(q => q.y)); if (!await A.travel(bot, new Vec3(col.x, L, col.z), { range: 0, ms: 8000, stop: api.stop, quiet: true, anyDepth: true })) return false }
     }
     return true
+  }
+
+  // THE RETREAT (09-21): out of a sideways tunnel, pocket side first, into the shaft's foot - after every step the tunnel cells just left (feet + head) are
+  // filled from where the worker now stands. Returns { ok, placed, item, why }.
+  async function retreat (bot, api, got, item0) {
+    let item = item0; let placed = 0
+    const tun = got.tunnel.map(vv); const L = got.entryY
+    const cols = []
+    for (const q of tun.slice().reverse()) { const k = q.x + ',' + q.z; let c = cols.find(e => e.k === k); if (!c) { c = { k, x: q.x, z: q.z, cells: [] }; cols.push(c) } c.cells.push(q) }
+    const path = cols.concat([{ k: 'shaft', x: got.at[0], z: got.at[2], cells: [] }])
+    try {
+      // stand at the pocket end of the tunnel first (the pass may have left the worker anywhere in the pocket)
+      const f0 = bot.entity.position.floored()
+      if (!(f0.x === path[0].x && f0.z === path[0].z) && !await A.travel(bot, new Vec3(path[0].x, L, path[0].z), { range: 0, ms: 15000, stop: api.stop, quiet: true, anyDepth: true })) return { ok: false, placed, item, why: 'cannot reach the tunnel end ' + [path[0].x, L, path[0].z].join(',') }
+      for (let i = 0; i < cols.length && !api.stop(); i++) {
+        const nx = path[i + 1]
+        if (!await A.travel(bot, new Vec3(nx.x, L, nx.z), { range: 0, ms: 12000, stop: api.stop, quiet: true, anyDepth: true })) return { ok: false, placed, item, why: 'stuck in the tunnel at ' + xyzOf(bot.entity.position).join(',') }
+        for (const p of cols[i].cells.slice().sort((a, b) => a.y - b.y)) {
+          const b = bot.blockAt(p); if (!b || !isAirB(b)) continue
+          if (A.count(bot, item) < 1) { item = fillerIn(bot); if (!item) return { ok: false, placed, item, why: 'out of filler in the tunnel' } }
+          const r = await A.placeHard(bot, p, item, { stop: api.stop, fill: true, noInside: true, noRest: true, place: { retries: 1 } })
+          if (r.ok) placed++
+        }
+      }
+      return { ok: true, placed, item }
+    } catch (e_) { swallow('jobs_cavity:retreat', e_); return { ok: false, placed, item, why: String(e_ && e_.message).slice(0, 80) } }
   }
 
   // RIDE THE WAY IN OUT AGAIN (the owner's algorithm, step 3: 「埋めながら上まで上がる」; this function was CALLED and never existed - `error: rideOut is not defined`
@@ -982,7 +1039,7 @@ module.exports = ctx => {
     // ...and when the six recorded rims are all islands, ANY free column over the hole will do: dig through the crust from there and let the
     // entry rules (read below the feet, sideDrop with the bucket when a real drop opens) do the rest.
     if (!reached && !api.stop()) {
-      const PS0 = planSets(A, paramsBox(P)); const bb0 = ent.bbox || [ent.at[0], 0, ent.at[2], ent.at[0], 0, ent.at[2]]
+      const PS0 = planSets(A, entBox(P, ent)); const bb0 = ent.bbox || [ent.at[0], 0, ent.at[2], ent.at[0], 0, ent.at[2]]
       const cands = []
       for (let x = bb0[0] - 2; x <= bb0[3] + 2; x++) for (let z = bb0[2] - 2; z <= bb0[5] + 2; z++) if (!PS0.blockedCol(x, z) && !tops0.some(t => t[0] === x && t[2] === z)) cands.push([x, z])
       cands.sort((a, b) => A.dist2(bot, a[0], a[1]) - A.dist2(bot, b[0], b[1]))
@@ -1022,7 +1079,7 @@ module.exports = ctx => {
     }
     // THE MINERS' CELLS ARE NEVER FILLED, even when the void they walk through is ours (a stairwell crossing a ravine cavern: the component is
     // ours by share, those cells are theirs by geometry - same "within 2" rule the census classifies by).
-    const PSm = planSets(A, paramsBox(P)).mine
+    const PSm = planSets(A, entBox(P, ent)).mine
     const nearMine = p => { for (let dx = -2; dx <= 2; dx++) for (let dy = -2; dy <= 2; dy++) for (let dz = -2; dz <= 2; dz++) if (PSm.has((p.x + dx) + ',' + (p.y + dy) + ',' + (p.z + dz))) return true; return false }
     let mineSkip = 0
     if (PSm.size) { const keep = comp.cells.filter(p => !nearMine(p)); mineSkip = comp.cells.length - keep.length; comp.cells = keep }
@@ -1041,13 +1098,13 @@ module.exports = ctx => {
       if (capCells.length > 160) return { ok: false, why: 'the scar at ' + ent.at.join(',') + ' needs ' + capCells.length + ' cells above the component - that is a pit, not a staircase', stale: true }
     }
     // 5. GET IN
-    const log = []; let entered = null
+    const log = []; let entered = null; const later = new Set(); let tunnelOf = null
     if (comp.sky) { // an escape staircase is already open: walk down it, never cut a second hole
       const low = comp.cells.slice().sort((a, b) => a.y - b.y || a.distanceTo(bot.entity.position) - b.distanceTo(bot.entity.position))[0]
       task(bot, 'cavity: down the escape stair to ' + xyzOf(low).join(','))
       if (!await A.travel(bot, low, { range: 1, ms: 180000, stop: api.stop })) return { ok: false, why: 'no_route down the scar to ' + xyzOf(low).join(',') }
     } else {
-      const PS = planSets(A, paramsBox(P))
+      const PS = planSets(A, entBox(P, ent))
       const tops = (extraTop ? [extraTop] : []).concat((ent.tops || []).filter(t => !PS.blockedCol(t.at[0], t.at[2]))
         .sort((a, b) => (b.at.join(',') === reached.join(',') ? 1 : 0) - (a.at.join(',') === reached.join(',') ? 1 : 0)))
       if (!tops.length) return { ok: false, why: 'no free surface cell over ' + ent.at.join(',') + ' (building / field / pen / road / furniture)' }
@@ -1083,6 +1140,10 @@ module.exports = ctx => {
       if (!got.reused) markDone(ent.id, { shafts: (ent.shafts || []).concat([got.at]).slice(-4) })
       for (let y = got.at[1] - 1; y >= got.entryY; y--) { const q = new Vec3(got.at[0], y, got.at[2]); want.set(keyOf(q), q) } // the shaft is filled too
       for (const c of got.tunnel || []) { const q = vv(c); want.set(keyOf(q), q) } // ...and so is the tunnel
+      // A TUNNEL IS THE WAY OUT TOO (09-21): the lowest-first fill would close the tunnel's floor cells and the shaft's foot from the pocket side and wall the
+      // worker in at the far end. So the tunnel and the shaft are held back from the first pass; the worker walks back out of the tunnel closing each cell
+      // BEHIND it (retreat), then rides the shaft up. The same invariant as the shaft rule: the way out is never filled from the wrong side.
+      if (got.tunnel && got.tunnel.length) { for (const c of got.tunnel) later.add(keyOf(vv(c))); for (let y = got.at[1] - 1; y >= got.entryY; y--) later.add(keyOf(new Vec3(got.at[0], y, got.at[2]))) ; tunnelOf = got }
       for (const k of log) { const [qx, qy, qz] = k.split(',').map(Number); const q = new Vec3(qx, qy, qz); if (!want.has(keyOf(q))) want.set(keyOf(q), q) } // ...and EVERY cell we opened, including the neighbour column sideDrop cut
       restoreList.push({ at: vv(got.at), name: got.name }) // ...and its top cell gets the surface material back
     }
@@ -1105,7 +1166,16 @@ module.exports = ctx => {
       return n > 0
     }
     lap('shaftS')
-    let r1 = await fillCells(bot, api, want, item0, deadline, { refill })
+    let r1
+    if (later.size) {
+      const first = new Map([...want].filter(([k]) => !later.has(k)))
+      r1 = await fillCells(bot, api, first, item0, deadline, { refill })
+      for (const k of [...want.keys()]) { const bq = bot.blockAt(want.get(k)); if (bq && isSolidB(bq)) want.delete(k) }
+      const rt = await retreat(bot, api, tunnelOf, r1.item)
+      r1.placed += rt.placed; if (rt.item) r1.item = rt.item
+      if (!rt.ok) A.result(bot, { ev: 'cavity_retreat', at: ent.at, ok: false, why: rt.why, placed: rt.placed })
+      for (const k of [...want.keys()]) { const bq = bot.blockAt(want.get(k)); if (bq && isSolidB(bq)) want.delete(k) }
+    } else r1 = await fillCells(bot, api, want, item0, deadline, { refill })
     lap('fillS')
     // 7b. whatever is left of the shaft column is ridden out from the inside, then one more pass for anything that fell behind
     for (const q of restoreList) {
@@ -1175,7 +1245,9 @@ module.exports = ctx => {
     if (!doc || !Array.isArray(doc.list)) return muster(bot, job, api, ctx2, 'cavity: no census could be written')
     const claims = claimRead(); const now = Date.now()
     const slotFree = e => { const n = Math.max(1, Math.min(6, Math.ceil(e.cells / 120))); for (let k = 0; k < n; k++) { const c = claims[e.id + (k ? '#' + k : '')]; if (!c || (!c.done && !c.cool && Date.now() - (c.t || 0) > (c.ttl || 900000))) return true } return false }
-    const free = doc.list.filter(isTarget).filter(e => {
+    // A JOB WORKS ITS OWN BOX (09-21: two cavity jobs share cavities.json - the ravine's and the core's): a hole far outside this box is the other job's
+    const jb = paramsBox(P); const mine = e => e.at[0] >= Math.min(jb[0], jb[2]) - 12 && e.at[0] <= Math.max(jb[0], jb[2]) + 12 && e.at[2] >= Math.min(jb[1], jb[3]) - 12 && e.at[2] <= Math.max(jb[1], jb[3]) + 12 // +12: a hole on the seam of two jobs' boxes belongs to both (claims keep it to one bot)
+    const free = doc.list.filter(isTarget).filter(mine).filter(e => {
       if (e.cells > 120 && slotFree(e)) return true
       const c = claims[e.id]
       if (!c) return true
@@ -1186,7 +1258,7 @@ module.exports = ctx => {
       return now - (c.t || 0) > (c.ttl || 900000)
     })
     if (!free.length) {
-      const open = doc.list.filter(isTarget).length
+      const open = doc.list.filter(isTarget).filter(mine).length
       if (!open && !P.standing) A.boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (j && j.status === 'active') { j.status = 'paused'; j.note = 'auto-paused: the census reads 0 targets under the base (' + JSON.stringify(doc.counts) + ')' } })
       A.result(bot, { ev: 'cavity_none', open, claimed: Object.keys(claims).length })
       A.decline(bot, job, 90000, 'cavity: every target is claimed by a mate right now')

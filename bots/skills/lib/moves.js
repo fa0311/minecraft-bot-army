@@ -177,4 +177,30 @@ function fallGuard (bot, report = () => {}, opts = {}) {
   bot.__fallGuard = onTick; bot.on('physicsTick', onTick)
 }
 
-module.exports = { waterDrop, stepOff, bridgeTo, fallGuard, groundBelow, scoop }
+// SHOOT (moved here from jobs_end.js 09-21 so the blaze doorway and the End crystals share ONE bow technique): hold the bow, aim a
+// touch high (an arrow drops ~0.035 per block), draw 1.15 s = full power, loose; up to `shots` arrows or until the target is gone.
+// -> { ok, shots, why }. `ok` = the entity is gone (dead or out of the world), nothing else.
+async function shoot (bot, ent, o = {}) {
+  const bow = bot.inventory.items().find(i => i.name === 'bow')
+  if (!bow || !bot.inventory.items().some(i => i.name === 'arrow')) return { ok: false, why: 'no bow or no arrows' }
+  try { await bot.equip(bow, 'hand') } catch (e) { return { ok: false, why: 'could not hold the bow' } }
+  const id = ent.id
+  for (let i = 0; i < (o.shots || 4); i++) {
+    if (o.stop && o.stop()) break
+    const cur = bot.entities[id]
+    if (!cur || !cur.isValid) return { ok: true, shots: i }
+    try {
+      const d = cur.position.distanceTo(bot.entity.position)
+      await bot.lookAt(cur.position.offset(0, (o.aimY == null ? 0.6 : o.aimY) + d * 0.035, 0), true)
+      bot.activateItem()
+      await sleep(o.drawMs || 1150)
+      const c1 = bot.entities[id]; if (c1 && c1.isValid) { const d1 = c1.position.distanceTo(bot.entity.position); await bot.lookAt(c1.position.offset(0, (o.aimY == null ? 0.6 : o.aimY) + d1 * 0.035, 0), true) } // it moved while we drew
+      bot.deactivateItem()
+    } catch (e) { try { bot.deactivateItem() } catch {} } // why: best effort - the next arrow or the caller's check decides
+    await sleep(o.gapMs || 900)
+    const c2 = bot.entities[id]
+    if (!c2 || !c2.isValid) return { ok: true, shots: i + 1 }
+  }
+  return { ok: false, shots: o.shots || 4, why: 'still standing after ' + (o.shots || 4) + ' arrows' }
+}
+module.exports = { waterDrop, stepOff, bridgeTo, fallGuard, groundBelow, scoop, shoot }

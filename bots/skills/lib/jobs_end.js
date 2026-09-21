@@ -550,29 +550,8 @@ module.exports = ctx => {
     return null
   }
   // SHOOT: charge the bow ~1.1 s, release, verify the target is gone. Any projectile pops a crystal.
-  async function shoot (bot, ent, o = {}) {
-    const bow = bot.inventory.items().find(i => i.name === 'bow')
-    if (!bow || !A.count(bot, 'arrow')) return { ok: false, why: 'no bow or no arrows' }
-    try { await U.withTimeout(bot.equip(bow, 'hand'), 3000, 'bow') } catch (e_) { swallow('jobs_end:bow', e_); return { ok: false, why: 'could not hold the bow' } }
-    const id = ent.id
-    for (let i = 0; i < (o.shots || 4); i++) {
-      if (o.stop && o.stop()) break
-      const cur = bot.entities[id]
-      if (!cur || !cur.isValid) return { ok: true, shots: i }
-      try {
-        // aim a touch high: an arrow drops over 40+ blocks
-        const d = cur.position.distanceTo(bot.entity.position)
-        await bot.lookAt(cur.position.offset(0, 0.6 + d * 0.035, 0), true)
-        bot.activateItem()
-        await sleep(1150)
-        bot.deactivateItem()
-      } catch (e_) { swallow('jobs_end:shot', e_) }
-      await sleep(900)
-      const c2 = bot.entities[id]
-      if (!c2 || !c2.isValid) return { ok: true, shots: i + 1 }
-    }
-    return { ok: false, why: 'still standing after ' + (o.shots || 4) + ' arrows (caged?)' }
-  }
+  // the bow technique lives in lib/moves.js (one implementation; the blaze doorway uses it too)
+  const shoot = (bot, ent, o) => require('./moves').shoot(bot, ent, o)
   async function dragon (bot, job, api, ctx2, P) {
     const endT = now() + (P.minutes || 12) * 60000
     // ---- OVERWORLD: kit and step into the portal

@@ -2790,7 +2790,7 @@ async function build (bot, job, api, ctx) {
       for (let step = 0; step < 2 && front.length; step++) { const nx = []; for (const k of front) { const [x, y, z] = k.split(',').map(Number); for (const [dx, dz] of SIDES) { const k2 = (x + dx) + ',' + y + ',' + (z + dz); if (open.has(k2) && !reach.has(k2)) { reach.add(k2); nx.push(k2) } } } front = nx }
       open.work = reach; open.roofed = [...open].filter(k => !reach.has(k)) }
     // how deep the fill still is, OUTSIDE its own way in: while this is below grade-3 the entry column stays open (see entryCol). Measured with the flood, cached with it.
-    { const ec = entryCol(); open.deepOff = Infinity; for (const c of air.values()) if (open.work.has(K(c)) && !(ec && c.x === ec.x && c.z === ec.z) && c.y < open.deepOff) open.deepOff = c.y }
+    { const ec = entryCol(); open.deepOff = Infinity; const nd0 = noDig(); for (const c of air.values()) if (open.work.has(K(c)) && !nd0.has(K(c)) && !(ec && c.x === ec.x && c.z === ec.z) && c.y < open.deepOff) open.deepOff = c.y } // a retired cell (the roofed lava pool) holds no way in open
     // THE OWNER'S POUR RULE (09-21 「深い穴がいくつも空いている状態 … 砂利を流し込むしか無い」, 「砂や砂利を使うことでネザーでも安全に下に降りることが出来る」): a NARROW
     // DEEP SHAFT is not crew work. A player does not climb into a 1x1 hole 20 deep to raise its floor block by block - he stands on the rim and pours gravel down it,
     // and gravity stacks it from the bottom. So a column whose open run is more than 4 deep and which has at most 2 open orthogonal neighbours (a 1x1 or 2x2 mouth) is
@@ -2971,7 +2971,7 @@ async function build (bot, job, api, ctx) {
     for (const c of cells) {
       if (R && (Math.abs(c.x - me.x) > R || Math.abs(c.z - me.z) > R)) { far++; continue }
       if ((c.fillOnly || c.solid) && c.block !== 'air' && stairs.has(c.x + ',' + c.z) && c.y > stairs.get(c.x + ',' + c.z)) continue // the mine's stairwell: never filled, never counted as left (see stairCols)
-      if (entryShut && c.solid && c.x === ec.x && c.z === ec.z) { W('entry'); continue } // the entry column, kept like a stairwell column until the floor below grade-3 is closed
+      if (entryShut && c.solid && c.x === ec.x && c.z === ec.z) { if (solid(at(c.x, c.y, c.z))) continue; W('entry'); continue } // the entry column, kept like a stairwell column until the floor below grade-3 is closed
       if (nd.size && nd.has(K(c))) { if ((c.solid || c.fillOnly) && solid(at(c.x, c.y, c.z))) continue; W('noDig'); continue } // a retired cell that STANDS is done ground, not `left` (09-21: 60 retired flank cells of solid stone held fill_ravine_s's `left` above 0 for 4 h) // dug twice by this job already: never again, not even on an `all` walk (see noDig)
       if (!all && ((st.bad[K(c)] || 0) >= 2 || (st.lockSkip && st.lockSkip[K(c)] > Date.now()) || (c.solid && st.colSkip && st.colSkip[c.x + ',' + c.z] > Date.now()) || (c.solid && st.deepSkip && st.deepSkip[c.x + ',' + c.z] > Date.now()))) continue
       const b = bot.blockAt(new Vec3(c.x, c.y, c.z)); if (!b) continue
@@ -3026,6 +3026,7 @@ async function build (bot, job, api, ctx) {
         // A NARROW DEEP SHAFT IS POURED FROM THE RIM, NOT ENTERED (see open.pour): one cell stands for the whole column and the strict bottom-up test does not apply
         // to it - gravity puts the block on the floor, whatever is between. The rest of the column waits for that one pour instead of sending eight bots down a 1x1 hole.
         { const pc = open.pour && open.pour.get(c.x + ',' + c.z)
+          if (pc && crowd().some(q => q.x === c.x && q.z === c.z && q.y >= pc.lo - 1)) { W('mate'); continue } // NEVER POUR ONTO A BODY (09-21 12:2xZ: Kokoro water-dropped into -300,55,-484 and poured gravel down the column it stood in: dead 6 s later)
           if (pc) { if (c.y === pc.lo) put.push(Object.assign({}, c, { pour: pc.hi, hot })); else W('pour'); continue } }
         // a top cell laid FRESH takes the surface material straight away when it is carried; with none carried it takes any stone and the skin is swapped later -
         // the owner's rule is "the exposed block must be right", never "the column waits for dirt" (a fill must never report `put:rest:` for a material again)
@@ -3251,10 +3252,11 @@ async function build (bot, job, api, ctx) {
     // mouth. One walk of the blueprint per SHAFT instead of one per block, and nobody is ever inside it. `A.gravityDrop` is the one implementation (side faces only,
     // never from inside the column); the mouth cell itself is left to the normal placing path, so the visible face still gets the blueprint's own block.
     if (c.solid && c.pour != null && !solid(at(c.x, c.y, c.z))) {
+      { const p = bot.entity.position; if ((Math.abs(p.x - c.x - 0.5) < 0.9 && Math.abs(p.z - c.z - 0.5) < 0.9 && p.y >= c.y - 1) || crowd().slice(1).some(q => q.x === c.x && q.z === c.z && q.y >= c.y - 1)) return { ok: false, reason: 'mate' } } // read again at the moment of the pour: never onto my own head or a mate's
       let n = 0; let miss = null
       for (let y = c.y; y < c.pour && !api.stop(); y++) {
         if (solid(at(c.x, y, c.z))) continue
-        if (!GRAV.find(g => A.count(bot, g)) && !(await getGrav())) { miss = 'gravel/sand'; break }
+        if (!GRAV.find(g => A.count(bot, g)) && (depthNow() > 2 || !(await getGrav()))) { miss = 'gravel/sand'; break } // never a depot trip from inside the pit (12:1xZ, Hazuki at y61)
         const gd = await A.gravityDrop(bot, new Vec3(c.x, y, c.z), Math.min(c.pour, c.g)); if (!gd) { miss = 'drop'; break }
         n++; dropped++
       }
@@ -3686,38 +3688,48 @@ async function build (bot, job, api, ctx) {
     }
     const cols = new Map()
     for (const c of cells) { if (!c.solid || Math.abs(c.x - me.x) > 24 || Math.abs(c.z - me.z) > 24) continue; const k = c.x + ',' + c.z; if (!cols.has(k)) cols.set(k, c) }
+    // ONE CLAIM PER COLUMN, NOT PER PIT (09-21 12:1xZ: `the way in is claimed by a mate` x2 while 15 columns of the same shaft stood open - the whole crew queued
+    // behind one bot's minute): the column a mate is stepping into right now is skipped, any other one is mine to take.
+    let taken = null
+    try { const j0 = ((A.readJSON(A.F.board, {}) || {}).jobs || []).find(q => q.id === job.id); const w = j0 && j0.way; if (w && w.by !== bot.username && Array.isArray(w.at) && Date.now() - w.t < (w.water ? 600000 : 60000)) taken = w.at[0] + ',' + w.at[2] } catch (e_) { swallow('army_jobs:wayTaken', e_) }
     for (const c of (best && best.shared) ? [] : cols.values()) {
+      if (taken && taken === c.x + ',' + c.z) continue
       let fy = null; for (let y = fillG; y >= fillG - 28; y--) { const q = at(c.x, y, c.z); if (!q) break; if (solid(q)) { fy = y + 1; break } }
       if (fy == null) continue
       const drop = fillG + 1 - fy
       // DEEPEST first, not shallowest (measured 15:19Z, Kurumi: the shallowest column was a 4-block step at the rim edge where there is no work left - and a mate
       // had filled it before she got there). The work is the FLOOR of the trench; 12 blocks cost 8 hp of 20 and heal back while she fills, deeper than that is refused.
+      // WATER LEFT ON A LANDING IS NOT A CUSHION WE CAN COUNT ON (09-21 12:1xZ: waterDrop refused -301,51,-481 x4, `the shaft is not open at y51 (water)`; the one
+      // step-off taken onto that "wet" landing cost Hazuki 14 hp of 20 - the cell had been filled meanwhile). A bucket carrier takes a DRY column (waterDrop needs
+      // one); a wet one is only a plain step-off inside its own hp limits, like any other.
+      const wet = /^water$/.test((at(c.x, fy, c.z) || {}).name)
+      if (wet && water) continue
       if (drop < 4 || drop > (water ? 24 : bot.health >= 19 ? 14 : 12) || (best && drop <= best.drop)) continue
       let open = true; for (let y = fy; y <= fillG && open; y++) if (solid(at(c.x, y, c.z))) open = false // the shaft must be clear all the way up to the rim
       if (!open || mateBlocked().has(c.x + ',' + fy + ',' + c.z) || lavaSet().has(c.x + ',' + fy + ',' + c.z) || nearLava(c.x, fy, c.z)) continue
       let stand = null
       for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = c.x + dx; const nz = c.z + dz; if (solid(at(nx, fillG, nz)) && !solid(at(nx, fillG + 1, nz)) && !solid(at(nx, fillG + 2, nz))) { stand = { x: nx, y: fillG + 1, z: nz }; break } }
       if (!stand) continue
-      best = { x: c.x, z: c.z, fy, drop, stand }
+      best = { x: c.x, z: c.z, fy, drop, stand, wet }
     }
     // a builder that does NOT go down says why, once per 5 min (09-21: bucket carriers stood on the rim of a 17-deep shaft for minutes and not one line said why)
     const skip = why => { if (!(st.dropSaidT > Date.now() - 300000)) { st.dropSaidT = Date.now(); A.result(bot, { ev: 'fill_dropin_skip', job: job.id, why, water: A.count(bot, 'water_bucket'), hp: Math.round(bot.health), food: bot.food }) } return false }
     if (!best) return skip('no open column 4-' + (water ? 24 : 14) + ' deep with a rim stand within 24 blocks')
     // a deep way in wants the bucket: fetched ONE pass earlier, from the rim, so the descent itself never walks to a chest (once per 10 min per builder)
-    if (!water && (MVW || WD) && best.drop > 8 && A.stockOf('water_bucket') > 0 && !(st.wbTried > Date.now() - 600000)) {
+    if (!water && !best.wet && (MVW || WD) && best.drop > 8 && A.stockOf('water_bucket') > 0 && !(st.wbTried > Date.now() - 600000)) {
       st.wbTried = Date.now(); task(bot, 'build: getting a water bucket (the way into the pit)')
       await A.obtain(bot, 'water_bucket', 1, { stop: api.stop }); await A.travel(bot, { x: o.x, y: null, z: o.z }, { range: 14, ms: 120000, stop: api.stop })
       task(bot, 'build ' + P.blueprint); return false
     }
-    const byWater = water && (best.shared || best.drop > 8 || bot.health < 18) // the owner's rule: a deep drop or a hurt builder goes down by water, never by damage
+    const byWater = water && !best.wet && (best.shared || best.drop > 8 || bot.health < 18) // the owner's rule: a deep drop or a hurt builder goes down by water, never by damage
     if (!best.shared) {
       let mine = false
-      A.boardEdit(b => { const j = (b.jobs || []).find(z => z.id === job.id); if (!j) return; const w = j.way; if (w && w.by !== bot.username && Date.now() - w.t < (w.water ? 600000 : 60000)) return; j.way = Object.assign({ by: bot.username, t: Date.now(), at: [best.x, best.fy, best.z], drop: best.drop }, byWater ? { water: true, stand: [best.stand.x, best.stand.y, best.stand.z] } : {}); mine = true })
+      A.boardEdit(b => { const j = (b.jobs || []).find(z => z.id === job.id); if (!j) return; const w = j.way; if (w && w.by !== bot.username && Date.now() - w.t < (w.water ? 600000 : 60000) && Array.isArray(w.at) && w.at[0] === best.x && w.at[2] === best.z) return; j.way = Object.assign({ by: bot.username, t: Date.now(), at: [best.x, best.fy, best.z], drop: best.drop }, byWater ? { water: true, stand: [best.stand.x, best.stand.y, best.stand.z] } : {}); mine = true })
       if (!mine) return skip('the way in is claimed by a mate')
     }
     task(bot, 'build: ' + (byWater ? 'water-bucket descent into the pit (' : 'stepping into the pit (') + best.drop + ' blocks)')
     if (!await A.travel(bot, best.stand, { range: 0, ms: 90000, stop: api.stop })) return skip('cannot reach the rim stand ' + [best.stand.x, best.stand.y, best.stand.z].join(',') + ' of ' + best.x + ',' + best.fy + ',' + best.z)
-    { let ok2 = true; for (let y = best.fy; y <= fillG && ok2; y++) { const q = at(best.x, y, best.z); if (solid(q) || (!byWater && q && q.name === 'water')) ok2 = false } if (!ok2 || !solid(at(best.x, best.fy - 1, best.z))) { A.result(bot, { ev: 'fill_dropped_in', job: job.id, ok: false, why: 'the shaft closed while I walked to the rim', want: [best.x, best.fy, best.z] }); return false } } // 30 builders fill while one walks: the shaft is read again from the rim, one step before the step off
+    { let ok2 = true; for (let y = best.fy; y <= fillG && ok2; y++) { const q = at(best.x, y, best.z); if (solid(q) || (!byWater && q && q.name === 'water' && !(best.wet && y === best.fy))) ok2 = false } if (!ok2 || !solid(at(best.x, best.fy - 1, best.z))) { A.result(bot, { ev: 'fill_dropped_in', job: job.id, ok: false, why: 'the shaft closed while I walked to the rim', want: [best.x, best.fy, best.z] }); return false } } // 30 builders fill while one walks: the shaft is read again from the rim, one step before the step off
     if (byWater && A.count(bot, 'water_bucket') > 0) { // READ AGAIN AT THE RIM: waterDescent fetches a bucket from the depot when the pocket is empty, and that walk ends the descent before it starts (measured 15:55Z, Ume: `rim -302,69,-481` but the pour was tried from the depot at -368,69,-508, "no visible wall face")
       // the LAST man down takes the source back: nobody else of the crew is standing above grade near this rim any more
       const others = crowd().filter(q => q.y >= fillG && !(q.x === me.x && q.z === me.z) && Math.abs(q.x - best.x) <= 24 && Math.abs(q.z - best.z) <= 24).length

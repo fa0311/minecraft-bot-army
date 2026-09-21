@@ -1167,10 +1167,11 @@
    "enchanted_book": 8,
    "gravel": 1024,
    "sand": 256,
-   "copper_chestplate": 50,
+   "copper_chestplate": 30,
    "copper_leggings": 50,
    "copper_helmet": 50,
-   "copper_boots": 50
+   "copper_boots": 50,
+   "bread": 512
   },
   "base": {
    "x": -320,
@@ -1352,12 +1353,12 @@
    "lit": 1789916622472,
    "by": "Hina",
    "portal": [
-    -48,
+    -47,
     98,
     -77
    ],
-   "through": 1789992316725,
-   "scoutRev": 11,
+   "through": 1789994304583,
+   "scoutRev": 12,
    "hub": {
     "room": [
      -41,
@@ -1469,7 +1470,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789969045309,
-   "back": 1789992408906,
+   "back": 1789994255917,
    "lastDeath": 1789991417268,
    "lastDeathBy": "Chika",
    "roads": {
@@ -1933,7 +1934,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1789991962127,
+   "gatesAt": 1789993763672,
    "pairRoad": {
     "from": [
      -43,
@@ -2234,15 +2235,34 @@
      124
     ],
     "done": false,
-    "reached": 84,
-    "at": 1789992272784,
+    "reached": 472,
+    "at": 1789994242371,
     "by": "Hina"
    },
    "portalAt": 1789987611277,
    "deathLogCleared": [
     1789989557363,
     1789990715685
-   ]
+   ],
+   "barterPost": {
+    "legsKey": "[{\"kind\":\"stair\",\"from\":[-67,110,-82],\"bearing\":\"x+\",\"toY\":98,\"reverse\":true},{\"kind\":\"stair\",\"from\":[-67,112,-79],\"bearing\":\"z-\",\"toY\":110,\"reverse\":true},{\"kind\":\"road\",\"from\":[-66,112,-78],\"bearing\":\"z+\",\"length\":1,\"noTorch\":true}]",
+    "head": 17,
+    "length": 17,
+    "end": [
+     -66,
+     112,
+     -78
+    ],
+    "headAt": [
+     -66,
+     112,
+     -78
+    ],
+    "done": true,
+    "reached": 16,
+    "at": 1789993950883,
+    "by": "Kotori"
+   }
   },
   "industry": {
    "village": [
@@ -2372,7 +2392,7 @@
       28
      ]
     },
-    "t": 1789992285724
+    "t": 1789993959220
    },
    "absorb": {
     "coal": 480,
@@ -2394,266 +2414,6 @@
   ],
   "mine": {
    "veins": [
-    {
-     "key": "-21,-7,-82/tuff_cluster",
-     "at": [
-      -164,
-      -54,
-      -649
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Botan",
-     "t": 1789991412093
-    },
-    {
-     "key": "-20,-7,-81/tuff_cluster",
-     "at": [
-      -159,
-      -54,
-      -648
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Botan",
-     "t": 1789991422507
-    },
-    {
-     "key": "-18,-7,-71/tuff_cluster",
-     "at": [
-      -141,
-      -53,
-      -561
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Mio",
-     "t": 1789991424168
-    },
-    {
-     "key": "-18,-7,-70/tuff_cluster",
-     "at": [
-      -142,
-      -54,
-      -560
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Mio",
-     "t": 1789991424961
-    },
-    {
-     "key": "-20,-7,-82/tuff_cluster",
-     "at": [
-      -157,
-      -53,
-      -649
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Botan",
-     "t": 1789991426420
-    },
-    {
-     "key": "-19,-7,-82/tuff_cluster",
-     "at": [
-      -150,
-      -54,
-      -649
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Botan",
-     "t": 1789991441276
-    },
-    {
-     "key": "-62,-7,-83/tuff_cluster",
-     "at": [
-      -495,
-      -53,
-      -658
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Yuzu",
-     "t": 1789991460256
-    },
-    {
-     "key": "-63,-7,-83/tuff_cluster",
-     "at": [
-      -498,
-      -52,
-      -660
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Karin",
-     "t": 1789991477204
-    },
-    {
-     "key": "-62,-7,-84/tuff_cluster",
-     "at": [
-      -491,
-      -53,
-      -672
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Yukina",
-     "t": 1789991520412
-    },
-    {
-     "key": "-18,-7,-80/tuff_cluster",
-     "at": [
-      -139,
-      -54,
-      -639
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Rena",
-     "t": 1789991594084
-    },
-    {
-     "key": "-17,-7,-67/tuff_cluster",
-     "at": [
-      -132,
-      -53,
-      -536
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Nozomi",
-     "t": 1789991871243
-    },
-    {
-     "key": "-14,-7,-66/tuff_cluster",
-     "at": [
-      -105,
-      -53,
-      -528
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Iroha",
-     "t": 1789991887662
-    },
-    {
-     "key": "-13,-7,-66/tuff_cluster",
-     "at": [
-      -103,
-      -53,
-      -527
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Iroha",
-     "t": 1789991892143
-    },
-    {
-     "key": "-17,-7,-90/tuff_cluster",
-     "at": [
-      -129,
-      -53,
-      -715
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Yuzu",
-     "t": 1789991949255
-    },
-    {
-     "key": "-16,-7,-90/tuff_cluster",
-     "at": [
-      -128,
-      -53,
-      -715
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Yuzu",
-     "t": 1789991950456
-    },
-    {
-     "key": "-16,-7,-74/tuff_cluster",
-     "at": [
-      -127,
-      -52,
-      -585
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Kaede",
-     "t": 1789992113550
-    },
-    {
-     "key": "-16,-7,-73/tuff_cluster",
-     "at": [
-      -125,
-      -53,
-      -584
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Kaede",
-     "t": 1789992116259
-    },
-    {
-     "key": "-15,-7,-74/tuff_cluster",
-     "at": [
-      -120,
-      -53,
-      -587
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Yui",
-     "t": 1789992139841
-    },
-    {
-     "key": "-13,-7,-78/tuff_cluster",
-     "at": [
-      -102,
-      -54,
-      -624
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Yui",
-     "t": 1789992351987
-    },
-    {
-     "key": "-17,-7,-80/tuff_cluster",
-     "at": [
-      -135,
-      -55,
-      -636
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Ichika",
-     "t": 1789992371317
-    },
     {
      "key": "-16,-7,-81/tuff_cluster",
      "at": [
@@ -2705,37 +2465,269 @@
      "raw": 0,
      "by": "Yui",
      "t": 1789992527457
+    },
+    {
+     "key": "-14,-7,-82/tuff_cluster",
+     "at": [
+      -110,
+      -54,
+      -649
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Yukina",
+     "t": 1789992616845
+    },
+    {
+     "key": "-69,-7,-81/tuff_cluster",
+     "at": [
+      -550,
+      -52,
+      -645
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Kaede",
+     "t": 1789992631423
+    },
+    {
+     "key": "-68,-7,-88/tuff_cluster",
+     "at": [
+      -542,
+      -53,
+      -702
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Karin",
+     "t": 1789992825613
+    },
+    {
+     "key": "-69,-7,-88/tuff_cluster",
+     "at": [
+      -546,
+      -52,
+      -702
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Karin",
+     "t": 1789992832122
+    },
+    {
+     "key": "-13,-7,-86/tuff_cluster",
+     "at": [
+      -102,
+      -53,
+      -681
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Sakura",
+     "t": 1789992839089
+    },
+    {
+     "key": "-16,-7,-80/tuff_cluster",
+     "at": [
+      -122,
+      -54,
+      -639
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Karin",
+     "t": 1789992948025
+    },
+    {
+     "key": "-15,-7,-80/tuff_cluster",
+     "at": [
+      -120,
+      -54,
+      -640
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Karin",
+     "t": 1789992950852
+    },
+    {
+     "key": "-33,-7,-90/tuff_cluster",
+     "at": [
+      -262,
+      -53,
+      -718
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Yui",
+     "t": 1789993008972
+    },
+    {
+     "key": "-14,-7,-79/tuff_cluster",
+     "at": [
+      -109,
+      -54,
+      -626
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Kaede",
+     "t": 1789993768236
+    },
+    {
+     "key": "-16,-7,-91/tuff_cluster",
+     "at": [
+      -126,
+      -54,
+      -721
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Honoka",
+     "t": 1789993789481
+    },
+    {
+     "key": "-13,-7,-79/tuff_cluster",
+     "at": [
+      -104,
+      -53,
+      -629
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Sayaka",
+     "t": 1789993807141
+    },
+    {
+     "key": "-13,-7,-80/tuff_cluster",
+     "at": [
+      -103,
+      -54,
+      -638
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Ichika",
+     "t": 1789993812121
+    },
+    {
+     "key": "-12,-7,-80/tuff_cluster",
+     "at": [
+      -96,
+      -54,
+      -640
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Ichika",
+     "t": 1789993852074
+    },
+    {
+     "key": "-12,-7,-79/tuff_cluster",
+     "at": [
+      -96,
+      -53,
+      -626
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Kaede",
+     "t": 1789993853781
+    },
+    {
+     "key": "-12,-7,-68/tuff_cluster",
+     "at": [
+      -94,
+      -53,
+      -537
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Ayame",
+     "t": 1789993954507
+    },
+    {
+     "key": "-11,-7,-68/tuff_cluster",
+     "at": [
+      -87,
+      -52,
+      -540
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Kaede",
+     "t": 1789994021478
+    },
+    {
+     "key": "-71,-7,-68/tuff_cluster",
+     "at": [
+      -565,
+      -52,
+      -541
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Honoka",
+     "t": 1789994093946
+    },
+    {
+     "key": "-72,-7,-68/tuff_cluster",
+     "at": [
+      -569,
+      -53,
+      -542
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Hazuki",
+     "t": 1789994118034
+    },
+    {
+     "key": "-72,-7,-72/tuff_cluster",
+     "at": [
+      -572,
+      -54,
+      -571
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Ichika",
+     "t": 1789994254769
+    },
+    {
+     "key": "-73,-7,-72/tuff_cluster",
+     "at": [
+      -577,
+      -53,
+      -569
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Ichika",
+     "t": 1789994261172
     }
    ],
    "caves": [
-    {
-     "key": "-19,-3,-21",
-     "at": [
-      -296,
-      -48,
-      -322
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Mio",
-     "t": 1789989287558
-    },
-    {
-     "key": "-20,-3,-17",
-     "at": [
-      -307,
-      -48,
-      -262
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 1,
-     "iron": 0,
-     "by": "Honoka",
-     "t": 1789989303621
-    },
     {
      "key": "-5,-3,-16",
      "at": [
@@ -3043,6 +3035,34 @@
      "iron": 0,
      "by": "Ichika",
      "t": 1789992366425
+    },
+    {
+     "key": "-7,-4,-39",
+     "at": [
+      -103,
+      -54,
+      -621
+     ],
+     "cells": 94,
+     "klass": "big",
+     "ores": 1,
+     "iron": 0,
+     "by": "Ayame",
+     "t": 1789993846355
+    },
+    {
+     "key": "-35,-4,-46",
+     "at": [
+      -546,
+      -54,
+      -726
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 3,
+     "iron": 0,
+     "by": "Noa",
+     "t": 1789993925041
     }
    ]
   },
@@ -3289,7 +3309,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 2,
    "site": [
     -367,
     69,
@@ -3325,9 +3345,9 @@
      ]
     ]
    },
-   "rev": 94,
+   "rev": 95,
    "note": "06:35Z mine engineer: the sponge held 16 of 49 bots at priority 60 while mine_iron (92, deficit 0.96 of iron 31/800) stood at ZERO staffed. A sponge exists so nobody idles, not to starve the roadmap: 16 -> 4. Raise it again when iron is met",
-   "restUntil": 1789992442136
+   "restUntil": 1789994143642
   },
   {
    "id": "farm_1",
@@ -3470,7 +3490,7 @@
    "note": "06:3xZ mine engineer: readiness no longer hands a WELL-FED miner back when the depot cannot give 8 food units (48 mine_not_ready from 24 bots in 20 min left the squad at ZERO); caves at a branch face are now harvested, not walled off. rev bump voids the stale not-ready declines",
    "bots": 14,
    "rev": 84,
-   "restUntil": 1789972963415
+   "restUntil": 1789993593124
   },
   {
    "id": "base_dorm",
@@ -3737,7 +3757,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789992650930
+   "restUntil": 1789994226628
   },
   {
    "id": "fill_ring_field1",
@@ -4283,7 +4303,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 3,
+   "bots": 2,
    "site": [
     -311,
     69,
@@ -4520,9 +4540,10 @@
      -408,
      62,
      -455
-    ]
+    ],
+    "bare": true
    },
-   "rev": 103,
+   "rev": 108,
    "desc": "MEASURED 16:3xZ by probe: 44 columns (444 cells) still open to the sky = this job (narrow deep shafts: step off / water drop in, pillar out = the column is filled); 3172 air cells lie UNDER the crust below grade = NOT reachable from above, they belong to the cavity job (owner algorithm: shaft down, fill riding up). `left` counts both - do not judge this job by `left`, and do not raise the crew over the number of open shafts",
    "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -333,58,-483",
    "restUntil": 1789906650052,
@@ -4747,6 +4768,16 @@
     "-289,67,-464": 1790004145519,
     "-289,67,-467": 1790004184864,
     "-289,67,-466": 1790004184874
+   },
+   "way": {
+    "by": "Shiori",
+    "t": 1789993629159,
+    "at": [
+     -300,
+     64,
+     -480
+    ],
+    "drop": 5
    }
   },
   {
@@ -5011,7 +5042,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789993326865
+   "restUntil": 1789995238546
   },
   {
    "id": "nether_landing_2",
@@ -5429,7 +5460,7 @@
    "type": "portal",
    "priority": 98,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "day",
    "bots": 1,
    "shiftMin": 20,
@@ -5459,7 +5490,7 @@
     "crossS": 30,
     "maxDeaths": 3,
     "roam": 48,
-    "bare": true,
+    "bare": "iron",
     "standing": true,
     "cargo": [
      "gold_ingot",
@@ -5469,13 +5500,25 @@
      "netherrack"
     ],
     "stairs": 3,
-    "maxPlace": 48
+    "maxPlace": 48,
+    "post": {
+     "routeJob": "nether_barterpost",
+     "routeKey": "barterPost",
+     "stand": [
+      -67,
+      112,
+      -78
+     ],
+     "reach": 10,
+     "pick": 3
+    },
+    "dryMin": 10
    },
    "desc": "OFF-ROAD BARTER: walks to the nearest adult piglin and builds a <=24-block STAIR to it (nether_stair). The 48-cell lane is not needed.",
-   "rev": 68,
+   "rev": 69,
    "maxDeaths": 2,
    "restUntil": 0,
-   "note": "paused 10:5xZ by the top model: 0 adult piglins in reach, bots stood \"waiting for a piglin\" (Tsumugi, Chika hung). Re-open when the route tunnel gives a covered door onto the piglin plateau."
+   "note": "Nether engineer 12:xZ: trades from the covered barter post (params.post) once nether_barterpost reports done; re-activate then."
   },
   {
    "id": "nether_gate_spare_n607",
@@ -5687,7 +5730,7 @@
    "rev": 12,
    "bots": 1,
    "desc": "WHEAT IS FOOD FIRST (09-21 06:5xZ: the depot went 13 141 -> 53 wheat, bread 0, 9 bots hungry while the traders sold 925 wheat a visit). Sell only what is over the bread need",
-   "restUntil": 1789992936535,
+   "restUntil": 1789995568855,
    "exclude": []
   },
   {
@@ -5986,7 +6029,7 @@
     "bare": true
    },
    "rev": 18,
-   "restUntil": 1789993692689
+   "restUntil": 1789996129287
   },
   {
    "id": "nether_gate_old_down",
@@ -6100,13 +6143,14 @@
     "legS": 300
    },
    "bots": 1,
-   "rev": 8
+   "rev": 8,
+   "restUntil": 1789994123624
   },
   {
    "id": "bake_bread_industry",
    "type": "steps",
    "priority": 97,
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 2,
    "front": "industry",
@@ -6159,9 +6203,14 @@
     ],
     "onFail": "continue"
    },
-   "rev": 106,
+   "rev": 107,
    "restUntil": 1789968980606,
-   "desc": "STANDING CONVERTER (top model 09-21 10:2xZ): wheat -> bread. Do NOT pause on `food` over target - that number counts raw WHEAT (4 099 in the depot) as food while depot BREAD is 0 and 14 bots sit at food<=6. Pause only when depot bread > 512."
+   "desc": "SELF-REGULATING CONVERTER (top model 12:3xZ): wheat -> bread, head-count 0-4 from the bread target (targets bread 512) - never pause or unpause it by hand: at depot bread >= 512 it drops to 0 bots by itself.",
+   "produces": [
+    "bread"
+   ],
+   "minBots": 0,
+   "maxBots": 4
   },
   {
    "id": "mine_sweep",
@@ -6365,7 +6414,7 @@
      ]
     ]
    },
-   "restUntil": 1789992866475,
+   "restUntil": 1789994758092,
    "rev": 3
   },
   {
@@ -7814,50 +7863,9 @@
     "steps": [
      {
       "do": "withdraw",
-      "item": "raw_copper",
-      "n": 256,
-      "atLeast": 64
-     },
-     {
-      "do": "withdraw",
-      "item": "coal",
-      "n": 64,
-      "atLeast": 16
-     },
-     {
-      "do": "goto",
-      "to": [
-       -366,
-       69,
-       -523
-      ],
-      "range": 3
-     },
-     {
-      "do": "smelt",
-      "item": "raw_copper",
-      "n": 64
-     },
-     {
-      "do": "smelt",
-      "item": "raw_copper",
-      "n": 64
-     },
-     {
-      "do": "smelt",
-      "item": "raw_copper",
-      "n": 64
-     },
-     {
-      "do": "smelt",
-      "item": "raw_copper",
-      "n": 64
-     },
-     {
-      "do": "bank",
-      "keep": {
-       "torch": 16
-      }
+      "item": "copper_ingot",
+      "n": 60,
+      "atLeast": 15
      },
      {
       "do": "goto",
@@ -7871,12 +7879,12 @@
      {
       "do": "craft",
       "item": "copper_chestplate",
-      "n": 8
+      "n": 4
      },
      {
       "do": "craft",
       "item": "copper_leggings",
-      "n": 8
+      "n": 4
      },
      {
       "do": "bank",
@@ -7884,15 +7892,22 @@
        "torch": 16
       }
      }
-    ]
+    ],
+    "onFail": "continue"
    },
-   "rev": 4
+   "rev": 7,
+   "produces": [
+    "copper_chestplate"
+   ],
+   "minBots": 0,
+   "maxBots": 2,
+   "desc": "top model 12:5xZ: the depot holds 1885 copper ingots and 0 copper armour - no more smelting; forge chestplates+leggings until targets copper_chestplate 30 is met (head-count 0-2 by that deficit)."
   },
   {
    "id": "end_hunt_1",
    "type": "end",
    "priority": 96,
-   "status": "active",
+   "status": "paused",
    "when": "night",
    "bots": 10,
    "site": [
@@ -7921,8 +7936,9 @@
     "dy": 8,
     "when": "night"
    },
-   "rev": 10,
-   "shiftMin": 20
+   "rev": 11,
+   "shiftMin": 20,
+   "note": "paused 12:5xZ by the top model: 0 kills in 163 fights + 0 endermen seen on most nights; it pulled 6-10 bots off producing crews every night (rule 0b). Pearls: covered barter post off route v3 (Nether engineer)."
   },
   {
    "id": "end_eyes",
@@ -7942,7 +7958,7 @@
     "target": 16,
     "bare": true
    },
-   "restUntil": 1789992985265
+   "restUntil": 1789994707976
   },
   {
    "id": "farm_2",
@@ -8106,7 +8122,7 @@
     "shear": false,
     "cull": false
    },
-   "restUntil": 1789992521900
+   "restUntil": 1789994325647
   },
   {
    "id": "end_stronghold",
@@ -8267,10 +8283,13 @@
     "maxDeaths": 2,
     "bare": "iron",
     "stopAt": 9999,
-    "breach": true
+    "breach": true,
+    "yieldTo": [
+     "nether_barterpost"
+    ]
    },
    "desc": "EXPERIMENT (bare): work:route v3 09-21 by the Nether engineer: the tunneler (routeTunnel) + legs re-sited off the flooded v2 stair: a stair cut WEST into the solid rock core x-67..-55 z-83..-80 (lanes z-82/-81, bottom -55,98,-82 on the shelf, top -67,110,-82), then the verified leg east along z-84/-83 from x-67. Camera: seq 0-30 no lava/precious; v2 leg-2 wall holds a lava SOURCE -53,111,-81 that now floods the v2 stair + hub corner.",
-   "rev": 11,
+   "rev": 12,
    "note": "auto-paused: 2 deaths in 30 min on the far side ([-48,100,-77]). Fix the cause you can see, clear settings.nether.deathLog, re-activate - do not wait"
   },
   {
@@ -8278,9 +8297,9 @@
    "type": "build",
    "priority": 45,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
-   "bots": 2,
+   "bots": 1,
    "site": [
     -272,
     69,
@@ -8308,8 +8327,8 @@
     ]
    },
    "after": "base_cane_pad",
-   "rev": 9,
-   "note": "auto-restored from the archive: 1 cells damaged",
+   "rev": 10,
+   "note": "auto-paused: build complete",
    "water": {
     "key": "rev3",
     "cells": {
@@ -8877,6 +8896,213 @@
       }
      }
     ]
+   },
+   "rev": 1,
+   "note": "auto-paused: plan failed"
+  },
+  {
+   "id": "nether_barterpost",
+   "type": "portal",
+   "priority": 97,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 1,
+   "shiftMin": 30,
+   "site": [
+    -326,
+    69,
+    -518
+   ],
+   "plan": "zone portal: the far side, cells of the nether_route blueprint with these legs only",
+   "params": {
+    "blueprint": "nether_portal",
+    "origin": [
+     -326,
+     68,
+     -518
+    ],
+    "args": {
+     "axis": "x"
+    },
+    "buildJob": "base_portal",
+    "go": true,
+    "landing": false,
+    "work": "route",
+    "legs": [
+     {
+      "kind": "stair",
+      "from": [
+       -67,
+       110,
+       -82
+      ],
+      "bearing": "x+",
+      "toY": 98,
+      "reverse": true
+     },
+     {
+      "kind": "stair",
+      "from": [
+       -67,
+       112,
+       -79
+      ],
+      "bearing": "z-",
+      "toY": 110,
+      "reverse": true
+     },
+     {
+      "kind": "road",
+      "from": [
+       -66,
+       112,
+       -78
+      ],
+      "bearing": "z+",
+      "length": 1,
+      "noTorch": true
+     }
+    ],
+    "window": 40,
+    "minutes": 12,
+    "cobble": 128,
+    "crossS": 30,
+    "maxDeaths": 2,
+    "bare": "iron",
+    "routeKey": "barterPost",
+    "complete": 999,
+    "yieldTo": [
+     "nether_route"
+    ]
+   },
+   "desc": "EXPERIMENT (bare iron): the COVERED BARTER POST (Nether engineer 09-21 12:xZ): off the route stair top (-67,110,-81) a 3-step stair climbs SOUTH through the stair wall to a 2x1 booth at -67..-66,112,-78, walled and roofed, its south face open over the piglin plateau (x-70..-52, z-79..-44, floor y110-111). Camera 12:xZ: 17 cells, 3 to dig, 19 to place, 0 lava, 0 obsidian/portal. Head in settings.nether.barterPost.",
+   "note": "auto-paused: route is finished (the route stands to -66,112,-78)",
+   "rev": 3
+  },
+  {
+   "id": "nether_corner_fix",
+   "type": "portal",
+   "priority": 97,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 1,
+   "shiftMin": 20,
+   "site": [
+    -326,
+    69,
+    -518
+   ],
+   "plan": "zone portal: the far side, cells listed in params.steps only",
+   "params": {
+    "blueprint": "nether_portal",
+    "origin": [
+     -326,
+     68,
+     -518
+    ],
+    "args": {
+     "axis": "x"
+    },
+    "buildJob": "base_portal",
+    "go": true,
+    "landing": false,
+    "work": "steps",
+    "minutes": 8,
+    "cobble": 128,
+    "crossS": 30,
+    "maxDeaths": 2,
+    "bare": "iron",
+    "steps": [
+     {
+      "do": "route",
+      "seq": 12
+     },
+     {
+      "do": "dig",
+      "cells": [
+       [
+        -67,
+        110,
+        -83
+       ],
+       [
+        -67,
+        111,
+        -83
+       ],
+       [
+        -66,
+        110,
+        -83
+       ],
+       [
+        -66,
+        111,
+        -83
+       ],
+       [
+        -65,
+        110,
+        -83
+       ],
+       [
+        -65,
+        111,
+        -83
+       ]
+      ]
+     }
+    ],
+    "routeJob": "nether_route"
+   },
+   "desc": "Nether engineer 09-21 12:5xZ: re-open the route corner -67..-65,y110-111,z-83 that the first barter-post pass walled up (its legs repeated the main stair, whose z-83 wall is the main road).",
+   "note": "auto-paused: all 2 steps done by Yui"
+  },
+  {
+   "id": "cavity_core",
+   "type": "cavity",
+   "priority": 72,
+   "status": "active",
+   "when": "any",
+   "bots": 6,
+   "site": [
+    -360,
+    68,
+    -505
+   ],
+   "requires": {
+    "minHp": 12,
+    "minFood": 8
+   },
+   "plan": "BASE PLAN zone infill: the sealed pockets and dead-end escape tunnels UNDER the depot rows, the fields and the hall (09-21: 5 rescue kills in one morning; entries by a tunnel at depth from the nearest free column, tunnelMax 12, retreat-fill). Only enclosed cavities within 8 of the grade; never the mine, the natural cave, a blueprint cell.",
+   "params": {
+    "work": "fill",
+    "filler": "cobblestone",
+    "needStock": {
+     "cobblestone": 512
+    },
+    "minutes": 12,
+    "maxAgeMin": 120,
+    "maxCells": 400,
+    "maxDepth": 8,
+    "tunnelMax": 12,
+    "box": [
+     -412,
+     -548,
+     -290,
+     -487
+    ],
+    "yMin": 40,
+    "yTop": 80,
+    "pond": [
+     -408,
+     62,
+     -455
+    ],
+    "carry": 320,
+    "bare": true
    }
   }
  ]
