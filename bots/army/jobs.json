@@ -1368,7 +1368,7 @@
     98,
     -77
    ],
-   "through": 1790021205231,
+   "through": 1790023324693,
    "scoutRev": 73,
    "hub": {
     "room": [
@@ -1481,7 +1481,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789969045309,
-   "back": 1790021120227,
+   "back": 1790023242229,
    "lastDeath": 1790012273059,
    "lastDeathBy": "Yukina",
    "roads": {
@@ -1919,7 +1919,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1790020991055,
+   "gatesAt": 1790022791140,
    "pairRoad": {
     "from": [
      -43,
@@ -2302,7 +2302,7 @@
     "left": 127,
     "unloaded": 0,
     "done": false,
-    "at": 1790020950357,
+    "at": 1790022985287,
     "by": "Nozomi"
    }
   },
@@ -2434,7 +2434,7 @@
       28
      ]
     },
-    "t": 1790021110189
+    "t": 1790023306247
    },
    "absorb": {
     "gray_wool": 288,
@@ -4095,7 +4095,7 @@
    "note": "06:3xZ mine engineer: readiness no longer hands a WELL-FED miner back when the depot cannot give 8 food units (48 mine_not_ready from 24 bots in 20 min left the squad at ZERO); caves at a branch face are now harvested, not walled off. rev bump voids the stale not-ready declines",
    "bots": 4,
    "rev": 95,
-   "restUntil": 1790022834368
+   "restUntil": 1790024685571
   },
   {
    "id": "base_dorm",
@@ -4273,9 +4273,9 @@
     "radius": 250,
     "bankAt": 32
    },
-   "rev": 30,
+   "rev": 31,
    "bots": 0,
-   "restUntil": 1790022203997
+   "restUntil": 1790024455410
   },
   {
    "id": "sleeper",
@@ -4363,7 +4363,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1790021487271
+   "restUntil": 1790023448665
   },
   {
    "id": "fill_ring_field1",
@@ -5572,7 +5572,7 @@
     "crossS": 45
    },
    "rev": 5,
-   "restUntil": 1790021654026,
+   "restUntil": 1790023474762,
    "exclude": []
   },
   {
@@ -6560,7 +6560,7 @@
     "bare": true
    },
    "rev": 18,
-   "restUntil": 1790022884390
+   "restUntil": 1790024705587
   },
   {
    "id": "nether_gate_old_down",
@@ -6879,7 +6879,7 @@
      ]
     ]
    },
-   "restUntil": 1790023099526,
+   "restUntil": 1790025075837,
    "rev": 3
   },
   {
@@ -8206,7 +8206,7 @@
     "target": 16,
     "bare": true
    },
-   "restUntil": 1790021588729,
+   "restUntil": 1790023546007,
    "rev": 1
   },
   {
@@ -9058,7 +9058,7 @@
     "bare": true
    },
    "rev": 1,
-   "restUntil": 1790021274156
+   "restUntil": 1790024560897
   },
   {
    "id": "nether_bridge_roof",
