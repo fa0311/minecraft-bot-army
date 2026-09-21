@@ -1362,14 +1362,14 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Nanami",
+   "by": "Misaki",
    "portal": [
     -47,
     98,
     -77
    ],
-   "through": 1790025128146,
-   "scoutRev": 2,
+   "through": 1790026933580,
+   "scoutRev": 73,
    "hub": {
     "room": [
      -41,
@@ -1481,7 +1481,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789969045309,
-   "back": 1790025067935,
+   "back": 1790026846974,
    "lastDeath": 1790012273059,
    "lastDeathBy": "Yukina",
    "roads": {
@@ -1919,7 +1919,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1790024592684,
+   "gatesAt": 1790026392678,
    "pairRoad": {
     "from": [
      -43,
@@ -2299,10 +2299,10 @@
     ],
     "y": 98,
     "h": 4,
-    "left": 126,
+    "left": 125,
     "unloaded": 0,
     "done": false,
-    "at": 1790025054196,
+    "at": 1790026420939,
     "by": "Nanami"
    }
   },
@@ -2434,7 +2434,7 @@
       28
      ]
     },
-    "t": 1790024693893
+    "t": 1790026466339
    },
    "absorb": {
     "gray_wool": 288,
@@ -4018,9 +4018,10 @@
     "pitch": 3,
     "bankAt": 48
    },
-   "rev": 2,
+   "rev": 4,
    "note": "auto-activated: `after` base_tree finished (auto-paused: build complete)",
-   "restUntil": 1790024571331
+   "restUntil": 1790024571331,
+   "bots": 3
   },
   {
    "id": "base_mine",
@@ -4364,7 +4365,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1790025201444
+   "restUntil": 1790026971964
   },
   {
    "id": "fill_ring_field1",
@@ -5150,7 +5151,7 @@
     ],
     "bare": true
    },
-   "rev": 116,
+   "rev": 117,
    "desc": "MEASURED 16:3xZ by probe: 44 columns (444 cells) still open to the sky = this job (narrow deep shafts: step off / water drop in, pillar out = the column is filled); 3172 air cells lie UNDER the crust below grade = NOT reachable from above, they belong to the cavity job (owner algorithm: shaft down, fill riding up). `left` counts both - do not judge this job by `left`, and do not raise the crew over the number of open shafts",
    "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -333,58,-483",
    "restUntil": 1789906650052,
@@ -5573,7 +5574,7 @@
     "crossS": 45
    },
    "rev": 5,
-   "restUntil": 1790025305997,
+   "restUntil": 1790027122448,
    "exclude": []
   },
   {
@@ -6561,7 +6562,7 @@
     "bare": true
    },
    "rev": 18,
-   "restUntil": 1790026521925
+   "restUntil": 1790028348550
   },
   {
    "id": "nether_gate_old_down",
@@ -6880,7 +6881,7 @@
      ]
     ]
    },
-   "restUntil": 1790025075837,
+   "restUntil": 1790026992333,
    "rev": 3
   },
   {
@@ -8207,7 +8208,7 @@
     "target": 16,
     "bare": true
    },
-   "restUntil": 1790025543708,
+   "restUntil": 1790027041704,
    "rev": 1
   },
   {
@@ -9059,7 +9060,7 @@
     "bare": true
    },
    "rev": 1,
-   "restUntil": 1790024560897
+   "restUntil": 1790027052388
   },
   {
    "id": "nether_bridge_roof",
