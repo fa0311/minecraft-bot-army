@@ -1187,15 +1187,25 @@ module.exports = ctx => {
     A.result(bot, Object.assign({ ev: 'nether_stair', job: job.id, target: xyz(target) }, out))
     return out
   }
-  async function barter (bot, job, api, P, until) {
-    // 1. THE GOLD THAT KEEPS THEM NEUTRAL: any worn gold piece will do, a helmet is the cheapest (5 ingots)
-    const worn = [5, 6, 7, 8].map(q => bot.inventory.slots[q]).filter(Boolean).map(i => i.name)
-    if (!worn.some(n => /^golden_/.test(n))) {
-      if (!A.count(bot, 'golden_helmet')) await A.obtain(bot, 'golden_helmet', 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:goldHelm', e_))
-      const gh = bot.inventory.items().find(i => /^golden_(helmet|chestplate|leggings|boots)$/.test(i.name))
-      if (gh) { try { await U.withTimeout(bot.equip(gh, gh.name === 'golden_helmet' ? 'head' : gh.name === 'golden_chestplate' ? 'torso' : gh.name === 'golden_leggings' ? 'legs' : 'feet'), 5000, 'wearGold') } catch (e_) { swallow('jobs_nether:wearGold', e_) } }
+  // A WORN GOLD PIECE, for every job that works where piglins live (09-21 09:09Z: the first route crew, bare and gold-less, cut into
+  // the piglins' cavern at the stair top - Erika "slain by Piglin", Nanami "tried to swim in lava to escape Piglin"). Any piece
+  // will do: the one in the pocket, one from the depot, or BOOTS made of 4 ingots (the depot holds hundreds).
+  const goldWorn = bot => [5, 6, 7, 8].map(q => bot.inventory.slots[q]).filter(Boolean).some(i => /^golden_/.test(i.name))
+  async function wearGold (bot, api) {
+    if (goldWorn(bot)) return true
+    const has = () => bot.inventory.items().find(i => /^golden_(helmet|chestplate|leggings|boots)$/.test(i.name))
+    if (!has()) for (const g of ['golden_boots', 'golden_helmet']) { if (A.stockOf(g) > 0) await A.obtain(bot, g, 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:goldGet', e_)); if (has()) break }
+    if (!has() && !netherHere(bot)) {
+      if (A.count(bot, 'gold_ingot') < 4) await A.obtain(bot, 'gold_ingot', 4, { stop: api.stop }).catch(e_ => swallow('jobs_nether:goldIngots', e_))
+      if (A.count(bot, 'gold_ingot') >= 4) await A.obtain(bot, 'golden_boots', 1, { stop: api.stop, craft: true }).catch(e_ => swallow('jobs_nether:goldCraft', e_))
     }
-    if (![5, 6, 7, 8].map(q => bot.inventory.slots[q]).filter(Boolean).some(i => /^golden_/.test(i.name))) return { work: 'barter', why: 'no gold armour piece to wear - every piglin in sight would turn hostile' }
+    const gh = has()
+    if (gh) { try { await U.withTimeout(bot.equip(gh, gh.name === 'golden_helmet' ? 'head' : gh.name === 'golden_chestplate' ? 'torso' : gh.name === 'golden_leggings' ? 'legs' : 'feet'), 5000, 'wearGold') } catch (e_) { swallow('jobs_nether:wearGold', e_) } }
+    return goldWorn(bot)
+  }
+  async function barter (bot, job, api, P, until) {
+    // 1. THE GOLD THAT KEEPS THEM NEUTRAL: any worn gold piece will do
+    if (!await wearGold(bot, api)) return { work: 'barter', why: 'no gold armour piece to wear - every piglin in sight would turn hostile' }
     // 2. GET WITHIN 8 OF AN ADULT PIGLIN — that is the WHOLE requirement of a barter (owner 09-21, dragon deadline). Not a lane,
     //    not a pad, not a cavern crossed. THE PAD IS USED ONLY WHEN IT STANDS: while it does not, the bot never walks towards it,
     //    because that walk is what killed Wakana (07:02:45Z, -55,28,-79, 17 diamonds and 159 items into the lava sea) — `nTravel`
@@ -1535,6 +1545,17 @@ module.exports = ctx => {
     if (c.block === 'torch') return /torch/.test(b.name) || (bodyClear(b) && !A.count(bot, 'torch'))
     return true
   }
+  // A RIM is a neighbour a body can fall into: no wall at body height and no floor within 3 under it. (`edgeNear` ignores walls - on
+  // the stair a missing block UNDER a standing wall made every tread read as a cliff edge.)
+  const rimAt = (bot, c) => {
+    for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
+      if (!dx && !dz) continue
+      const n = c.offset(dx, 0, dz); const b = bot.blockAt(n)
+      if (b && b.boundingBox === 'block') continue
+      if (noFloor(bot, n)) return true
+    }
+    return false
+  }
   // ONE CELL of the walk, by hand. Up = one pulse of jump, down = walk off (only where no drop is within 1: a crouched body is held
   // at the lip and cannot), flat = forward. Crouched exactly where the doctrine asks for it: at a rim.
   async function routeStep (bot, api, p) {
@@ -1545,7 +1566,7 @@ module.exports = ctx => {
     if (!walkable(bot, p) || !knownRing(bot, to, 1)) return false
     if (dy > 0 && !bodyClear(bot.blockAt(here.offset(0, 2, 0)))) return false // no room to jump
     if (dy < 0 && !bodyClear(bot.blockAt(to.offset(0, 2, 0)))) return false
-    const rim = edgeNear(bot, to) || edgeNear(bot, here)
+    const rim = rimAt(bot, to) || rimAt(bot, here)
     if (rim && dy < 0) return false
     const crouch = () => { try { bot.setControlState('sneak', rim || (bot.__netherHold > 0)) } catch (e_) { swallow('jobs_nether:routeCrouch', e_) } }
     try {
@@ -1587,7 +1608,7 @@ module.exports = ctx => {
     if (walkable(bot, W[k0].p)) { if (await nTravel(bot, v(W[k0].p), { range: 0, ms: 30000, stop: api.stop }) && bot.entity.position.floored().equals(v(W[k0].p))) i = k0 }
     else await nTravel(bot, v(W[k0].p), { range: 2, ms: 30000, stop: api.stop })
     const lastI = () => i
-    const reserve = () => 15000 + Math.max(0, lastI()) * 700 // the walk back to the start
+    const reserve = () => 20000 + Math.max(0, lastI()) * 1000 // the walk back to the start
     const eye = () => eyeOf(bot)
     const rank = (c, s0) => {
       const b = bot.blockAt(v([c.x, c.y, c.z]))
@@ -1601,6 +1622,9 @@ module.exports = ctx => {
     }
     while (Date.now() < until - reserve() && !api.stop()) {
       if (bot.health < 8) { stuck = 'hurt (' + Math.round(bot.health) + ' hp)'; break }
+      // LAVA IN OUR OWN CELLS: one step back down the finished way, before anything else
+      const burn = () => [0, 1].some(dy => { const b = bot.blockAt(bot.entity.position.floored().offset(0, dy, 0)); return !!b && /^(lava|fire)$/.test(b.name) })
+      if (burn() && i > 0) { A.result(bot, { ev: 'route_burn', job: job.id, at: xyz(bot.entity.position), hp: Math.round(bot.health) }); if (await routeStep(bot, api, W[i - 1].p)) i--; else { stuck = 'lava at my feet and no step back'; break } continue }
       const s0 = i >= 0 ? W[i].seq : -1
       const todo = []
       for (let s = Math.max(0, s0 - 6); s <= s0 + 3; s++) for (const c of (bySeq.get(s) || [])) if (loadedAt(bot, c) && !routeOK(bot, c) && (fails[K3(c.x, c.y, c.z)] || 0) < 3) todo.push(c)
@@ -1617,7 +1641,28 @@ module.exports = ctx => {
         const dig = c.block !== 'stone' && b.boundingBox === 'block'
         const fire = c.block !== 'stone' && /fire/.test(b.name)
         if (dig || fire) {
-          const r = await BL().digBlock(bot, q, { collect: false, requireHarvest: false, noMove: true }).catch(e => ({ ok: false, reason: String(e && e.message) }))
+          // LAVA BEHIND THE CELL (09-21 09:09Z: a lava SOURCE sat in the wall of leg 2 at -53,111,-81; the cell beside it was dug,
+          // and the lava ran down the whole stair into the hub). A player closes it through the hole he just made, at once: every
+          // lava face of the cell (sides and top - lava never rises) is plugged from here if it can already be seen; what cannot be
+          // seen is plugged THROUGH the new hole straight after the dig, and if it will not close, the hole is closed again.
+          const hot = () => [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0]].map(d => q.offset(d[0], d[1], d[2])).filter(n => { const nb = bot.blockAt(n); return !!nb && nb.name === 'lava' })
+          let lv = hot()
+          if (lv.length && !fire) {
+            for (const n of lv) { const it = routeItem(bot); if (it) await placeStill(bot, api, n, it) }
+            lv = hot()
+            if (lv.length) {
+              if (bot.health < 16 || !routeItem(bot) || P.lavaDig === false) { why[k] = 'lava behind it (' + lv.length + '), hp ' + Math.round(bot.health); fails[k] = 9; continue }
+              const r0 = await BL().digBlock(bot, q, { collect: false, requireHarvest: false, noMove: true, plug: false }).catch(e => ({ ok: false, reason: String(e && e.message) }))
+              if (!(r0 && r0.ok)) { why[k] = 'dig: ' + String((r0 || {}).reason).slice(0, 40); fails[k] = (fails[k] || 0) + 1; continue }
+              dug++; prog++
+              for (const n of lv) for (let t = 0; t < 3; t++) { const nb = bot.blockAt(n); const it = routeItem(bot); if (!nb || nb.name !== 'lava' || !it) break; await placeStill(bot, api, n, it) }
+              const still = lv.filter(n => { const nb = bot.blockAt(n); return !!nb && nb.name === 'lava' })
+              if (still.length) { const it = routeItem(bot); if (it) await placeStill(bot, api, q, it); fails[k] = 9; why[k] = 'lava behind it would not close' }
+              A.result(bot, { ev: 'route_lava', job: job.id, cell: [c.x, c.y, c.z], lava: lv.map(xyz), plugged: lv.length - still.length, still: still.map(xyz), hp: Math.round(bot.health) })
+              continue
+            }
+          }
+          const r = await BL().digBlock(bot, q, { collect: false, requireHarvest: false, noMove: true, plug: false }).catch(e => ({ ok: false, reason: String(e && e.message) }))
           if (r && r.ok && bodyClear(bot.blockAt(q))) { dug++; prog++; delete why[k] } else { why[k] = 'dig: ' + String((r || {}).reason).slice(0, 40); fails[k] = (fails[k] || 0) + 1 }
           continue
         }
@@ -1681,6 +1726,52 @@ module.exports = ctx => {
       min: Math.round(min * 10) / 10, perBotMin: Math.round((placed + dug) / min * 10) / 10, carried: stoneCarried(bot), item: routeItem(bot)
     }
   }
+  // A PLAN OF STEPS ON THE FAR SIDE (work:'steps', Nether engineer 09-21): the Nether's own small `steps` job, for a repair the
+  // board can describe cell by cell (the first one: stop the lava the route let into the hub). Verbs, each reported as
+  // `nether_step {n, do, ok}`; a failed step ends the plan unless it is `optional`:
+  //   {do:'go', at:[x,y,z], range}   nTravel (the pathfinder under the edge doctrine)
+  //   {do:'walk', cells:[[x,y,z]...]} one hand-driven cell at a time (`routeStep`: up, down, flat; cells must be adjacent)
+  //   {do:'place', cells:[...]}      the best stone into each cell from where we stand (lava and air are both filled)
+  //   {do:'dig', cells:[...]}        from where we stand, never under our own feet
+  //   {do:'wait', s}                 seconds (<= 60), e.g. for cut-off lava to drain
+  // Every `walk` is walked BACK at the end (reverse order), so the bot ends where the plan started and the gate is near.
+  async function netherSteps (bot, job, api, P, until) {
+    const plan = Array.isArray(P.steps) ? P.steps : []
+    if (!plan.length) return { work: 'steps', why: 'params.steps is empty' }
+    const trail = []; const out = []; let ok = true
+    for (let n = 0; n < plan.length; n++) {
+      const s2 = plan[n] || {}; const r = { n, do: s2.do }
+      if (api.stop() || Date.now() > until - 60000) { ok = false; r.why = 'out of time'; out.push(r); break }
+      task(bot, 'nether steps: ' + (n + 1) + '/' + plan.length + ' ' + s2.do)
+      try {
+        if (s2.do === 'go') { r.ok = !!await nTravel(bot, v(s2.at), { range: s2.range || 0, ms: 60000, stop: api.stop }) && bot.entity.position.distanceTo(v(s2.at).offset(0.5, 0, 0.5)) <= (s2.range || 0) + 1.2 }
+        else if (s2.do === 'walk') { let k = 0; for (const c of (s2.cells || [])) { const from = xyz(bot.entity.position); if (!await routeStep(bot, api, c)) break; trail.push(from); k++ } r.walked = k; r.ok = k === (s2.cells || []).length }
+        else if (s2.do === 'place') {
+          let k = 0
+          for (const c of (s2.cells || [])) {
+            const q = v(c)
+            for (let t = 0; t < 3; t++) { const b = bot.blockAt(q); const it = routeItem(bot); if (!b || b.boundingBox === 'block' || !it) break; await placeStill(bot, api, q, it) }
+            const b = bot.blockAt(q); if (b && b.boundingBox === 'block') k++; else (r.left = r.left || []).push(c.join(',') + '=' + (b ? b.name : '?'))
+          }
+          r.placed = k; r.ok = k === (s2.cells || []).length
+        } else if (s2.do === 'dig') {
+          let k = 0
+          for (const c of (s2.cells || [])) { const d = await BL().digBlock(bot, v(c), { collect: false, requireHarvest: false, noMove: true, plug: false }).catch(e => ({ ok: false, reason: String(e && e.message) })); if (d && d.ok) k++; else (r.left = r.left || []).push(c.join(',') + ' ' + String((d || {}).reason)) }
+          r.dug = k; r.ok = k === (s2.cells || []).length
+        } else if (s2.do === 'wait') { await sleep(Math.min(60, Math.max(1, s2.s || 5)) * 1000); r.ok = true }
+        else { r.ok = false; r.why = 'unknown verb' }
+      } catch (e) { r.ok = false; r.why = String(e && e.message).slice(0, 80); swallow('jobs_nether:steps', e) }
+      r.at = xyz(bot.entity.position); r.hp = Math.round(bot.health)
+      A.result(bot, Object.assign({ ev: 'nether_step', job: job.id }, r))
+      out.push(r)
+      if (!r.ok && !s2.optional) { ok = false; break }
+    }
+    // back down every cell we walked, last first
+    let back = 0
+    for (let k = trail.length - 1; k >= 0 && !api.stop(); k--) { if (!await routeStep(bot, api, trail[k])) break; back++ }
+    if (ok) A.boardEdit(b => { const j = (b.jobs || []).find(q => q.id === job.id); if (j && j.status === 'active') { j.status = 'paused'; j.note = 'auto-paused: all ' + plan.length + ' steps done by ' + bot.username } })
+    return { work: 'steps', ok, done: out.filter(q => q.ok).length, of: plan.length, back, trail: trail.length, last: out[out.length - 1] || null }
+  }
   // the area a squad may step inside = its own work plus the way in (a box that does not hold the door is a box nobody reaches)
   function unionBox (a, b, p) {
     const out = Array.isArray(a) ? a.slice() : null; if (!out) return null
@@ -1733,6 +1824,8 @@ module.exports = ctx => {
       return await routeTunnel(bot, job, api, P, meta, allR, head, body, until)
     } else if (work === 'blaze') {
       return await blazeHunt(bot, job, api, P, until)
+    } else if (work === 'steps') {
+      return await netherSteps(bot, job, api, P, until)
     } else if (work === 'scout') {
       return await lookAround(bot, job, api, P, until)
     } else if (work === 'stair') {
@@ -2403,6 +2496,7 @@ module.exports = ctx => {
           if (!bot.inventory.items().some(i => /^golden_(helmet|chestplate|leggings|boots)$/.test(i.name))) short.push('no gold armour piece to wear (depot: helmet ' + A.stockOf('golden_helmet') + ', boots ' + A.stockOf('golden_boots') + '; carrying ' + A.count(bot, 'gold_ingot') + ' ingots) - every piglin in sight would turn hostile')
         }
       }
+      if (/^(route|steps|blaze)$/.test(String(P.work)) && P.gold !== false && !await wearGold(bot, api)) short.push('no gold armour piece to wear (depot: helmet ' + A.stockOf('golden_helmet') + ', boots ' + A.stockOf('golden_boots') + ', ingots ' + A.stockOf('gold_ingot') + ') - the route runs past the piglins')
       if (!bot.inventory.items().some(i => bot.registry.foodsByName[i.name])) short.push('no food')
       if (P.work === 'pair') {
         if (A.count(bot, 'obsidian') < 10) short.push('obsidian ' + A.count(bot, 'obsidian') + '/10 (depot: ' + A.stockOf('obsidian') + ') - a frame cannot be built without it')

@@ -435,7 +435,10 @@ module.exports = ctx => {
       // slice handover banks bulk stone for every job type it does not recognise as a builder - `road` is new, so it stripped the
       // crew of its paving every two minutes, and the blueprint's `unlid` rule then took the paving off again because the block
       // that must replace it was not in the pockets. Until army_jobs' kit regex knows the type, the handler fetches its own.)
-      const need = Math.min(192, Math.max(64, before.wrong.length + 32))
+      // A FAR SEGMENT IS PAID IN WALKS (09-21 09:1xZ: village-road crews 200-420 blocks out, 192 per fetch for ~600-cell segments =
+      // 3-4 round trips of 600+ blocks each): past 120 blocks from muster a fetch carries up to 6 stacks.
+      const mp = A.musterPos(); const far = mp && Math.hypot(s.origin[0] - mp.x, s.origin[2] - mp.z) > 120
+      const need = Math.min(far ? 384 : 192, Math.max(64, before.wrong.length + 32))
       if (A.count(bot, 'cobblestone') < Math.min(64, need)) {
         const have = STONE.filter(k => A.stockOf(k) > 0).sort((a, b) => A.stockOf(b) - A.stockOf(a))[0]
         if (have) { task(bot, 'road: fetching ' + need + ' ' + have + ' for segment ' + s.i); await A.obtain(bot, have === 'cobblestone' ? 'cobblestone' : have, need, { stop: api.stop }).catch(e_ => swallow('jobs_road:paving', e_)) }

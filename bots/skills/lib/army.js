@@ -731,19 +731,22 @@ function dashRule (bot) {
   let path = null; let flying = 0; let lenPre = -1; let arrived = 0 // path = the pathfinder's live node list (path_update hands out the very array it walks and shifts)
   const plain = n => n && !(n.toBreak && n.toBreak.length) && !(n.toPlace && n.toPlace.length)
   const RUN = 5 // nodes of straight level path ahead: a sprint-jump flies ~3.5 blocks, one more to land on
-  const pre = () => { // ticks off the nodes the hop has flown past (the pathfinder's own 0.35/|dy|<1 test cannot see them from the arc)
+  const prune = (arr) => { // ticks off the nodes the hop has flown past (the pathfinder's own 0.35/|dy|<1 test cannot see them from the arc)
+    const e = bot.entity; const p = e.position
+    while (arr.length > 1 && plain(arr[0]) && plain(arr[1]) && Math.abs(arr[1].y - arr[0].y) < 0.01) {
+      const a = arr[0]; const b = arr[1]; const sx = b.x - a.x; const sz = b.z - a.z; const L2 = sx * sx + sz * sz; if (!L2) break
+      const t = ((p.x - a.x) * sx + (p.z - a.z) * sz) / L2; const lat = Math.abs((p.x - a.x) * sz - (p.z - a.z) * sx) / Math.sqrt(L2)
+      const past = t * Math.sqrt(L2) // how far beyond the node, along the path: in the air a node at or behind the body turns the pathfinder's aim round
+      if (past <= (e.onGround ? 0.35 : -0.25) || lat > 0.6 || p.y < a.y - 0.5 || p.y > a.y + 1.6) break // on the ground its own 0.35 arrival test takes it
+      arr.shift()
+    }
+  }
+  const pre = () => { // BEFORE the pathfinder aims (prepended listener)
     try {
       lenPre = path ? path.length : -1
       if (!flying || !path) return
-      const e = bot.entity; const p = e.position
-      if (e.onGround && --flying <= 0) { flying = 0 } // a few ticks after landing, then the pathfinder is on its own again
-      while (path.length > 1 && plain(path[0]) && plain(path[1]) && Math.abs(path[1].y - path[0].y) < 0.01) {
-        const a = path[0]; const b = path[1]; const sx = b.x - a.x; const sz = b.z - a.z; const L2 = sx * sx + sz * sz; if (!L2) break
-        const t = ((p.x - a.x) * sx + (p.z - a.z) * sz) / L2; const lat = Math.abs((p.x - a.x) * sz - (p.z - a.z) * sx) / Math.sqrt(L2)
-        if (t * Math.sqrt(L2) <= 0.35 || lat > 0.6 || p.y < a.y - 0.5 || p.y > a.y + 1.6) break // within 0.35 the pathfinder's own arrival test takes it
-        path.shift()
-      }
-      lenPre = path.length
+      if (bot.entity.onGround && --flying <= 0) { flying = 0 } // a few ticks after landing, then the pathfinder is on its own again
+      prune(path); lenPre = path.length
     } catch (e_) { swallow('army:dashPre', e_) }
   }
   const on = () => {
@@ -771,10 +774,12 @@ function dashRule (bot) {
         if (!fl || !hd || hd.boundingBox === 'block') return                         // unknown, or a ceiling: a jump is a bump
         if (CROP_UNDER.test(fl.name)) return                                         // never trample a field
       }
-      bot.setControlState('jump', true); bot.__dashFired = 1; flying = 3
+      bot.setControlState('jump', true); bot.__dashFired = 1; flying = 3 // __dashFired: a marker for a motion probe (docs: measured 09-21)
     } catch (e_) { swallow('army:dash', e_) }
   }
-  bot.__armyDashPath = r => { const fresh = !path || !path.length; path = r && Array.isArray(r.path) ? r.path : null; if (fresh && path) arrived = Date.now() } // a path from nothing restarts its clock too
+  bot.__armyDashPath = r => { // a LONG trip is re-planned every tick (status `partial`) from the old start: the node flown past comes back in the new list
+    try { const fresh = !path || !path.length; path = r && Array.isArray(r.path) ? r.path : null; if (fresh && path) arrived = Date.now(); if (path && flying) prune(path) } catch (e_) { swallow('army:dashPath', e_) }
+  }
   bot.__armyDash = on; bot.__armyDashPre = pre
   bot.on('path_update', bot.__armyDashPath); bot.on('path_reset', bot.__armyDashPath); bot.prependListener('physicsTick', pre); bot.on('physicsTick', on)
 }
@@ -1682,6 +1687,7 @@ async function bank (bot, keep = {}, opts = {}) {
   for (const i of bot.inventory.items()) {
     let k = keep[i.name] || 0
     if (bestNames.has(i.name) && !seenBest.has(i.name)) { seenBest.add(i.name); k = Math.max(k, 1) }
+    if (!opts.strip && i.name === 'water_bucket' && !seenBest.has('water_bucket')) { seenBest.add('water_bucket'); k = Math.max(k, 1) } // ONE water bucket stays in the pocket like the best tool (09-21: 502 `banked` lines put the fall-reflex bucket back in the depot on every pass)
     const ar = armorOf(i.name)
     if (!opts.strip && ((ar && ar.rank > wornRank(bot, ar.piece)) || (i.name === 'shield' && !offHand(bot)))) k = Math.max(k, 1) // better than what is worn = wear() could not run yet: keep it
     plan[i.name] = (plan[i.name] == null ? -k : plan[i.name]) + i.count
@@ -1804,7 +1810,7 @@ async function bank (bot, keep = {}, opts = {}) {
 // the start, the target or the line between them); only a bot that has held a surplus since its last job change, or for OVERDUE_MS, accepts a
 // detour (FAR). At most one visit per EVERY_MS and never underground.
 const MATERIAL_RE = /^(cobblestone|cobbled_deepslate|stone|deepslate|andesite|diorite|granite|tuff|dirt|coarse_dirt|gravel|sand|red_sand|sandstone|[a-z_]+_planks|[a-z_]+_log)$/
-const KEEPS_MATERIAL = /^(build|deck|tidy|light|steps|delegate|haul|scan|portal)$/ // + `portal`: a bot going through the gate carries 128 stone on purpose (docs/NETHER.md safety)
+const KEEPS_MATERIAL = /^(build|deck|tidy|light|steps|delegate|haul|scan|portal|road)$/ // + `road` (09-21 09:1xZ: the village road crew fetched 192 paving 300 blocks from the depot and every depot pass banked it back down to 16 as surplus - 41 travel_fail timeouts in 10 min) // + `portal`: a bot going through the gate carries 128 stone on purpose (docs/NETHER.md safety)
 const OFF = { allow: 16, near: 24, far: 96, min: 32, every: 180000, overdue: 600000, recheck: 20000 }
 // EVERYTHING A BOT CARRIES IS LOST WHEN IT DIES (owner 09-21: 「アイテム整理出来てないやつ多くない？持ち物にゴミ持ってるやつ多い / 死んだ時に消えるアイテムが
 // 多いのはこれが原因では」 - measured that minute: 44 of 50 bots carried 3 843 items that their job does not use - 2 273 cobbled_deepslate, 560 wool,

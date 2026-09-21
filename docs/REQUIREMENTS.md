@@ -47,6 +47,6 @@ progression afterwards. The owner steers with ideas; the top model decides and r
 6. Roads as the default movement substrate (cost model is live, network is 1 of 3 built).
 
 ## 5. What today proved works and must not regress
-Measured techniques: water-bucket landing (3/3, 0 hp), sprint-jump travel (OFF since 09-21 08:1xZ by the owner, `settings.dash`), `bridgeTo` (pathfinder scaffolding + sneak),
+Measured techniques: water-bucket landing (3/3, 0 hp), sprint-jump travel (`settings.dash`: true | [names]; 09-21 fix: hops only on a straight level run of the pathfinder's own path and ticks off the nodes flown past - old hop 3.2 m/s with 20/26 back-steps, fixed 5.9-6.3 m/s vs sprint 5.3, 0-2 back-steps / 50 hops; test crew only), `bridgeTo` (pathfinder scaffolding + sneak),
 pillar escape (no scars), void sizing before any decision about a hole, the exposed-block rule (surface right 92.1 % → 95.1 %), cave-aware
 mining (0 → 511 raw iron/hour), the camera in both dimensions, death pricing, and the bare-handed rule for experiments.
