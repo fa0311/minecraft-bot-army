@@ -555,6 +555,9 @@ async function kitUp (bot, opts = {}) {
     await wear(bot) // WEARING what the bot carries works in every world; FETCHING does not (the tools chest is an overworld coordinate)
     if (!overworldBot(bot)) { offWorld(bot, 'kit'); return took }
     if (opts.fetch === false) return took
+    // THE BARE STRIP IS NOT THROTTLED (stronghold engineer 09-21 17:0xZ: a bot that had kitted for another job < 5 min before skipped bareDown and
+    // left for an experimental job with its diamond tools - Ayame). bareDown itself returns at once when the pockets are already bare.
+    if (bareJob(bot)) { await bareDown(bot, opts); return took }
     // the 5-min throttle is for the gear loop; the WATER BUCKET is not throttled with it: bank() deposits the carried one on every depot pass and calls
     // kitUp right after - throttled, the bot walked off with no bucket (09-21: 502 `banked` lines carried a water_bucket into the depot)
     if (Date.now() - (bot.__armyKitT || 0) < (opts.force ? 0 : 300000)) {

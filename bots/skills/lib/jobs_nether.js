@@ -550,6 +550,19 @@ module.exports = ctx => {
         if (eyeOf(bot).distanceTo(q.offset(0.5, 0.5, 0.5)) > 4.0) { why[k] = 'out of reach'; continue }
         task(bot, 'nether ' + what + ': ' + placed + ' placed, ' + dug + ' cleared')
         if (c.block === 'air') { const r = await BL().digBlock(bot, q, { collect: true, requireHarvest: false, noMove: true }).catch(e => ({ ok: false, reason: String(e && e.message) })); if (r && r.ok) { dug++; prog++ } else why[k] = 'dig: ' + String((r || {}).reason).slice(0, 40); continue }
+        // AN EXACT BLOCK (the gate hall is COBBLESTONE, owner 09-21): a wrong solid block in the cell comes out first - never the floor we
+        // stand on, and never a floor cell whose own floor is air (a hole to the void for the next bot would be worse than netherrack)
+        if (c.block !== 'stone' && c.block !== 'torch' && !/_fence_gate$/.test(c.block)) {
+          const b0 = bot.blockAt(q)
+          if (b0 && b0.boundingBox === 'block' && b0.name !== c.block) {
+            const under = bot.blockAt(q.offset(0, -1, 0)); const feet = bot.entity.position.floored()
+            if (/obsidian|portal|chest|crafting|spawner|bedrock/.test(b0.name) || (q.x === feet.x && q.z === feet.z && q.y === feet.y - 1)) { why[k] = 'kept: ' + b0.name; done.add(k); continue }
+            if (c.floor && (!under || under.boundingBox !== 'block')) { why[k] = 'kept: ' + b0.name + ' over a drop'; done.add(k); continue }
+            const d0 = await BL().digBlock(bot, q, { collect: false, requireHarvest: false, noMove: true, plug: false }).catch(e => ({ ok: false, reason: String(e && e.message) }))
+            if (!(d0 && d0.ok)) { why[k] = 'replace dig: ' + String((d0 || {}).reason).slice(0, 30); done.add(k); continue }
+            dug++
+          }
+        }
         if (!hasRef(bot, q)) { why[k] = 'no solid face to place against'; continue }
         const item = itemFor(bot, c)
         if (!item || !A.count(bot, item)) { why[k] = 'none of ' + (item || c.block) + ' carried'; continue }
@@ -1194,7 +1207,7 @@ module.exports = ctx => {
   async function wearGold (bot, api) {
     if (goldWorn(bot)) return true
     const has = () => bot.inventory.items().find(i => /^golden_(helmet|chestplate|leggings|boots)$/.test(i.name))
-    if (!has()) for (const g of ['golden_boots', 'golden_helmet']) { if (A.stockOf(g) > 0) await A.obtain(bot, g, 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:goldGet', e_)); if (has()) break }
+    if (!has() && !netherHere(bot)) for (const g of ['golden_boots', 'golden_helmet']) { if (A.stockOf(g) > 0) await A.obtain(bot, g, 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:goldGet', e_)); if (has()) break }
     if (!has() && !netherHere(bot)) {
       if (A.count(bot, 'gold_ingot') < 4) await A.obtain(bot, 'gold_ingot', 4, { stop: api.stop }).catch(e_ => swallow('jobs_nether:goldIngots', e_))
       if (A.count(bot, 'gold_ingot') >= 4) await A.obtain(bot, 'golden_boots', 1, { stop: api.stop, craft: true }).catch(e_ => swallow('jobs_nether:goldCraft', e_))
@@ -1208,6 +1221,47 @@ module.exports = ctx => {
     return goldWorn(bot)
   }
   const goldRelease = bot => { if (bot.__nGoldHold) { bot.__nGoldHold = false; bot.__armyWearing = false } } // clears a hold taken by the old code
+  async function barterPatrol (bot, job, api, P, until) {
+    if (!await wearGold(bot, api)) return { work: 'barter', why: 'no gold armour piece to wear' }
+    const legs = routeLegs({ routeJob: P.patrol.routeJob || 'nether_route' }); if (!legs) return { work: 'barter', why: 'params.patrol: no route legs' }
+    const to = Math.min(P.patrol.to || 400, 440); const step = P.patrol.step || 12
+    const isAdult = e => e && e.name === 'piglin' && e.position && !(e.metadata && e.metadata[17] === true)
+    const pearls0 = A.count(bot, 'ender_pearl'); const gold0 = A.count(bot, 'gold_ingot'); const t0 = Date.now()
+    let offered = 0; let back = 0; const met = new Set(); let adultsMax = 0; let seq = 0; let dir = 1; let legsWalked = 0
+    const reserve = () => 20000 + seq * 600
+    while (Date.now() < until - reserve() && !api.stop() && A.count(bot, 'gold_ingot') > 0) {
+      if (!goldWorn(bot) && !(await wearGold(bot, api))) break
+      const me = bot.entity.position
+      const near = Object.values(bot.entities).filter(e => isAdult(e) && e.position.distanceTo(me) <= 10 && Math.abs(e.position.y - me.y) <= 2.5).sort((a, b) => a.position.distanceTo(me) - b.position.distanceTo(me))
+      adultsMax = Math.max(adultsMax, near.length); for (const e of near) met.add(e.id)
+      if (near.length) {
+        const t = near[0]; const it = bot.inventory.items().find(i => i.name === 'gold_ingot'); if (!it) break
+        task(bot, 'nether barter (tunnel): ' + offered + ' offered, ' + (A.count(bot, 'ender_pearl') - pearls0) + ' pearls')
+        try { await bot.lookAt(t.position.offset(0, 1, 0), true); await U.withTimeout(bot.toss(it.type, null, 1), 5000, 'tossGold'); offered++ } catch (e_) { swallow('jobs_nether:tossT', e_); break }
+        await sleep(7000)
+        const before = Object.values(A.inv(bot)).reduce((n, x) => n + x, 0)
+        const here0 = bot.entity.position.floored()
+        sneakHold(bot, true); try { await A.pickup(bot, 5, 5000) } finally { sneakHold(bot, false) }
+        back += Math.max(0, Object.values(A.inv(bot)).reduce((n, x) => n + x, 0) - before)
+        if (!bot.entity.position.floored().equals(here0)) await routeWalkSeq(bot, api, legs, seq, 'back onto the way').catch(e_ => swallow('jobs_nether:patrolBack', e_))
+        continue
+      }
+      // nobody here: the next 12 cells of the patrol (out to `to`, then home, then out again while there is time and gold)
+      const next = dir > 0 ? Math.min(to, seq + step) : Math.max(0, seq - step)
+      task(bot, 'nether barter (tunnel): patrolling (' + next + '), ' + offered + ' offered')
+      const w = await routeWalkSeq(bot, api, legs, next, 'barter patrol')
+      if (!w.ok) break
+      seq = next; legsWalked++
+      if (seq >= to) dir = -1; else if (seq <= 0) dir = 1
+      await sleep(1500) // a moment to let what is ahead come into view
+    }
+    await routeWalkSeq(bot, api, legs, 0, 'home from the patrol').catch(e_ => swallow('jobs_nether:patrolHome', e_))
+    const pearls = A.count(bot, 'ender_pearl') - pearls0; const used = gold0 - A.count(bot, 'gold_ingot')
+    const loot = {}; for (const [k, n] of Object.entries(A.inv(bot))) if (/pearl|potion|obsidian|string|quartz|leather|soul_sand|crying|arrow|iron_nugget/.test(k)) loot[k] = n
+    const out = { work: 'barter', mode: 'patrol', offered, used, itemsBack: back, pearls, per64: used ? Math.round(pearls / used * 64 * 10) / 10 : null, adultsMet: met.size, adultsMax, legsWalked, loot, min: Math.round((Date.now() - t0) / 6000) / 10 }
+    A.result(bot, Object.assign({ ev: 'nether_barter', job: job.id, at: xyz(bot.entity.position) }, out))
+    return out
+  }
   async function barter (bot, job, api, P, until) {
     // 1. THE GOLD THAT KEEPS THEM NEUTRAL: any worn gold piece will do
     if (!await wearGold(bot, api)) return { work: 'barter', why: 'no gold armour piece to wear - every piglin in sight would turn hostile' }
@@ -1231,6 +1285,12 @@ module.exports = ctx => {
     // THE BARTER POST (09-21 12:xZ, top model: pearls are the other blocker): a covered booth at the end of a side route off the tunnel
     // (`params.post {routeJob, routeKey, stand}`), open to the piglin plateau. The bot walks our own finished way to it cell by cell,
     // trades from inside it, never builds a stair and never follows a piglin; loot is picked up within `post.pick` (3) of the booth.
+    // THE TUNNEL IS THE PIGLIN GROUND (09-21 17:1xZ, camera: a piglin standing IN the route at 159,110,-84): the 470-cell covered way is
+    // dark nether-wastes floor more than 24 blocks from any player most of the time, so piglins spawn in it, while the plateau post keeps
+    // its own spawns away by standing there (30 passes after 14:00Z saw 0-3 adults). `params.patrol {routeJob, to}`: walk the finished
+    // route out to seq `to` and back, 12 cells at a time, and trade with every adult piglin within 10 at our own level - loot lands in the
+    // tunnel. Nothing new is built; blazes live beyond seq 440, so `to` stays well short of it.
+    if (P.patrol) return await barterPatrol(bot, job, api, P, until)
     let post = null
     if (P.post) {
       const pl = routeLegs({ routeJob: P.post.routeJob || 'nether_barterpost' })
@@ -1720,7 +1780,7 @@ module.exports = ctx => {
       const way = []; for (let k = goal; k && k !== start; k = prev.get(k)) way.unshift(k)
       return way
     }
-    for (let tries = 0; tries < 6 && !api.stop() && cur !== target; tries++) {
+    for (let tries = 0; tries < 10 && !api.stop() && cur !== target; tries++) {
       const way = plan(); if (!way) break
       let broke = false
       for (const k of way) {
@@ -1728,7 +1788,11 @@ module.exports = ctx => {
         const q = k.split(',').map(Number)
         task(bot, 'nether route: ' + (label || (target < cur ? 'walking home along the route' : 'walking out along the route')) + ' (' + seqAt.get(k) + ')')
         for (const dy of [0, 1]) { const fb = bot.blockAt(v(q).offset(0, dy, 0)); if (fb && /fire/.test(fb.name)) { await BL().digBlock(bot, v(q).offset(0, dy, 0), { collect: false, requireHarvest: false, noMove: true, plug: false }).catch(e_ => swallow('jobs_nether:putOut', e_)); A.result(bot, { ev: 'route_fire_out', at: [q[0], q[1] + dy, q[2]], out: !/fire/.test((bot.blockAt(v(q).offset(0, dy, 0)) || {}).name || '') }) } }
-        if (!(await routeStep(bot, api, q))) { bad.add(k); broke = true; break }
+        // A MATE IN THE WAY IS WAITED FOR, NOT ROUTED ROUND (09-21 17:3xZ: two blaze bots met in the 2-wide tunnel, one marked the cell bad
+        // six times and gave up at seq 406): up to 20 s for the cell to clear, then the other lane
+        const mateIn = () => Object.values(bot.entities).some(e => e !== bot.entity && e.type === 'player' && e.position && Math.hypot(e.position.x - q[0] - 0.5, e.position.z - q[2] - 0.5) < 0.9 && Math.abs(e.position.y - q[1]) < 1.8)
+        for (let w = 0; w < 20 && mateIn() && !api.stop(); w++) await sleep(1000)
+        if (!(await routeStep(bot, api, q))) { if (!mateIn()) bad.add(k); broke = true; break }
         walked++; cur = seqAt.get(k); here = bot.entity.position.floored()
       }
       if (!broke) break
@@ -2065,7 +2129,7 @@ module.exports = ctx => {
   async function doWork (bot, job, api, st, P, body, landed) {
     if (!netherHere(bot)) return { work: String(P.work || ''), why: 'not in the Nether - no far-side work runs from the overworld' }
     // a ROUTE pass may run to 18 min: the walk along the finished way grows with the head (`reserve` keeps the walk back inside it); the job's `shiftMin` must cover it
-    const until = Date.now() + Math.min(Math.max(1, P.minutes || 6), /^(route|blaze)$/.test(String(P.work)) ? 18 : 10) * 60000
+    const until = Date.now() + Math.min(Math.max(1, P.minutes || 6), (/^(route|blaze)$/.test(String(P.work)) || P.patrol) ? 18 : 10) * 60000
     const t0 = Date.now()
     const N = netherOf()
     const y0 = body.length ? Math.min(...body.map(p => p.y)) : Math.floor(bot.entity.position.y)
@@ -2080,6 +2144,32 @@ module.exports = ctx => {
       const o = Array.isArray(P.at) ? P.at : [cx, y0, cz]
       const r = bpCells('nether_hub', o, P.args2 || { door: P.door || 'x+' }); cells = r.cells; meta = r.meta
       box = unionBox(meta.room, null, xyz(bot.entity.position))
+      // THE GATE HALL (owner 09-21 17:2xZ): the same room, big, in cobblestone, and its ONLY ways out are the routes that cross its walls -
+      // `params.yieldTo` [route job ids]: a wall/floor cell a route needs clear is left to the route (air wins, the doorway appears by
+      // itself). What the world holds that we never touch (the gate's obsidian, portal, chests, tables) is dropped from the plan.
+      // THE HALL STANDS ON THE SHELF, NOT OVER THE VOID (09-21 17:3xZ, first pass: 3 deaths in 6 min - a piglin, a fall off the east drop at
+      // -33,y30, a ghast's knock-back into the lava - all at the open edges of a 21x21 box half over the cavern). `args2.footprint`: a
+      // column belongs to the hall only when its floor is solid or a hole with rock within 3 below; every hall column next to a column
+      // that does not belong gets a WALL (the wall stands on the rim of the drop, placed from inside on solid floor).
+      if (P.args2 && P.args2.footprint) {
+        const fy = meta.y - 1; const R = meta.room; const inBox = (x, z) => x >= R[0] && x <= R[2] && z >= R[1] && z <= R[3]
+        const IN = new Set()
+        for (let x = R[0]; x <= R[2]; x++) for (let z = R[1]; z <= R[3]; z++) {
+          let ok = false; for (let y = fy; y >= fy - 3 && !ok; y--) { const b = bot.blockAt(v([x, y, z])); if (b && b.boundingBox === 'block' && !/lava|magma/.test(b.name)) ok = true }
+          if (ok) IN.add(x + ',' + z)
+        }
+        const edge = (x, z) => [[1, 0], [-1, 0], [0, 1], [0, -1]].some(d => !IN.has((x + d[0]) + ',' + (z + d[1])) || !inBox(x + d[0], z + d[1]))
+        cells = cells.filter(c => IN.has(c.x + ',' + c.z)).map(c => (c.block === 'air' && c.y > fy && c.y < fy + 1 + meta.h && edge(c.x, c.z)) ? Object.assign({}, c, { block: P.args2.block || 'stone' }) : c)
+        cells = cells.filter(c => !(c.block === 'torch' && edge(c.x, c.z)))
+        box = unionBox([R[0], R[1], R[2], R[3]], null, null)
+        st.hallCols = IN.size
+      }
+      if (Array.isArray(P.yieldTo)) {
+        const other = new Set()
+        for (const id of P.yieldTo) { const lg = routeLegs({ routeJob: id }); if (lg) for (const c of bpCells('nether_route', [0, 0, 0], { legs: lg }).cells) if (c.block !== 'stone') other.add(c.x + ',' + c.y + ',' + c.z) }
+        cells = cells.filter(c => !(c.block !== 'air' && c.block !== 'torch' && other.has(c.x + ',' + c.y + ',' + c.z)))
+      }
+      cells = cells.filter(c => { const b = bot.blockAt(v([c.x, c.y, c.z])); return !(b && /obsidian|portal|chest|crafting_table|barrel|furnace/.test(b.name)) })
     } else if (work === 'road') {
       const hub = N.hub && N.hub.outside ? N.hub : null
       const from = Array.isArray(P.from) ? P.from : hub ? hub.outside : null
@@ -2179,7 +2269,9 @@ module.exports = ctx => {
       if (out.safe) netherEdit({ landingSafe: true, landingAt: Date.now(), landing: box, landingY: y0 })
       else netherEdit({ landingSafe: false, landingAt: Date.now() })
     }
-    if (work === 'hub' && meta) {
+    if (work === 'hub' && meta && P.args2 && P.args2.furniture === false) {
+      netherEdit({ hall: { room: meta.room, y: meta.y, h: meta.h, left: r.left, unloaded: r.unloaded, done: !r.left && !r.unloaded && !r.outOfRange, at: Date.now(), by: bot.username } })
+    } else if (work === 'hub' && meta) {
       // the furniture is registered under settings.nether ONLY (the overworld depot must not learn about a chest in another world)
       const stands = { chest: cellOK(bot, { x: meta.chest[0], y: meta.chest[1], z: meta.chest[2], block: 'chest' }), table: cellOK(bot, { x: meta.table[0], y: meta.table[1], z: meta.table[2], block: 'crafting_table' }) }
       out.chest = stands.chest; out.table = stands.table
@@ -2278,7 +2370,7 @@ module.exports = ctx => {
         }
         shieldUp(false)
         // quiet: pick up what fell within the tunnel (never onto their platform), then back to the post
-        const drops = Object.values(bot.entities).filter(e => e && e.name === 'item' && e.position && e.position.distanceTo(me) <= 6)
+        const drops = Object.values(bot.entities).filter(e => e && e.name === 'item' && e.position && e.position.distanceTo(me) <= 16) // arrows kill at the doorway, 12+ cells from the post: the rods lie there (09-21 17:3xZ, Chika: 4 kills, 0 rods)
         let picked = false
         // a drop counts as ours when it lies in the tunnel - on a cell of EITHER lane (09-21 13:2xZ: Mio left 20 drops, most of them
         // one lane over from the lane-0 path) - never on their platform
@@ -2515,7 +2607,7 @@ module.exports = ctx => {
     if (P.work && !st.worked && !api.stop()) {
       st.worked = true
       let w = null
-      if (/^(route|blaze|steps|barter)$/.test(String(P.work)) && P.gold !== false) await wearGold(bot, api).catch(e_ => swallow('jobs_nether:goldSide', e_)) // on this side of the gate, and held
+      if (P.gold !== false) await wearGold(bot, api).catch(e_ => swallow('jobs_nether:goldSide', e_)) // on this side of the gate, and held
       try { w = await doWork(bot, job, api, st, P, body, st.landedR || null) } catch (e) { w = { work: String(P.work), why: 'threw: ' + String(e && e.message).slice(0, 90) }; swallow('jobs_nether:doWork', e) }
       const away = Math.round((Date.now() - (st.through || Date.now())) / 1000)
       A.result(bot, Object.assign({ ev: 'nether_pass', job: job.id }, w || {}, { awayS: away }))
@@ -2774,6 +2866,8 @@ module.exports = ctx => {
         await A.obtain(bot, k, Math.min(A.count(bot, k) + (want - real()), 256), { stop: api.stop }).catch(e_ => swallow('jobs_nether:obtain', e_))
       }
       if (A.count(bot, 'torch') < 16) await A.obtain(bot, 'torch', 32, { stop: api.stop }).catch(e_ => swallow('jobs_nether:torch', e_))
+      const mat = P.args2 && P.args2.block && P.args2.block !== 'stone' ? P.args2.block : null // an exact look (the gate hall is cobblestone)
+      if (mat && A.count(bot, mat) < (P.cobble || 128)) await A.obtain(bot, mat, P.cobble || 128, { stop: api.stop }).catch(e_ => swallow('jobs_nether:material', e_))
       if (P.work === 'steps' && (P.steps || []).some(q => q && q.do === 'light') && !A.count(bot, 'flint_and_steel')) await A.obtain(bot, 'flint_and_steel', 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:flintSteps', e_))
       // A ROUTE PASS DIGS 300-500 NETHERRACK and a stone pickaxe lasts 131 (09-21 10:1xZ: both route bots worked the face BARE-HANDED
       // after their only pick broke - 2 s a block instead of 0.15, the head crawled at 3 seq/min). Spares ride along; the depot holds hundreds.
@@ -2851,7 +2945,7 @@ module.exports = ctx => {
           if (!bot.inventory.items().some(i => /^golden_(helmet|chestplate|leggings|boots)$/.test(i.name))) short.push('no gold armour piece to wear (depot: helmet ' + A.stockOf('golden_helmet') + ', boots ' + A.stockOf('golden_boots') + '; carrying ' + A.count(bot, 'gold_ingot') + ' ingots) - every piglin in sight would turn hostile')
         }
       }
-      if (/^(route|steps|blaze|barter)$/.test(String(P.work)) && P.gold !== false && !await wearGold(bot, api)) short.push('no gold armour piece to wear (depot: helmet ' + A.stockOf('golden_helmet') + ', boots ' + A.stockOf('golden_boots') + ', ingots ' + A.stockOf('gold_ingot') + ') - the route runs past the piglins')
+      if (P.work && P.gold !== false && !await wearGold(bot, api)) short.push('no gold armour piece to wear (depot: helmet ' + A.stockOf('golden_helmet') + ', boots ' + A.stockOf('golden_boots') + ', ingots ' + A.stockOf('gold_ingot') + ') - the route runs past the piglins')
       if (!bot.inventory.items().some(i => bot.registry.foodsByName[i.name])) short.push('no food')
       if (P.work === 'pair') {
         if (A.count(bot, 'obsidian') < 10) short.push('obsidian ' + A.count(bot, 'obsidian') + '/10 (depot: ' + A.stockOf('obsidian') + ') - a frame cannot be built without it')
