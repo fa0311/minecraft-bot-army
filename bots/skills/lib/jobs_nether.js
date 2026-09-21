@@ -916,7 +916,11 @@ module.exports = ctx => {
     for (let i = 0; i < route.length; i++) {
       const p = route[i]; const a = route[i - 1] || p; const b = route[i + 1] || p
       const lat = Math.abs(b[0] - a[0]) >= Math.abs(b[2] - a[2]) ? [0, 1] : [1, 0] // perpendicular to travel
-      for (let o = -half - 1; o <= half + 1; o++) {
+      // `width:1` = a BARE SPINE, no kerbs (owner 09-21, dragon deadline): with a bare kit and `moves.bridgeTo` laying the floor
+      // under a sneaking bot, the spine is what gets us to the piglins TODAY; the widening and the rails are a later pass on a
+      // road that already exists. Any width >= 3 builds the full lane with a kerb on each rim.
+      const lo = w <= 1 ? 0 : -half - 1; const hi = w <= 1 ? 0 : half + 1
+      for (let o = lo; o <= hi; o++) {
         const x = p[0] + lat[0] * o; const z = p[2] + lat[1] * o; const rim = Math.abs(o) > half
         put(x, p[1] - 1, z, 'stone', 0, false, i)
         if (rim) put(x, p[1], z, 'stone', 1, true, i)
@@ -978,10 +982,16 @@ module.exports = ctx => {
       // MEASURE THE GAP BEFORE TOUCHING IT (owner 09-21): a 3-cell step is bridged, the open lava sea never is
       const vs = VOID(); let gap = null
       if (vs) { try { gap = vs(bot, new Vec3(from[0], from[1] - 1, from[2]).offset(Math.sign(to[0] - from[0]), 0, Math.sign(to[2] - from[2])), { cap: 900, radius: 24 }) } catch (e_) { swallow('jobs_nether:gapSize', e_) } }
-      if (gap && (gap.touchesLava || gap.klass === 'cavern')) {
-        A.result(bot, { ev: 'nether_gap', job: job.id, at: from, gap: { cells: gap.cells, klass: gap.klass, h: gap.h, touchesLava: gap.touchesLava, capped: gap.capped }, why: 'this is not a step, it is the open cavern over the lava sea - the lane is not bridged across it' })
-        notes.push('cavern at ' + from.join(',')); break
+      // WHAT THE MEASUREMENT IS FOR. `voidSize` at the head of this lane reads **900 cells (capped), klass 'cavern', h 37** — the
+      // open cavern both bots fell into on 09-21. That number says one thing loudly: this gap is NEVER to be FILLED, and a bot
+      // must never stand beside it hand-placing floor, which is exactly what killed Erika and Chika. It does NOT say "do not
+      // cross": `moves.bridgeTo` carries its own floor under a sneaking body, so what matters for a CROSSING is whether the line
+      // runs next to lava, not how big the room underneath is. So: lava in the connected air is a refusal, volume is a warning.
+      if (gap && gap.touchesLava) {
+        A.result(bot, { ev: 'nether_gap', job: job.id, at: from, gap: { cells: gap.cells, klass: gap.klass, h: gap.h, touchesLava: true, capped: gap.capped }, why: 'the air this span would cross touches lava - not bridged, the lane is re-routed instead' })
+        notes.push('lava in the gap at ' + from.join(',')); break
       }
+      if (gap && (gap.klass === 'cavern' || gap.capped)) A.result(bot, { ev: 'nether_gap', job: job.id, at: from, gap: { cells: gap.cells, klass: gap.klass, h: gap.h, touchesLava: false, capped: gap.capped }, why: 'an open cavern, not a step: never filled and never hand-placed from the rim - crossed only by moves.bridgeTo, which lays its own floor under a sneaking bot' })
       if (bot.entity.position.distanceTo(new Vec3(from[0] + 0.5, from[1], from[2] + 0.5)) > 2 && !await nTravel(bot, new Vec3(from[0], from[1], from[2]), { range: 1, ms: 40000, stop: api.stop })) { notes.push('cannot reach the head ' + from.join(',')); break }
       task(bot, 'nether lane: bridging ' + from.join(',') + ' -> ' + to.join(','))
       const r = await mv.bridgeTo(bot, [to[0], to[1], to[2]], { half: 0, ms: 90000, stop: api.stop, blocks: SHELL_STONE.filter(n => A.count(bot, n) > 0) }).catch(e_ => { swallow('jobs_nether:bridgeTo', e_); return { ok: false, why: 'threw' } })

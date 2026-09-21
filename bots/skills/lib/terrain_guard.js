@@ -22,6 +22,7 @@
 //         require('./terrain_guard').stats(bot)       -> { mode, pfPlaced, pfDug, blocked... }
 const fs = require('fs')
 const path = require('path')
+const swallow = require('./swallow')
 
 const VERSION = 7 // 7 (09-20): the 2 s tick and the setMovements wrapper call the LIVE module's apply() - v6's tick kept its OWN closure, so the hot-loaded
                   // "sprinting is the caller's choice" never reached a running bot: all 50 measured allowSprinting=false, 0 % sprint samples, 3.96 m/s
@@ -46,7 +47,7 @@ function mineZones () {
     mineCache.zones = (Array.isArray(raw) ? raw : raw.zones || []).map(z => ({
       x1: Math.min(z.x1, z.x2), x2: Math.max(z.x1, z.x2), y1: Math.min(z.y1, z.y2), y2: Math.max(z.y1, z.y2), z1: Math.min(z.z1, z.z2), z2: Math.max(z.z1, z.z2)
     }))
-  } catch { mineCache.zones = [] }
+  } catch (e_) { mineCache.zones = [] } // no mine_zones.json yet, or a half-written file: no registered mine = the SURFACE (stricter) policy
   return mineCache.zones
 }
 function inMine (p) {
@@ -56,8 +57,8 @@ function inMine (p) {
 
 function log (bot, o) {
   const e = Object.assign({ t: new Date().toISOString(), bot: bot.username, type: 'terrain_guard' }, o)
-  try { if (typeof bot.__logEvent === 'function') bot.__logEvent(e) } catch {}
-  try { fs.appendFile(LOG_FILE, JSON.stringify(e) + '\n', () => {}) } catch {}
+  try { if (typeof bot.__logEvent === 'function') bot.__logEvent(e) } catch (e_) { swallow('terrain_guard:logEvent', e_) }
+  try { fs.appendFile(LOG_FILE, JSON.stringify(e) + '\n', () => {}) } catch (e_) { swallow('terrain_guard:logFile', e_) }
 }
 
 function optOut (bot) {
@@ -84,14 +85,16 @@ function modeOf (bot) {
   let solid = 0
   for (let dy = 2; dy <= SKY_SCAN; dy++) {
     const b = bot.blockAt(p.offset(0, dy, 0), false)
-    if (!b) break // unloaded / above build height -> sky
+    // UNKNOWN IS NOT SAFE, and here that means: an unreadable column is NOT called a cave. Breaking out leaves the mode at 'surface',
+    // the STRICTER policy (no digging, no placing, no towers) — the one direction in which an unseen cell may be guessed (owner 09-21).
+    if (!b) break
     if (!SEE_THROUGH.test(b.name) && ++solid >= ROOF_MIN) return 'underground'
   }
   return 'surface'
 }
 
 function hasPickaxe (bot) {
-  try { return bot.inventory.items().some(i => /_pickaxe$/.test(i.name)) } catch { return false }
+  try { return bot.inventory.items().some(i => /_pickaxe$/.test(i.name)) } catch (e_) { swallow('terrain_guard:hasPickaxe', e_); return false } // unreadable inventory -> no digging: the safe answer
 }
 
 // remember what the skill asked for, so leaving the surface restores it
@@ -145,24 +148,25 @@ function apply (bot, mv, mode) {
     const ok = new Set(FILLER.map(n => reg.itemsByName[n] && reg.itemsByName[n].id).filter(x => x != null))
     mv.scafoldingBlocks = want.scafoldingBlocks.filter(id => ok.has(id))
     mv.allowSprinting = !!want.allowSprinting
-    mv.digCost = Math.max(4, want.digCost || 1)
-    mv.placeCost = Math.max(2, want.placeCost || 1)
+    // MEASURED, not guessed (owner 09-21): `digCost 4` claimed a stone block costs four blocks of walking; `bot.digTime` says 0.4 s with an iron
+    // pickaxe (~2) and 50 s bare-handed (~217). army.js `digPlaceCost` prices each block by the bot's own tool through `exclusionAreasBreak`.
+    try { require('./army.js').digPlaceCost(bot, mv) } catch (e_) { mv.digCost = Math.max(8, want.digCost || 1); mv.placeCost = Math.max(6, want.placeCost || 1) }
   }
   applied(mv)
   return mv
 }
 
 // the policy is looked up in the module that is loaded NOW (skills/lib hot-reloads): a timer installed by an older copy must not keep enforcing the old policy
-function live () { try { const m = require(__filename); return m && typeof m.apply === 'function' ? m : module.exports } catch { return module.exports } }
+function live () { try { const m = require(__filename); return m && typeof m.apply === 'function' ? m : module.exports } catch (e_) { swallow('terrain_guard:live', e_); return module.exports } } // a half-saved hot-reload: keep enforcing THIS copy's policy
 function install (bot, opts = {}) {
   if (!bot || !bot.pathfinder) return false
   const prev = bot.__tg
   if (prev && prev.version === VERSION && prev.timer) return true
   const st = { version: VERSION, mode: null, since: Date.now(), pfPlaced: 0, pfDug: 0, modeChanges: 0, optOuts: 0, lastOptReason: null }
   if (prev) { // hot upgrade: keep the original setMovements + counters, drop the old timer/listeners
-    try { clearInterval(prev.timer) } catch {}
-    try { if (prev.onPlaced) bot.removeListener('blockPlaced', prev.onPlaced) } catch {}
-    try { if (prev.onDug) bot.removeListener('diggingCompleted', prev.onDug) } catch {}
+    try { clearInterval(prev.timer) } catch (e_) { /* the old timer was already cleared by bot.once('end') */ }
+    try { if (prev.onPlaced) bot.removeListener('blockPlaced', prev.onPlaced) } catch (e_) { /* listener already gone with the old bot object */ }
+    try { if (prev.onDug) bot.removeListener('diggingCompleted', prev.onDug) } catch (e_) { /* listener already gone with the old bot object */ }
     st.orig = prev.orig
     if (prev.version >= 6) for (const k of ['pfPlaced', 'pfDug', 'pfPlacedSurface', 'pfDugSurface', 'skillPlaced', 'skillDug', 'since', 'optOuts', 'pfLog']) if (prev[k] != null) st[k] = prev[k]
   } else {
@@ -172,7 +176,7 @@ function install (bot, opts = {}) {
   // the wrapper looks the policy up through bot.__tg, so a later install() upgrades it in place
   bot.pathfinder.setMovements = (mv) => {
     const g = bot.__tg
-    try { if (mv) { live().apply(bot, mv, g.mode || (g.mode = modeOf(bot))) } } catch (e) { try { apply(bot, mv, 'surface') } catch {} }
+    try { if (mv) { live().apply(bot, mv, g.mode || (g.mode = modeOf(bot))) } } catch (e) { swallow('terrain_guard:setMovements', e); try { apply(bot, mv, 'surface') } catch (e2) { swallow('terrain_guard:setMovementsFallback', e2) } } // POLICY FAILURE FALLS SHUT, never open: 'surface' = no dig, no place
     bot.mv = mv
     return g.orig(mv)
   }
@@ -187,11 +191,11 @@ function install (bot, opts = {}) {
         g.mode = mode
         // re-install so the pathfinder drops a path that was planned under the old rules (it may hold toPlace/toBreak steps)
         const mv0 = bot.pathfinder.movements
-        if (mv0) { live().apply(bot, mv0, mode); try { g.orig(mv0) } catch {} }
+        if (mv0) { live().apply(bot, mv0, mode); try { g.orig(mv0) } catch (e_) { swallow('terrain_guard:reinstall', e_) } } // the policy is already ON mv0; only the pathfinder's re-plan was missed
       }
       const mv = bot.pathfinder.movements
       if (mv) live().apply(bot, mv, mode)
-    } catch {}
+    } catch (e_) { swallow('terrain_guard:tick', e_) } // a tick that throws leaves the LAST applied policy in place and the next one (2 s) retries
   }
   // count pathfinder-initiated edits at packet level (the pathfinder's isBuilding() flag is already reset
   // by its own blockUpdate handler when 'blockPlaced' fires, so events under-count)
@@ -208,7 +212,7 @@ function install (bot, opts = {}) {
               const ev = (g.pfLog = g.pfLog || []); ev.push({ t: Date.now(), mode: g.mode, item: held.name, at: params && params.location, task: bot.state && bot.state.task }); if (ev.length > 10) ev.shift()
             } else g.skillPlaced = (g.skillPlaced || 0) + 1
           } else if (params && params.status === 0) { if (bot.pathfinder.isMining()) { g.pfDug++; g.lastPf = Date.now(); if (g.mode === 'surface') g.pfDugSurface = (g.pfDugSurface || 0) + 1 } else g.skillDug = (g.skillDug || 0) + 1 }
-        } catch {}
+        } catch (e_) { swallow('terrain_guard:onWrite', e_) } // counting only: a throw here must never stop the packet going out
   }
   // the wrapper only delegates to bot.__tg.onWrite, so install() upgrades the logic in place
   if (prev && prev.rawWrite && prev.delegating) { st.rawWrite = prev.rawWrite; st.delegating = true } else {
@@ -223,7 +227,7 @@ function install (bot, opts = {}) {
   }
   st.timer = setInterval(tick, opts.intervalMs || 2000)
   if (st.timer.unref) st.timer.unref()
-  bot.once('end', () => { try { clearInterval(st.timer) } catch {} })
+  bot.once('end', () => { try { clearInterval(st.timer) } catch (e_) { /* already cleared by a hot upgrade */ } })
   tick()
   return true
 }

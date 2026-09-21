@@ -77,11 +77,11 @@ async function withLock (name, fn, ms = 45000) {
       held = true
       break
     } catch (e) {
-      try { const st = fs.statSync(f); if (Date.now() - st.mtimeMs > 90000) fs.unlinkSync(f) } catch {}
+      try { const st = fs.statSync(f); if (Date.now() - st.mtimeMs > 90000) fs.unlinkSync(f) } catch (e_) { /* the holder released it between the openSync and the stat: nothing to break, we retry */ }
       await sleep(200 + Math.random() * 400)
     }
   }
-  try { return await fn() } finally { if (held) { try { fs.unlinkSync(f) } catch {} } }
+  try { return await fn() } finally { if (held) { try { fs.unlinkSync(f) } catch (e_) { /* another process stole the stale lock and removed the file; the work is done either way */ } } }
 }
 
 // --- per-bot blacklist of unreachable blocks / items (TTL) ----------------
@@ -201,7 +201,7 @@ async function pathTo (bot, goal, ms) {
       const p = bot.entity.position
       if (p.distanceTo(last) > 0.7) { last = p.clone(); lastMove = Date.now(); return }
       if (Date.now() - lastMove > 7000) { stuck = true; bot.pathfinder.setGoal(null) }
-    } catch {}
+    } catch (e_) { swallow('util:pathTick', e_) } // the bot ended/respawned under the timer
   }, 1500)
   if (timer.unref) timer.unref()
   try {
@@ -212,7 +212,7 @@ async function pathTo (bot, goal, ms) {
     return stuck ? 'stuck' : 'fail'
   } finally {
     clearInterval(timer)
-    try { bot.pathfinder.setGoal(null) } catch {}
+    try { bot.pathfinder.setGoal(null) } catch (e_) { /* no pathfinder any more (bot ended): there is no goal left to clear */ }
   }
 }
 
@@ -303,7 +303,7 @@ function shoreNear (bot, maxR = 20) {
 async function escapeWater (bot, ms = 15000) {
   if (!bot.entity || !bot.entity.isInWater) return false
   const end = Date.now() + ms
-  try { bot.pathfinder.setGoal(null) } catch {}
+  try { bot.pathfinder.setGoal(null) } catch (e_) { /* no pathfinder any more (bot ended): there is no goal left to clear */ }
   while (Date.now() < end) {
     ck(bot)
     if (!bot.entity.isInWater) break
@@ -337,7 +337,7 @@ async function digBlock (bot, block, ms = 25000, force = false) {
   if (block.boundingBox === 'empty' && !BREAKABLE_EMPTY.test(block.name)) return false
   if (PROTECT_SET.has(block.name)) return false
   if (bot.entity.position.distanceTo(block.position.offset(0.5, 0.5, 0.5)) > 5) return false
-  try { await withTimeout(bot.tool.equipForBlock(block, { requireHarvest: !force }), 5000, 'equipForBlock') } catch {}
+  try { await withTimeout(bot.tool.equipForBlock(block, { requireHarvest: !force }), 5000, 'equipForBlock') } catch (e_) { swallow('util:equipForBlock', e_) } // no tool / equip timed out: canDigBlock + canHarvest below still gate the dig
   if (!bot.canDigBlock(block)) return false
   // never waste minutes hand-digging something that drops nothing (unless we
   // are digging ourselves out of a hole, where we don't care about drops)
@@ -346,7 +346,7 @@ async function digBlock (bot, block, ms = 25000, force = false) {
     await withTimeout(bot.dig(block, true), ms, 'dig')
     return true
   } catch (e) {
-    try { bot.stopDigging() } catch {}
+    try { bot.stopDigging() } catch (e_) { /* nothing was being dug (the dig threw before it started) */ }
     return false
   }
 }
@@ -365,14 +365,17 @@ async function mineAt (bot, pos, ms = 45000) {
   const key = kpos(pos)
   if (isBad(bot, key)) return false
   let b = bot.blockAt(pos)
-  if (!b || b.name === 'air') return false
+  // "not loaded" is not "nothing there" (owner 09-21): the cell is parked for a minute and the blind read is REPORTED, not counted as done.
+  if (!b) { swallow.blind(bot, 'util:mineAt', 'target cell not loaded, it is not empty'); markBad(bot, key, 60000); return false }
+  if (b.name === 'air') return false
   if (PROTECT_SET.has(b.name)) { markBad(bot, key, 600000); return false }
   const d = bot.entity.position.distanceTo(pos.offset(0.5, 0.5, 0.5))
   if (d > 4.2) {
     const ok = await goTo(bot, pos.x, pos.y, pos.z, 3, Math.min(ms, 25000))
     if (!ok || bot.entity.position.distanceTo(pos.offset(0.5, 0.5, 0.5)) > 5) { markBad(bot, key, 180000); return false }
     b = bot.blockAt(pos)
-    if (!b || b.name === 'air') return false
+    if (!b) { swallow.blind(bot, 'util:mineAt', 'target cell still not loaded after walking to it'); markBad(bot, key, 60000); return false }
+    if (b.name === 'air') return false
   }
   const dug = await digBlock(bot, b, 25000)
   if (!dug) { markBad(bot, key, 120000); return false }
@@ -399,7 +402,7 @@ async function pickupNear (bot, ms = 3000, radius = 5) {
     markBad(bot, 'item' + it.id, 120000) // one attempt per item, then forget it
     try {
       await withTimeout(bot.pathfinder.goto(new goals.GoalNear(it.position.x, it.position.y, it.position.z, 1)), 5000, 'pickup')
-    } catch { try { bot.pathfinder.setGoal(null) } catch {} }
+    } catch (e_) { swallow('util:pickupGoto', e_); try { bot.pathfinder.setGoal(null) } catch (e2) { /* no pathfinder any more */ } } // the drop is out of reach; markBad above means one try per item
     await sleep(150)
   }
 }
@@ -412,23 +415,28 @@ function findBlocksByName (bot, names, maxDistance = 48, cnt = 16) {
   if (!ids.length) return []
   try {
     return bot.findBlocks({ matching: ids, maxDistance, count: cnt }).filter(v => !isBad(bot, kpos(v)))
-  } catch { return [] }
+  } catch (e_) { swallow('util:findBlocks', e_); return [] } // findBlocks throws while the chunk column is being swapped; the caller re-scans next pass
 }
 
 // --- placing --------------------------------------------------------------
 const FACES = [new Vec3(0, -1, 0), new Vec3(0, 1, 0), new Vec3(1, 0, 0), new Vec3(-1, 0, 0), new Vec3(0, 0, 1), new Vec3(0, 0, -1)]
 
+// UNKNOWN IS AN ANSWER (owner 09-21; the one reader is lib/blocks.js readAt): bot.blockAt() is null for an UNLOADED chunk, and a cell we
+// cannot see is neither air nor solid. Both predicates say FALSE for it — so nothing is placed into it and nothing is stood on it — and
+// isUnknownAt() lets a caller tell "no" from "I could not look".
+function isUnknownAt (bot, pos) { try { return !bot.blockAt(pos) } catch (e_) { swallow('util:isUnknownAt', e_); return true } }
 function isAirish (bot, pos) {
   const b = bot.blockAt(pos)
-  return b && (b.boundingBox === 'empty') && b.name !== 'water' && b.name !== 'lava'
+  return !!b && (b.boundingBox === 'empty') && b.name !== 'water' && b.name !== 'lava'
 }
 function isSolid (bot, pos) {
   const b = bot.blockAt(pos)
-  return b && b.boundingBox === 'block'
+  return !!b && b.boundingBox === 'block'
 }
 
 async function placeBlockAt (bot, itemName, pos) {
   ck(bot)
+  if (isUnknownAt(bot, pos)) { swallow.blind(bot, 'util:placeBlockAt', 'target cell not loaded, refusing to place into a cell we cannot see'); return false }
   if (!isAirish(bot, pos)) return false
   const feet = bot.entity.position.floored()
   if (pos.equals(feet) || pos.equals(feet.offset(0, 1, 0))) {
@@ -478,5 +486,5 @@ module.exports = {
   DIR, Vec3, goals, sleep, nap, ck, cancelled, Cancelled, withTimeout, safe, note, G, withLock,
   LOG_RE, PLANK_RE, TOOL_RE, ARMOR_RE, HOSTILE, invMap, count, countRe, firstRe, has, freeSlots, equip,
   setupMovements, goTo, pathTo, unstuck, digBlock, canHarvest, mineAt, pickupNear, findBlocksByName,
-  placeBlockAt, freeSpotNear, escapeWater, shoreNear, markBad, isBad, kpos, isAirish, isSolid, PROTECT_SET, protectedBlock
+  placeBlockAt, freeSpotNear, escapeWater, shoreNear, markBad, isBad, kpos, isAirish, isSolid, isUnknownAt, PROTECT_SET, protectedBlock
 }

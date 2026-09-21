@@ -41,7 +41,7 @@ function armLanding (bot, landY, lx, lz, state) {
     if (isWater(bot.blockAt(land))) return
     if (state.shots === 0) state.firedAt = +dy.toFixed(2)
     state.shots++
-    setImmediate(() => { try { bot.activateItem() } catch {} }) // AFTER this tick's position packet (see header)
+    setImmediate(() => { try { bot.activateItem() } catch {} }) // AFTER this tick's position packet (see header) // why: best effort - the caller checks the world afterwards
   }
   bot.on('physicsTick', onTick)
   return () => bot.removeListener('physicsTick', onTick)
@@ -51,7 +51,7 @@ async function scoop (bot, near, tries = 3) {
   for (let i = 0; i < tries; i++) {
     const b = bucketOf(bot, 'bucket'); if (!b) return !!bucketOf(bot, 'water_bucket')
     const src = bot.findBlocks({ matching: x => isWater(x) && x.metadata === 0, maxDistance: 4, count: 6, point: near })[0]; if (!src) return false
-    try { await bot.equip(b, 'hand'); await bot.lookAt(src.offset(0.5, 0.5, 0.5), true); await sleep(200); bot.activateItem(); await sleep(600) } catch {}
+    try { await bot.equip(b, 'hand'); await bot.lookAt(src.offset(0.5, 0.5, 0.5), true); await sleep(200); bot.activateItem(); await sleep(600) } catch {} // why: best effort - the caller checks the world afterwards
     if (bucketOf(bot, 'water_bucket') && !isWater(bot.blockAt(src))) return true
   }
   return !!bucketOf(bot, 'water_bucket')
@@ -74,7 +74,7 @@ async function stepOff (bot, landArr, opts = {}) {
   for (let y = ly; y <= Math.floor(p0.y) + 1; y++) { const b = bot.blockAt(new Vec3(lx, y, lz)); if (!b || solid(b) || b.name === 'lava') return fail('the shaft is not open at y' + y) }
   bot.__moveBusy = 'step_off'; const hp0 = bot.health
   try {
-    try { bot.pathfinder && bot.pathfinder.setGoal(null) } catch {}
+    try { bot.pathfinder && bot.pathfinder.setGoal(null) } catch {} // why: best effort - the caller checks the world afterwards
     await bot.lookAt(new Vec3(c.x, p0.y + 1, c.z), true).catch(() => {})
     await walkIn(bot, c, ly, p0, t0, opts.stop); await sleep(400)
     const at = bot.entity.position; const down = at.y <= ly + 1.2
@@ -93,11 +93,11 @@ async function waterDrop (bot, landArr, opts = {}) {
   if (Math.hypot(p0.x - c.x, p0.z - c.z) > 1.6) return fail('not on the rim next to the landing column', { d: +Math.hypot(p0.x - c.x, p0.z - c.z).toFixed(2) })
   const floor = bot.blockAt(land.offset(0, -1, 0)); if (!solid(floor)) return fail('the landing has no solid floor (' + (floor && floor.name) + ')')
   for (let y = ly; y <= Math.floor(p0.y) + 1; y++) { const b = bot.blockAt(new Vec3(lx, y, lz)); if (!b || (b.name !== 'air' && b.name !== 'cave_air')) return fail('the shaft is not open at y' + y + ' (' + (b && b.name) + ')') }
-  for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const b = bot.blockAt(land.offset(dx, 0, dz)); if (b && b.name === 'lava') return fail('lava beside the landing') }
+  for (const [dx, dz] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const b = bot.blockAt(land.offset(dx, 0, dz)); if (!b) return fail('cannot see the cell beside the landing (chunk not loaded)'); if (b.name === 'lava') return fail('lava beside the landing') }
   const wb = bucketOf(bot, 'water_bucket'); if (!wb) return fail('no water_bucket carried')
   bot.__moveBusy = 'water_drop'; const prev = bot.heldItem && bot.heldItem.name; const hp0 = bot.health; const st = { shots: 0, firedAt: null }; let disarm = null
   try {
-    try { bot.pathfinder && bot.pathfinder.setGoal(null) } catch {}
+    try { bot.pathfinder && bot.pathfinder.setGoal(null) } catch {} // why: best effort - the caller checks the world afterwards
     await bot.equip(wb, 'hand')
     const yaw = Math.atan2(-(c.x - p0.x), -(c.z - p0.z)); await bot.look(yaw, -Math.PI / 2, true)
     disarm = armLanding(bot, ly, lx, lz, st)
@@ -133,16 +133,16 @@ async function bridgeTo (bot, toArr, opts = {}) {
   // pathfinder's goto RESOLVES on an empty path): a bridge is construction, so it takes the guard's own, time-boxed, reasoned opt-out for exactly this call
   const TG = (() => { try { return require('./terrain_guard') } catch { return null } })(); const okBefore = bot.state && bot.state.terrainEditOK
   if (TG) { TG.allowTerrainEdit(bot, 'moves.bridgeTo ' + p0.x + ',' + p0.z + ' -> ' + tx + ',' + tz, (opts.ms || 120000) + 2000); if (bot.__tg) bot.__tg.mode = TG.modeOf(bot) } // the guard caches its mode between its 2 s ticks (second live test: still an empty plan in 22 ms)
-  const old = bot.pathfinder.movements; bot.__moveBusy = 'bridge'; const sneak = () => { try { bot.setControlState('sneak', true) } catch {} }; bot.on('physicsTick', sneak)
+  const old = bot.pathfinder.movements; bot.__moveBusy = 'bridge'; const sneak = () => { try { bot.setControlState('sneak', true) } catch {} }; bot.on('physicsTick', sneak) // why: best effort - the caller checks the world afterwards
   try {
     bot.pathfinder.setMovements(mv)
     const done = bot.pathfinder.goto(new goals.GoalBlock(tx, ty, tz)); let timer; const limit = new Promise((resolve, reject) => { timer = setTimeout(() => reject(new Error('timeout')), opts.ms || 120000) })
-    const stopper = opts.stop ? setInterval(() => { if (opts.stop()) { try { bot.pathfinder.setGoal(null) } catch {} } }, 250) : null
+    const stopper = opts.stop ? setInterval(() => { if (opts.stop()) { try { bot.pathfinder.setGoal(null) } catch {} } }, 250) : null // why: best effort - the caller checks the world afterwards
     let empty = false; const onPU = r => { if (r && r.path && r.path.length === 0 && r.status !== 'success') empty = true }; bot.on('path_update', onPU)
-    let err = null; try { await Promise.race([done, limit]) } catch (e) { err = e } finally { clearTimeout(timer); if (stopper) clearInterval(stopper); bot.removeListener('path_update', onPU); try { bot.pathfinder.setGoal(null) } catch {} }
+    let err = null; try { await Promise.race([done, limit]) } catch (e) { err = e } finally { clearTimeout(timer); if (stopper) clearInterval(stopper); bot.removeListener('path_update', onPU); try { bot.pathfinder.setGoal(null) } catch {} } // why: best effort - the caller checks the world afterwards
     const at = bot.entity.position.floored(); const under = bot.blockAt(at.offset(0, -1, 0)); const arrived = Math.abs(at.x - tx) <= 1 && Math.abs(at.z - tz) <= 1 && Math.abs(at.y - ty) <= 1
     return { ok: arrived && solid(under), how: 'bridge', placed: have0 - count(), at: [at.x, at.y, at.z], tookMs: Date.now() - t0, why: arrived ? undefined : String((err && err.message) || (empty ? 'the pathfinder found no bridge path (guard mode / corridor / blocks?)' : 'stopped short')) }
-  } catch (e) { return fail('error: ' + (e && e.message)) } finally { bot.removeListener('physicsTick', sneak); try { bot.setControlState('sneak', false) } catch {} if (TG) { TG.revokeTerrainEdit(bot); if (okBefore && bot.state) bot.state.terrainEditOK = okBefore; if (bot.__tg) bot.__tg.mode = TG.modeOf(bot) } try { bot.pathfinder.setMovements(old) } catch {} bot.__moveBusy = null }
+  } catch (e) { return fail('error: ' + (e && e.message)) } finally { bot.removeListener('physicsTick', sneak); try { bot.setControlState('sneak', false) } catch {} if (TG) { TG.revokeTerrainEdit(bot); if (okBefore && bot.state) bot.state.terrainEditOK = okBefore; if (bot.__tg) bot.__tg.mode = TG.modeOf(bot) } try { bot.pathfinder.setMovements(old) } catch {} bot.__moveBusy = null } // why: best effort - the caller checks the world afterwards
 }
 
 // REFLEX (owner: "落下死しそうだったらアルゴリズム的に水を置くことは出来ないのか？"): installed once per bot. A fall that was NOT planned (knock-back off a
@@ -164,7 +164,7 @@ function fallGuard (bot, report = () => {}, opts = {}) {
     const disarm = armLanding(bot, g.y, x, z, st); S.armed = true
     ;(async () => {
       try {
-        try { bot.pathfinder && bot.pathfinder.setGoal(null) } catch {}
+        try { bot.pathfinder && bot.pathfinder.setGoal(null) } catch {} // why: best effort - the caller checks the world afterwards
         if (!bot.heldItem || bot.heldItem.name !== 'water_bucket') await bot.equip(wb, 'hand') // a hotbar bucket = one packet; from the backpack it may be too late - the result says so
         await bot.look(e.yaw, -Math.PI / 2, true)
         const tEnd = Date.now() + 8000; while (Date.now() < tEnd && !(bot.entity.onGround || bot.entity.isInWater)) await sleep(20)

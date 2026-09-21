@@ -541,7 +541,7 @@ async function kitUp (bot, opts = {}) {
 // HANG WATCHDOG (owner: "bots standing around the base"): a bot on a working job that has not moved 1.5 blocks for 3 minutes, while its
 // task is not one that legitimately stands still, is HUNG. It says so (event `hung` -> operators' digest + chat), hands the job back
 // (decline 5 min) and interrupts its handler so the dispatcher can give it something else. LLM-free, runs from heartbeat().
-const STILL_OK = /portal|sleep|fish|farm:waiting|plan idle|muster|guard|scan|cook|craft|smelt|librarian: waiting|trade:|enchant|cavity: filling|step \d+\/\d+ (craft|smelt|wait|withdraw|bank)|canteen|iron:(branch|mine|vein|dig|stairs|craft|base)/
+const STILL_OK = /portal|sleep|fish|plan idle|muster|guard|scan|cook|craft|smelt|librarian: waiting|trade:|enchant|cavity: filling|step \d+\/\d+ (craft|smelt|wait|withdraw|bank)|canteen|iron:(branch|mine|vein|dig|stairs|craft|base)/
 function watchdog (bot, extra) {
   const p = bot.entity.position; const w = bot.__armyWd = bot.__armyWd || { pos: p.clone(), t: Date.now() }
   if (p.distanceTo(w.pos) > 1.5) { w.pos = p.clone(); w.t = Date.now(); return }
@@ -656,6 +656,30 @@ function climbRule (mv) { // idempotent, and applied to the LIVE Movements objec
   mv.__armyClimb = true
   return mv
 }
+// SPRINT-JUMPING IS THE FASTEST WAY TO MOVE (owner 09-21: 「マイクラ最速移動、ダッシュジャンプ / ただしお腹が減りやすくなる、畑も荒れる」). A sprinting
+// jump covers ~30 % more ground than a sprint, at roughly four times the hunger - so it is for LONG legs with a full larder, and it is
+// FORBIDDEN over a field: a jump onto farmland turns it back into dirt, which is exactly why our own fields are pitted with dirt blocks.
+const CROP_UNDER = /farmland|_stem$|wheat|carrots|potatoes|beetroots|melon|pumpkin|sweet_berry|soul_sand|slime_block|honey_block|scaffolding|ladder|vine/
+function dashRule (bot) {
+  if (bot.__armyDash) { bot.removeListener('physicsTick', bot.__armyDash); bot.__armyDash = null }
+  const on = () => {
+    try {
+      const e = bot.entity; if (!e) return
+      if (!bot.pathfinder || !bot.pathfinder.isMoving || !bot.pathfinder.isMoving()) return
+      if (bot.food < 15 || !larderFull() || !overworldBot(bot)) return            // hunger is the price: only with food to spare
+      if (!bot.getControlState('sprint') && !bot.controlState.sprint) return       // pathfinder decides sprinting; the dash only adds the hop
+      const p = e.position
+      const under = bot.blockAt(p.offset(0, -1, 0)); const ahead = bot.blockAt(p.offset(Math.sign(e.velocity.x) || 0, -1, Math.sign(e.velocity.z) || 0))
+      if ((under && CROP_UNDER.test(under.name)) || (ahead && CROP_UNDER.test(ahead.name))) return // never trample a field
+      const head = bot.blockAt(p.offset(0, 2, 0)); if (head && head.boundingBox === 'block') return // no headroom: a jump is a bump
+      if (!e.onGround || e.isInWater) return
+      const sp = Math.hypot(e.velocity.x, e.velocity.z); if (sp < 0.15) return     // only while really running
+      bot.setControlState('jump', true); setTimeout(() => { try { bot.setControlState('jump', false) } catch {} }, 60)
+    } catch {}
+  }
+  bot.__armyDash = on; bot.on('physicsTick', on)
+}
+
 function strictMovements (bot) {
   const mv = new Movements(bot)
   // RUN (owner 09-20: "効率を上げるための作業は惜しみなくやるべき … 走る"): sprinting was banned in world 1 to save food (1 hunger point per ~40 m);
@@ -693,11 +717,40 @@ function strictMovements (bot) {
   bot.mv = mv
   return mv
 }
+// WHAT DIGGING AND PLACING REALLY COST (owner 09-21: 「ブロック破壊、設置の移動コストは？」 and 「コスト値ではなく機能ごと切ってあるのには理由があるの？」).
+// The POLICY stays a switch - a bot may not dig or place to travel, because a cost, however high, still lets one bot cut a private shortcut that
+// becomes the next bot's trap (world 1), and a switch is the only thing that makes "the ground changed = somebody planned it" true. Inside the
+// contexts where digging IS allowed (escape, bridge, spur, mine, fill), the numbers were mine, arbitrary and wrong: `digCost 4` said one stone block
+// costs four blocks of walking. These are measured instead. Walking one block ~ 0.23 s, so cost 1 ~ 0.23 s of work:
+//   MEASURED with `bot.digTime`: dirt 3.75 s BARE-HANDED (75 ticks) · cobblestone 50 s bare (1000 ticks) · with the right tool a stone sort is
+//   ~0.4 s (iron) to 0.75 s (stone pick), dirt/gravel ~0.15 s with a shovel. So the true cost is not a constant, it is the BLOCK and the TOOL.
+// `exclusionAreasBreak`/`exclusionAreasPlace` take a FUNCTION returning extra cost per block, which is where the real number goes; `digCost`/
+// `placeCost` stay as the floor for whatever the function does not price.
+function digPlaceCost (bot, mv) {
+  if (!mv) return mv
+  const WALK = 0.23 // seconds per block walked: the unit the pathfinder counts in
+  mv.digCost = 8 // floor: a block is never cheaper than ~2 s of work, even with the best tool
+  mv.placeCost = 6 // a placement is a look + a swing + a block out of the pockets
+  const breakCost = b => {
+    try {
+      if (!b) return 1000 // an unknown cell is never a cheap dig (09-21: unknown is never safe)
+      if (U.protectedBlock(b) || ours().cells.has(b.position.x + ',' + b.position.y + ',' + b.position.z)) return 1000 // never dig our own build
+      const t = bot.digTime(b) / 1000 // seconds with what the bot is actually holding
+      if (!isFinite(t)) return 1000
+      return Math.min(400, t / WALK) // 0.4 s -> ~2, 3.75 s -> ~16, 50 s bare-handed -> 217: the pathfinder walks round it instead
+    } catch { return 1000 }
+  }
+  const placeCost = () => 6 + (stockOf('cobblestone') + stockOf('dirt') < 512 ? 40 : 0) // scarce filler makes placing expensive
+  mv.exclusionAreasBreak = (mv.exclusionAreasBreak || []).filter(f => !f.__armyCost).concat(Object.assign(breakCost, { __armyCost: true }))
+  mv.exclusionAreasPlace = (mv.exclusionAreasPlace || []).filter(f => !f.__armyCost).concat(Object.assign(placeCost, { __armyCost: true }))
+  return mv
+}
+
 // last resort for a bot sealed in a pit: may dig (never towers). Used for ONE hop, then strict again.
 function escapeMovements (bot) {
   const mv = strictMovements(bot)
   mv.canDig = true
-  mv.digCost = 12
+  digPlaceCost(bot, mv) // measured, not guessed
   for (const n of U.PROTECT_SET) { const b = bot.registry.blocksByName[n]; if (b) mv.blocksCantBreak.add(b.id) }
   bot.pathfinder.setMovements(mv)
   return mv
@@ -992,7 +1045,7 @@ async function pillarEscape (bot, opts = {}) {
   const life = bot.__armyDeaths || 0
   const gone = () => (bot.__armyDeaths || 0) !== life || !!bot.__armyDied || !bot.entity || bot.health <= 0
   const fillers = () => FILLERS.reduce((n, f) => n + count(bot, f), 0)
-  const falling = () => { const p0 = bot.entity.position.floored(); for (let dy = 2; dy <= 4; dy++) { const b = bot.blockAt(p0.offset(0, dy, 0)); if (b && /^(gravel|sand|red_sand|.*concrete_powder|water|lava)$/.test(b.name)) return b.name } return null }
+  const falling = () => { const p0 = bot.entity.position.floored(); for (let dy = 2; dy <= 4; dy++) { const b = bot.blockAt(p0.offset(0, dy, 0)); if (!b) return 'unknown' /* an unloaded column is NOT clear (09-21: unknown is never safe) */; if (/^(gravel|sand|red_sand|.*concrete_powder|water|lava)$/.test(b.name)) return b.name } return null }
   const free = () => islandOf(bot).size >= TRAP_ISLAND
   const cells = opts.cells || islandOf(bot)
   const rim = skyAbove(bot) ? rimAbove(bot, cells) : null
@@ -1315,7 +1368,8 @@ async function travel (bot, target, opts = {}) {
   // RUN: the Movements object lives for hours (strictMovements runs at worker start / after a death) - the larder is asked per TRIP, and a new terrain-guard
   // version is installed here (measured 09-20 06:20Z: 50/50 bots allowSprinting=false, the guard's old timer kept switching it off)
   try { require('./terrain_guard').install(bot); climbRule(mv0); if (mv0) mv0.allowSprinting = larderFull() && bot.food > 6 } catch (e_) { swallow('army:travelSprint', e_) }
-  try { require('./jobs_road').roadCost(bot, mv0) } catch (e_) { swallow('army:roadCost', e_) } // a built road is cheap, off-road underground/Nether is dear (owner 09-21: 「空が見えているか、ディメンションがどこか、によって重み付け」)
+  try { require('./jobs_road').roadCost(bot, mv0) } catch (e_) { swallow('army:roadCost', e_) }
+  try { dashRule(bot) } catch (e_) { swallow('army:dashRule', e_) } // sprint-JUMP on a long open leg (owner 09-21: 「マイクラ最速移動、ダッシュジャンプ」), never over a field // a built road is cheap, off-road underground/Nether is dear (owner 09-21: 「空が見えているか、ディメンションがどこか、によって重み付け」)
   if (surfaceTrip && mv0 && !mv0.exclusionAreasStep.includes(floorRule)) mv0.exclusionAreasStep.push(floorRule)
   if (keepOn && mv0) mv0.exclusionAreasStep.push(keepRule)
   const ms0 = overworldBot(bot) ? musterPos() : null // the muster is an overworld place: no homeward drop bias in another world
@@ -2285,7 +2339,7 @@ async function kill (bot, ent, ms = 25000, stop) {
 // walk over dropped items within r (uses the pathfinder with whatever movements are installed)
 async function pickup (bot, r = 6, ms = 6000) { try { await U.pickupNear(bot, ms, r) } catch (e_) { swallow('army:764', e_) } }
 
-module.exports = {
+module.exports = { digPlaceCost,
   DIR, F, sleep, readJSON, writeJSON, boardEdit, decline, result, settings, inv, count, bestOf, equipBest, heartbeat, assignment,
   strictMovements, larderFull, larderGate, escapeMovements, skyAbove, digOut, fillShaft, inShaft, walkableArea, walkCells, islandOf, trapped, TRAP_ISLAND, pillarEscape, debt, travel, dist2, categoryOf, chestsOf, index, record, openChest, closeWin, bank, withdraw,
   scanChests, stockOf, stockMap, dumpJunk, askHelp, helpAnswer, placeHard, fillInside, gravityDrop, obtain, craftSpot, stash, unstash, siteInfo, siteSet, hostiles, startGuard, stopGuard, kill, pickup, HOSTILE, CATS,

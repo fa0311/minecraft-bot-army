@@ -1803,9 +1803,11 @@ async function farm (bot, job, api, ctx) {
     let full = false
     try { const ST = require('../../army/stock.js'); const T = (A.settings().targets || {}).food; full = T > 0 && ST.have('food') >= T } catch (e_) { swallow('army_jobs:farmLarder', e_) }
     if (full) { const why = 'farm: nothing ripe, nothing to plant and the larder is over target'; A.decline(bot, job, 600000, why); return muster(bot, job, api, ctx, why) }
-    const end = Date.now() + 90000 // nothing to do yet: crops are growing — stand at the field edge, don't pace over the farmland
-    task(bot, 'farm:waiting for growth')
-    while (Date.now() < end && !api.stop()) await sleep(1000)
+    // NOBODY WAITS FOR A CROP TO GROW (owner 09-21: 「畑で作物の成長を待ってるやついてクソ無駄」). Wheat takes minutes to ripen and the field does not
+    // need a guard; the bot goes back to the board at once and the dispatcher re-staffs the field the moment something is ripe (the pass above is
+    // cheap and runs on every visit). The old 90 s vigil was institutionalised waste - it even had an excuse in the hung sensor.
+    const why = 'farm: nothing ripe and nothing to plant - the crops grow without me'
+    A.decline(bot, job, 120000, why); return muster(bot, job, api, ctx, why)
   }
   return 'farm'
 }

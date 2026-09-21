@@ -423,7 +423,7 @@ module.exports = async (bot, args = {}, ctx) => {
           bot.__ironKitT = Date.now()
           await baseVisit(bot, 'kit')
           if (stale()) break
-          rd = I.readiness(bot)
+          rd = I.readiness(bot, { afterDepot: true }) // we HAVE stood at the chests now: a shift's worth in the pocket beats an empty mine (readiness)
           if (rd.missing.length) { ARMY.result(bot, { ev: 'mine_not_ready', job: jobRef(bot).id, missing: rd.missing, short: rd.short, note: 'the depot could not supply it: bot handed back' }); return handBack(bot, 600000, 'mine: missing ' + rd.missing.join('+')) }
           if (rd.short.length) ARMY.result(bot, { ev: 'mine_kit_short', job: jobRef(bot).id, short: rd.short, note: 'not available in the depot: going down without' })
         }

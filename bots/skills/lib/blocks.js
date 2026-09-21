@@ -27,6 +27,7 @@
 //   stats(bot)                            sync: counters for benchmarks
 const fs = require('fs')
 const swallow = require('./swallow')
+const blind = swallow.blind // loud swallow: "I was about to place/dig/step/judge a cell done while blind" -> `blind_action` event, once per signature per 5 min
 const path = require('path')
 const { Vec3 } = require('vec3')
 const { goals, Movements } = require('mineflayer-pathfinder')
@@ -73,25 +74,45 @@ const SOIL = /^(dirt|grass_block|podzol|coarse_dirt|rooted_dirt|mycelium|moss_bl
 const TILLABLE = /^(dirt|grass_block|dirt_path)$/
 const LIQ = /^(water|lava|bubble_column)$/
 
-function isAir (b) { return !b || b.name === 'air' || b.name === 'cave_air' || b.name === 'void_air' }
-function isLiquid (b) { return !!b && (LIQ.test(b.name)) }
-// can a new block be put here without breaking anything first?
-function isReplaceable (b) {
+// ---------------------------------------------------------------- UNKNOWN IS AN ANSWER (owner 09-21, two lava deaths in the Nether)
+// `bot.blockAt()` returns NULL for a cell whose chunk is not loaded. The old code read that null as "air": a cell that is not there
+// was taken for an empty cell, so a job placed floor at the rim of a cavern it could not see and the bot walked over the edge
+// (46 iron + 7 diamonds in six minutes). A cell we cannot see is not empty — it is UNSEEN.
+//   THE RULE: an unknown cell is never passable, never done, never safe, never a valid place or dig target.
+// readAt(bot, pos) -> { known, block, name, pos } is the one reader; the predicates below take a block, a null, or a read, so a
+// caller can adopt them one line at a time. `blind(bot, where, why)` (lib/swallow.js) is how a blind cell gets SEEN by us.
+function readAt (bot, pos) {
+  const p = V(pos && pos.position ? pos.position : pos)
+  let b = null
+  try { b = bot.blockAt(p) } catch (e_) { swallow('blocks:readAt', e_); b = null }
+  return b ? { known: true, block: b, name: b.name, pos: p } : { known: false, block: null, name: null, pos: p }
+}
+// a read, a block or a null -> the block or null
+function blockOf (x) { return (x && typeof x.known === 'boolean') ? x.block : (x || null) }
+function isUnknown (x) { return !blockOf(x) }
+function isAir (x) { const b = blockOf(x); return !!b && (b.name === 'air' || b.name === 'cave_air' || b.name === 'void_air') } // UNKNOWN IS NOT AIR
+function isLiquid (x) { const b = blockOf(x); return !!b && LIQ.test(b.name) }
+// can a new block be put here without breaking anything first?  unknown -> NO
+function isReplaceable (x) {
+  const b = blockOf(x)
+  if (!b) return false
   if (isAir(b) || isLiquid(b)) return true
   if (b.boundingBox !== 'empty') return false
   return /^(short_grass|grass|tall_grass|fern|large_fern|dead_bush|snow|seagrass|tall_seagrass|vine|glow_lichen|fire|soul_fire|light|structure_void|crimson_roots|warped_roots|nether_sprouts|hanging_roots)$/.test(b.name)
 }
-function isSolidRef (b) { return !!b && !isAir(b) && !isLiquid(b) && b.boundingBox === 'block' }
+function isSolidRef (x) { const b = blockOf(x); return !!b && !isAir(b) && !isLiquid(b) && b.boundingBox === 'block' }
+const isSolid = isSolidRef
 // SNOW LAYERS are walkable ground cover, not walls: minecraft-data gives 'snow' a block bounding box, so in a snowy biome (world 1) NO cell next to
 // a tree counted as standable and every trunk was "unreachable" in 8 ms (09-19). Thin snow (<= 3 layers) is passable, like a player sees it.
-function thinSnow (b) { if (!b || b.name !== 'snow') return false; try { const l = b.getProperties().layers; return l == null || +l <= 3 } catch (e) { return true } }
-function isPassable (b) { return !b ? false : ((b.boundingBox === 'empty' || thinSnow(b)) && !isLiquid(b) && !HAZARD_STAND.test(b.name)) }
+function thinSnow (b) { if (!b || b.name !== 'snow') return false; try { const l = b.getProperties().layers; return l == null || +l <= 3 } catch (e) { return true } } // no `layers` property = one layer
+// UNKNOWN IS NEVER PASSABLE (see readAt above): a cell whose chunk is not loaded may be rock, a cavern or lava.
+function isPassable (x) { const b = blockOf(x); return !b ? false : ((b.boundingBox === 'empty' || thinSnow(b)) && !isLiquid(b) && !HAZARD_STAND.test(b.name)) }
 
 // ---------------------------------------------------------------- file locks (cross-process)
 let lockDirOk = false
 function lockFile (p) { return path.join(LOCK_DIR, p.x + '_' + p.y + '_' + p.z) }
 function acquire (bot, p, ttl = 15000) {
-  if (!lockDirOk) { try { fs.mkdirSync(LOCK_DIR, { recursive: true }) } catch {} lockDirOk = true }
+  if (!lockDirOk) { try { fs.mkdirSync(LOCK_DIR, { recursive: true }) } catch (e_) { /* another shard created it a moment ago; if it is really unwritable the openSync below fails open, by design (see `fs trouble must never stop work`) */ } lockDirOk = true }
   const f = lockFile(p)
   for (let i = 0; i < 2; i++) {
     try {
@@ -113,7 +134,7 @@ function acquire (bot, p, ttl = 15000) {
 }
 function release (bot, p) {
   const f = lockFile(p)
-  try { if (fs.readFileSync(f, 'utf8').split(' ')[0] === bot.username) fs.unlinkSync(f) } catch {}
+  try { if (fs.readFileSync(f, 'utf8').split(' ')[0] === bot.username) fs.unlinkSync(f) } catch (e_) { /* the lock expired and another bot stole it: it is no longer ours to release */ }
 }
 
 // ---------------------------------------------------------------- geometry: what can the bot see / reach?
@@ -330,7 +351,7 @@ async function placeBlock (bot, pos, itemName, opts = {}) {
   ck(bot)
   const p = V(pos)
   let cur = bot.blockAt(p)
-  if (!cur) return failP(bot, 'unloaded', t0)
+  if (!cur) { blind(bot, 'blocks:placeBlock', 'target cell not loaded, refusing to place into a cell we cannot see'); return failP(bot, 'unloaded', t0) }
   const want = opts.expect ? (opts.expect instanceof RegExp ? opts.expect : new RegExp('^' + opts.expect + '$')) : null
   const isWanted = (b) => !!b && (want ? want.test(b.name) : b.name === itemName)
   if (isWanted(cur)) { st.already++; return { ok: true, already: true, ms: 0, tries: 0 } }
@@ -443,7 +464,7 @@ async function digBlock (bot, pos, opts = {}) {
   ck(bot)
   const p = V(pos.position || pos)
   let block = bot.blockAt(p)
-  if (!block) return failD(bot, 'unloaded', t0)
+  if (!block) { blind(bot, 'blocks:digBlock', 'target cell not loaded: it is NOT empty and NOT dug'); return failD(bot, 'unloaded', t0) }
   if (isAir(block)) return { ok: true, already: true, ms: 0 }
   if (isLiquid(block)) return failD(bot, 'liquid', t0)
   if (!block.diggable || block.hardness == null || block.hardness < 0) return failD(bot, 'unbreakable', t0)
@@ -474,8 +495,12 @@ async function digBlock (bot, pos, opts = {}) {
     if (opts.plug !== false) {
       for (const f of FACES) {
         if (f.y < 0 && !opts.allowUnderFeet) continue
-        const n = bot.blockAt(p.plus(f))
-        if (!n || !isLiquid(n)) continue
+        // A NEIGHBOUR WE CANNOT SEE IS NOT "NO LAVA" (owner 09-21): `!n || !isLiquid(n) -> continue` read an unloaded neighbour as
+        // dry rock and opened the cell into whatever was behind it. Unknown neighbour -> refuse the dig and say so out loud.
+        const nr = readAt(bot, p.plus(f))
+        if (!nr.known) { blind(bot, 'blocks:digBlock/plug', 'neighbour cell not loaded, cannot tell lava from rock'); return failD(bot, 'blind_neighbour', t0, { at: [p.x + f.x, p.y + f.y, p.z + f.z] }) }
+        const n = nr.block
+        if (!isLiquid(n)) continue
         const filler = fillerItem(bot)
         let plugged = false
         if (filler) plugged = (await placeBlock(bot, p.plus(f), filler, { retries: 1, lock: false, expect: /./ })).ok
@@ -487,7 +512,9 @@ async function digBlock (bot, pos, opts = {}) {
     for (let attempt = 1; attempt <= 3; attempt++) {
       ck(bot)
       block = bot.blockAt(p)
-      if (!block || isAir(block)) return { ok: true, already: true, ms: Date.now() - t0 }
+      // NOT LOADED IS NOT DONE: this used to return ok:true (`already`) for a cell the bot could not see — the caller then ticked it off its list.
+      if (!block) { blind(bot, 'blocks:digBlock/reread', 'target cell not loaded, refusing to call it dug'); return failD(bot, 'unloaded', t0) }
+      if (isAir(block)) return { ok: true, already: true, ms: Date.now() - t0 }
       const blockers = []
       let a = visibleFaceOf(bot, eyeOf(bot), block, { blockers })
       if (!a && opts.clearThrough && blockers.length) {
@@ -502,9 +529,10 @@ async function digBlock (bot, pos, opts = {}) {
         const blk = block
         const stands = findStands(bot, p, (eye) => !!visibleFaceOf(bot, eye, blk), { max: 6, lean: true, avoid: (c) => (c.x === p.x && c.z === p.z && c.y === p.y + 1) || (opts.avoidStand && opts.avoidStand(c)) })
         if (!stands.length) return failD(bot, 'unreachable', t0)
-        const sa = await standAndAim(bot, stands, () => { const nb = bot.blockAt(p); return !nb || isAir(nb) ? { gone: true } : visibleFaceOf(bot, eyeOf(bot), nb) }, opts.moveMs)
+        const sa = await standAndAim(bot, stands, () => { const nb = bot.blockAt(p); if (!nb) return null; return isAir(nb) ? { gone: true } : visibleFaceOf(bot, eyeOf(bot), nb) }, opts.moveMs)
         block = bot.blockAt(p)
-        if (!block || isAir(block)) return { ok: true, already: true, ms: Date.now() - t0 }
+        if (!block) { blind(bot, 'blocks:digBlock/afterMove', 'target cell not loaded after walking to it'); return failD(bot, 'unloaded', t0) }
+        if (isAir(block)) return { ok: true, already: true, ms: Date.now() - t0 }
         a = sa.a && !sa.a.gone ? sa.a : null
         if (!a) { if (!sa.reached) return failD(bot, 'unreachable', t0, { stands: stands.length }); continue } // no stand could be walked to: not a line-of-sight problem (see findStands)
       }
@@ -537,7 +565,9 @@ async function digBlock (bot, pos, opts = {}) {
       await Promise.race([ack, sleep(400)])
       await sleep(60)
       const after = bot.blockAt(p)
-      if (after && !isAir(after) && !isLiquid(after) && after.type === block.type && !GRAVITY.test(after.name)) {
+      // the dig is SERVER-CONFIRMED by re-reading the cell; an unreadable cell confirms nothing, so it is not a success either
+      if (!after) { blind(bot, 'blocks:digBlock/confirm', 'cell unreadable right after the dig, cannot confirm it is gone'); return failD(bot, 'unloaded', t0) }
+      if (!isAir(after) && !isLiquid(after) && after.type === block.type && !GRAVITY.test(after.name)) {
         st.rejected++
         if (attempt === 3) return failD(bot, 'rejected', t0)
         await sleep(150)
@@ -611,8 +641,9 @@ async function pillarUp (bot, n, opts = {}) {
     await settle(bot, 1500)
     const feet = bot.entity.position.floored()
     if (penAt(feet)) break // never a pillar inside a pen (animals climb it and hop the fence)
-    const head2 = bot.blockAt(feet.offset(0, 2, 0))
-    if (head2 && !isPassable(head2)) { // ceiling: a player digs it first
+    const head2 = readAt(bot, feet.offset(0, 2, 0))
+    if (!head2.known) { blind(bot, 'blocks:pillarUp', 'the cell over the head is not loaded, refusing to jump-place into it'); break }
+    if (!isPassable(head2)) { // ceiling: a player digs it first
       const r = await digBlock(bot, feet.offset(0, 2, 0), { collect: false, requireHarvest: false })
       if (!r.ok) break
     }
@@ -711,8 +742,12 @@ async function bridge (bot, dir, len, itemName, opts = {}) {
       const feet = bot.entity.position.floored()
       const next = feet.plus(d)
       const floor = next.offset(0, -1, 0)
-      if (!isPassable(bot.blockAt(next)) || !isPassable(bot.blockAt(next.offset(0, 1, 0)))) break // wall ahead
-      const fb = bot.blockAt(floor)
+      if (!isPassable(bot.blockAt(next)) || !isPassable(bot.blockAt(next.offset(0, 1, 0)))) break // wall ahead (or unknown: never walked into)
+      // THE RIM CASE (owner 09-21): an unreadable floor cell was read as "no floor", so the bot placed a deck over a cavern it could not
+      // see and then stepped onto it. A bridge stops at the edge of what it can see.
+      const fr = readAt(bot, floor)
+      if (!fr.known) { blind(bot, 'blocks:bridge', 'the floor cell ahead is not loaded, refusing to deck over it'); break }
+      const fb = fr.block
       if (!isSolidRef(fb)) {
         const item = itemName && invCount(bot, itemName) ? itemName : fillerItem(bot)
         if (!item) break
@@ -758,6 +793,7 @@ async function bridge (bot, dir, len, itemName, opts = {}) {
 }
 
 // ---------------------------------------------------------------- FARM
+// unknown cells simply do not count as water: the bot then reports `no_water` and plants nothing — the safe side of the rule.
 function hydrated (bot, p) {
   for (let dx = -4; dx <= 4; dx++) for (let dz = -4; dz <= 4; dz++) for (let dy = 0; dy <= 1; dy++) {
     const b = bot.blockAt(p.offset(dx, dy, dz)); if (b && (b.name === 'water' || b.isWaterlogged)) return true
@@ -773,7 +809,8 @@ async function tillAndPlant (bot, pos, seedName, opts = {}) {
   if (!soil) return { ok: false, reason: 'unloaded' }
   if (!opts.allowDry && !hydrated(bot, p)) return { ok: false, reason: 'no_water' }
   const up = p.offset(0, 1, 0)
-  let top = bot.blockAt(up)
+  const top = bot.blockAt(up)
+  if (!top) return { ok: false, reason: 'unloaded' } // the cell we would plant into is unreadable: nothing is planted and nothing is "already planted"
   const cropName = { wheat_seeds: 'wheat', beetroot_seeds: 'beetroots', carrot: 'carrots', potato: 'potatoes', melon_seeds: 'melon_stem', pumpkin_seeds: 'pumpkin_stem', torchflower_seeds: 'torchflower_crop', pitcher_pod: 'pitcher_crop' }[seedName]
   if (top && cropName && top.name === cropName) return { ok: true, already: true, ms: 0 }
   if (top && !isAir(top)) {
@@ -782,6 +819,7 @@ async function tillAndPlant (bot, pos, seedName, opts = {}) {
     if (!r.ok) return { ok: false, reason: 'clear:' + r.reason }
   }
   soil = bot.blockAt(p)
+  if (!soil) return { ok: false, reason: 'unloaded' } // (it also used to throw here: `soil.name` on a null read)
   if (soil.name !== 'farmland') {
     if (!TILLABLE.test(soil.name)) return { ok: false, reason: 'not_tillable', block: soil.name }
     const hoe = bot.inventory.items().find(i => /_hoe$/.test(i.name))
@@ -878,7 +916,9 @@ async function clearAndFill (bot, box, fillName, opts = {}) {
       layer.sort((a, b) => a.distanceTo(me) - b.distanceTo(me))
       const p = layer.shift()
       const b = bot.blockAt(p)
-      if (!b || isAir(b) || isLiquid(b) || (fillName && b.name === fillName)) continue
+      // an unloaded cell used to be skipped exactly like an air cell — silently, so the box came back "cleared". It is reported instead.
+      if (!b) { blind(bot, 'blocks:clearAndFill', 'cell not loaded, it is NOT cleared'); res.failed.push({ pos: p, reason: 'dig:unloaded' }); continue }
+      if (isAir(b) || isLiquid(b) || (fillName && b.name === fillName)) continue
       const r = await digBlock(bot, p, Object.assign({ requireHarvest: false }, opts.dig))
       if (r.ok) res.dug++; else res.failed.push({ pos: p, reason: 'dig:' + r.reason })
     }
@@ -1016,5 +1056,6 @@ module.exports = {
   placeBlock, digBlock, buildCells, clearAndFill, pillarUp, pillarDown, removeScaffold, withScaffold, scaffoldLeft,
   bridge, tillAndPlant, placeTorch, harvestTree, isTrunk, saplingOf, collectDrops, safeMovements, stats, resetStats,
   bestTool, visiblePoint, visibleFaceOf, findStands, standable, centreOn, acquire, release, isReplaceable, isAir, isLiquid, hydrated,
+  readAt, blockOf, isUnknown, isSolid, isPassable, blind,
   INTERACTABLE, PROTECTED, GRAVITY, FILLER, REACH, Cancelled
 }

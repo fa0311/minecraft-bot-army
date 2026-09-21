@@ -506,6 +506,10 @@ function bestPick (bot, b) {
 }
 function stonePickCount (bot) { return pickaxes(bot).filter(i => pickRank(i.name) >= 2 && durLeft(bot, i) > 8).length }
 function cobbleCount (bot) { return U.count(bot, 'cobblestone') + U.count(bot, 'cobbled_deepslate') }
+// FILLER IS ANY STONE SORT (owner 09-21 「ブランチマイニングでは丸石以外の石ブロックを使って埋めても良い」; tossJunk has kept a stack of each sort since
+// then). A cave bridge only needs a block to wall and floor with, so asking for COBBLE alone ended branches at `cave` while the pack held 37 diorite:
+// 09-21 measured, two of six miners at the face had cobblestone 6 and 8 sorts of stone beside it. `fillItem` places exactly this set.
+function fillerCount (bot) { let n = 0; for (const name of FILL) { if (name === 'dirt') continue; n += U.count(bot, name) } return n }
 function woodUnits (bot) { return U.countRe(bot, U.LOG_RE) * 4 + U.countRe(bot, U.PLANK_RE) } // in planks
 function canCraftPick (bot) { return cobbleCount(bot) >= 3 && (U.count(bot, 'stick') >= 2 || woodUnits(bot) >= 2) && (U.has(bot, 'crafting_table') || woodUnits(bot) >= 6) }
 
@@ -1579,6 +1583,95 @@ async function recordVein (bot, pos, fam, seen, raw = 0) {
   } catch (e_) { swallow('iron_core:recordVein', e_) }
   say(bot, { ev: 'mine_vein', kind: fam, at, seen, raw, note: fam === 'tuff_cluster' ? seen + ' tuff faces in one 8-block cell at ' + at.join(',') + ': the body of a 1.18 GIANT IRON VEIN is tuff - send the squad, the miners open the tuff as a corridor' : 'giant ' + fam + ' vein: ' + seen + ' blocks connected (' + raw + ' raw blocks) - followed whole; it stands in settings.mine.veins' })
 }
+// ------------------------------------------------------------------ THE CAVES ARE THE IRON (09-21, measured through eight miners' own eyes)
+// `census(bot,40).ores` from every miner standing on the y16 lines: 44, 60, 68, 84, 85, 90 EXPOSED iron ore - ore with an air face, in the caves the
+// branches walk into and wall off - against a branch yield of 2.0 iron per 100 cells and a squad rate of 24 cells/min for twenty bots. Digging rock
+// for that iron is 27 hours; the same iron is already lying open 20 blocks away. So a branch that meets a void asks WHAT it is (jobs_cavity.voidSize,
+// the army's one implementation) and acts like a player: a POCKET is bridged walled and lit and the branch carries on; a CAVERN is not bridged at all -
+// its walls are harvested (caveOre), it goes on the board as an ore prospect (`mine_cave` + settings.mine.caves) and the branch ends there, routed around.
+function caveAt (bot, x, y, z, opts) {
+  try { return require('./jobs_cavity').voidSize(bot, [x, y, z], Object.assign({ cap: 2000, radius: 64 }, opts || {})) } catch (e_) { swallow('iron_core:caveAt', e_); return null }
+}
+// the cave's own klass decides: `tiny`/`small` = a pocket in the rock (bridge it), `big`/`cavern` = a room (harvest and route around). `capped`
+// (voidSize hit its 2000 cells / 64 blocks) is a cavern by definition - it is bigger than we looked.
+function bigCave (v) { return !!v && (v.klass === 'big' || v.klass === 'cavern' || v.capped) }
+// EXPOSED ore around a point, by the census' own rule (an ore with an open face = what a player sees), narrowed to what a miner can take from a
+// corridor at THIS level: within `dy` of the line (eye 1.62 + reach 4.4) and `r` blocks out. No x-ray: `findBlocks` reads loaded chunk data and every
+// candidate must show a face to air - the same test `armyctl.js census ores` and the `ores` job use. Copper is skipped (ORE_RE skips it too).
+function exposedNear (bot, at, r = 24, y = at.y, dy = 3) {
+  const out = []
+  try {
+    const ids = Object.values(bot.registry.blocksByName).filter(b => ORE_RE.test(b.name)).map(b => b.id)
+    if (!ids.length) return out
+    for (const p of bot.findBlocks({ matching: ids, maxDistance: Math.max(r, dy) + 2, count: 512, point: new Vec3(at.x, y, at.z) })) {
+      if (Math.abs(p.y - y) > dy || Math.hypot(p.x - at.x, p.z - at.z) > r) continue
+      if (!FACES.some(d => isOpen(blk(bot, p.x + d[0], p.y + d[1], p.z + d[2])))) continue
+      out.push(p)
+    }
+    out.sort((a, b) => (Math.hypot(a.x - at.x, a.z - at.z) + Math.abs(a.y - y)) - (Math.hypot(b.x - at.x, b.z - at.z) + Math.abs(b.y - y)))
+  } catch (e_) { swallow('iron_core:exposedNear', e_) }
+  return out
+}
+// HARVEST A CAVERN'S WALLS from the branch we stand on. One implementation, no new movement: every exposed ore is handed to `mineVein`, which tunnels
+// toward it at CORRIDOR LEVEL one openCell at a time (floors a gap, plugs a liquid, never steps into a void), takes the whole connected body, collects
+// the drops (collectDrops + collectVein) and walks its trail back; `drainSeen` then takes what those digs uncovered. No pathfinder, no private diagonal,
+// and the excursion ends on the anchor cell of our own line. Bounded by time, by VEIN_R and by maxMoves - a miner never wanders off into the dark.
+const CAVE_ORE_MS = 240000    // one cavern is worth four minutes of a slice, no more (the branch and the commute still have to fit)
+const CAVE_ORE_R = 24         // how far out of the mouth its walls are worked
+async function caveOre (bot, M, mouth, gen, opts = {}) {
+  const y = mouth.y
+  const anchor = opts.anchor || { x: bot.entity ? feet(bot).x : mouth.x, y, z: bot.entity ? feet(bot).z : mouth.z }
+  const out = { ore: 0, iron: 0, seen: 0, veins: 0 }
+  const end = Date.now() + (opts.ms || CAVE_ORE_MS)
+  const list = exposedNear(bot, mouth, opts.r || CAVE_ORE_R, y, 3)
+  // WHAT WE CAME FOR FIRST (rule 0b: no make-work). While the army is short of iron, iron and diamond are worked before coal/lapis/redstone that
+  // already stand at their target - a 4-minute excursion must not be spent on the fuel shelf. Distance decides inside each class.
+  try {
+    const t = (army().settings().targets || {}).iron || 0
+    if (t > 0 && require('../../army/stock.js').have('iron') < t) {
+      const rank = p => { const b = bot.blockAt(p); const f = b && oreFamily(b.name); return f === 'iron' ? 0 : f === 'diamond' ? 1 : f === 'gold' ? 2 : 3 }
+      const r = new Map(list.map(p => [U.kpos(p), rank(p)]))
+      list.sort((a, b) => r.get(U.kpos(a)) - r.get(U.kpos(b)))
+    }
+  } catch (e_) { swallow('iron_core:caveOreSort', e_) }
+  out.seen = list.length
+  bot.state.task = 'iron:cave ore ' + list.length + '@' + mouth.x + ',' + y + ',' + mouth.z
+  for (const p of list) {
+    if (Date.now() > end || stale(bot, gen)) break
+    if (await defend(bot, gen)) { if (bot.health < 8) break; continue }
+    await eat(bot)
+    if (!bestPick(bot) && !await ensurePick(bot, 1)) break
+    const b = bot.blockAt(p)
+    const fam = b && oreFamily(b.name)
+    if (!fam) continue
+    const n = await mineVein(bot, b, y, anchor, gen, { maxMoves: 24 })
+    if (n > 0) { out.veins++; out.ore += n; if (fam === 'iron') out.iron += n }
+    const dr = await drainSeen(bot, y, anchor, gen)
+    out.ore += dr.got; out.iron += dr.iron
+  }
+  await returnTo(bot, anchor, gen)
+  return out
+}
+// A CAVERN GOES ON THE BOARD like a giant vein does (recordVein): its walls are standing ore an operator can send head-count to (`ores` job / a second
+// squad), and `armyctl.js events 20 mine_cave` reads it. Deduped per 16-block cell, last 24 kept. Nobody is re-assigned by code (CLAUDE.md rule 1a).
+async function recordCave (bot, at, v, got) {
+  const a = [at.x, at.y, at.z]
+  const key = a.map(q => Math.floor(q / 16)).join(',')
+  try {
+    if ((bot.__ironCaves = bot.__ironCaves || {})[key]) return
+    bot.__ironCaves[key] = 1
+    army().boardEdit(b => {
+      b.settings = b.settings || {}
+      const m = b.settings.mine = b.settings.mine || {}
+      const l = m.caves = Array.isArray(m.caves) ? m.caves : []
+      if (l.some(c => c && c.key === key)) return
+      l.push({ key, at: a, cells: v.cells, klass: v.klass, ores: got.seen, iron: got.iron, by: bot.username, t: Date.now() })
+      m.caves = l.slice(-24)
+    })
+  } catch (e_) { swallow('iron_core:recordCave', e_) }
+  say(bot, { ev: 'mine_cave', at: a, cells: v.cells, klass: v.klass, box: v.box, lava: v.touchesLava, ores: got.seen, mined: got.ore, iron: got.iron, note: 'a CAVERN at the branch face, not a pocket: its walls are exposed ore (' + got.seen + ' in reach of this level, ' + got.iron + ' iron taken). Not bridged - the branch ends here and the room stands in settings.mine.caves for an operator to send head-count to' })
+}
+
 // back to the anchor cell of our own line after a vein excursion: a LEVEL 1x2 line (walkLine keeps the level, floors gaps, climbs out of a hole).
 // World 1 used the pathfinder here as a fallback - underground it digs and places, which is how private diagonals appeared beside the branches.
 async function returnTo (bot, anchor, gen) {
@@ -1834,7 +1927,10 @@ async function claimBranch (bot, M) {
             Object.assign(b, { owner: bot.username, t: now, repairBy: bot.username, repairs: (b.repairs || 0) + 1 })
             return Object.assign({ key, repair: true }, b)
           }
-          L.branches[key] = { owner: bot.username, t: now, k, side, len: (b && b.len) || 0, done: false, ore: (b && b.ore) || 0 }
+          // the record is REBUILT here, so everything the level's books live on has to be carried over: `iron` is what `armyctl.js mine` and
+          // levelYield decide the squad's level by (09-21 it was dropped on every re-claim - the y16 iron yield read 2.0/100 and fell by 4 while
+          // the squad was mining it), `caveTry` is the count that stops a cave branch being handed out for ever.
+          L.branches[key] = { owner: bot.username, t: now, k, side, len: (b && b.len) || 0, done: false, ore: (b && b.ore) || 0, iron: (b && b.iron) || 0, caveTry: (b && b.caveTry) || 0 }
           if (b && b.need) L.branches[key].need = b.need
           return Object.assign({ key }, L.branches[key])
         }
@@ -2075,6 +2171,7 @@ async function mineBranch (bot, M, br, gen, opts = {}) {
   let oreIron = 0                // measured per level: iron ore per 100 cells advanced is what decides where the squad works (levelYield)
   let fails = 0
   let bridged = 0                // cells of the current cave crossing (reset as soon as the line is back in rock)
+  let prospected = false         // the one look around this stint's face for standing ore (see below)
   const hotSt = { plugs: 0 }
   const t0 = Date.now()
   const maxMs = opts.maxMs || 20 * 60000
@@ -2095,6 +2192,20 @@ async function mineBranch (bot, M, br, gen, opts = {}) {
     const f = feet(bot)
     if (f.x !== face.x || f.z !== face.z || f.y !== y) {
       if (!await returnTo(bot, face, gen)) { if (++fails > 3) { why = 'lost'; break } continue }
+    }
+    // LOOK AROUND THE FACE BEFORE DIGGING ON, the way a player does (09-21: every miner on the y16 lines had 44-90 exposed iron ore within 40 blocks
+    // of it - the mine has already opened the caves that hold it and walled them off). Standing ore in reach of this level is taken FIRST: it costs no
+    // rock at all, while the face itself pays 2.0 iron per 100 cells. Once per stint, one findBlocks, and only when there is a real pocket of it.
+    if (!prospected) {
+      prospected = true
+      const near = exposedNear(bot, face, 16, y, 3)
+      if (near.length >= 3) {
+        const got = await caveOre(bot, M, face, gen, { r: 16, ms: 120000, anchor: face })
+        ore += got.ore; oreIron += got.iron; bump(bot, 'cave_ore', got.ore); bump(bot, 'cave_iron', got.iron)
+        if (got.ore) await saveBranch(M, br.key, { len, ore: (br.ore || 0) + ore, iron: (br.iron || 0) + oreIron })
+        if (stale(bot, gen)) { why = 'stale'; break }
+        continue
+      }
     }
     const nx = face.x + d[0]; const nz = face.z + d[1]
     // cave ahead? (both cells already open and the one after too) -> seal and finish this branch
@@ -2123,7 +2234,23 @@ async function mineBranch (bot, M, br, gen, opts = {}) {
       const hz = await clearHot(bot, face, d, y, hotSt, gen)
       if (hz === 'plugged') continue
       if (hz === 'lava') { why = 'lava'; await saveBranch(M, br.key, Object.assign({ len, ore: (br.ore || 0) + ore, iron: (br.iron || 0) + oreIron }, lavaAhead(bot, M, br, len))); await markHazard(bot, M.E, M.level, br.key, { kind: hotSt.kind || 'lava', at: hotSt.at, close: true, walled: hotSt.walled, len: len - 3 }); return { why, ore, len } }
-      if (bridged >= CAVE_BRIDGE || cobbleCount(bot) < 8) {
+      // WHAT IS THIS VOID? (09-21: 656 of 1280 branches stood `done cave` while every miner had 44-90 exposed iron ore within 40 blocks of it.)
+      // Asked ONCE per crossing, on its first cell: a pocket is bridged as before; a CAVERN is harvested and the branch ends there - bridging a room
+      // burns a pack of filler for nothing, and its walls are the iron we came for.
+      if (!bridged) {
+        const v = caveAt(bot, nx, y, nz)
+        if (bigCave(v)) {
+          const got = await caveOre(bot, M, { x: nx, y, z: nz }, gen)
+          ore += got.ore; oreIron += got.iron; bump(bot, 'cave_ore', got.ore); bump(bot, 'cave_iron', got.iron)
+          await recordCave(bot, { x: nx, y, z: nz }, v, got)
+          if (stale(bot, gen)) { why = 'stale'; break }
+          for (const dy of [0, 1]) { const it = fillItem(bot); if (it) await placeAt(bot, it, new Vec3(nx, y + dy, nz)) }
+          why = 'cave'; len = Math.max(len, 1)
+          await saveBranch(M, br.key, Object.assign({ len, done: true, ore: (br.ore || 0) + ore, iron: (br.iron || 0) + oreIron, why, cavern: v.cells }, lavaAhead(bot, M, br, len)))
+          return { why, ore, len }
+        }
+      }
+      if (bridged >= CAVE_BRIDGE || fillerCount(bot) < 8) {
         for (const dy of [0, 1]) { const it = fillItem(bot); if (it) await placeAt(bot, it, new Vec3(nx, y + dy, nz)) }
         why = 'cave'; len = Math.max(len, 1); await saveBranch(M, br.key, Object.assign({ len, done: true, ore: (br.ore || 0) + ore, iron: (br.iron || 0) + oreIron, why }, lavaAhead(bot, M, br, len))); return { why, ore, len }
       }
@@ -2220,13 +2347,19 @@ function foodUnits (bot) {
 function pickUses (bot) { return pickaxes(bot).reduce((n, i) => n + Math.max(0, durLeft(bot, i)), 0) }
 // World 1 (d): miners went down hungry, with one worn pick and no torches; every broken pick was a 280-step round trip and the dark trunk bred
 // creepers. missing = nobody descends without it · short = taken along "when available" (the depot may simply have none yet)
-function readiness (bot) {
+function readiness (bot, opts = {}) {
   const missing = []; const short = []
   // A NEW WORLD HAS NO LARDER (world 2 day one: food 19/448 for 50 bots; the food gate kept every miner up while coal, iron and cobblestone -
   // i.e. torches, furnaces, the bucket, COOKED food - all wait for the mine). While the army's food stock is under 64 a well-fed bot
   // (hunger >= 14) may go down; the `hungry` exit still brings it up through the stairs.
   let larder = 1e9; try { larder = require('../../army/stock.js').have('food') } catch (e_) { swallow('iron_core:larder', e_) }
-  if (foodUnits(bot) < 8 && !(larder < 64 && (bot.food || 0) >= 14)) missing.push('food')
+  // ...and a larder that is LARGE ENOUGH FOR THE LARDER AND TOO SMALL FOR THE SQUAD is the same thing (09-21, measured: depot food 103 units against
+  // a squad of 20 that wants 8 each, 48 `mine_not_ready missing:food` from 24 different bots in 20 min, and NOT ONE bot left on mine_iron - the
+  // deficit item of the whole army was being mined by nobody). `opts.afterDepot` = the bot has just stood at the chests and the depot could not
+  // supply it: that is the measurement, not a day-one constant. A bot that is WELL FED and carries a real shift's worth goes down anyway - the
+  // `hungry` exitReason still walks it up the stairs, which is what it is for.
+  const fu = foodUnits(bot)
+  if (fu < 8 && !(larder < 64 && (bot.food || 0) >= 14) && !(opts.afterDepot && fu >= 3 && (bot.food || 0) >= 14)) missing.push('food')
   if (!bestPick(bot)) missing.push('pickaxe'); else if (pickaxes(bot).length < 2 && U.count(bot, 'stick') < 2 && woodUnits(bot) < 2) missing.push('pick_spare') // stone is down there, sticks are not
   if (U.count(bot, 'torch') < 16) short.push('torch')
   if (!fillItem(bot)) short.push('cobblestone') // a stair repair needs a block in hand - ANY stone sort does (FILL), cobblestone is only what the depot is asked for
@@ -2693,10 +2826,11 @@ module.exports = {
   // the mine of this job + its cache
   mine, refresh, read, update, lvState, underground, hb, bump, ledger, stale,
   blk, isLiquid, isSolid, isOpen, feet, eyeDist, fillItem, placeAt, plug,
-  pickaxes, durLeft, bestPick, stonePickCount, cobbleCount, woodUnits, canCraftPick, withTable, ensurePick, ensureTorches,
+  pickaxes, durLeft, bestPick, stonePickCount, cobbleCount, fillerCount, woodUnits, canCraftPick, withTable, ensurePick, ensureTorches,
   digCell, openCell, sealSides, torchNear, stepTo, settle, walkLine, pillarOne, blocked, sweep, returnTo,
   auditStairs, repairStairs, walkRoute, nearestWp, treadState, layTreads, stairItem, STAIR_RE, isSupport, supportChain, placeSupported,
   exposedOre, veinOf, mineVein, collectVein, noteOre, drainSeen, fortuneOf, threat, defend, wallOff, eat, tossJunk,
+  caveAt, bigCave, exposedNear, caveOre, recordCave,
   claimStairs, digStairs, claimBranch, branchOutlook, exhausted, levelCap, levelYield, reopenable, commute, nextLanding, claimGrowth, sayMine, pickRank, stoneWanted, saveBranch, gotoBranchFace, mineBranch, walkTrunk,
   rawIron, lootScore, needHaul, foodUnits, pickUses, readiness, exitReason, reconnect, toSurface, toEntrance,
   // lava on record + the obsidian trip

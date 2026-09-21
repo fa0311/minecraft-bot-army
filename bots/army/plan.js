@@ -120,16 +120,22 @@ function zoneOf (j) { const m = /zone ([a-z0-9_ ]+?)(?: x |:|,)/i.exec(String(j.
 let _memo = null
 function compile (opt = {}) {
   const file = opt.board || A.F.board
-  const stamp = (() => { try { return fs.statSync(file).mtimeMs } catch { return 0 } })()
-  const key = JSON.stringify([file, stamp, opt.dim || 'overworld', opt.box || null, opt.includePaused !== false])
+  const board = A.readJSON(file, {}) || {}
+  // The dispatcher rewrites jobs.json every few seconds, so an mtime key would throw the memo away on every call and cost 2 s
+  // per bot loop. The signature is what the PLAN actually depends on: the build/road jobs' geometry and the keep-outs.
+  const sig = JSON.stringify([
+    (board.jobs || []).filter(j => j.type === 'build' || j.type === 'road').map(j => [j.id, j.type, j.status, j.priority, j.dim, j.after, j.plan, j.front, j.params]),
+    (board.settings || {}).keepOut, (board.settings || {}).base,
+    (() => { try { return fs.statSync(path.join(DIR, 'jobs-archive.jsonl')).size } catch { return 0 } })()
+  ])
+  const key = JSON.stringify([file, opt.dim || 'overworld', opt.box || null, opt.includePaused !== false, opt.archive !== false]) + '|' + sig
   if (!opt.fresh && _memo && _memo.key === key) return _memo.plan
-  const plan = build(file, opt, key)
+  const plan = build(board, file, opt, key)
   _memo = { key, plan }
   return plan
 }
 
-function build (file, opt, key) {
-  const board = A.readJSON(file, {}) || {}
+function build (board, file, opt, key) {
   const S = board.settings || {}
   const keepOut = (S.keepOut || []).filter(k => k && Array.isArray(k.box)).map(k => ({ id: k.id, box: box4(k.box), why: k.why || '' }))
   const src = sourcesOf(board, opt).filter(s => opt.includePaused === false ? s.status === 'active' : true)
@@ -142,6 +148,11 @@ function build (file, opt, key) {
     let cs = []
     try { cs = cellsOf(s.params) } catch (e) { s.error = String(e.message).slice(0, 90); cs = [] }
     if (limit) cs = cs.filter(c => c.x >= limit[0] && c.x <= limit[2] && c.z >= limit[1] && c.z <= limit[3])
+    // A FINISHED EXCAVATION IS NOT A STANDING ORDER TO KEEP DIGGING. The two day-one quarries and the terrace cuts are archived
+    // `quarry`/`clear_area`/`fill_void` jobs whose cells are AIR; the world has since grown grass over them and the ravine fill
+    // is closing them on purpose. Their air cells are dropped (measured: 67 `extra` grass columns ordered dug by quarry_ne).
+    // A finished PAD or STRUCTURE keeps its air: headroom over a hall and the inside of a building must stay clear for ever.
+    if (!s.live && s.kind === 'fill') cs = cs.filter(c => c.block !== 'air')
     let x1 = Infinity; let z1 = Infinity; let x2 = -Infinity; let z2 = -Infinity; const cols = new Set()
     for (const c of cs) { if (c.x < x1) x1 = c.x; if (c.x > x2) x2 = c.x; if (c.z < z1) z1 = c.z; if (c.z > z2) z2 = c.z; cols.add(c.x + ',' + c.z) }
     s.n = cs.length; s.rect = cs.length ? [x1, z1, x2, z2] : null; s.area = cs.length ? (x2 - x1 + 1) * (z2 - z1 + 1) : 0; s.cols = cols.size
@@ -231,7 +242,11 @@ function build (file, opt, key) {
       const si = v >>> 12; const c = variants[si].list[v & 4095]; const s = src[si]
       const y = (ckey >>> 8) - 128; const x = (parseInt(k.split(',')[0], 10) << 4) + ((ckey >>> 4) & 15); const z = (parseInt(k.split(',')[1], 10) << 4) + (ckey & 15)
       let layer; let block = c.block; let mats = c.mats || null
-      if (c.block === 'air') { layer = 'none'; mats = null } else if (s.kind === 'structure' || FURNITURE.test(c.block)) { layer = 'structure' } else if (covers(m, x, y, z)) {
+      const ground = SURFACE_OK.includes(c.block) && !FURNITURE.test(c.block)
+      if (c.block === 'air') { layer = 'none'; mats = null } else if ((s.kind === 'structure' || FURNITURE.test(c.block)) && !(ground && !covers(m, x, y, z))) {
+        layer = 'structure' // a structure's SOIL cell that nothing covers is the ground a player walks on, not a face: it falls through to `surface`
+        // (measured: the tree farm's 2070 `dirt` floor cells read as "wrong material" against the grass_block that grew on them)
+      } else if (covers(m, x, y, z)) {
         layer = 'body'; block = c.block; mats = null                            // the material rule: buried = ANY stone sort
       } else {
         // THE REWRITE THAT RETIRES cap_*: a terrain job's TOP cell is what a player sees, so it carries the GROUND material
@@ -316,6 +331,9 @@ function build (file, opt, key) {
     at (x, y, z) { const m = chunks.get(ck(x, z)); if (!m) return null; const v = m.get(cellKey(x, y, z)); return v === undefined ? null : pal[v] },
     owns (jobId, x, z) { const s = ownCols.get(jobId); return !!s && s.has(x + ',' + z) },
     ownerAt (x, z) { const m = chunks.get(ck(x, z)); if (!m) return null; let best = null; let by = -1e9; for (const [k, v] of m) { const y = (k >>> 8) - 128; if (((k >>> 4) & 15) !== (x & 15) || (k & 15) !== (z & 15)) continue; if (y > by && pal[v].layer !== 'none') { by = y; best = pal[v] } } return best },
+    lock (cells, who, ms, o) { return lock(this, cells, who, ms, o) },
+    lockStanding (bot, o) { return lockStanding(this, bot, o) },
+    release, releaseAll, lockedBy, persistent,
     inKeepOut (x, z) { for (const k of keepOut) if (x >= k.box[0] && x <= k.box[2] && z >= k.box[1] && z <= k.box[3]) return k.id; return null },
     cells: function * (b) { const B = b ? box4(b) : null; for (const [k, m] of chunks) { const [cx, cz] = k.split(',').map(Number); if (B && !overlap([cx << 4, cz << 4, (cx << 4) + 15, (cz << 4) + 15], B)) continue; for (const [key2, v] of m) { const y = (key2 >>> 8) - 128; const x = (cx << 4) + ((key2 >>> 4) & 15); const z = (cz << 4) + (key2 & 15); if (B && (x < B[0] || x > B[2] || z < B[1] || z > B[3])) continue; yield { x, y, z, t: pal[v] } } } },
     diff (world, b, o) { return diff(this, world, b, o || {}) }
@@ -344,7 +362,11 @@ function diff (plan, world, b, opt = {}) {
     try { have = world(c.x, c.y, c.z) } catch (e_) { have = null }
     let how
     if (have === null || have === undefined) how = 'unknown'
-    else if (t.layer === 'none') how = (t.natural ? NATURAL.test(have) : have !== 'air' && have !== 'cave_air' && have !== 'void_air' && have !== 'water') ? 'extra' : 'ok'
+    // AN AIR CELL IS NOT A LICENCE TO CLEAR. Our own torch grid, the cane we planted and every crop stand in `air` cells of a
+    // pad's headroom; a build job working from this list would have dug them out (measured: 804 `extra` cane cells under
+    // base_cane's own clear layer, torches under every infill tile). Only a real placed BLOCK counts as extra — and on a road
+    // shoulder (`natural:true`) only natural ground does.
+    else if (t.layer === 'none') how = (t.natural ? NATURAL.test(have) : !THIN.test(have) && !FURNITURE.test(have)) ? 'extra' : 'ok'
     else if (have === 'air' || have === 'cave_air' || have === 'void_air') how = 'missing'
     else if (accepts(t, have)) how = 'ok'
     else how = t.fillOnly && t.layer === 'body' ? 'ok' : 'wrong'
@@ -365,7 +387,77 @@ function accepts (t, have) {
   return false
 }
 
+// ---------------------------------------------------------------- CELL LEASES (owner 09-21 「ブロック単位のロックを行うことで帰り道を
+// 他のbotが塞ぐことが防げるのではないか？」) — the second half of the answer. The target map says WHAT belongs in a cell; a lease says
+// "for the next few minutes this cell is MINE — not to build, but to stay alive". Kokoro was buried under 19 blocks this morning
+// because a mate's fill closed the column she was standing in and the shaft she came down; a crew would have died the same way.
+//
+// ONE IMPLEMENTATION: leases are written into the SAME per-cell lock files blocks.js already checks before every place and dig
+// (`bots/.blocklocks/<x>_<y>_<z>`, content `who <expiryMs>`). No new state file, no new directory, and no patch to blocks.js —
+// every placeBlock/digBlock in the army already refuses a cell another bot holds. A lease is just a longer, deliberate one.
+// LIMITS (a bot cannot lock the world): at most 64 cells per call, at most 10 minutes, and only cells that HAVE a target in the
+// map or lie within 6 blocks of the holder — the way out of a hole is always both. Leases expire by themselves; `releaseAll`
+// clears a dead bot's (core/recover.js calls it on death), and a stale file is stolen by blocks.js exactly as before.
+const LOCKS = path.join(DIR, '..', '.blocklocks')
+const lockPath = (x, y, z) => path.join(LOCKS, x + '_' + y + '_' + z)
+const nameOf = who => typeof who === 'string' ? who : (who && who.username) || 'unknown'
+const MAX_CELLS = 64; const MAX_MS = 600000
+function lock (plan, cells, who, ms = 60000, opt = {}) {
+  const me = nameOf(who); const until = Date.now() + Math.min(ms, MAX_MS)
+  const near = opt.near || (typeof who === 'object' && who && who.entity ? who.entity.position.floored() : null)
+  const got = []; const refused = []
+  try { fs.mkdirSync(LOCKS, { recursive: true }) } catch (e_) { swallow('plan:lockDir', e_) }
+  for (const c of cells.slice(0, MAX_CELLS)) {
+    const [x, y, z] = Array.isArray(c) ? c : [c.x, c.y, c.z]
+    const inMap = !!(plan && plan.at(x, y, z))
+    const close = near && Math.abs(near.x - x) <= 6 && Math.abs(near.y - y) <= 6 && Math.abs(near.z - z) <= 6
+    if (!inMap && !close) { refused.push({ at: [x, y, z], why: 'outside the plan and more than 6 blocks from the holder' }); continue }
+    const f = lockPath(x, y, z)
+    try {
+      let holder = null
+      try { const s = fs.readFileSync(f, 'utf8').split(' '); if (+s[1] > Date.now()) holder = s[0] } catch (e_) { holder = null }
+      if (holder && holder !== me) { refused.push({ at: [x, y, z], why: 'held by ' + holder }); continue }
+      fs.writeFileSync(f, me + ' ' + until)
+      got.push([x, y, z])
+    } catch (e_) { swallow('plan:lock', e_); refused.push({ at: [x, y, z], why: 'fs' }) }
+  }
+  return { ok: refused.length === 0, got, refused, until }
+}
+function release (cells, who) {
+  const me = nameOf(who); let n = 0
+  for (const c of cells || []) {
+    const [x, y, z] = Array.isArray(c) ? c : [c.x, c.y, c.z]; const f = lockPath(x, y, z)
+    try { if (fs.readFileSync(f, 'utf8').split(' ')[0] === me) { fs.unlinkSync(f); n++ } } catch (e_) { /* gone or another holder */ }
+  }
+  return n
+}
+function releaseAll (who) { // a dead bot holds nothing (call it from the death handler; leases expire on their own anyway)
+  const me = nameOf(who); let n = 0
+  try { for (const f of fs.readdirSync(LOCKS)) { const p = path.join(LOCKS, f); try { if (fs.readFileSync(p, 'utf8').split(' ')[0] === me) { fs.unlinkSync(p); n++ } } catch (e_) { swallow('plan:releaseAllFile', e_) } } } catch (e_) { swallow('plan:releaseAll', e_) }
+  return n
+}
+function lockedBy (x, y, z) { try { const s = fs.readFileSync(lockPath(x, y, z), 'utf8').split(' '); return +s[1] > Date.now() ? s[0] : null } catch (e_) { return null } }
+// THE WAY OUT IS NOT WORK — IT IS SURVIVAL. The column a bot stands in plus the shaft it climbs: leased in one call so no mate's
+// fill, deck or cap can close it (docs/DEV.md `cavity`: "THE WAY OUT IS THE SHAFT YOU ARE FILLING UPWARD").
+function lockStanding (plan, bot, opt = {}) {
+  const p = bot.entity.position.floored(); const up = opt.up == null ? 3 : opt.up; const down = opt.down == null ? 1 : opt.down
+  const cells = []; for (let dy = -down; dy <= up; dy++) cells.push([p.x, p.y + dy, p.z])
+  for (const c of opt.shaft || []) cells.push(c)
+  return lock(plan, cells, bot, opt.ms || 120000, { near: p })
+}
+
+// ---------------------------------------------------------------- THE DIFF IS ALSO THE REPAIR ORDER (owner 09-21
+// 「全てを目標ブロックに記録することでアルゴリズムのミスで壊れた部分もすぐに修復できるのではないか？」): once every cell's intended block is on
+// record, damage needs no special audit. A dig/place loop, a fill that ate a road, a creeper, a lava flow — all of them show up
+// as the same three classes (missing / wrong / extra) and are repaired by the same crews that built the place. What a repair
+// must NOT do is retry for ever: `persistent(prev, cur)` names the cells that were reported wrong in the previous pass AND in
+// this one, i.e. the ones a crew has already failed to fix. Those are escalated (docs/BUGS.md), never handed out again.
+function persistent (prev, cur) {
+  const seen = new Map(); for (const c of (prev && prev.cells) || []) seen.set(c.x + ',' + c.y + ',' + c.z, c.how)
+  return ((cur && cur.cells) || []).filter(c => seen.get(c.x + ',' + c.y + ',' + c.z) === c.how)
+}
+
 // a world reader for a live bot (read-only; unloaded -> null so the diff says `unknown`, never `missing`)
 function botWorld (bot) { const { Vec3 } = require('vec3'); return (x, y, z) => { const b = bot.blockAt(new Vec3(x, y, z)); return b ? b.name : null } }
 
-module.exports = { compile, diff, accepts, botWorld, RANK, BODY_OK, SURFACE_OK, SURFACE_BLOCK, kindOf, cellsOf }
+module.exports = { compile, diff, accepts, botWorld, lock, release, releaseAll, lockedBy, lockStanding, persistent, RANK, BODY_OK, SURFACE_OK, SURFACE_BLOCK, kindOf, cellsOf }

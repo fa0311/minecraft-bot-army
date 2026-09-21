@@ -249,17 +249,41 @@ async function main () {
       } catch (e) { reject(e) }
     })
   }).finally(() => { try { bot.quit() } catch {} })
+  const q0 = bx => (bx && bx.length === 4 ? bx : [bx[0], bx[2], bx[3], bx[5]])
   const prevState = rj(STATE, null); const prev = prevState && prevState.t ? prevState : null; const findings = []; const say = f => findings.push(f)
   const prevAlert = new Map(((prev && prev.findings) || []).filter(f => f.alert).map(f => [f.ev + '|' + (f.key || ''), f]))
+
+  // ---------- PEN RINGS: one missing block and the herd is gone (owner 09-21: 「家畜のエリアってちょっとでも不要なブロックとか欠けがあれば全員脱走する」).
+  // The pen finding below counts heads; this counts the FENCE: every ring cell must be fence/wall/gate (or solid), no gate left open, and no solid
+  // block against the inside of the ring - a mob steps onto it and walks out over the fence. Cheap: the ring is ~76 cells per pen, read from the map.
+  { const ringBad = []
+    for (const b of P.builds.filter(q => /pen/.test(q.id) && q.box)) {
+      const [x1, z1, x2, z2] = q0(b.box); const ring = []
+      for (let x = x1; x <= x2; x++) { ring.push([x, z1]); ring.push([x, z2]) }
+      for (let z = z1 + 1; z < z2; z++) { ring.push([x1, z]); ring.push([x2, z]) }
+      const gaps = []; const steps = []
+      for (const [x, z] of ring) { const i2 = (z - box[1]) * bw + x - box[0]
+        if (x < box[0] || x > box[2] || z < box[1] || z > box[3]) continue
+        const n = names[lvlN[i2]]; if (!n || n === '?') continue
+        if (!/fence|wall|gate/.test(n) && gY[i2] <= level) gaps.push([x, z, n])
+        const ix = x === x1 ? x + 1 : x === x2 ? x - 1 : x; const iz = z === z1 ? z + 1 : z === z2 ? z - 1 : z
+        const j2 = (iz - box[1]) * bw + ix - box[0]; const inn = names[lvlN[j2]]
+        if (inn && inn !== '?' && !/fence|wall|gate|air/.test(inn) && gY[j2] > level) steps.push([ix, iz, inn]) }
+      if (gaps.length || steps.length) ringBad.push({ pen: b.id, gaps: gaps.slice(0, 8), nGaps: gaps.length, steps: steps.slice(0, 8), nSteps: steps.length })
+    }
+    if (ringBad.length) say({ ev: 'audit_pen_ring', key: '', alert: true, pens: ringBad,
+      text: 'PEN FENCE BROKEN: ' + ringBad.map(r => r.pen + ' ' + r.nGaps + ' gap(s)' + (r.nSteps ? ' + ' + r.nSteps + ' block(s) against the inside (a step OVER the fence)' : '') + (r.gaps[0] ? ' e.g. ' + r.gaps[0].slice(0, 2).join(',') + '=' + r.gaps[0][2] : '')).join(' · ') +
+        ' -> one missing block empties the pen: re-activate that pen\'s own build job (it is the repair), and remove any solid block touching the ring from inside' })
+  }
 
   // ---------- a. SURFACE ----------
   const N8 = [[1, 0], [-1, 0], [0, 1], [0, -1], [1, 1], [1, -1], [-1, 1], [-1, -1]]; const mark = new Uint8Array(bw * bdp); const clusters = []; const count = { pad: 0, yard: 0, wild: 0, padSeen: 0, yardSeen: 0, wildSeen: 0, unseen: 0 }
   for (let i = 0; i < bw * bdp; i++) { const c = cls[i] & 15; if (!(cls[i] & 16)) { count.unseen++; continue } if (c === 2) continue; const k = c === 1 ? 'pad' : c === 3 ? 'yard' : 'wild'; count[k + 'Seen']++; if (dy[i]) count[k]++ }
   for (let i = 0; i < bw * bdp; i++) {
-    if (mark[i] || !dy[i] || !(cls[i] & 16) || !((cls[i] & 15) === 1 || (cls[i] & 15) === 3)) continue
+    if (mark[i] || !dy[i] || !(cls[i] & 16) || !((cls[i] & 15) === 1 || (cls[i] & 15) === 3 || (cls[i] & 15) === 0)) continue // class 0 = ground inside the base box that no zone claims: the owner walks there too (09-21: a 2-block dirt mound at -287,71,-486 that the audit COUNTED as `wild` and then threw away)
     const sign = dy[i] > 0 ? 1 : -1; const q = [i]; mark[i] = 1; let n = 0; let sx = 0; let sz = 0; let ext = 0; let onPad = 0; const members = []
     while (q.length) { const j = q.pop(); members.push(j); const x = j % bw; const z = (j - x) / bw; n++; sx += x; sz += z; if ((cls[j] & 15) === 1) onPad++; if (Math.abs(dy[j]) > Math.abs(ext)) ext = dy[j]; for (const [a, b] of N8) { const X = x + a; const Z = z + b; if (X < 0 || Z < 0 || X >= bw || Z >= bdp) continue; const k = Z * bw + X; if (mark[k] || !dy[k] || (dy[k] > 0 ? 1 : -1) !== sign || !(cls[k] & 16) || !((cls[k] & 15) === 1 || (cls[k] & 15) === 3)) continue; mark[k] = 1; q.push(k) } }
-    clusters.push([box[0] + Math.round(sx / n), box[1] + Math.round(sz / n), n, ext, onPad, members])
+    clusters.push([box[0] + Math.round(sx / n), box[1] + Math.round(sz / n), n, ext, onPad, members, (cls[i] & 15)])
   }
   // a DEFECT (crater, pillar, staircase, half-filled moat: <= 60 columns, or anything on a pad/road/footprint) is the sponge's and the builders' debt;
   // a big off-level area of the yard is LAND NOBODY LEVELLED YET (a hill, a pond inside the wall line) = a planning matter: it wants a `level` pad job

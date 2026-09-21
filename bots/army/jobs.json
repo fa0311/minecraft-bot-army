@@ -440,6 +440,76 @@
      -359,
      70,
      -518
+    ],
+    [
+     -363,
+     71,
+     -515
+    ],
+    [
+     -361,
+     71,
+     -515
+    ],
+    [
+     -359,
+     71,
+     -515
+    ],
+    [
+     -363,
+     71,
+     -518
+    ],
+    [
+     -365,
+     71,
+     -515
+    ],
+    [
+     -365,
+     71,
+     -518
+    ],
+    [
+     -371,
+     71,
+     -518
+    ],
+    [
+     -367,
+     71,
+     -518
+    ],
+    [
+     -361,
+     71,
+     -518
+    ],
+    [
+     -359,
+     71,
+     -518
+    ],
+    [
+     -371,
+     71,
+     -515
+    ],
+    [
+     -369,
+     71,
+     -515
+    ],
+    [
+     -367,
+     71,
+     -515
+    ],
+    [
+     -369,
+     71,
+     -518
     ]
    ],
    "salvage": [
@@ -1096,7 +1166,11 @@
    "iron_shovel": 8,
    "enchanted_book": 8,
    "gravel": 1024,
-   "sand": 256
+   "sand": 256,
+   "copper_chestplate": 50,
+   "copper_leggings": 50,
+   "copper_helmet": 50,
+   "copper_boots": 50
   },
   "base": {
    "x": -320,
@@ -1282,8 +1356,8 @@
     98,
     -77
    ],
-   "through": 1789969919816,
-   "scoutRev": 7,
+   "through": 1789970897510,
+   "scoutRev": 13,
    "hub": {
     "room": [
      -41,
@@ -1395,7 +1469,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789969045309,
-   "back": 1789969057926,
+   "back": 1789971247396,
    "lastDeath": 1789969593942,
    "lastDeathBy": "Erika",
    "roads": {
@@ -1857,7 +1931,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1789968480529,
+   "gatesAt": 1789972083025,
    "pairRoad": {
     "from": [
      -43,
@@ -2128,10 +2202,10 @@
     ],
     "floorY": 110,
     "overVoid": 3,
-    "laneLeft": 0,
-    "padLeft": 0,
+    "laneLeft": 30,
+    "padLeft": 121,
     "built": false,
-    "t": 1789969950682
+    "t": 1789971228554
    }
   },
   "industry": {
@@ -2260,19 +2334,18 @@
     "t": 1789924913245
    },
    "absorb": {
+    "iron_ingot": 192,
+    "coal": 720,
+    "gray_wool": 576,
+    "flint": 888,
     "leather": 288,
-    "carrot": 352,
-    "wheat": 320,
-    "pumpkin": 144,
-    "melon": 96,
-    "coal": 960,
-    "iron_ingot": 240,
-    "flint": 1176,
-    "gray_wool": 540,
-    "diamond": 12,
+    "carrot": 704,
+    "wheat": 640,
+    "pumpkin": 216,
+    "melon": 144,
     "beetroot": 240
    },
-   "absorbT": 1789970749891
+   "absorbT": 1789971853809
   },
   "enchantTable": [
    -344,
@@ -2328,7 +2401,27 @@
     "spur": false,
     "cells": 52,
     "built": "2/3",
-    "checked": 1789970176408
+    "checked": 1789972334164
+   },
+   {
+    "id": "road_village",
+    "job": "road_village",
+    "dim": "overworld",
+    "from": [
+     -367,
+     68,
+     -488
+    ],
+    "to": [
+     -714,
+     72,
+     27
+    ],
+    "width": 5,
+    "spur": false,
+    "cells": 874,
+    "built": "6/118",
+    "checked": 1789972652839
    }
   ]
  },
@@ -2531,7 +2624,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 1,
+   "bots": 4,
    "site": [
     -367,
     69,
@@ -2567,44 +2660,41 @@
      ]
     ]
    },
-   "rev": 85,
-   "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
+   "rev": 87,
+   "note": "06:35Z mine engineer: the sponge held 16 of 49 bots at priority 60 while mine_iron (92, deficit 0.96 of iron 31/800) stood at ZERO staffed. A sponge exists so nobody idles, not to starve the roadmap: 16 -> 4. Raise it again when iron is met",
    "restUntil": 1789965580527
   },
   {
    "id": "farm_1",
    "type": "farm",
-   "priority": 94,
-   "front": "farm",
+   "priority": 80,
+   "front": "food",
    "status": "active",
-   "when": "any",
+   "when": "day",
+   "bots": 1,
+   "minBots": 0,
+   "maxBots": 6,
+   "produces": [
+    "food",
+    "wheat_seeds"
+   ],
    "site": [
     -346,
     69,
     -432
    ],
-   "after": "base_field_1",
-   "produces": [
-    "food",
-    "wheat_seeds"
-   ],
-   "minBots": 0,
-   "maxBots": 3,
-   "plan": "BASE PLAN zone field_1: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
+   "plan": "BASE PLAN zone base_field_1: the camera sees SEVEN planted field blocks and only three had a job (owner 09-21: 「畑は7枚あるぞ」). Till, plant, harvest at age 7, replant; nobody waits for growth",
    "params": {
     "box": [
-     -359,
-     -445,
-     -333,
-     -419
+     -360,
+     -446,
+     -332,
+     -418
     ],
     "y": 68,
-    "seed": "wheat_seeds",
-    "forage": true,
-    "bankAt": 64
+    "seed": "wheat_seeds"
    },
-   "rev": 12,
-   "bots": 2
+   "rev": 14
   },
   {
    "id": "lumber_base",
@@ -2711,10 +2801,10 @@
      "level": 16
     }
    },
-   "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
+   "note": "06:3xZ mine engineer: readiness no longer hands a WELL-FED miner back when the depot cannot give 8 food units (48 mine_not_ready from 24 bots in 20 min left the squad at ZERO); caves at a branch face are now harvested, not walled off. rev bump voids the stale not-ready declines",
    "bots": 20,
-   "rev": 70,
-   "restUntil": 1789971079097
+   "rev": 72,
+   "restUntil": 1789972963415
   },
   {
    "id": "base_dorm",
@@ -2754,74 +2844,65 @@
    "id": "farm_3",
    "type": "farm",
    "priority": 80,
-   "front": "farm",
+   "front": "food",
    "status": "active",
-   "when": "any",
+   "when": "day",
+   "bots": 1,
+   "minBots": 0,
+   "maxBots": 6,
+   "produces": [
+    "food",
+    "wheat_seeds"
+   ],
    "site": [
     -390,
     69,
     -475
    ],
-   "after": "base_field_3",
-   "produces": [
-    "food",
-    "wheat_seeds"
-   ],
-   "minBots": 0,
-   "maxBots": 3,
-   "plan": "BASE PLAN zone field_3: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
+   "plan": "BASE PLAN zone base_field_3: the camera sees SEVEN planted field blocks and only three had a job (owner 09-21: 「畑は7枚あるぞ」). Till, plant, harvest at age 7, replant; nobody waits for growth",
    "params": {
     "box": [
-     -403,
-     -488,
-     -377,
-     -462
+     -404,
+     -489,
+     -376,
+     -461
     ],
     "y": 68,
-    "seed": "wheat_seeds",
-    "forage": true,
-    "bankAt": 64
+    "seed": "wheat_seeds"
    },
-   "rev": 9,
-   "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)",
-   "bots": 1,
-   "desc": "owner 09-21: 「採集する畑が偏る farm_1とfarm_6しか使ってない」 - the third planted block joins the rotation so 20+ bots do not cycle through two plots"
+   "rev": 11
   },
   {
    "id": "farm_6",
    "type": "farm",
    "priority": 80,
-   "front": "farm",
+   "front": "food",
    "status": "active",
-   "when": "any",
+   "when": "day",
+   "bots": 1,
+   "minBots": 0,
+   "maxBots": 6,
+   "produces": [
+    "food",
+    "wheat_seeds"
+   ],
    "site": [
     -390,
     69,
     -405
    ],
-   "after": "base_field_6",
-   "produces": [
-    "food",
-    "wheat_seeds"
-   ],
-   "minBots": 0,
-   "maxBots": 3,
-   "plan": "BASE PLAN zone field_6: farmers till, plant, harvest, replant and clear junk - they never touch water (the field blueprint built it)",
+   "plan": "BASE PLAN zone base_field_6: the camera sees SEVEN planted field blocks and only three had a job (owner 09-21: 「畑は7枚あるぞ」). Till, plant, harvest at age 7, replant; nobody waits for growth",
    "params": {
     "box": [
-     -403,
-     -418,
-     -377,
-     -392
+     -404,
+     -419,
+     -376,
+     -391
     ],
     "y": 68,
-    "seed": "wheat_seeds",
-    "forage": true,
-    "bankAt": 64
+    "seed": "wheat_seeds"
    },
-   "rev": 9,
-   "note": "top model 06:40Z: food 9900/448 and the FOOD chests are full - production parked until stock < 2000 (farm_1 keeps the seed/wheat cycle alive)",
-   "bots": 1
+   "rev": 11
   },
   {
    "id": "base_pen_4",
@@ -2903,7 +2984,7 @@
    },
    "rev": 27,
    "bots": 1,
-   "restUntil": 1789970622601
+   "restUntil": 1789972558995
   },
   {
    "id": "sleeper",
@@ -2990,7 +3071,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789970918589
+   "restUntil": 1789972634827
   },
   {
    "id": "fill_ring_field1",
@@ -3777,14 +3858,14 @@
    "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -333,58,-483",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Suzu",
-    "t": 1789970250261,
+    "by": "Rin",
+    "t": 1789972546651,
     "at": [
-     -323,
-     59,
-     -481
+     -319,
+     56,
+     -461
     ],
-    "drop": 10
+    "drop": 13
    },
    "noDig": {
     "-323,42,-466": 1789983040661,
@@ -3941,7 +4022,59 @@
     "-318,42,-473": 1789983040661,
     "-318,42,-472": 1789983040661,
     "-318,42,-471": 1789983040661,
-    "-334,67,-464": 1789985142755
+    "-334,67,-464": 1789985142755,
+    "-334,67,-477": 1789985346166,
+    "-334,67,-468": 1789985346171,
+    "-334,67,-467": 1789985346176,
+    "-312,67,-486": 1789985348686,
+    "-318,68,-461": 1789985348691,
+    "-328,67,-461": 1789985348696,
+    "-310,67,-486": 1789985348701,
+    "-323,67,-461": 1789985349041,
+    "-309,67,-486": 1789985349046,
+    "-318,67,-461": 1789985349082,
+    "-308,67,-486": 1789985354429,
+    "-317,67,-461": 1789985354462,
+    "-315,67,-461": 1789985354467,
+    "-307,67,-486": 1789985536131,
+    "-302,67,-486": 1789985536181,
+    "-301,67,-486": 1789985536186,
+    "-304,67,-461": 1789985569432,
+    "-305,67,-461": 1789985569450,
+    "-306,67,-461": 1789985569469,
+    "-302,67,-461": 1789985569743,
+    "-301,67,-461": 1789985569747,
+    "-300,67,-461": 1789985569752,
+    "-299,67,-461": 1789985569756,
+    "-298,67,-461": 1789985569760,
+    "-310,67,-461": 1789985569801,
+    "-297,67,-461": 1789985574988,
+    "-300,67,-472": 1789985993138,
+    "-300,66,-473": 1789985993150,
+    "-300,65,-474": 1789985993161,
+    "-300,64,-475": 1789985993170,
+    "-300,63,-476": 1789986080671,
+    "-301,60,-478": 1789986352020,
+    "-289,67,-481": 1789986411589,
+    "-289,67,-480": 1789986411594,
+    "-289,67,-478": 1789986411600,
+    "-289,67,-477": 1789986411630,
+    "-289,67,-476": 1789986411915,
+    "-289,67,-474": 1789986411952,
+    "-300,62,-477": 1789986411959,
+    "-300,61,-478": 1789986411967,
+    "-301,59,-477": 1789986411973,
+    "-301,58,-476": 1789986411978,
+    "-299,67,-486": 1789986412263,
+    "-304,67,-486": 1789986412268,
+    "-301,57,-475": 1789986478706,
+    "-314,67,-461": 1789986478732,
+    "-313,67,-461": 1789986478742,
+    "-312,67,-461": 1789986478748,
+    "-301,56,-474": 1789986479097,
+    "-301,55,-473": 1789986479105,
+    "-301,54,-472": 1789986479111,
+    "-311,67,-461": 1789986479119
    }
   },
   {
@@ -4620,46 +4753,11 @@
    "note": "auto-paused: plan failed"
   },
   {
-   "id": "cap_base_yard_pad",
-   "type": "build",
-   "priority": 38,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 6,
-   "site": [
-    -355,
-    69,
-    -483
-   ],
-   "plan": "the finished level of base_yard_pad is bare stone: cap the grade layer y68 of x -370..-340 / z -490..-476 with DIRT (grass spreads by itself). Only where bare stone, gravel or air stands - never paving, a field, a crop or another blueprint of ours - and only out of the dirt SURPLUS over targets.dirt 128",
-   "params": {
-    "blueprint": "level",
-    "origin": [
-     -355,
-     68,
-     -483
-    ],
-    "args": {
-     "w": 31,
-     "d": 15,
-     "cap": true,
-     "fill": "dirt"
-    },
-    "needStock": {
-     "dirt": 128
-    },
-    "order": "near"
-   },
-   "rev": 2,
-   "note": "auto-paused: build complete"
-  },
-  {
    "id": "base_depot_south",
    "type": "build",
    "priority": 55,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 6,
    "site": [
@@ -4688,14 +4786,13 @@
    },
    "rev": 4,
    "stuckBy": {
-    "key": "rev2",
+    "key": "rev4",
     "bots": [
-     "Karin",
-     "Chika",
-     "Honoka"
+     "Chino"
     ]
    },
-   "note": "auto-paused: 42 cells nobody could do: -358,71,-518 | -359,71,-518 | -358,71,-521 | -360,71,-518 | -359,71,-521 | -360,71,-521"
+   "note": "auto-paused: build complete",
+   "restUntil": 1789971460534
   },
   {
    "id": "cap_north_tiles",
@@ -5239,7 +5336,7 @@
    "priority": 73,
    "status": "active",
    "when": "any",
-   "bots": 8,
+   "bots": 10,
    "site": [
     -311,
     68,
@@ -5277,7 +5374,7 @@
     "carry": 320,
     "bare": true
    },
-   "rev": 17,
+   "rev": 18,
    "restUntil": 1789943188975
   },
   {
@@ -5400,7 +5497,7 @@
    "priority": 97,
    "status": "active",
    "when": "any",
-   "bots": 6,
+   "bots": 2,
    "front": "industry",
    "site": [
     -345,
@@ -5480,7 +5577,7 @@
      }
     ]
    },
-   "rev": 100,
+   "rev": 101,
    "restUntil": 1789968980606
   },
   {
@@ -5490,7 +5587,7 @@
    "front": "mine",
    "status": "active",
    "when": "any",
-   "bots": 1,
+   "bots": 2,
    "site": [
     -327,
     48,
@@ -5518,8 +5615,8 @@
     "radius": 150,
     "bankAt": 48
    },
-   "restUntil": 1789971324991,
-   "rev": 19
+   "restUntil": 1789972707747,
+   "rev": 20
   },
   {
    "id": "craft_gold_boots",
@@ -5651,50 +5748,6 @@
    "rev": 1
   },
   {
-   "id": "cap_base_core_pad",
-   "type": "build",
-   "priority": 38,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 6,
-   "site": [
-    -356,
-    69,
-    -508
-   ],
-   "plan": "the finished level of base_core_pad is bare stone: cap the grade layer y68 of x -373..-339 / z -525..-491 with DIRT (grass spreads by itself). Only where bare stone, gravel or air stands - never paving, a field, a crop or another blueprint of ours - and only out of the dirt SURPLUS over targets.dirt 128",
-   "params": {
-    "blueprint": "level",
-    "origin": [
-     -356,
-     68,
-     -508
-    ],
-    "args": {
-     "w": 35,
-     "d": 35,
-     "cap": true,
-     "fill": "dirt"
-    },
-    "needStock": {
-     "dirt": 128
-    },
-    "order": "near"
-   },
-   "note": "auto-paused: build complete",
-   "restUntil": 1789930271637,
-   "stuckBy": {
-    "key": "rev0",
-    "bots": [
-     "Akari",
-     "Yui",
-     "Rin"
-    ]
-   },
-   "rev": 1
-  },
-  {
    "id": "op_bank_wheat",
    "type": "steps",
    "priority": 89,
@@ -5782,7 +5835,7 @@
      ]
     ]
    },
-   "restUntil": 1789972040452,
+   "restUntil": 1789973879355,
    "rev": 1
   },
   {
@@ -5790,9 +5843,9 @@
    "type": "road",
    "priority": 72,
    "front": "works",
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 6,
    "site": [
     -367,
     69,
@@ -5869,7 +5922,8 @@
        "torchEvery": 8,
        "shoulder": 2
       },
-      "at": 1789969589775
+      "at": 1789969589775,
+      "idle": 60
      },
      {
       "i": 2,
@@ -5912,8 +5966,8 @@
      }
     ]
    },
-   "restUntil": 0,
-   "rev": 7,
+   "restUntil": 1789972930162,
+   "rev": 8,
    "note": "PAUSED by the roads engineer 06:0xZ: 2 of 3 segments verified in the world; the junction cells -343/-342,68,-500 are contested by cap_base_mine_pad (build_runaway, dig/place loop) because settings.roads is invisible to A.buildJobs()/ours() - re-activate after that patch lands (see docs/ROADS.md)"
   },
   {
@@ -5963,7 +6017,7 @@
   {
    "id": "nether_barter_road",
    "type": "portal",
-   "status": "active",
+   "status": "paused",
    "bots": 1,
    "prio": 78,
    "desc": "EYE OF ENDER, pearl half: the lane + pad that make bartering possible at all. 3-wide lit lane with kerbs + a 9x9 pad at -65,110,-72. 213 blocks to place, 22 to dig (dry run against the camera map).",
@@ -6224,7 +6278,7 @@
       -72
      ]
     ],
-    "width": 3,
+    "width": 1,
     "pad": 4,
     "minutes": 9,
     "cobble": 192,
@@ -6234,7 +6288,7 @@
     "bare": true
    },
    "restUntil": 0,
-   "rev": 12,
+   "rev": 13,
    "priority": 97,
    "zone": "base",
    "names": [
@@ -6247,16 +6301,16 @@
     -518
    ],
    "shiftMin": 20,
-   "note": "09-21 06:1xZ owner deadline (dragon TODAY): BARTER FIRST. bare kit = a death costs a few stone tools, so the front does not stop - if a design kills twice, the DESIGN changes. maxDeaths 6."
+   "note": "09-21 06:2xZ dragon deadline: width 1 = a BARE SPINE (31 blocks to place, not 213). moves.bridgeTo lays spans <=6 after voidSize sizes the gap; unknown chunks are refused; bare kit so a death costs stone tools. Widen and rail AFTER the first pearls."
   },
   {
    "id": "road_village",
    "type": "road",
    "priority": 72,
    "front": "roads",
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 12,
+   "bots": 10,
    "site": [
     -367,
     69,
@@ -6306,7 +6360,8 @@
        "clear": 3,
        "torchEvery": 8,
        "shoulder": 2
-      }
+      },
+      "idle": 0
      },
      {
       "i": 1,
@@ -6331,7 +6386,8 @@
        "clear": 3,
        "torchEvery": 8,
        "shoulder": 2
-      }
+      },
+      "idle": 1
      },
      {
       "i": 2,
@@ -6347,7 +6403,7 @@
        -381
       ],
       "len": 1,
-      "built": false,
+      "built": true,
       "args": {
        "toX": -412,
        "toZ": -381,
@@ -6356,7 +6412,10 @@
        "clear": 3,
        "torchEvery": 8,
        "shoulder": 2
-      }
+      },
+      "idle": 0,
+      "rails": [],
+      "at": 1789972347718
      },
      {
       "i": 3,
@@ -6381,7 +6440,8 @@
        "clear": 3,
        "torchEvery": 8,
        "shoulder": 2
-      }
+      },
+      "idle": 0
      },
      {
       "i": 4,
@@ -6397,7 +6457,7 @@
        -381
       ],
       "len": 1,
-      "built": false,
+      "built": true,
       "args": {
        "toX": -414,
        "toZ": -381,
@@ -6406,7 +6466,9 @@
        "clear": 3,
        "torchEvery": 8,
        "shoulder": 2
-      }
+      },
+      "idle": 0,
+      "at": 1789972155263
      },
      {
       "i": 5,
@@ -6422,7 +6484,7 @@
        -377
       ],
       "len": 4,
-      "built": false,
+      "built": true,
       "args": {
        "toX": -414,
        "toZ": -377,
@@ -6431,7 +6493,10 @@
        "clear": 3,
        "torchEvery": 8,
        "shoulder": 2
-      }
+      },
+      "idle": 0,
+      "rails": [],
+      "at": 1789972604683
      },
      {
       "i": 6,
@@ -6447,7 +6512,7 @@
        -375
       ],
       "len": 2,
-      "built": false,
+      "built": true,
       "args": {
        "toX": -414,
        "toZ": -375,
@@ -6456,7 +6521,9 @@
        "clear": 3,
        "torchEvery": 8,
        "shoulder": 2
-      }
+      },
+      "at": 1789972042604,
+      "idle": 0
      },
      {
       "i": 7,
@@ -6472,7 +6539,7 @@
        -375
       ],
       "len": 5,
-      "built": false,
+      "built": true,
       "args": {
        "toX": -418,
        "toZ": -375,
@@ -6481,7 +6548,9 @@
        "clear": 3,
        "torchEvery": 8,
        "shoulder": 2
-      }
+      },
+      "idle": 0,
+      "at": 1789972226980
      },
      {
       "i": 8,
@@ -6506,7 +6575,8 @@
        "clear": 3,
        "torchEvery": 8,
        "shoulder": 2
-      }
+      },
+      "idle": 2
      },
      {
       "i": 9,
@@ -6531,7 +6601,8 @@
        "clear": 3,
        "torchEvery": 8,
        "shoulder": 2
-      }
+      },
+      "idle": 0
      },
      {
       "i": 10,
@@ -6572,8 +6643,9 @@
        -375
       ],
       "len": 1,
-      "built": false,
-      "width": 5
+      "built": true,
+      "width": 5,
+      "at": 1789972428887
      },
      {
       "i": 12,
@@ -6598,7 +6670,8 @@
        "clear": 3,
        "torchEvery": 8,
        "shoulder": 2
-      }
+      },
+      "idle": 0
      },
      {
       "i": 13,
@@ -6623,7 +6696,8 @@
        "clear": 3,
        "torchEvery": 8,
        "shoulder": 2
-      }
+      },
+      "idle": 1
      },
      {
       "i": 14,
@@ -9226,7 +9300,8 @@
       }
      }
     ]
-   }
+   },
+   "rev": 1
   },
   {
    "id": "smelt_and_buckets",
@@ -9243,9 +9318,14 @@
     "steps": [
      {
       "do": "withdraw",
+      "item": "raw_iron_block",
+      "n": 5,
+      "atLeast": 1
+     },
+     {
+      "do": "craft",
       "item": "raw_iron",
-      "n": 256,
-      "atLeast": 16
+      "n": 45
      },
      {
       "do": "withdraw",
@@ -9305,6 +9385,7 @@
      }
     ]
    },
+   "rev": 1,
    "note": "auto-paused: plan failed"
   },
   {
@@ -9387,6 +9468,421 @@
      "Ichika",
      "Honoka"
     ]
+   }
+  },
+  {
+   "id": "copper_armoury",
+   "type": "steps",
+   "priority": 94,
+   "status": "active",
+   "when": "any",
+   "bots": 8,
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "no zone: COPPER ARMOUR (owner 09-21 「胴装備というのは銅鉱石から作れる装備のことです」). Iron is 9 ingots and blocks buckets, shields and the Nether kit, while 4 707 raw copper sit idle in the depot and this version has full copper gear. Smelt copper and forge chestplates + leggings for the army; repeats",
+   "params": {
+    "repeat": true,
+    "steps": [
+     {
+      "do": "withdraw",
+      "item": "raw_copper",
+      "n": 256,
+      "atLeast": 64
+     },
+     {
+      "do": "withdraw",
+      "item": "coal",
+      "n": 64,
+      "atLeast": 16
+     },
+     {
+      "do": "goto",
+      "to": [
+       -366,
+       69,
+       -523
+      ],
+      "range": 3
+     },
+     {
+      "do": "smelt",
+      "item": "raw_copper",
+      "n": 64
+     },
+     {
+      "do": "smelt",
+      "item": "raw_copper",
+      "n": 64
+     },
+     {
+      "do": "smelt",
+      "item": "raw_copper",
+      "n": 64
+     },
+     {
+      "do": "smelt",
+      "item": "raw_copper",
+      "n": 64
+     },
+     {
+      "do": "bank",
+      "keep": {
+       "torch": 16
+      }
+     },
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       69,
+       -523
+      ],
+      "range": 3
+     },
+     {
+      "do": "craft",
+      "item": "copper_chestplate",
+      "n": 8
+     },
+     {
+      "do": "craft",
+      "item": "copper_leggings",
+      "n": 8
+     },
+     {
+      "do": "bank",
+      "keep": {
+       "torch": 16
+      }
+     }
+    ]
+   },
+   "rev": 1
+  },
+  {
+   "id": "end_hunt_1",
+   "type": "end",
+   "priority": 96,
+   "status": "active",
+   "when": "any",
+   "bots": 8,
+   "site": [
+    -350,
+    65,
+    -335
+   ],
+   "front": "enderhunt",
+   "plan": "no world change: a NIGHT hunt on open dark grass 120 blocks S of the base wall (outside the torch grid). Bots walk read-only, fight what comes to them and bank the pearls. P6 ender pearls without the Nether.",
+   "requires": {
+    "minHp": 14,
+    "minFood": 8
+   },
+   "params": {
+    "work": "enderhunt",
+    "post": [
+     -350,
+     65,
+     -335
+    ],
+    "radius": 60,
+    "minutes": 8,
+    "minHp": 8,
+    "needsNight": true,
+    "bare": true
+   },
+   "rev": 3,
+   "shiftMin": 20
+  },
+  {
+   "id": "end_eyes",
+   "type": "end",
+   "priority": 97,
+   "status": "active",
+   "when": "any",
+   "bots": 1,
+   "site": [
+    -345,
+    69,
+    -523
+   ],
+   "plan": "no world change: THE EYES OF ENDER. 1 ender_pearl + 1 blaze_powder (a blaze rod makes 2 powder) at the hall craft table; every eye the depot allows, banked. Target 16 = the 12 frames plus breakage.",
+   "params": {
+    "work": "eyes",
+    "target": 16,
+    "bare": true
+   },
+   "restUntil": 1789972800513
+  },
+  {
+   "id": "farm_2",
+   "type": "farm",
+   "priority": 80,
+   "front": "food",
+   "status": "active",
+   "when": "day",
+   "bots": 1,
+   "minBots": 0,
+   "maxBots": 6,
+   "produces": [
+    "food",
+    "wheat_seeds"
+   ],
+   "site": [
+    -288,
+    69,
+    -507
+   ],
+   "plan": "BASE PLAN zone base_field_2: the camera sees SEVEN planted field blocks and only three had a job (owner 09-21: 「畑は7枚あるぞ」). Till, plant, harvest at age 7, replant; nobody waits for growth",
+   "params": {
+    "box": [
+     -302,
+     -521,
+     -274,
+     -493
+    ],
+    "y": 68,
+    "seed": "wheat_seeds"
+   }
+  },
+  {
+   "id": "farm_4",
+   "type": "farm",
+   "priority": 80,
+   "front": "food",
+   "status": "active",
+   "when": "day",
+   "bots": 1,
+   "minBots": 0,
+   "maxBots": 6,
+   "produces": [
+    "food",
+    "wheat_seeds"
+   ],
+   "site": [
+    -390,
+    69,
+    -507
+   ],
+   "plan": "BASE PLAN zone base_field_4: the camera sees SEVEN planted field blocks and only three had a job (owner 09-21: 「畑は7枚あるぞ」). Till, plant, harvest at age 7, replant; nobody waits for growth",
+   "params": {
+    "box": [
+     -404,
+     -521,
+     -376,
+     -493
+    ],
+    "y": 68,
+    "seed": "wheat_seeds"
+   }
+  },
+  {
+   "id": "farm_5",
+   "type": "farm",
+   "priority": 80,
+   "front": "food",
+   "status": "active",
+   "when": "day",
+   "bots": 1,
+   "minBots": 0,
+   "maxBots": 6,
+   "produces": [
+    "food",
+    "wheat_seeds"
+   ],
+   "site": [
+    -390,
+    69,
+    -440
+   ],
+   "plan": "BASE PLAN zone base_field_5: the camera sees SEVEN planted field blocks and only three had a job (owner 09-21: 「畑は7枚あるぞ」). Till, plant, harvest at age 7, replant; nobody waits for growth",
+   "params": {
+    "box": [
+     -404,
+     -454,
+     -376,
+     -426
+    ],
+    "y": 68,
+    "seed": "wheat_seeds"
+   }
+  },
+  {
+   "id": "farm_7",
+   "type": "farm",
+   "priority": 80,
+   "front": "food",
+   "status": "active",
+   "when": "day",
+   "bots": 1,
+   "minBots": 0,
+   "maxBots": 6,
+   "produces": [
+    "food",
+    "wheat_seeds"
+   ],
+   "site": [
+    -355,
+    69,
+    -387
+   ],
+   "plan": "BASE PLAN zone base_field_7: the camera sees SEVEN planted field blocks and only three had a job (owner 09-21: 「畑は7枚あるぞ」). Till, plant, harvest at age 7, replant; nobody waits for growth",
+   "params": {
+    "box": [
+     -369,
+     -401,
+     -341,
+     -373
+    ],
+    "y": 68,
+    "seed": "wheat_seeds"
+   }
+  },
+  {
+   "id": "herd_sheep",
+   "type": "herd",
+   "priority": 84,
+   "front": "pens",
+   "status": "active",
+   "when": "day",
+   "bots": 2,
+   "site": [
+    -337,
+    69,
+    -395
+   ],
+   "requires": {
+    "minHp": 14,
+    "minFood": 10
+   },
+   "plan": "BASE PLAN zone pen (owner 09-21: 「家畜の世話はしてなさ過ぎて荒れまくってる、羊も鶏もいないし」 - I removed every herd job yesterday as make-work and the pens emptied): lure sheep into the finished pen and BREED them there; the gate is opened and shut, no world change",
+   "params": {
+    "pen": [
+     -337,
+     -401,
+     -311,
+     -389
+    ],
+    "gate": [
+     -337,
+     69,
+     -395
+    ],
+    "kind": "sheep",
+    "want": 16,
+    "max": 32,
+    "keep": 16,
+    "radius": 250,
+    "shear": true,
+    "cull": false
+   }
+  },
+  {
+   "id": "herd_chickens",
+   "type": "herd",
+   "priority": 84,
+   "front": "pens",
+   "status": "active",
+   "when": "day",
+   "bots": 2,
+   "site": [
+    -337,
+    69,
+    -380
+   ],
+   "requires": {
+    "minHp": 14,
+    "minFood": 10
+   },
+   "plan": "BASE PLAN zone pen (owner 09-21: 「家畜の世話はしてなさ過ぎて荒れまくってる、羊も鶏もいないし」 - I removed every herd job yesterday as make-work and the pens emptied): lure chicken into the finished pen and BREED them there; the gate is opened and shut, no world change",
+   "params": {
+    "pen": [
+     -337,
+     -386,
+     -311,
+     -374
+    ],
+    "gate": [
+     -337,
+     69,
+     -380
+    ],
+    "kind": "chicken",
+    "want": 16,
+    "max": 32,
+    "keep": 16,
+    "radius": 250,
+    "shear": false,
+    "cull": false
+   }
+  },
+  {
+   "id": "end_stronghold",
+   "type": "end",
+   "priority": 96,
+   "status": "paused",
+   "when": "day",
+   "bots": 2,
+   "site": [
+    -367,
+    69,
+    -488
+   ],
+   "plan": "zone: none at base; the DESCENT at the far end is the work (movement doctrine 4). Throw an eye of ender, read the thrown ENTITY's bearing, cross it, triangulate, walk the fix down in 120-block legs, then cut a lit switchback staircase (6 neighbours read before every dig, torch every 5 steps) to the stronghold. No /locate.",
+   "requires": {
+    "minHp": 14,
+    "minFood": 10
+   },
+   "params": {
+    "work": "stronghold",
+    "eyes": 6,
+    "leg": 320,
+    "hop": 120,
+    "near": 90,
+    "minutes": 12,
+    "toY": 10,
+    "bare": true
+   }
+  },
+  {
+   "id": "end_portal",
+   "type": "end",
+   "priority": 97,
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "plan": "zone: the stronghold portal room (settings.end.room) - nothing is built, 12 eyes of ender are SET into the 12 existing frames and the property is read back. The portal lights itself.",
+   "requires": {
+    "minHp": 14,
+    "minFood": 10
+   },
+   "params": {
+    "work": "portal",
+    "eyes": 12,
+    "bare": true
+   }
+  },
+  {
+   "id": "end_dragon",
+   "type": "end",
+   "priority": 98,
+   "status": "paused",
+   "when": "any",
+   "bots": 8,
+   "plan": "no world change beyond bridging off the arrival platform: THE STRIKE. Best gear (never bare). Every end crystal by bow FIRST - a live crystal heals the dragon 1 hp/0.5 s and the perch chance is 1/(3+crystals) - then the head on the perch. Never in the breath, never at the edge, never look at an enderman.",
+   "requires": {
+    "minHp": 18,
+    "minFood": 14
+   },
+   "params": {
+    "work": "dragon",
+    "arrows": 96,
+    "blocks": 64,
+    "beds": 2,
+    "minutes": 14,
+    "minHp": 10,
+    "shots": 4,
+    "crystalR": 160
    }
   }
  ]
