@@ -1350,14 +1350,14 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Botan",
+   "by": "Mei",
    "portal": [
     -48,
-    98,
+    100,
     -77
    ],
-   "through": 1789976227261,
-   "scoutRev": 65,
+   "through": 1789976644465,
+   "scoutRev": 67,
    "hub": {
     "room": [
      -41,
@@ -1933,7 +1933,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1789975683759,
+   "gatesAt": 1789977569327,
    "pairRoad": {
     "from": [
      -43,
@@ -2336,9 +2336,19 @@
       -744,
       69,
       28
+     ],
+     "loom": [
+      -742,
+      70,
+      33
+     ],
+     "grindstone": [
+      -740,
+      70,
+      33
      ]
     },
-    "t": 1789975765108
+    "t": 1789976544077
    },
    "absorb": {
     "iron_ingot": 192,
@@ -2363,550 +2373,654 @@
   "mine": {
    "veins": [
     {
-     "key": "-45,2,-31/iron",
+     "key": "-27,-2,-49/tuff_cluster",
      "at": [
-      -354,
-      17,
-      -246
+      -216,
+      -15,
+      -391
      ],
-     "kind": "iron",
-     "seen": 16,
+     "kind": "tuff_cluster",
+     "seen": 6,
      "raw": 0,
-     "by": "Yui",
-     "t": 1789924071497
+     "by": "Iroha",
+     "t": 1789977928867
     },
     {
-     "key": "-32,1,-48/iron",
+     "key": "-27,-3,-50/tuff_cluster",
      "at": [
-      -253,
-      15,
+      -216,
+      -17,
+      -393
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Iroha",
+     "t": 1789977929782
+    },
+    {
+     "key": "-29,-3,-48/iron",
+     "at": [
+      -225,
+      -19,
+      -378
+     ],
+     "kind": "iron",
+     "seen": 116,
+     "raw": 0,
+     "by": "Chino",
+     "t": 1789977935689
+    },
+    {
+     "key": "-28,-2,-48/tuff_cluster",
+     "at": [
+      -222,
+      -16,
+      -380
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Chino",
+     "t": 1789977943916
+    },
+    {
+     "key": "-30,-2,-50/tuff_cluster",
+     "at": [
+      -236,
+      -16,
+      -398
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Iroha",
+     "t": 1789977965882
+    },
+    {
+     "key": "-28,-3,-48/tuff_cluster",
+     "at": [
+      -221,
+      -17,
+      -380
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Chino",
+     "t": 1789977966230
+    },
+    {
+     "key": "-29,-2,-48/tuff_cluster",
+     "at": [
+      -228,
+      -16,
+      -378
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Himari",
+     "t": 1789977966359
+    },
+    {
+     "key": "-28,-2,-48/iron",
+     "at": [
+      -222,
+      -16,
       -382
      ],
      "kind": "iron",
-     "seen": 20,
+     "seen": 111,
      "raw": 0,
-     "by": "Nanami",
-     "t": 1789933526726
+     "by": "Kurumi",
+     "t": 1789977974864
     },
     {
-     "key": "-34,2,-51/iron",
+     "key": "-29,-2,-49/tuff_cluster",
      "at": [
-      -265,
-      16,
-      -401
-     ],
-     "kind": "iron",
-     "seen": 17,
-     "raw": 0,
-     "by": "Kokoro",
-     "t": 1789973079940
-    },
-    {
-     "key": "-64,4,-72/iron",
-     "at": [
-      -506,
-      34,
-      -574
-     ],
-     "kind": "iron",
-     "seen": 16,
-     "raw": 0,
-     "by": "Yui",
-     "t": 1789973701155
-    },
-    {
-     "key": "-59,4,-85/iron",
-     "at": [
-      -472,
-      32,
-      -674
-     ],
-     "kind": "iron",
-     "seen": 17,
-     "raw": 0,
-     "by": "Botan",
-     "t": 1789974493879
-    },
-    {
-     "key": "-59,-3,-60/tuff_cluster",
-     "at": [
-      -471,
-      -17,
-      -475
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Himari",
-     "t": 1789975953626
-    },
-    {
-     "key": "-60,-3,-59/tuff_cluster",
-     "at": [
-      -475,
-      -17,
-      -469
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Himari",
-     "t": 1789976003094
-    },
-    {
-     "key": "-48,-2,-59/tuff_cluster",
-     "at": [
-      -378,
-      -15,
-      -470
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Kokoro",
-     "t": 1789976049502
-    },
-    {
-     "key": "-48,-2,-60/tuff_cluster",
-     "at": [
-      -378,
+      -229,
       -16,
-      -474
+      -390
      ],
      "kind": "tuff_cluster",
      "seen": 6,
      "raw": 0,
-     "by": "Kokoro",
-     "t": 1789976083688
+     "by": "Kurumi",
+     "t": 1789977975583
     },
     {
-     "key": "-32,-2,-62/tuff_cluster",
+     "key": "-29,-3,-48/tuff_cluster",
      "at": [
-      -256,
-      -15,
-      -495
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Tsumugi",
-     "t": 1789976116314
-    },
-    {
-     "key": "-33,-2,-62/tuff_cluster",
-     "at": [
-      -257,
-      -15,
-      -495
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Tsumugi",
-     "t": 1789976117226
-    },
-    {
-     "key": "-33,-2,-63/tuff_cluster",
-     "at": [
-      -259,
-      -13,
-      -498
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Tsumugi",
-     "t": 1789976132379
-    },
-    {
-     "key": "-47,-2,-59/tuff_cluster",
-     "at": [
-      -374,
-      -16,
-      -471
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Kokoro",
-     "t": 1789976134201
-    },
-    {
-     "key": "-51,-3,-59/tuff_cluster",
-     "at": [
-      -403,
+      -228,
       -18,
-      -467
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Kanade",
-     "t": 1789976147313
-    },
-    {
-     "key": "-47,-3,-59/tuff_cluster",
-     "at": [
-      -371,
-      -18,
-      -467
+      -378
      ],
      "kind": "tuff_cluster",
      "seen": 6,
      "raw": 0,
      "by": "Himari",
-     "t": 1789976161710
+     "t": 1789977983247
     },
     {
-     "key": "-51,-2,-59/tuff_cluster",
+     "key": "-45,-2,-48/tuff_cluster",
      "at": [
-      -404,
-      -16,
-      -467
+      -360,
+      -12,
+      -377
      ],
      "kind": "tuff_cluster",
      "seen": 6,
      "raw": 0,
-     "by": "Kanade",
-     "t": 1789976175341
+     "by": "Ichika",
+     "t": 1789977991916
+    },
+    {
+     "key": "-37,-2,-49/iron",
+     "at": [
+      -290,
+      -14,
+      -385
+     ],
+     "kind": "iron",
+     "seen": 53,
+     "raw": 2,
+     "by": "Sakura",
+     "t": 1789978002225
+    },
+    {
+     "key": "-45,-3,-48/tuff_cluster",
+     "at": [
+      -360,
+      -19,
+      -377
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Ichika",
+     "t": 1789978015429
+    },
+    {
+     "key": "-37,-2,-48/tuff_cluster",
+     "at": [
+      -292,
+      -12,
+      -384
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Sakura",
+     "t": 1789978019256
+    },
+    {
+     "key": "-29,-2,-47/tuff_cluster",
+     "at": [
+      -230,
+      -14,
+      -376
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Himari",
+     "t": 1789978040083
+    },
+    {
+     "key": "-45,-3,-47/tuff_cluster",
+     "at": [
+      -356,
+      -17,
+      -371
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Ichika",
+     "t": 1789978060239
+    },
+    {
+     "key": "-45,-2,-47/tuff_cluster",
+     "at": [
+      -358,
+      -16,
+      -372
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Ichika",
+     "t": 1789978061045
+    },
+    {
+     "key": "-29,-3,-47/tuff_cluster",
+     "at": [
+      -230,
+      -19,
+      -376
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Himari",
+     "t": 1789978063782
+    },
+    {
+     "key": "-30,-2,-47/iron",
+     "at": [
+      -236,
+      -14,
+      -374
+     ],
+     "kind": "iron",
+     "seen": 97,
+     "raw": 0,
+     "by": "Himari",
+     "t": 1789978096320
+    },
+    {
+     "key": "-43,-2,-52/tuff_cluster",
+     "at": [
+      -343,
+      -15,
+      -413
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1789978106711
+    },
+    {
+     "key": "-30,-2,-47/tuff_cluster",
+     "at": [
+      -234,
+      -14,
+      -375
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Himari",
+     "t": 1789978113778
+    },
+    {
+     "key": "-57,-2,-51/tuff_cluster",
+     "at": [
+      -455,
+      -16,
+      -406
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Chika",
+     "t": 1789978124635
+    },
+    {
+     "key": "-58,-2,-51/tuff_cluster",
+     "at": [
+      -457,
+      -16,
+      -407
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Chika",
+     "t": 1789978128720
+    },
+    {
+     "key": "-58,-2,-52/tuff_cluster",
+     "at": [
+      -459,
+      -16,
+      -409
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Chika",
+     "t": 1789978133205
     }
    ],
    "caves": [
     {
-     "key": "-12,3,-31",
+     "key": "-28,-1,-27",
      "at": [
-      -185,
-      48,
-      -484
+      -446,
+      -16,
+      -427
      ],
      "cells": 2000,
      "klass": "cavern",
-     "ores": 0,
+     "ores": 8,
      "iron": 0,
-     "by": "Koharu",
-     "t": 1789975640005
+     "by": "Akari",
+     "t": 1789976622903
     },
     {
-     "key": "-30,3,-18",
+     "key": "-25,-1,-26",
      "at": [
-      -466,
-      48,
-      -286
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 3,
-     "iron": 0,
-     "by": "Himari",
-     "t": 1789975656649
-    },
-    {
-     "key": "-22,3,-17",
-     "at": [
-      -339,
-      48,
-      -259
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Madoka",
-     "t": 1789975661862
-    },
-    {
-     "key": "-22,3,-16",
-     "at": [
-      -348,
-      48,
-      -256
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Yuzu",
-     "t": 1789975705173
-    },
-    {
-     "key": "-30,3,-17",
-     "at": [
-      -474,
-      48,
-      -271
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 1,
-     "iron": 0,
-     "by": "Sayaka",
-     "t": 1789975756014
-    },
-    {
-     "key": "-28,3,-19",
-     "at": [
-      -442,
-      48,
-      -304
+      -388,
+      -16,
+      -409
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 2,
      "iron": 0,
-     "by": "Madoka",
-     "t": 1789975758273
+     "by": "Akari",
+     "t": 1789976666116
     },
     {
-     "key": "-15,3,-16",
+     "key": "-24,-1,-28",
      "at": [
-      -237,
-      48,
-      -247
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Yuzu",
-     "t": 1789975766612
-    },
-    {
-     "key": "-9,3,-30",
-     "at": [
-      -144,
-      48,
-      -466
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Hotaru",
-     "t": 1789975800870
-    },
-    {
-     "key": "-31,3,-18",
-     "at": [
-      -491,
-      48,
-      -277
-     ],
-     "cells": 1851,
-     "klass": "cavern",
-     "ores": 1,
-     "iron": 0,
-     "by": "Ayame",
-     "t": 1789975880729
-    },
-    {
-     "key": "-34,3,-31",
-     "at": [
-      -541,
-      48,
-      -484
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 9,
-     "iron": 12,
-     "by": "Nanami",
-     "t": 1789975957180
-    },
-    {
-     "key": "-8,2,-42",
-     "at": [
-      -116,
-      32,
-      -667
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Madoka",
-     "t": 1789975993109
-    },
-    {
-     "key": "-27,-1,-30",
-     "at": [
-      -426,
+      -369,
       -16,
-      -478
+      -445
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Nanami",
+     "t": 1789977663280
+    },
+    {
+     "key": "-22,0,-34",
+     "at": [
+      -341,
+      0,
+      -529
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 0,
      "iron": 0,
      "by": "Kokoro",
-     "t": 1789976018487
+     "t": 1789977722106
     },
     {
-     "key": "-27,-1,-31",
+     "key": "-32,-1,-29",
      "at": [
-      -425,
+      -497,
       -16,
-      -481
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 1,
-     "iron": 2,
-     "by": "Shiori",
-     "t": 1789976020335
-    },
-    {
-     "key": "-30,-1,-31",
-     "at": [
-      -480,
-      -16,
-      -484
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 3,
-     "iron": 0,
-     "by": "Himari",
-     "t": 1789976038934
-    },
-    {
-     "key": "-8,0,-33",
-     "at": [
-      -116,
-      0,
-      -514
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 1,
-     "iron": 0,
-     "by": "Rena",
-     "t": 1789976147192
-    },
-    {
-     "key": "-8,0,-32",
-     "at": [
-      -119,
-      0,
-      -511
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Ume",
-     "t": 1789976147347
-    },
-    {
-     "key": "-22,0,-32",
-     "at": [
-      -344,
-      0,
-      -511
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 7,
-     "iron": 3,
-     "by": "Ayame",
-     "t": 1789976150225
-    },
-    {
-     "key": "-16,-1,-31",
-     "at": [
-      -250,
-      -16,
-      -484
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 1,
-     "iron": 0,
-     "by": "Tsumugi",
-     "t": 1789976162191
-    },
-    {
-     "key": "-16,-1,-30",
-     "at": [
-      -252,
-      -16,
-      -478
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 3,
-     "iron": 0,
-     "by": "Rin",
-     "t": 1789976162892
-    },
-    {
-     "key": "-34,3,-29",
-     "at": [
-      -540,
-      48,
       -451
      ],
-     "cells": 433,
+     "cells": 2000,
      "klass": "cavern",
      "ores": 2,
      "iron": 0,
-     "by": "Hina",
-     "t": 1789976194257
+     "by": "Yui",
+     "t": 1789977752285
     },
     {
-     "key": "-17,-1,-29",
+     "key": "-31,-1,-28",
      "at": [
-      -269,
+      -486,
       -16,
-      -460
+      -436
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 3,
      "iron": 0,
-     "by": "Akari",
-     "t": 1789976218303
+     "by": "Ichika",
+     "t": 1789977793392
     },
     {
-     "key": "-22,-1,-30",
+     "key": "-24,-1,-26",
      "at": [
-      -348,
+      -384,
       -16,
-      -475
+      -412
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 6,
+     "iron": 0,
+     "by": "Botan",
+     "t": 1789977838059
+    },
+    {
+     "key": "-24,-1,-25",
+     "at": [
+      -384,
+      -16,
+      -400
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 12,
+     "iron": 0,
+     "by": "Chika",
+     "t": 1789977854582
+    },
+    {
+     "key": "-29,-1,-25",
+     "at": [
+      -457,
+      -16,
+      -388
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 6,
+     "iron": 0,
+     "by": "Chino",
+     "t": 1789977878716
+    },
+    {
+     "key": "-25,-1,-27",
+     "at": [
+      -390,
+      -16,
+      -424
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 3,
+     "iron": 0,
+     "by": "Sakura",
+     "t": 1789977901128
+    },
+    {
+     "key": "-16,-1,-26",
+     "at": [
+      -248,
+      -16,
+      -403
+     ],
+     "cells": 345,
+     "klass": "cavern",
+     "ores": 7,
+     "iron": 2,
+     "by": "Wakana",
+     "t": 1789977925154
+    },
+    {
+     "key": "-12,-1,-25",
+     "at": [
+      -183,
+      -16,
+      -388
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 2,
+     "iron": 0,
+     "by": "Ichika",
+     "t": 1789977931969
+    },
+    {
+     "key": "-29,-1,-24",
+     "at": [
+      -455,
+      -16,
+      -382
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 4,
      "iron": 0,
-     "by": "Yotsuba",
-     "t": 1789976234075
+     "by": "Akari",
+     "t": 1789977933490
     },
     {
-     "key": "-15,-1,-29",
+     "key": "-27,-1,-25",
      "at": [
-      -231,
+      -421,
       -16,
-      -457
+      -391
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 2,
+     "iron": 0,
+     "by": "Yui",
+     "t": 1789977936219
+    },
+    {
+     "key": "-21,-1,-24",
+     "at": [
+      -324,
+      -16,
+      -379
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Wakana",
+     "t": 1789977945528
+    },
+    {
+     "key": "-21,0,-35",
+     "at": [
+      -325,
+      0,
+      -547
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Yotsuba",
+     "t": 1789977969040
+    },
+    {
+     "key": "-12,0,-34",
+     "at": [
+      -188,
+      0,
+      -532
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 4,
+     "iron": 0,
+     "by": "Mashiro",
+     "t": 1789977976662
+    },
+    {
+     "key": "-13,0,-34",
+     "at": [
+      -199,
+      0,
+      -535
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 7,
+     "iron": 1,
+     "by": "Kokoro",
+     "t": 1789978057234
+    },
+    {
+     "key": "-20,0,-35",
+     "at": [
+      -319,
+      0,
+      -550
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 5,
+     "iron": 6,
+     "by": "Yotsuba",
+     "t": 1789978060601
+    },
+    {
+     "key": "-19,-1,-24",
+     "at": [
+      -290,
+      -16,
+      -382
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 1,
+     "iron": 1,
+     "by": "Sakura",
+     "t": 1789978062130
+    },
+    {
+     "key": "-28,-1,-25",
+     "at": [
+      -433,
+      -16,
+      -394
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 1,
      "iron": 0,
-     "by": "Kanade",
-     "t": 1789976258969
+     "by": "Tamaki",
+     "t": 1789978066331
     },
     {
-     "key": "-15,-1,-30",
+     "key": "-31,-1,-23",
      "at": [
-      -225,
+      -481,
       -16,
-      -466
+      -367
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 2,
+     "iron": 2,
+     "by": "Yui",
+     "t": 1789978066827
+    },
+    {
+     "key": "-24,0,-35",
+     "at": [
+      -372,
+      0,
+      -553
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Yotsuba",
+     "t": 1789978097299
+    },
+    {
+     "key": "-22,-1,-26",
+     "at": [
+      -351,
+      -16,
+      -403
      ],
      "cells": 2000,
      "klass": "cavern",
      "ores": 7,
-     "iron": 4,
-     "by": "Noa",
-     "t": 1789976259596
+     "iron": 1,
+     "by": "Suzu",
+     "t": 1789978124787
     }
    ]
   },
@@ -2929,7 +3043,7 @@
     "spur": false,
     "cells": 52,
     "built": "2/3",
-    "checked": 1789976260877
+    "checked": 1789976500809
    },
    {
     "id": "road_village",
@@ -2947,9 +3061,9 @@
     ],
     "width": 5,
     "spur": false,
-    "cells": 874,
-    "built": "14/118",
-    "checked": 1789976260713
+    "cells": 997,
+    "built": "3/24",
+    "checked": 1789978052353
    }
   ]
  },
@@ -3513,7 +3627,7 @@
    },
    "rev": 27,
    "bots": 1,
-   "restUntil": 1789976722724
+   "restUntil": 1789978256946
   },
   {
    "id": "sleeper",
@@ -3600,7 +3714,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789976377855
+   "restUntil": 1789978227429
   },
   {
    "id": "fill_ring_field1",
@@ -4387,14 +4501,14 @@
    "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -333,58,-483",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Ayame",
-    "t": 1789972754462,
+    "by": "Rin",
+    "t": 1789978084968,
     "at": [
-     -319,
-     58,
-     -461
+     -332,
+     61,
+     -483
     ],
-    "drop": 11
+    "drop": 8
    },
    "noDig": {
     "-323,42,-466": 1789983040661,
@@ -5413,7 +5527,7 @@
     "maxPlace": 48
    },
    "desc": "OFF-ROAD BARTER: walks to the nearest adult piglin and builds a <=24-block STAIR to it (nether_stair). The 48-cell lane is not needed.",
-   "rev": 65,
+   "rev": 67,
    "maxDeaths": 2,
    "restUntil": 0,
    "note": "09-21 07:2xZ top model: camera at step 1 found a piglin at -57,110,-74 reachable from the shelf corner -55,101,-83 by a 7-cell / 6-block staircase. Route is SEARCHED at runtime (cost = blocks placed), never walked to the unbuilt pad (that walk killed Wakana 07:02). Reports nether_stair + nether_barter{offered,pearls,per64}."
@@ -5926,7 +6040,7 @@
     "bare": true
    },
    "rev": 18,
-   "restUntil": 1789976515487
+   "restUntil": 1789978364253
   },
   {
    "id": "nether_gate_old_down",
@@ -6166,7 +6280,7 @@
     "radius": 150,
     "bankAt": 48
    },
-   "restUntil": 1789976615733,
+   "restUntil": 1789978382001,
    "rev": 21
   },
   {
@@ -6397,9 +6511,9 @@
    "type": "road",
    "priority": 72,
    "front": "works",
-   "status": "active",
+   "status": "paused",
    "when": "any",
-   "bots": 6,
+   "bots": 4,
    "site": [
     -367,
     69,
@@ -6450,7 +6564,8 @@
        "torchEvery": 8,
        "shoulder": 2
       },
-      "at": 1789969835360
+      "at": 1789976500807,
+      "idle": 0
      },
      {
       "i": 1,
@@ -6477,7 +6592,18 @@
        "shoulder": 2
       },
       "at": 1789969589775,
-      "idle": 236
+      "idle": 185,
+      "blocked": {
+       "at": 1789976407967,
+       "left": 4,
+       "of": 85,
+       "cells": [
+        "-343,68,-497=grass_block",
+        "-342,68,-497=grass_block",
+        "-343,68,-500=grass_block",
+        "-342,68,-500=grass_block"
+       ]
+      }
      },
      {
       "i": 2,
@@ -6521,8 +6647,8 @@
     ]
    },
    "restUntil": 1789972930162,
-   "rev": 8,
-   "note": "PAUSED by the roads engineer 06:0xZ: 2 of 3 segments verified in the world; the junction cells -343/-342,68,-500 are contested by cap_base_mine_pad (build_runaway, dig/place loop) because settings.roads is invisible to A.buildJobs()/ours() - re-activate after that patch lands (see docs/ROADS.md)"
+   "rev": 9,
+   "note": "auto-paused: road complete - 3 segments, 52 cells"
   },
   {
    "id": "base_yard_pad",
@@ -6868,7 +6994,7 @@
   {
    "id": "road_village",
    "type": "road",
-   "priority": 72,
+   "priority": 74,
    "front": "roads",
    "status": "active",
    "when": "any",
@@ -6881,7 +7007,7 @@
    "requires": {
     "minHp": 10
    },
-   "plan": "TRUNK ROAD road_village (docs/ROADS.md): -367,-488 -> -714,27 in overworld, 5 wide, 863 cells in 118 straight one-height segments (1 bridged), ~4365 paving blocks. Designed from the spectator camera (ops/road-plan.js, picture /tmp/road-road_village.png): the line follows the contour, no step over 1 block, no keep-out or zone crossed.",
+   "plan": "TRUNK ROAD road_village (docs/ROADS.md): -367,-488 -> -714,27 in overworld, 5 wide, 991 cells in 24 straight segments (21 ramps with 139 stair risers, 1 bridged), ~4975 paving blocks. Designed from the spectator camera (ops/road-plan.js, picture /tmp/road-road_village.png): the line follows the contour, no step over 1 block, no keep-out or zone crossed.",
    "params": {
     "road": "road_village",
     "dim": "overworld",
@@ -6910,20 +7036,21 @@
       "to": [
        -367,
        68,
-       -381
+       -406
       ],
-      "len": 108,
-      "built": false,
+      "len": 83,
+      "rise": 0,
+      "built": true,
       "args": {
        "toX": -367,
-       "toZ": -381,
+       "toZ": -406,
        "width": 5,
        "block": "stone",
        "clear": 3,
        "torchEvery": 8,
        "shoulder": 2
       },
-      "idle": 70
+      "at": 1789976584011
      },
      {
       "i": 1,
@@ -6931,2632 +7058,497 @@
       "origin": [
        -367,
        68,
-       -381
+       -406
       ],
       "to": [
-       -411,
+       -303,
        68,
-       -381
+       -406
       ],
-      "len": 45,
+      "len": 65,
+      "rise": 0,
       "built": false,
       "args": {
-       "toX": -411,
-       "toZ": -381,
+       "toX": -303,
+       "toZ": -406,
        "width": 5,
        "block": "stone",
        "clear": 3,
        "torchEvery": 8,
        "shoulder": 2
       },
-      "idle": 8
+      "idle": 1
      },
      {
       "i": 2,
-      "kind": "road",
+      "kind": "ramp",
       "origin": [
-       -412,
-       67,
-       -381
+       -303,
+       68,
+       -406
       ],
       "to": [
-       -412,
-       67,
-       -381
+       -303,
+       74,
+       -353
       ],
-      "len": 1,
-      "built": true,
+      "len": 54,
+      "rise": 6,
+      "built": false,
       "args": {
-       "toX": -412,
-       "toZ": -381,
+       "toX": -303,
+       "toZ": -353,
        "width": 5,
        "block": "stone",
        "clear": 3,
        "torchEvery": 8,
-       "shoulder": 2
-      },
-      "idle": 0,
-      "rails": [],
-      "at": 1789972347718
+       "shoulder": 2,
+       "toY": 74
+      }
      },
      {
       "i": 3,
-      "kind": "road",
+      "kind": "ramp",
       "origin": [
-       -413,
-       66,
-       -381
+       -303,
+       73,
+       -352
       ],
       "to": [
-       -413,
-       66,
-       -381
-      ],
-      "len": 1,
-      "built": true,
-      "args": {
-       "toX": -413,
-       "toZ": -381,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      },
-      "idle": 0,
-      "at": 1789972821862,
-      "leftover": [
-       "-413,66,-380=dirt"
-      ]
-     },
-     {
-      "i": 4,
-      "kind": "road",
-      "origin": [
-       -414,
-       65,
-       -381
-      ],
-      "to": [
-       -414,
-       65,
-       -381
-      ],
-      "len": 1,
-      "built": true,
-      "args": {
-       "toX": -414,
-       "toZ": -381,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      },
-      "idle": 0,
-      "at": 1789972155263
-     },
-     {
-      "i": 5,
-      "kind": "road",
-      "origin": [
-       -414,
-       64,
-       -380
-      ],
-      "to": [
-       -414,
-       64,
-       -377
-      ],
-      "len": 4,
-      "built": true,
-      "args": {
-       "toX": -414,
-       "toZ": -377,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      },
-      "idle": 0,
-      "rails": [],
-      "at": 1789972604683
-     },
-     {
-      "i": 6,
-      "kind": "road",
-      "origin": [
-       -414,
-       63,
-       -376
-      ],
-      "to": [
-       -414,
-       63,
-       -375
-      ],
-      "len": 2,
-      "built": true,
-      "args": {
-       "toX": -414,
-       "toZ": -375,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      },
-      "at": 1789972042604,
-      "idle": 0
-     },
-     {
-      "i": 7,
-      "kind": "road",
-      "origin": [
-       -414,
-       63,
-       -375
-      ],
-      "to": [
-       -418,
-       63,
-       -375
-      ],
-      "len": 5,
-      "built": true,
-      "args": {
-       "toX": -418,
-       "toZ": -375,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      },
-      "idle": 0,
-      "at": 1789972226980
-     },
-     {
-      "i": 8,
-      "kind": "road",
-      "origin": [
-       -419,
-       62,
-       -375
-      ],
-      "to": [
-       -429,
-       62,
-       -375
-      ],
-      "len": 11,
-      "built": true,
-      "args": {
-       "toX": -429,
-       "toZ": -375,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      },
-      "idle": 0,
-      "rails": [
-       [
-        -420,
-        63,
-        -377
-       ],
-       [
-        -421,
-        63,
-        -377
-       ],
-       [
-        -422,
-        63,
-        -377
-       ],
-       [
-        -423,
-        63,
-        -377
-       ],
-       [
-        -424,
-        63,
-        -377
-       ],
-       [
-        -425,
-        63,
-        -377
-       ],
-       [
-        -426,
-        63,
-        -377
-       ],
-       [
-        -427,
-        63,
-        -377
-       ],
-       [
-        -428,
-        63,
-        -377
-       ],
-       [
-        -429,
-        63,
-        -377
-       ]
-      ],
-      "at": 1789972868996,
-      "leftover": [
-       "-420,62,-377=water",
-       "-420,62,-376=water"
-      ]
-     },
-     {
-      "i": 9,
-      "kind": "road",
-      "origin": [
-       -430,
-       63,
-       -375
-      ],
-      "to": [
-       -442,
-       63,
-       -375
-      ],
-      "len": 13,
-      "built": true,
-      "args": {
-       "toX": -442,
-       "toZ": -375,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      },
-      "idle": 0,
-      "rails": [],
-      "at": 1789972971202
-     },
-     {
-      "i": 10,
-      "kind": "road",
-      "origin": [
-       -443,
-       62,
-       -375
-      ],
-      "to": [
-       -449,
-       62,
-       -375
-      ],
-      "len": 7,
-      "built": true,
-      "args": {
-       "toX": -449,
-       "toZ": -375,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      },
-      "idle": 0,
-      "at": 1789972969118,
-      "leftover": [
-       "-441,62,-374=dirt"
-      ]
-     },
-     {
-      "i": 11,
-      "kind": "bridge",
-      "origin": [
-       -450,
-       62,
-       -375
-      ],
-      "to": [
-       -450,
-       62,
-       -375
-      ],
-      "len": 1,
-      "built": true,
-      "width": 5,
-      "at": 1789972428887
-     },
-     {
-      "i": 12,
-      "kind": "road",
-      "origin": [
-       -451,
-       62,
-       -375
-      ],
-      "to": [
-       -461,
-       62,
-       -375
-      ],
-      "len": 11,
-      "built": true,
-      "args": {
-       "toX": -461,
-       "toZ": -375,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      },
-      "idle": 0,
-      "at": 1789972959144
-     },
-     {
-      "i": 13,
-      "kind": "road",
-      "origin": [
-       -461,
-       62,
-       -375
-      ],
-      "to": [
-       -461,
-       62,
-       -365
-      ],
-      "len": 11,
-      "built": true,
-      "args": {
-       "toX": -461,
-       "toZ": -365,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      },
-      "idle": 0,
-      "at": 1789973019187
-     },
-     {
-      "i": 14,
-      "kind": "road",
-      "origin": [
-       -461,
-       63,
-       -364
-      ],
-      "to": [
-       -461,
-       63,
-       -353
-      ],
-      "len": 12,
-      "built": true,
-      "args": {
-       "toX": -461,
-       "toZ": -353,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      },
-      "at": 1789974378802,
-      "idle": 0
-     },
-     {
-      "i": 15,
-      "kind": "road",
-      "origin": [
-       -461,
-       63,
-       -353
-      ],
-      "to": [
-       -531,
-       63,
-       -353
-      ],
-      "len": 71,
-      "built": false,
-      "args": {
-       "toX": -531,
-       "toZ": -353,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      },
-      "idle": 0
-     },
-     {
-      "i": 16,
-      "kind": "road",
-      "origin": [
-       -531,
-       63,
-       -353
-      ],
-      "to": [
-       -531,
-       63,
-       -351
-      ],
-      "len": 3,
-      "built": false,
-      "args": {
-       "toX": -531,
-       "toZ": -351,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      },
-      "idle": 0
-     },
-     {
-      "i": 17,
-      "kind": "road",
-      "origin": [
-       -531,
-       64,
-       -350
-      ],
-      "to": [
-       -531,
-       64,
-       -350
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -531,
-       "toZ": -350,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      },
-      "idle": 2
-     },
-     {
-      "i": 18,
-      "kind": "road",
-      "origin": [
-       -531,
-       65,
-       -349
-      ],
-      "to": [
-       -531,
-       65,
-       -349
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -531,
-       "toZ": -349,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      },
-      "idle": 2
-     },
-     {
-      "i": 19,
-      "kind": "road",
-      "origin": [
-       -531,
-       66,
-       -348
-      ],
-      "to": [
-       -531,
-       66,
-       -348
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -531,
-       "toZ": -348,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      },
-      "idle": 1
-     },
-     {
-      "i": 20,
-      "kind": "road",
-      "origin": [
-       -531,
-       67,
-       -347
-      ],
-      "to": [
-       -531,
-       67,
-       -347
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -531,
-       "toZ": -347,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      },
-      "idle": 1
-     },
-     {
-      "i": 21,
-      "kind": "road",
-      "origin": [
-       -531,
-       68,
-       -346
-      ],
-      "to": [
-       -531,
+       -303,
        68,
        -345
       ],
-      "len": 2,
-      "built": false,
+      "len": 8,
+      "rise": -5,
+      "built": true,
       "args": {
-       "toX": -531,
+       "toX": -303,
        "toZ": -345,
        "width": 5,
        "block": "stone",
        "clear": 3,
        "torchEvery": 8,
-       "shoulder": 2
+       "shoulder": 2,
+       "toY": 68
       },
-      "idle": 1
+      "idle": 0,
+      "rails": [],
+      "at": 1789978052352
      },
      {
-      "i": 22,
-      "kind": "road",
+      "i": 4,
+      "kind": "bridge",
       "origin": [
-       -531,
-       69,
+       -303,
+       67,
        -344
       ],
       "to": [
-       -531,
-       69,
+       -303,
+       67,
        -343
       ],
       "len": 2,
-      "built": true,
-      "args": {
-       "toX": -531,
-       "toZ": -343,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      },
-      "idle": 0,
-      "at": 1789974805292
+      "rise": 0,
+      "built": false,
+      "width": 5
      },
      {
-      "i": 23,
-      "kind": "road",
+      "i": 5,
+      "kind": "ramp",
       "origin": [
-       -531,
-       70,
+       -303,
+       66,
        -342
       ],
       "to": [
-       -531,
-       70,
+       -303,
+       65,
+       -340
+      ],
+      "len": 3,
+      "rise": -1,
+      "built": true,
+      "args": {
+       "toX": -303,
+       "toZ": -340,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2,
+       "toY": 65
+      },
+      "at": 1789978020431,
+      "idle": 0
+     },
+     {
+      "i": 6,
+      "kind": "ramp",
+      "origin": [
+       -303,
+       66,
        -339
       ],
-      "len": 4,
-      "built": false,
-      "args": {
-       "toX": -531,
-       "toZ": -339,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      },
-      "idle": 2
-     },
-     {
-      "i": 24,
-      "kind": "road",
-      "origin": [
-       -531,
+      "to": [
+       -303,
        71,
-       -338
+       -297
       ],
-      "to": [
-       -531,
-       71,
-       -327
-      ],
-      "len": 12,
+      "len": 43,
+      "rise": 5,
       "built": false,
       "args": {
-       "toX": -531,
-       "toZ": -327,
+       "toX": -303,
+       "toZ": -297,
        "width": 5,
        "block": "stone",
        "clear": 3,
        "torchEvery": 8,
-       "shoulder": 2
+       "shoulder": 2,
+       "toY": 71
       }
      },
      {
-      "i": 25,
-      "kind": "road",
+      "i": 7,
+      "kind": "ramp",
       "origin": [
-       -531,
-       72,
-       -326
-      ],
-      "to": [
-       -531,
-       72,
-       -326
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -531,
-       "toZ": -326,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 26,
-      "kind": "road",
-      "origin": [
-       -531,
-       73,
-       -325
-      ],
-      "to": [
-       -531,
-       73,
-       -324
-      ],
-      "len": 2,
-      "built": false,
-      "args": {
-       "toX": -531,
-       "toZ": -324,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 27,
-      "kind": "road",
-      "origin": [
-       -531,
-       74,
-       -323
-      ],
-      "to": [
-       -531,
-       74,
-       -323
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -531,
-       "toZ": -323,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 28,
-      "kind": "road",
-      "origin": [
-       -531,
-       75,
-       -322
-      ],
-      "to": [
-       -531,
-       75,
-       -321
-      ],
-      "len": 2,
-      "built": false,
-      "args": {
-       "toX": -531,
-       "toZ": -321,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 29,
-      "kind": "road",
-      "origin": [
-       -531,
-       76,
-       -320
-      ],
-      "to": [
-       -531,
-       76,
-       -316
-      ],
-      "len": 5,
-      "built": false,
-      "args": {
-       "toX": -531,
-       "toZ": -316,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 30,
-      "kind": "road",
-      "origin": [
-       -531,
-       77,
-       -315
-      ],
-      "to": [
-       -531,
-       77,
-       -312
-      ],
-      "len": 4,
-      "built": false,
-      "args": {
-       "toX": -531,
-       "toZ": -312,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 31,
-      "kind": "road",
-      "origin": [
-       -531,
-       78,
-       -311
-      ],
-      "to": [
-       -531,
-       78,
-       -307
-      ],
-      "len": 5,
-      "built": false,
-      "args": {
-       "toX": -531,
-       "toZ": -307,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 32,
-      "kind": "road",
-      "origin": [
-       -531,
-       78,
-       -307
-      ],
-      "to": [
-       -533,
-       78,
-       -307
-      ],
-      "len": 3,
-      "built": false,
-      "args": {
-       "toX": -533,
-       "toZ": -307,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 33,
-      "kind": "road",
-      "origin": [
-       -534,
-       79,
-       -307
-      ],
-      "to": [
-       -572,
-       79,
-       -307
-      ],
-      "len": 39,
-      "built": false,
-      "args": {
-       "toX": -572,
-       "toZ": -307,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 34,
-      "kind": "road",
-      "origin": [
-       -573,
-       80,
-       -307
-      ],
-      "to": [
-       -573,
-       80,
-       -307
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -573,
-       "toZ": -307,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 35,
-      "kind": "road",
-      "origin": [
-       -574,
-       81,
-       -307
-      ],
-      "to": [
-       -574,
-       81,
-       -307
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -574,
-       "toZ": -307,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 36,
-      "kind": "road",
-      "origin": [
-       -575,
-       82,
-       -307
-      ],
-      "to": [
-       -576,
-       82,
-       -307
-      ],
-      "len": 2,
-      "built": false,
-      "args": {
-       "toX": -576,
-       "toZ": -307,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 37,
-      "kind": "road",
-      "origin": [
-       -577,
-       83,
-       -307
-      ],
-      "to": [
-       -579,
-       83,
-       -307
-      ],
-      "len": 3,
-      "built": false,
-      "args": {
-       "toX": -579,
-       "toZ": -307,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 38,
-      "kind": "road",
-      "origin": [
-       -580,
-       84,
-       -307
-      ],
-      "to": [
-       -602,
-       84,
-       -307
-      ],
-      "len": 23,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -307,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 39,
-      "kind": "road",
-      "origin": [
-       -602,
-       84,
-       -307
-      ],
-      "to": [
-       -602,
-       84,
+       -303,
+       70,
        -296
       ],
-      "len": 12,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -296,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 40,
-      "kind": "road",
-      "origin": [
-       -602,
-       85,
-       -295
-      ],
       "to": [
-       -602,
-       85,
-       -292
-      ],
-      "len": 4,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -292,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 41,
-      "kind": "road",
-      "origin": [
-       -602,
-       86,
-       -291
-      ],
-      "to": [
-       -602,
-       86,
-       -288
-      ],
-      "len": 4,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -288,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 42,
-      "kind": "road",
-      "origin": [
-       -602,
-       87,
-       -287
-      ],
-      "to": [
-       -602,
-       87,
-       -283
-      ],
-      "len": 5,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -283,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 43,
-      "kind": "road",
-      "origin": [
-       -602,
-       88,
-       -282
-      ],
-      "to": [
-       -602,
-       88,
-       -281
-      ],
-      "len": 2,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -281,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 44,
-      "kind": "road",
-      "origin": [
-       -602,
-       89,
-       -280
-      ],
-      "to": [
-       -602,
-       89,
-       -280
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -280,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 45,
-      "kind": "road",
-      "origin": [
-       -602,
-       90,
-       -279
-      ],
-      "to": [
-       -602,
-       90,
-       -279
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -279,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 46,
-      "kind": "road",
-      "origin": [
-       -602,
-       91,
-       -278
-      ],
-      "to": [
-       -602,
-       91,
-       -277
-      ],
-      "len": 2,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -277,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 47,
-      "kind": "road",
-      "origin": [
-       -602,
-       92,
-       -276
-      ],
-      "to": [
-       -602,
-       92,
-       -276
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -276,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 48,
-      "kind": "road",
-      "origin": [
-       -602,
-       93,
-       -275
-      ],
-      "to": [
-       -602,
-       93,
-       -275
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -275,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 49,
-      "kind": "road",
-      "origin": [
-       -602,
-       94,
-       -274
-      ],
-      "to": [
-       -602,
-       94,
-       -274
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -274,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 50,
-      "kind": "road",
-      "origin": [
-       -602,
-       95,
-       -273
-      ],
-      "to": [
-       -602,
-       95,
-       -273
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -273,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 51,
-      "kind": "road",
-      "origin": [
-       -602,
-       96,
-       -272
-      ],
-      "to": [
-       -602,
-       96,
-       -271
-      ],
-      "len": 2,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -271,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 52,
-      "kind": "road",
-      "origin": [
-       -602,
-       97,
-       -270
-      ],
-      "to": [
-       -602,
-       97,
-       -268
-      ],
-      "len": 3,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -268,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 53,
-      "kind": "road",
-      "origin": [
-       -602,
-       98,
-       -267
-      ],
-      "to": [
-       -602,
-       98,
-       -265
-      ],
-      "len": 3,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -265,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 54,
-      "kind": "road",
-      "origin": [
-       -602,
-       99,
+       -303,
+       65,
        -264
       ],
-      "to": [
-       -602,
-       99,
-       -259
-      ],
-      "len": 6,
+      "len": 33,
+      "rise": -5,
       "built": false,
       "args": {
-       "toX": -602,
-       "toZ": -259,
+       "toX": -303,
+       "toZ": -264,
        "width": 5,
        "block": "stone",
        "clear": 3,
        "torchEvery": 8,
-       "shoulder": 2
+       "shoulder": 2,
+       "toY": 65
       }
      },
      {
-      "i": 55,
-      "kind": "road",
+      "i": 8,
+      "kind": "ramp",
       "origin": [
-       -602,
-       100,
-       -258
+       -303,
+       66,
+       -263
       ],
       "to": [
-       -602,
-       100,
-       -248
-      ],
-      "len": 11,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -248,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 56,
-      "kind": "road",
-      "origin": [
-       -602,
-       101,
-       -247
-      ],
-      "to": [
-       -602,
-       101,
-       -208
-      ],
-      "len": 40,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -208,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 57,
-      "kind": "road",
-      "origin": [
-       -602,
-       102,
-       -207
-      ],
-      "to": [
-       -602,
-       102,
-       -197
-      ],
-      "len": 11,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -197,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 58,
-      "kind": "road",
-      "origin": [
-       -602,
-       103,
-       -196
-      ],
-      "to": [
-       -602,
-       103,
-       -182
-      ],
-      "len": 15,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -182,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 59,
-      "kind": "road",
-      "origin": [
-       -602,
-       102,
-       -181
-      ],
-      "to": [
-       -602,
-       102,
-       -172
-      ],
-      "len": 10,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -172,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 60,
-      "kind": "road",
-      "origin": [
-       -602,
-       101,
-       -171
-      ],
-      "to": [
-       -602,
-       101,
-       -167
-      ],
-      "len": 5,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -167,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 61,
-      "kind": "road",
-      "origin": [
-       -602,
-       100,
-       -166
-      ],
-      "to": [
-       -602,
-       100,
-       -165
-      ],
-      "len": 2,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -165,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 62,
-      "kind": "road",
-      "origin": [
-       -602,
-       99,
-       -164
-      ],
-      "to": [
-       -602,
-       99,
-       -164
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -164,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 63,
-      "kind": "road",
-      "origin": [
-       -602,
-       98,
-       -163
-      ],
-      "to": [
-       -602,
-       98,
-       -163
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -163,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 64,
-      "kind": "road",
-      "origin": [
-       -602,
-       97,
+       -303,
+       74,
        -162
       ],
-      "to": [
-       -602,
-       97,
-       -162
-      ],
-      "len": 1,
+      "len": 102,
+      "rise": 8,
       "built": false,
       "args": {
-       "toX": -602,
+       "toX": -303,
        "toZ": -162,
        "width": 5,
        "block": "stone",
        "clear": 3,
        "torchEvery": 8,
-       "shoulder": 2
+       "shoulder": 2,
+       "toY": 74
       }
      },
      {
-      "i": 65,
-      "kind": "road",
+      "i": 9,
+      "kind": "ramp",
       "origin": [
-       -602,
-       96,
-       -161
+       -303,
+       74,
+       -162
       ],
       "to": [
-       -602,
-       96,
-       -161
+       -514,
+       116,
+       -162
       ],
-      "len": 1,
+      "len": 212,
+      "rise": 42,
       "built": false,
       "args": {
-       "toX": -602,
-       "toZ": -161,
+       "toX": -514,
+       "toZ": -162,
        "width": 5,
        "block": "stone",
        "clear": 3,
        "torchEvery": 8,
-       "shoulder": 2
+       "shoulder": 2,
+       "toY": 116
       }
      },
      {
-      "i": 66,
-      "kind": "road",
+      "i": 10,
+      "kind": "ramp",
       "origin": [
-       -602,
+       -515,
+       115,
+       -162
+      ],
+      "to": [
+       -535,
+       116,
+       -162
+      ],
+      "len": 21,
+      "rise": 1,
+      "built": false,
+      "args": {
+       "toX": -535,
+       "toZ": -162,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2,
+       "toY": 116
+      }
+     },
+     {
+      "i": 11,
+      "kind": "ramp",
+      "origin": [
+       -536,
+       115,
+       -162
+      ],
+      "to": [
+       -616,
+       94,
+       -162
+      ],
+      "len": 81,
+      "rise": -21,
+      "built": false,
+      "args": {
+       "toX": -616,
+       "toZ": -162,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2,
+       "toY": 94
+      }
+     },
+     {
+      "i": 12,
+      "kind": "ramp",
+      "origin": [
+       -617,
        95,
-       -160
+       -162
       ],
       "to": [
-       -602,
-       95,
-       -155
-      ],
-      "len": 6,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -155,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 67,
-      "kind": "road",
-      "origin": [
-       -602,
-       94,
-       -154
-      ],
-      "to": [
-       -602,
-       94,
-       -150
-      ],
-      "len": 5,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -150,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 68,
-      "kind": "road",
-      "origin": [
-       -602,
-       93,
-       -149
-      ],
-      "to": [
-       -602,
-       93,
-       -146
-      ],
-      "len": 4,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -146,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 69,
-      "kind": "road",
-      "origin": [
-       -602,
-       92,
-       -145
-      ],
-      "to": [
-       -602,
-       92,
-       -142
-      ],
-      "len": 4,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -142,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 70,
-      "kind": "road",
-      "origin": [
-       -602,
-       91,
-       -141
-      ],
-      "to": [
-       -602,
-       91,
-       -104
-      ],
-      "len": 38,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -104,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 71,
-      "kind": "road",
-      "origin": [
-       -602,
-       92,
-       -103
-      ],
-      "to": [
-       -602,
-       92,
-       -94
-      ],
-      "len": 10,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -94,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 72,
-      "kind": "road",
-      "origin": [
-       -602,
-       93,
-       -93
-      ],
-      "to": [
-       -602,
-       93,
-       -90
-      ],
-      "len": 4,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -90,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 73,
-      "kind": "road",
-      "origin": [
-       -602,
-       94,
-       -89
-      ],
-      "to": [
-       -602,
-       94,
-       -87
-      ],
-      "len": 3,
-      "built": false,
-      "args": {
-       "toX": -602,
-       "toZ": -87,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 74,
-      "kind": "road",
-      "origin": [
-       -602,
-       94,
-       -87
-      ],
-      "to": [
-       -632,
-       94,
-       -87
-      ],
-      "len": 31,
-      "built": false,
-      "args": {
-       "toX": -632,
-       "toZ": -87,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 75,
-      "kind": "road",
-      "origin": [
-       -632,
-       94,
-       -87
-      ],
-      "to": [
-       -632,
-       94,
-       -84
-      ],
-      "len": 4,
-      "built": false,
-      "args": {
-       "toX": -632,
-       "toZ": -84,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 76,
-      "kind": "road",
-      "origin": [
-       -632,
-       95,
-       -83
-      ],
-      "to": [
-       -632,
-       95,
-       -75
-      ],
-      "len": 9,
-      "built": false,
-      "args": {
-       "toX": -632,
-       "toZ": -75,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 77,
-      "kind": "road",
-      "origin": [
-       -632,
-       96,
-       -74
-      ],
-      "to": [
-       -632,
-       96,
-       -69
-      ],
-      "len": 6,
-      "built": false,
-      "args": {
-       "toX": -632,
-       "toZ": -69,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 78,
-      "kind": "road",
-      "origin": [
-       -632,
-       97,
-       -68
-      ],
-      "to": [
-       -632,
-       97,
-       -56
+       -629,
+       99,
+       -162
       ],
       "len": 13,
+      "rise": 4,
       "built": false,
       "args": {
-       "toX": -632,
-       "toZ": -56,
+       "toX": -629,
+       "toZ": -162,
        "width": 5,
        "block": "stone",
        "clear": 3,
        "torchEvery": 8,
-       "shoulder": 2
+       "shoulder": 2,
+       "toY": 99
       }
      },
      {
-      "i": 79,
-      "kind": "road",
+      "i": 13,
+      "kind": "ramp",
       "origin": [
-       -632,
-       96,
-       -55
+       -630,
+       98,
+       -162
       ],
       "to": [
-       -632,
-       96,
-       -52
+       -638,
+       97,
+       -162
       ],
-      "len": 4,
+      "len": 9,
+      "rise": -1,
       "built": false,
       "args": {
-       "toX": -632,
-       "toZ": -52,
+       "toX": -638,
+       "toZ": -162,
        "width": 5,
        "block": "stone",
        "clear": 3,
        "torchEvery": 8,
-       "shoulder": 2
+       "shoulder": 2,
+       "toY": 97
       }
      },
      {
-      "i": 80,
-      "kind": "road",
+      "i": 14,
+      "kind": "ramp",
       "origin": [
-       -632,
-       95,
-       -51
+       -638,
+       97,
+       -162
       ],
       "to": [
-       -632,
+       -638,
+       93,
+       -116
+      ],
+      "len": 47,
+      "rise": -4,
+      "built": false,
+      "args": {
+       "toX": -638,
+       "toZ": -116,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2,
+       "toY": 93
+      }
+     },
+     {
+      "i": 15,
+      "kind": "ramp",
+      "origin": [
+       -638,
+       94,
+       -115
+      ],
+      "to": [
+       -638,
        95,
+       -78
+      ],
+      "len": 38,
+      "rise": 1,
+      "built": false,
+      "args": {
+       "toX": -638,
+       "toZ": -78,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2,
+       "toY": 95
+      }
+     },
+     {
+      "i": 16,
+      "kind": "ramp",
+      "origin": [
+       -638,
+       94,
+       -77
+      ],
+      "to": [
+       -638,
+       96,
+       -49
+      ],
+      "len": 29,
+      "rise": 2,
+      "built": false,
+      "args": {
+       "toX": -638,
+       "toZ": -49,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2,
+       "toY": 96
+      }
+     },
+     {
+      "i": 17,
+      "kind": "ramp",
+      "origin": [
+       -638,
+       95,
+       -48
+      ],
+      "to": [
+       -638,
+       96,
        -36
       ],
-      "len": 16,
+      "len": 13,
+      "rise": 1,
       "built": false,
       "args": {
-       "toX": -632,
+       "toX": -638,
        "toZ": -36,
        "width": 5,
        "block": "stone",
        "clear": 3,
        "torchEvery": 8,
-       "shoulder": 2
+       "shoulder": 2,
+       "toY": 96
       }
      },
      {
-      "i": 81,
-      "kind": "road",
+      "i": 18,
+      "kind": "ramp",
       "origin": [
-       -632,
-       94,
+       -638,
+       95,
        -35
       ],
       "to": [
-       -632,
+       -638,
        94,
        -21
       ],
       "len": 15,
+      "rise": -1,
       "built": false,
       "args": {
-       "toX": -632,
+       "toX": -638,
        "toZ": -21,
        "width": 5,
        "block": "stone",
        "clear": 3,
        "torchEvery": 8,
-       "shoulder": 2
+       "shoulder": 2,
+       "toY": 94
       }
      },
      {
-      "i": 82,
-      "kind": "road",
+      "i": 19,
+      "kind": "ramp",
       "origin": [
-       -632,
+       -638,
        94,
        -21
       ],
       "to": [
-       -645,
-       94,
-       -21
-      ],
-      "len": 14,
-      "built": false,
-      "args": {
-       "toX": -645,
-       "toZ": -21,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 83,
-      "kind": "road",
-      "origin": [
-       -646,
-       93,
-       -21
-      ],
-      "to": [
-       -647,
-       93,
-       -21
-      ],
-      "len": 2,
-      "built": false,
-      "args": {
-       "toX": -647,
-       "toZ": -21,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 84,
-      "kind": "road",
-      "origin": [
-       -648,
-       92,
-       -21
-      ],
-      "to": [
-       -650,
-       92,
-       -21
-      ],
-      "len": 3,
-      "built": false,
-      "args": {
-       "toX": -650,
-       "toZ": -21,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 85,
-      "kind": "road",
-      "origin": [
-       -651,
-       91,
-       -21
-      ],
-      "to": [
-       -652,
-       91,
-       -21
-      ],
-      "len": 2,
-      "built": false,
-      "args": {
-       "toX": -652,
-       "toZ": -21,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 86,
-      "kind": "road",
-      "origin": [
-       -653,
-       90,
-       -21
-      ],
-      "to": [
-       -654,
-       90,
-       -21
-      ],
-      "len": 2,
-      "built": false,
-      "args": {
-       "toX": -654,
-       "toZ": -21,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 87,
-      "kind": "road",
-      "origin": [
-       -655,
-       89,
-       -21
-      ],
-      "to": [
-       -655,
-       89,
-       -21
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -655,
-       "toZ": -21,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 88,
-      "kind": "road",
-      "origin": [
-       -656,
-       88,
-       -21
-      ],
-      "to": [
-       -657,
-       88,
-       -21
-      ],
-      "len": 2,
-      "built": false,
-      "args": {
-       "toX": -657,
-       "toZ": -21,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 89,
-      "kind": "road",
-      "origin": [
-       -658,
-       87,
-       -21
-      ],
-      "to": [
-       -659,
-       87,
-       -21
-      ],
-      "len": 2,
-      "built": false,
-      "args": {
-       "toX": -659,
-       "toZ": -21,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 90,
-      "kind": "road",
-      "origin": [
-       -660,
-       86,
-       -21
-      ],
-      "to": [
-       -660,
-       86,
-       -21
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -660,
-       "toZ": -21,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 91,
-      "kind": "road",
-      "origin": [
-       -661,
-       85,
-       -21
-      ],
-      "to": [
-       -661,
-       85,
-       -21
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -661,
-       "toZ": -21,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 92,
-      "kind": "road",
-      "origin": [
-       -662,
-       84,
-       -21
-      ],
-      "to": [
-       -662,
-       84,
-       -21
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -662,
-       "toZ": -21,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 93,
-      "kind": "road",
-      "origin": [
-       -663,
-       83,
-       -21
-      ],
-      "to": [
-       -663,
-       83,
-       -21
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -663,
-       "toZ": -21,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 94,
-      "kind": "road",
-      "origin": [
-       -664,
-       82,
-       -21
-      ],
-      "to": [
-       -670,
-       82,
-       -21
-      ],
-      "len": 7,
-      "built": false,
-      "args": {
-       "toX": -670,
-       "toZ": -21,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 95,
-      "kind": "road",
-      "origin": [
-       -671,
-       81,
-       -21
-      ],
-      "to": [
-       -681,
-       81,
-       -21
-      ],
-      "len": 11,
-      "built": false,
-      "args": {
-       "toX": -681,
-       "toZ": -21,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 96,
-      "kind": "road",
-      "origin": [
-       -682,
-       80,
-       -21
-      ],
-      "to": [
-       -684,
-       80,
-       -21
-      ],
-      "len": 3,
-      "built": false,
-      "args": {
-       "toX": -684,
-       "toZ": -21,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 97,
-      "kind": "road",
-      "origin": [
-       -685,
-       79,
-       -21
-      ],
-      "to": [
-       -686,
-       79,
-       -21
-      ],
-      "len": 2,
-      "built": false,
-      "args": {
-       "toX": -686,
-       "toZ": -21,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 98,
-      "kind": "road",
-      "origin": [
-       -687,
-       78,
-       -21
-      ],
-      "to": [
-       -687,
-       78,
-       -21
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -687,
-       "toZ": -21,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 99,
-      "kind": "road",
-      "origin": [
-       -688,
-       77,
-       -21
-      ],
-      "to": [
-       -689,
-       77,
-       -21
-      ],
-      "len": 2,
-      "built": false,
-      "args": {
-       "toX": -689,
-       "toZ": -21,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 100,
-      "kind": "road",
-      "origin": [
-       -690,
-       76,
-       -21
-      ],
-      "to": [
-       -706,
-       76,
-       -21
-      ],
-      "len": 17,
-      "built": false,
-      "args": {
-       "toX": -706,
-       "toZ": -21,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 101,
-      "kind": "road",
-      "origin": [
-       -707,
-       75,
-       -21
-      ],
-      "to": [
-       -710,
-       75,
-       -21
-      ],
-      "len": 4,
-      "built": false,
-      "args": {
-       "toX": -710,
-       "toZ": -21,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 102,
-      "kind": "road",
-      "origin": [
-       -711,
-       74,
-       -21
-      ],
-      "to": [
        -714,
        74,
        -21
       ],
-      "len": 4,
+      "len": 77,
+      "rise": -20,
       "built": false,
       "args": {
        "toX": -714,
@@ -9565,73 +7557,25 @@
        "block": "stone",
        "clear": 3,
        "torchEvery": 8,
-       "shoulder": 2
+       "shoulder": 2,
+       "toY": 74
       }
      },
      {
-      "i": 103,
-      "kind": "road",
+      "i": 20,
+      "kind": "ramp",
       "origin": [
        -714,
        74,
        -21
-      ],
-      "to": [
-       -714,
-       74,
-       -20
-      ],
-      "len": 2,
-      "built": false,
-      "args": {
-       "toX": -714,
-       "toZ": -20,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 104,
-      "kind": "road",
-      "origin": [
-       -714,
-       73,
-       -19
-      ],
-      "to": [
-       -714,
-       73,
-       -19
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -714,
-       "toZ": -19,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 105,
-      "kind": "road",
-      "origin": [
-       -714,
-       72,
-       -18
       ],
       "to": [
        -714,
        72,
        -12
       ],
-      "len": 7,
+      "len": 10,
+      "rise": -2,
       "built": false,
       "args": {
        "toX": -714,
@@ -9640,12 +7584,13 @@
        "block": "stone",
        "clear": 3,
        "torchEvery": 8,
-       "shoulder": 2
+       "shoulder": 2,
+       "toY": 72
       }
      },
      {
-      "i": 106,
-      "kind": "road",
+      "i": 21,
+      "kind": "ramp",
       "origin": [
        -714,
        73,
@@ -9653,35 +7598,11 @@
       ],
       "to": [
        -714,
-       73,
-       -10
-      ],
-      "len": 2,
-      "built": false,
-      "args": {
-       "toX": -714,
-       "toZ": -10,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 107,
-      "kind": "road",
-      "origin": [
-       -714,
-       74,
-       -9
-      ],
-      "to": [
-       -714,
        74,
        -1
       ],
-      "len": 9,
+      "len": 11,
+      "rise": 1,
       "built": false,
       "args": {
        "toX": -714,
@@ -9690,12 +7611,13 @@
        "block": "stone",
        "clear": 3,
        "torchEvery": 8,
-       "shoulder": 2
+       "shoulder": 2,
+       "toY": 74
       }
      },
      {
-      "i": 108,
-      "kind": "road",
+      "i": 22,
+      "kind": "ramp",
       "origin": [
        -714,
        73,
@@ -9703,135 +7625,11 @@
       ],
       "to": [
        -714,
-       73,
-       1
-      ],
-      "len": 2,
-      "built": false,
-      "args": {
-       "toX": -714,
-       "toZ": 1,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 109,
-      "kind": "road",
-      "origin": [
-       -714,
-       72,
-       2
-      ],
-      "to": [
-       -714,
-       72,
-       2
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -714,
-       "toZ": 2,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 110,
-      "kind": "road",
-      "origin": [
-       -714,
-       71,
-       3
-      ],
-      "to": [
-       -714,
-       71,
-       3
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -714,
-       "toZ": 3,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 111,
-      "kind": "road",
-      "origin": [
-       -714,
-       70,
-       4
-      ],
-      "to": [
-       -714,
-       70,
-       5
-      ],
-      "len": 2,
-      "built": false,
-      "args": {
-       "toX": -714,
-       "toZ": 5,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 112,
-      "kind": "road",
-      "origin": [
-       -714,
-       69,
-       6
-      ],
-      "to": [
-       -714,
-       69,
-       10
-      ],
-      "len": 5,
-      "built": false,
-      "args": {
-       "toX": -714,
-       "toZ": 10,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 113,
-      "kind": "road",
-      "origin": [
-       -714,
-       68,
-       11
-      ],
-      "to": [
-       -714,
        68,
        21
       ],
-      "len": 11,
+      "len": 22,
+      "rise": -5,
       "built": false,
       "args": {
        "toX": -714,
@@ -9840,12 +7638,13 @@
        "block": "stone",
        "clear": 3,
        "torchEvery": 8,
-       "shoulder": 2
+       "shoulder": 2,
+       "toY": 68
       }
      },
      {
-      "i": 114,
-      "kind": "road",
+      "i": 23,
+      "kind": "ramp",
       "origin": [
        -714,
        69,
@@ -9853,85 +7652,11 @@
       ],
       "to": [
        -714,
-       69,
-       22
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -714,
-       "toZ": 22,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 115,
-      "kind": "road",
-      "origin": [
-       -714,
-       70,
-       23
-      ],
-      "to": [
-       -714,
-       70,
-       23
-      ],
-      "len": 1,
-      "built": false,
-      "args": {
-       "toX": -714,
-       "toZ": 23,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 116,
-      "kind": "road",
-      "origin": [
-       -714,
-       71,
-       24
-      ],
-      "to": [
-       -714,
-       71,
-       26
-      ],
-      "len": 3,
-      "built": false,
-      "args": {
-       "toX": -714,
-       "toZ": 26,
-       "width": 5,
-       "block": "stone",
-       "clear": 3,
-       "torchEvery": 8,
-       "shoulder": 2
-      }
-     },
-     {
-      "i": 117,
-      "kind": "road",
-      "origin": [
-       -714,
        72,
        27
       ],
-      "to": [
-       -714,
-       72,
-       27
-      ],
-      "len": 1,
+      "len": 6,
+      "rise": 3,
       "built": false,
       "args": {
        "toX": -714,
@@ -9940,12 +7665,13 @@
        "block": "stone",
        "clear": 3,
        "torchEvery": 8,
-       "shoulder": 2
+       "shoulder": 2,
+       "toY": 72
       }
      }
     ]
    },
-   "rev": 1
+   "rev": 5
   },
   {
    "id": "smelt_and_buckets",
@@ -10236,7 +7962,7 @@
     "bare": true,
     "dy": 8
    },
-   "rev": 7,
+   "rev": 8,
    "shiftMin": 20
   },
   {
@@ -10257,7 +7983,7 @@
     "target": 16,
     "bare": true
    },
-   "restUntil": 1789976281975
+   "restUntil": 1789978595548
   },
   {
    "id": "farm_2",
@@ -10461,7 +8187,7 @@
     "shear": false,
     "cull": false
    },
-   "restUntil": 1789976496566
+   "restUntil": 1789978339239
   },
   {
    "id": "end_stronghold",
@@ -10561,7 +8287,7 @@
      "d": 35
     }
    },
-   "rev": 9,
+   "rev": 10,
    "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -345,67,-515",
    "cap": {
     "id": "cap_base_core_pad",
@@ -10570,11 +8296,11 @@
    },
    "restUntil": 1789963308637,
    "stuckBy": {
-    "key": "rev9",
+    "key": "rev10",
     "bots": [
-     "Noa",
-     "Akari",
-     "Hina"
+     "Honoka",
+     "Kotori",
+     "Ayame"
     ]
    }
   }

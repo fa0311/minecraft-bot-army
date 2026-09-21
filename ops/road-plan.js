@@ -112,10 +112,22 @@ function forbidden (M, board) {
     const b = k && k.box; if (!Array.isArray(b) || b.length !== 4) continue
     mark(Math.min(b[0], b[2]) - 3, Math.min(b[1], b[3]) - 3, Math.max(b[0], b[2]) + 3, Math.max(b[1], b[3]) + 3, 'keep-out ' + k.id)
   }
-  // STRUCTURES ARE NOT TERRAIN: a road never runs through a hall, a pen, a field or a depot. Terrain blueprints (a level pad, a
-  // fill, another road) are exactly what a road MAY meet - that is where the junctions are.
-  const SKIP = /^(level|fill_void|clear_area|road|road_path|quarry|platform)$/
+  // WORKING LAND IS NOT TERRAIN EITHER (measured 09-21: the first village design ran segment 0 straight through the wheat at
+  // -367,68,-400 - `road_blocked: 80 cells = farmland`. A `farm`/`cane`/`lumber` job has a BOX and no blueprint, and a finished
+  // field's build job has been PRUNED to the archive, so neither was in the board scan below. `tidy`/`deck`/`light` are
+  // groundskeeping, not land use - their boxes cover the whole base and masking them leaves no route at all.)
   for (const j of board.jobs || []) {
+    const q = j.params || {}
+    if (/^(farm|cane|lumber)$/.test(j.type) && Array.isArray(q.box) && q.box.length === 4) mark(Math.min(q.box[0], q.box[2]) - 1, Math.min(q.box[1], q.box[3]) - 1, Math.max(q.box[0], q.box[2]) + 1, Math.max(q.box[1], q.box[3]) + 1, j.type + ' ' + j.id)
+    if (j.type === 'herd' && Array.isArray(q.pen) && q.pen.length === 4) mark(Math.min(q.pen[0], q.pen[2]) - 1, Math.min(q.pen[1], q.pen[3]) - 1, Math.max(q.pen[0], q.pen[2]) + 1, Math.max(q.pen[1], q.pen[3]) + 1, 'pen ' + j.id)
+  }
+  // STRUCTURES ARE NOT TERRAIN: a road never runs through a hall, a pen, a field or a depot. Terrain blueprints (a level pad, a
+  // fill, another road) are exactly what a road MAY meet - that is where the junctions are. The ARCHIVE counts: `prune` moves a
+  // FINISHED structure off the board, and a finished structure is the one thing that certainly stands in the world.
+  const SKIP = /^(level|fill_void|clear_area|road|road_path|quarry|platform)$/
+  const all = (board.jobs || []).slice()
+  try { for (const l of fs.readFileSync(ROOT + '/bots/army/jobs-archive.jsonl', 'utf8').split('\n')) { if (!l) continue; try { const j = JSON.parse(l); if (j && j.type === 'build') all.push(j) } catch (e) { /* a truncated tail line is not a zone */ } } } catch (e) { /* no archive yet */ }
+  for (const j of all) {
     const P = j.params || {}
     if (j.type !== 'build' || !P.blueprint || SKIP.test(String(P.blueprint)) || !Array.isArray(P.origin)) continue
     try {
@@ -209,6 +221,15 @@ function profile (gs, endA, endB) {
     for (let i = n - 2; i >= 0; i--) { if (i === 0 && endA != null) continue; const lo = y[i + 1] - 1; const hi = y[i + 1] + 1; if (y[i] < lo) { y[i] = lo; ch = true } else if (y[i] > hi) { y[i] = hi; ch = true } }
     if (!ch) break
   }
+  // A LANDING EVERY 6 RISERS (owner 09-21「段差に対して弱すぎ、階段もなしか？」): an unbroken 1:1 climb is a ladder, not a road - a
+  // player cuts a flat landing into a long flight to stand, turn and let somebody past. Six risers in a row and the seventh cell
+  // is flattened to the one before it; the profile stays 1-Lipschitz, the road simply climbs a block later.
+  let run = 0
+  for (let i = 1; i < n - 1; i++) {
+    if (y[i] === y[i - 1]) { run = 0; continue }
+    if (++run < 6) continue
+    y[i] = y[i - 1]; run = 0
+  }
   return y
 }
 
@@ -218,19 +239,27 @@ function segments (M, cells, y, opt) {
   const n = cells.length
   const kindAt = i => { const j = idx(cells[i][0], cells[i][1]); return (M.kind[j] === K_WATER || y[i] - M.g[j] >= 2) ? 'bridge' : 'road' }
   const dirOf = i => cells[i][0] !== cells[i - 1][0] ? 'x' : 'z' // i >= 1
-  const runs = []; let a = 0
+  // A SEGMENT IS A STRAIGHT RUN, NOT A FLAT ONE (owner 09-21: 118 stubs of seven cells is why the village road built nothing).
+  // It breaks on a TURN and on a change of kind; a height change is carried INSIDE it as a grade (blueprint `road_ramp`, risers
+  // laid as real stair blocks by the job). The only extra break is a change of SIGN - a run never climbs and drops in one piece,
+  // because `road_ramp` interpolates linearly and a V would be paved as a straight slope through the ground.
+  const sgn = i => Math.sign(y[i] - y[i - 1])
+  const runs = []; let a = 0; let s0 = 0
   for (let i = 1; i < n; i++) {
     const turned = i > a + 1 && dirOf(i) !== dirOf(a + 1)
-    if (y[i] === y[a] && kindAt(i) === kindAt(a) && !turned) continue
+    const d = sgn(i)
+    const flip = d !== 0 && s0 !== 0 && d !== s0
+    if (!turned && !flip && kindAt(i) === kindAt(a)) { if (d !== 0) s0 = d; continue }
     runs.push({ a, b: i - 1 })
-    a = turned ? i - 1 : i // a CORNER belongs to both runs (a road with a 1-cell notch at every bend is not a road); a step up does not
+    a = turned ? i - 1 : i // a CORNER belongs to both runs (a road with a 1-cell notch at every bend is not a road)
+    s0 = 0
   }
   runs.push({ a, b: n - 1 })
   return runs.map((s, k) => {
-    const A = cells[s.a]; const B = cells[s.b]; const kind = kindAt(s.a)
-    const o = { i: k, kind, origin: [A[0], y[s.a], A[1]], to: [B[0], y[s.a], B[1]], len: Math.abs(B[0] - A[0]) + Math.abs(B[1] - A[1]) + 1, built: false }
-    if (kind === 'road') o.args = { toX: B[0], toZ: B[1], width: opt.width, block: opt.block, clear: opt.clear, torchEvery: opt.torchEvery, shoulder: opt.shoulder }
-    else o.width = opt.width
+    const A = cells[s.a]; const B = cells[s.b]; const kind = kindAt(s.a); const rise = y[s.b] - y[s.a]
+    const o = { i: k, kind: kind === 'bridge' ? 'bridge' : (rise ? 'ramp' : 'road'), origin: [A[0], y[s.a], A[1]], to: [B[0], y[s.b], B[1]], len: Math.abs(B[0] - A[0]) + Math.abs(B[1] - A[1]) + 1, rise, built: false }
+    if (o.kind === 'bridge') o.width = opt.width
+    else o.args = Object.assign({ toX: B[0], toZ: B[1], width: opt.width, block: opt.block, clear: opt.clear, torchEvery: opt.torchEvery, shoulder: opt.shoulder }, rise ? { toY: y[s.b] } : {})
     return o
   })
 }
@@ -331,16 +360,17 @@ async function main () {
 
   const cut = R.cells.reduce((n, c, i) => n + Math.max(0, M.g[idx(c[0], c[1])] - y[i]), 0)
   const fill = R.cells.reduce((n, c, i) => n + Math.max(0, y[i] - M.g[idx(c[0], c[1])]), 0)
-  const bridges = segs.filter(s => s.kind === 'bridge')
+  const bridges = segs.filter(s => s.kind === 'bridge'); const ramps = segs.filter(s => s.kind === 'ramp')
+  const risers = ramps.reduce((n, s) => n + Math.abs(s.rise || 0), 0)
   console.log('\n' + asciiProfile(M, R.cells, y, 8) + '\n')
   const px = Math.max(1, Math.min(6, +argOf('px', Math.max(1, Math.round(420 / Math.max(M.W, M.D))))))
   console.log('picture: ' + picture(M, R.cells, y, segs, out, px) + '   (' + px + ' px = 1 block; RED = the line, CYAN = a bridge, YELLOW = a segment start; north is up)')
   console.log('line   : ' + R.cells.length + ' cells, straight distance ' + len + ' (+' + Math.round(100 * (R.cells.length - 1 - len) / Math.max(1, len)) + ' %), cost ' + Math.round(R.cost))
   console.log('profile: y ' + Math.min(...y) + '..' + Math.max(...y) + ', ' + (y.filter((v, i) => i && v !== y[i - 1]).length) + ' one-block steps, cut ' + cut + ' / fill ' + fill + ' block-columns')
-  console.log('segments: ' + segs.length + ' (' + segs.filter(s => s.kind === 'road').length + ' road, ' + bridges.length + ' bridge' + (bridges.length ? ': ' + bridges.map(s => s.origin.join(',') + '->' + s.to.join(',') + ' ' + s.len).join(' | ') : '') + ')')
+  console.log('segments: ' + segs.length + ' (' + segs.filter(s => s.kind === 'road').length + ' flat, ' + ramps.length + ' ramp (' + risers + ' stair risers, ' + (ramps.length ? 'steepest 1:' + Math.min(...ramps.map(s => Math.round(s.len / Math.max(1, Math.abs(s.rise))))) : '-') + '), ' + bridges.length + ' bridge' + (bridges.length ? ': ' + bridges.map(s => s.origin.join(',') + '->' + s.to.join(',') + ' ' + s.len).join(' | ') : '') + ')')
   for (const s of bridges) if (s.len > 6 * 12) console.log('  ! bridge ' + s.i + ' is ' + s.len + ' cells: it is built span by span (<= 6) with moves.bridgeTo - check the picture that this is really the best crossing')
 
-  const pave = segs.filter(s => s.kind === 'road').reduce((n, s) => n + s.len * width, 0)
+  const pave = segs.filter(s => s.kind !== 'bridge').reduce((n, s) => n + s.len * width, 0)
   const job = {
     id,
     type: 'road',
@@ -352,7 +382,7 @@ async function main () {
     site: [segs[0].origin[0], segs[0].origin[1] + 1, segs[0].origin[2]],
     requires: { minHp: 10 },
     plan: (spur ? 'ROAD SPUR' : 'TRUNK ROAD') + ' ' + id + ' (docs/ROADS.md): ' + P0.join(',') + ' -> ' + P1.join(',') + ' in ' + dim + ', ' + width + ' wide, ' +
-      R.cells.length + ' cells in ' + segs.length + ' straight one-height segments (' + bridges.length + ' bridged), ~' + pave + ' paving blocks. ' +
+      R.cells.length + ' cells in ' + segs.length + ' straight segments (' + ramps.length + ' ramps with ' + risers + ' stair risers, ' + bridges.length + ' bridged), ~' + pave + ' paving blocks. ' +
       'Designed from the spectator camera (ops/road-plan.js, picture ' + out + '): the line follows the contour, no step over 1 block, no keep-out or zone crossed.',
     params: { road: id, dim, width, block: argOf('block', 'stone'), from: [P0[0], y[0], P0[1]], to: [P1[0], y[y.length - 1], P1[1]], spur, segments: segs }
   }

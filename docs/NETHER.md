@@ -23,7 +23,11 @@ Held 09-21 06:00Z: **0 blaze rods, 0 ender pearls** after 24 h. Everything else 
 Every Nether walk goes through **`nTravel`**, and every `work:` mode uses it (`explore`/fortress, `pair`, `barter`, `openDoors`, `safeStep`):
 * `exclusionAreasStep` prices at 100 any cell with lava or fire within 2 horizontally / 3 below / 2 above; `maxDropDown 1`; no parkour, no 1x1 towers, no digging; `allowSprinting` pinned false with a property.
 * **Never a goal in a cell with no floor within 3 or one touching lava** (`nether_refused`); within 4.5 of an edge it is one hand-driven `sneakStep`, never a pathfinder route that can cut a corner over air.
-* **EVERY Nether walk sneaks for its whole length, and the hold is a COUNT nothing may clear.** Two measurements, one day apart, say the same thing. (1) Sneak used to be decided ONCE from the two ends of a walk, so a hop that set off from the middle of a wide shelf and met a 1-wide arch nine blocks later walked it upright — the ground that killed Aoi, Fuuka and Koharu at -54..-55,28,-80 in two minutes on 09-20 17:17Z. (2) Asking again on a 400 ms beat is still not enough (**Erika, 09-21 05:46:19Z, "tried to swim in lava" at -51,27,-75, 31 iron + 5 diamond, four blocks into the barter lane**): a bot covers ~1.7 blocks between two samples, so "no edge within 2 of where I am now" can read false and be a fall by the next sample — and worse, `buildCells` holds sneak for a whole build while every `safeStep` inside it went through `nTravel`, which **released sneak in its own `finally`**, switching the build's protection off over and over. So: `sneakHold(bot, on)` is a counter; the build takes one, every walk inside it takes its own, and sneak only comes off when the last holder lets go. `sneakStep` and the walk watch **re-assert** it every tick, because `clearControlStates()` drops it silently. It costs about a third of the walking speed on ground that is one long rim. (Sneak proven live: Rena at -328,16,-389, 6-block drop one cell west, 3 s of forward into it → moved 0.06 blocks, `dropped 0.00`, hp 20.)
+* **EVERY Nether walk sneaks for its whole length, and the hold is a COUNT nothing may clear.** Deciding it once from the two ends of a walk
+  killed Aoi, Fuuka and Koharu (09-20 17:17Z); asking again on a 400 ms beat still killed Erika (05:46:19Z) because a bot covers ~1.7 blocks
+  between samples. `sneakHold(bot,on)` is a counter - a build takes one, every walk inside it takes its own, sneak comes off when the last
+  holder lets go - and `sneakStep`/the walk watch **re-assert** it every tick, because `clearControlStates()` drops it silently. It costs
+  ~a third of the walking speed. It also means a crouched bot **cannot climb or descend a block**: see `climbStep` below.
 * Bridging is `moves.bridgeTo` (pathfinder scaffolding + sneak): spans ≤ 6 cells, then that span is widened and railed before the next. Only from a safe stand (`walkableArea >= 8`, no lava within 2).
 * **Going DOWN is gravel, not digging** (owner 09-21 「砂や砂利を使うことでネザーでも安全に下に降りることが出来る」): water cannot be placed over there, so a level change drops GRAVEL or SAND into the column from the rim until the stack reaches the feet, then walks down it. `getGrav` / `A.gravityDrop` in `army_jobs.js` — **not yet wired into this file**, see requests below.
 
@@ -31,29 +35,23 @@ Every Nether walk goes through **`nTravel`**, and every `work:` mode uses it (`e
 `nether_barter` crossed and came home **36 times and traded nothing**: the old code tested the bot's CURRENT position against the hub chest, and the arrival cells are 10 blocks from it. Two facts behind it, both measured by flying `SkyEye` under the bedrock roof (`ops/skyshot.js --dim=the_nether --fly=104`, plus per-column solid/air reads):
 * **No mob ever spawns within 24 blocks of a player**, and no cell of the 383-cell arrival shelf is further than 24 from a squad standing on it. So no piglin can ever appear there however long we wait — and the census found none: **0 of the 6** in the region.
 * All **6 piglins and 17 of the 69 zombified piglins** stand on ONE other ground: **291 standable cells, x -69..-52 / z -83..-47, y100-116**, netherrack, with natural rock at **y113** three cells over its y109/110 plateau — a roof no ghast shoots through. It is big enough that a piglin spawning 24+ blocks away can walk to a squad on it.
-**A STAIRCASE IS CHEAPER THAN A ROAD, AND THE LANE WAS NEVER NEEDED (top model 09-21 07:2xZ — this replaces the lane).** The lane
-was the cheapest walkable line **at the arrival level** (26+ placed blocks west along z-75, a span at y96 over the void at x-57, then the
-natural ramp to y110) and it killed three bots at -51..-55,98,-75 because that line crosses a **900-cell cavern** and every pass built
-blind over it. Asked as a *different question* at step 1 with the same camera — "where is the nearest cell we can STAND on within 8 of an
-adult piglin, counting only blocks we must PLACE?" — the answer is not a road: from the shelf's SW corner **-55,101,-83** a **7-cell
-staircase of SIX placed blocks** (`-55,101,-82 · -55,102,-81 · -55,103,-80 · -55,104,-79 · -56,105,-79 · -57,106,-79`) stands **6.4 blocks
-from the piglin at -57,110,-74**. Nothing is bridged, every step is +1, and **a step up onto a block placed at your own foot level is the one
-construction move that cannot drop you** — you stand on the reference block while you place it. 6 blocks against 213, no void over a lava sea.
-So `work:'barter'` carries `stairSearch` + `stairTo`. **`stairSearch`** is a corridor-bounded best-first search over cells THIS bot can read,
-cost = blocks that must be placed, key = (cost, then distance to the goal) so the answer is still the cheapest stair but is found walking
-towards the target; unguided Dijkstra is hopeless here because walking is free and every cost level is a shell through open cavern.
-**`stairTo`** hands the cell list to **`buildCells`** (`seq` = leg index, so it lays them bottom-up) and then walks what stands.
-Four physics facts it cost a shift to learn, all now asserted in the search or the step:
-1. **A block needs a face to be placed against.** A floor one up and one across is DIAGONAL to the floor you stand on, so an ascent over
-   pure air is impossible without pillaring - which the doctrine forbids. The search only climbs where rock is already beside the step
+**THE LANE IS NOT WHAT BUYS THE PEARLS (top model 09-21 07:2x-07:4xZ).** The 652-cell lane / 213 placements is the cheapest walkable line
+*at the arrival level*, and it killed three bots because it crosses that 900-cell cavern. Asked as a different question with the same camera
+at step 1 — "the nearest cell we can STAND on within 8 of an adult piglin, counting only blocks we must PLACE" — the answer is **28-31
+placements**, not 213, and it changes with where the piglins have wandered. **`pigsSeen: 30` was thirty ZOMBIFIED piglins**, which barter
+nothing; the live piglins are 4-6, on a plateau at **y107-116** while the shelf is at y98, so this is a CLIMB, not a crossing.
+So `work:'barter'` carries `stairSearch` + `stairTo`. **`stairSearch`** = corridor-bounded best-first over cells THIS bot can read, cost =
+blocks to place, key (cost, then distance to goal): unguided Dijkstra is hopeless here because walking is free and every cost level is a shell
+through open cavern. **`stairTo`** walks the route's natural prefix with `nTravel` (a goal our own search REACHED, which is the distinction the
+deaths were about) and hands the rest to **`buildCells`** (`seq` = leg index, laid bottom-up). Four physics facts it cost a shift to learn:
+1. **A block needs a face to be placed against.** A floor one up and one across is DIAGONAL to the one you stand on, so an ascent over pure
+   air is impossible without pillaring, which the doctrine forbids. The search only climbs where rock is already beside the step
    (`hasSolidFace`); a FLAT placement always has your own floor as its reference, so a level causeway is always plannable.
-2. **A crouched body cannot climb.** Sneak holds you at the lip of your own block, which is what keeps you alive - and what makes a
-   1-block rise fail. `climbStep` = one hand-driven cell with a PULSED jump (a held jump bunny-hops a bot off the far side), crouch
-   dropped for that one hop ONLY when there is no drop within 1 of either cell. `safeStep` now routes every rise through it.
-3. **A crouched body cannot step DOWN either**, so the search plans dy 0/+1 only. We are climbing to a plateau; a dip is crossed flat.
-4. **Where a bot WAITS is a design decision.** Erika, Chika, Honoka and Chino all died at -51..-55,26..28,-75 - the lip of the cavern -
-   and Chino while literally `waiting for a piglin`. Sneak stops a body that walks off a rim; it does nothing for one that is SHOVED, and
-   a zombified piglin wandering past is a shove. The bot now returns to its wide arrival anchor to wait.
+2. **A crouched body cannot climb.** `climbStep` = one hand-driven cell with a PULSED jump (a held jump bunny-hops a bot off the far side),
+   crouch dropped for that hop ONLY when no drop is within 1 of either cell. `safeStep` now routes every rise through it.
+3. **A crouched body cannot step DOWN either**, so the search plans dy 0/+1 only and a dip is crossed flat. **This is the open hole**: the
+   camera says the good routes want a 1-block descent onto natural ground, and nothing can take it yet.
+4. **Where a bot WAITS is a design decision.** It now refuses to wait anywhere with fewer than 8 walkable cells and goes home instead.
 The goal is FROZEN per trip and is the same for every bot (`settings.nether.barterSpot.stand`): piglins wander, so re-reading "the nearest
 adult" before each attempt started a new stair every time - 5 attempts, 4 blocks, nothing finished. One goal means the cells one bot places
 read back as free ground to the next one's search, so the stair GROWS across trips. Reports `nether_stair` + `nether_barter`.
@@ -63,7 +61,7 @@ it is a road we may still want for a 50-bot squad, but it is not what buys the e
 
 ## Job type `portal` — one type, `params.work` picks the work
 `params {origin, args:{axis}, buildJob, go, landing, work, at/from/route/bearing/length/width/pad, minutes, cobble, crossS, maxDeaths, obsidian, ingots, roam, stairs, maxPlace, cargo}`
-* **frame** (reads 14 cells back, re-activates the frame's build job) · **light** (`strike`, success = six `nether_portal` blocks read back) · **go** (banks, kits, refuses under-equipped) · **arrival** (rules 1-3, `sealNear`, `nether_look`, optional `landing`) · **home** (`comeHome`; the whole of `nether_return`).
+* **frame** · **light** (`strike`) · **go** (banks, kits, refuses under-equipped) · **arrival** (rules 1-3, `sealNear`, `nether_look`) · **home** (`comeHome` = all of `nether_return`).
 * **work**: `pair` · `stair` (RETIRED, owner: bridge/gravel, do not dig) · `hub` · `road` · `scout` · `fortress` · **`barterspot`** · **`barter`** · `degate`. One round trip per slice; the trip always ends at the gate.
 * **death rule**: `maxDeaths` deaths in 30 min and the job pauses itself. A bot that died declines 3 min.
 * EVENTS: `portal_lit · portal_through · gate_stuck · nether_sealed · nether_look · nether_landing · nether_refused · pair_built · nether_pass · portal_back · gate_removed · nether_scout · nether_sighting · **nether_barter** · **barter_chest_near**`.
@@ -76,9 +74,8 @@ it is a road we may still want for a 50-bot squad, but it is not what buys the e
 | `nether_barter_road` (work `barterspot`) | **PAUSED 09-21 07:2xZ, THREE deaths on one design** (Erika 05:46, Chika 05:52, Honoka 07:10, all at -51..-55,28,-75 in the lava sea under the same cavern). Off the critical path: the stair replaced it |
 | `nether_barter` (work `barter`) | **ACTIVE, 2 bots, the whole front.** Off-road: nearest adult piglin -> `stairTo` -> trade -> wait. `maxPlace:24`, `stairs:4`, `minutes:12`, `cobble:96`, `maxDeaths:2` |
 | `nether_fortress` (6 bots) | paused. Re-activate only after the lane proves the continuous-sneak doctrine with 0 deaths; `explore` already hops 16 blocks through `nTravel` and bridges with `bridgeAhead` |
-| `nether_pair`, `nether_dead_frames` | PAUSED 09-21 05:4xZ (top model): `pair` declined 10x for `obsidian 6/10 (depot: 0)` and `dead_frames` 4x for `no sword` — neither could run, and both were queueing for the gate the barter lane needs. Gate pairing is off the critical path (40+ crossings work) |
-| `nether_hub` (paused) | 413/413 cells, chest -37,98,-79 and table -37,98,-73 stand. **The chest is the one container that constrains bartering**; if a spot inside 32 of it is ever wanted, take the chest home first |
-| `nether_landing_*`, `nether_road_xp`, `nether_stair`, `nether_gate_*` | paused, superseded or finished |
+| `nether_hub` (paused) | 413/413 cells, chest -37,98,-79 + table -37,98,-73 stand. That chest is the one container within 16 of the arrival: `barter_chest_near` fires every trip, harmless while we never open it |
+| `nether_landing_*`, `nether_road_xp`, `nether_stair`, `nether_gate_*`, `nether_pair`, `nether_dead_frames` | paused, superseded or off the critical path |
 
 ## THE THREE RULES THE TWO DEATHS BOUGHT (09-21 06:1xZ — read these before touching any Nether job)
 1. **A chunk that reads null is UNKNOWN, and unknown is never work, floor or safe.** Asserted in one place (`knownAt` = `bot.world.getColumnAt` **and** `blockAt`, the loaded-check of `ops/skyshot.js survey()`; `knownRing` = that cell's floor, body space and neighbours) and inherited by every routine: `loadedAt`, `cellOK` (an unreadable cell is no longer counted as **done**), `safeStep`, `sneakStep` and `nTravel` all refuse it. `buildCells` waits until **60 %** of its cells are readable, up to 60 s, and reports `nether_unloaded {cells, of, waitedS}` when they never arrive.
@@ -94,8 +91,12 @@ still at the rim, where a passing zombified piglin is a shove and sneak protects
 own search has not reached over readable blocks.**
 
 ## NEXT, in order
-0. **Re-lay the void span with `bridgeTo`, then re-run the lane.** Everything else on this list is downstream of it.
-1. **Finish the lane and pad → first measured pearls** (`nether_barter` back to active, 6-8 bots). Target 16+ pearls = 12 eyes with spares.
+0. **MAKE A BOT WALK ITS OWN STAIR.** The search is right (routes to a piglin cost 28-31 placements, measured with the camera against the
+   production rules) and the plan reaches; what fails is LAYING it. `buildCells` came home `placed 0, steps 0, done 24 of 35`: every stand
+   it considers is within 3 of the target cell, and over a void those cells ARE the void. A causeway is built by standing on the last block
+   you laid - that stand has to be generated from the HEAD OF OUR OWN FLOOR, walking backwards from the work, and `safeStep` has to be able
+   to take it (rise -> `climbStep`, now wired; a 1-block DESCENT is still impossible while crouched and that is the open hole).
+   Verify offline first: `/tmp/nprobe2.js` runs the exact production search against camera reads - no bot need die to test a plan.
 2. **The Nether front door.** The owner (09-21): 「ネザー側のポータル周りが本当にあれすぎ」. The arrival shelf must be made as good as the overworld apron — ONE height on solid rock, 15x15, every cell supported (the camera draws floating cells RED), kerb on the boundary, torches on a pitch of 8, nothing within 3 of a portal face, the half-built pair frame at -41,102,-75 (8 obsidian) and the dead frame's 5 leftovers recovered. `node ops/skyshot.js -50 -70 64 /tmp/n.png --dim=the_nether --fly=104` and `node bots/army/mapshot.js <bot> 40` both work under the roof now — read one before and after every pass.
 3. **The fortress road** to -784,-592: the same lane standard (one height, 3-5 wide, walled/roofed where a ghast can see it, lit, kerbs over drops), level changes by gravel drop, not by digging. Tell the road engineer this line so both dimensions get one trunk-road design.
 4. **Ghasts.** Two bots were fireballed overnight. A shield is in the kit but is never RAISED (`bot.activateItem(true)`), so it blocks nothing. Either raise it when a ghast is within 48 in the open, or roof the lane. Measure which.

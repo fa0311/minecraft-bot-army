@@ -4511,7 +4511,7 @@ function bedDue (bot, job) {
     if (bot.__armyBedDeaths == null) bot.__armyBedDeaths = bot.__armyDeaths || 0 // deaths before this code loaded say nothing about rest
     if (bot.__armyBedDeaths !== (bot.__armyDeaths || 0)) { bot.__armyBedDeaths = bot.__armyDeaths || 0; bot.__armySleptT = Date.now() } // dying resets the rest clock too
     const due = bot.__armySleptT ? Date.now() - bot.__armySleptT > BED_DUE_MS : (idx + ((bot.time && bot.time.day) || 0)) % 3 === 0
-    if (due && all.length >= 2 && idx >= 0 && Number.isFinite(t) && t >= 10500 && t < 23000 && !/^(delegate|sleeper|steps|scout)$/.test(job.type) && !bot.isSleeping && !underground(bot) && Date.now() - (bot.__armyBedTryT || 0) > 8 * 60000) {
+    if (due && all.length >= 2 && idx >= 0 && Number.isFinite(t) && t >= 10500 && t < 23000 && !/^(delegate|sleeper|steps|scout|end)$/.test(job.type) && !(job.params && job.params.needsNight) && !bot.isSleeping && !underground(bot) && Date.now() - (bot.__armyBedTryT || 0) > 8 * 60000) {
       const board = A.readJSON(A.F.board, {}) || {}; const sj = (board.jobs || []).find(j => j.type === 'sleeper' && j.params && Array.isArray(j.params.bed)); const sb = (sj ? sj.params.bed : all[0]).join(',')
       const beds = all.filter(q => q.join(',') !== sb); const bed = beds[idx % beds.length]; const d = A.dist2(bot, bed[0], bed[2])
       const real = stringNight() || (board.jobs || []).some(j => j.status === 'active' && j.params && j.params.needsNight)

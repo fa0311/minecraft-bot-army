@@ -679,10 +679,7 @@ module.exports = ctx => {
     const work = String(P.work || 'enderhunt')
     // NOBODY ON THIS FRONT IS CALLED HOME TO BED. `bedDue` (army_jobs.js) sends a bot up to 150 blocks to its own bed at dusk once
     // per 6 h — on a NIGHT job that is the whole night gone to a walk (measured 09-21 06:27Z: 2 of 8 hunters left at dusk), and its
-    // own `api.stop` hook then cuts the slice short. The check skips a bot whose bed turn was just considered, so this claims the
-    // turn for the next 8 minutes. THE REAL FIX is one line in army_jobs.js `bedDue`: a job with `params.needsNight` (or type `end`)
-    // belongs in the exclusion `/^(delegate|sleeper|steps|scout)$/` — asked of that file's owner, not edited here.
-    bot.__armyBedTryT = now(); bot.__armyBedChk = null
+    // own `api.stop` hook then cuts the slice short. `bedDue` (army_jobs.js) now skips type `end` and every `needsNight` job.
     switch (work) {
       case 'enderhunt': return await enderhunt(bot, job, api, ctx2, P)
       case 'eyes': return await eyes(bot, job, api, ctx2, P)
