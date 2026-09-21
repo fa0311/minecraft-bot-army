@@ -489,7 +489,7 @@ async function bareDown (bot, opts = {}) {
   const STONE_OK = /^(cobblestone|cobbled_deepslate|stone|deepslate|andesite|diorite|granite|tuff|netherrack|dirt|gravel|sand)$/
   for (const i of bot.inventory.items()) if (BARE_OK.test(i.name) || (mine && mine.test(i.name)) || (cargo && cargo.test(i.name)) || STONE_OK.test(i.name) || /^gold(en)?_/.test(i.name)) keep[i.name] = (keep[i.name] || 0) + i.count
   const rich = bot.inventory.items().filter(i => !BARE_OK.test(i.name)).reduce((n, i) => n + i.count, 0)
-  const worn = [5, 6, 7, 8].map(sl => bot.inventory.slots[sl]).filter(Boolean)
+  const worn = [5, 6, 7, 8].map(sl => bot.inventory.slots[sl]).filter(Boolean).filter(i => !/^golden_/.test(i.name)) // a worn GOLD piece is the Nether's pass (piglins stay calm) and worth nothing: never stripped (09-21: every bare slice banked the golden boots and had to craft new ones)
   if (!rich && !worn.length) { // already bare: make sure it at least has a stone pickaxe to work with
     for (const n of ['stone_pickaxe', 'stone_shovel', 'stone_axe']) if (!U.count(bot, n) && stockOf(n) > 0) await withdraw(bot, n, 1, { stop: opts.stop }).catch(() => 0)
     return
