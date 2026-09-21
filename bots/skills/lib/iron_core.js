@@ -838,7 +838,7 @@ async function repairStairs (bot, M, g, gen, opts = {}) {
       if (eyeDist(bot, q.c) > 4.5) { q.why = 'out_of_reach'; continue }
       if (!isRepairable(M.G.cells.get(ck(q.c.x, q.c.y, q.c.z)))) { sayOnce(bot, 'refused', 600000, { ev: 'stair_repair_refused', at: [q.c.x, q.c.y, q.c.z], note: 'not a floor/wall/ceiling cell of stairCells' }); continue }
       const it = fillItem(bot)
-      if (!it) { sayOnce(bot, 'no_filler', 600000, { ev: 'stair_no_filler', group: g, note: 'a stair repair needs cobblestone in the pockets' }); break }
+      if (!it) { sayOnce(bot, 'no_filler', 600000, { ev: 'stair_no_filler', group: g, note: 'a stair repair needs a stone block in the pockets (any sort: cobble, deepslate, andesite, diorite, granite, tuff, stone)' }); break }
       const r = await placeSupported(bot, M, new Vec3(q.c.x, q.c.y, q.c.z), gen)
       if (r !== true) why[ck(q.c.x, q.c.y, q.c.z)] = r
     }
@@ -1764,7 +1764,10 @@ async function tossJunk (bot, force, dir) {
   const want = stoneWanted()
   const kept = {} // THE REPAIR KIT stays: the biggest stack of cobblestone and of cobbled deepslate (stair repairs, lava plugs, dams need a block in hand)
   for (const it of bot.inventory.items().slice().sort((a, b) => b.count - a.count)) {
-    const stone = it.name === 'cobblestone' || it.name === 'cobbled_deepslate'
+    // ANY STONE SORT IS FILLER (owner 09-21: 「ブランチマイニングでは丸石以外の石ブロックを使って埋めても良い」): andesite/diorite/granite/tuff/stone/deepslate
+    // wall a cave, floor a gap and plug lava exactly as cobblestone does, and the mine digs far more of them than it digs cobble. Keeping one stack of each
+    // sort (instead of cobble only) means a repair or a bridge never waits, and the rest is still tossed so the pockets stay free.
+    const stone = FILL.includes(it.name) && it.name !== 'dirt'
     if (!stone && !JUNK_RE.test(it.name)) continue
     if (stone && (want || !kept[it.name])) { kept[it.name] = true; continue }
     try { await U.withTimeout(bot.tossStack(it), 3000, 'toss'); n++ } catch (e_) { swallow('iron_core:q18', e_) }
@@ -2226,7 +2229,7 @@ function readiness (bot) {
   if (foodUnits(bot) < 8 && !(larder < 64 && (bot.food || 0) >= 14)) missing.push('food')
   if (!bestPick(bot)) missing.push('pickaxe'); else if (pickaxes(bot).length < 2 && U.count(bot, 'stick') < 2 && woodUnits(bot) < 2) missing.push('pick_spare') // stone is down there, sticks are not
   if (U.count(bot, 'torch') < 16) short.push('torch')
-  if (!fillItem(bot)) short.push('cobblestone') // a stair repair needs a block in hand
+  if (!fillItem(bot)) short.push('cobblestone') // a stair repair needs a block in hand - ANY stone sort does (FILL), cobblestone is only what the depot is asked for
   return { missing, short }
 }
 // why a miner underground should go UP now (null = stay): every one of these leaves through toSurface

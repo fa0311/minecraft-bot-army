@@ -354,7 +354,14 @@ module.exports = ctx => {
   // walked off the HEAD of the causeway at y98, fell 74 blocks into the lava sea and took 26 iron and 9 diamond with her. A
   // sneaking player cannot walk off an edge; that is the Minecraft basic this code was missing).
   const sneakOn = bot => { try { bot.setControlState('sneak', true) } catch (e_) { swallow('jobs_nether:sneakOn', e_) } }
-  const sneakOff = bot => { try { bot.setControlState('sneak', false) } catch (e_) { swallow('jobs_nether:sneakOff', e_) } }
+  const sneakOff = bot => { try { if (!(bot.__netherHold > 0)) bot.setControlState('sneak', false) } catch (e_) { swallow('jobs_nether:sneakOff', e_) } }
+  // A SNEAK HOLD NOTHING MAY CLEAR (Erika, 09-21 05:46:19Z, "tried to swim in lava" at -51,27,-75 with 31 iron and 5 diamond,
+  // four blocks into the barter lane). `buildCells` holds sneak for a whole build — but every `safeStep` inside it goes through
+  // `nTravel`, and `nTravel` released sneak in its `finally` when it was done. So the build's own sneak was switched off by its
+  // own walk, over and over, and the fourth time it happened the bot was standing on a 1-wide lane head over 70 blocks of void.
+  // A hold is a COUNT, not a flag: the build takes one, every walk inside it may take and drop its own, and sneak only ever
+  // comes off when the last holder lets go.
+  const sneakHold = (bot, on) => { bot.__netherHold = Math.max(0, (bot.__netherHold || 0) + (on ? 1 : -1)); if (bot.__netherHold > 0) sneakOn(bot); else { try { bot.setControlState('sneak', false) } catch (e_) { swallow('jobs_nether:holdOff', e_) } } }
   // is this cell within one of a drop? (no solid block within 3 under any neighbour)
   const edgeNear = (bot, c) => {
     for (let dx = -1; dx <= 1; dx++) for (let dz = -1; dz <= 1; dz++) {
@@ -373,7 +380,9 @@ module.exports = ctx => {
       bot.pathfinder.setGoal(null); bot.clearControlStates(); sneakOn(bot)
       await bot.lookAt(c.offset(0.5, 0.1, 0.5), true)
       bot.setControlState('forward', true)
-      for (let t = 0; t < 14 && !api.stop(); t++) { await sleep(250); if (bot.entity.position.floored().equals(c)) break }
+      // sneak is RE-ASSERTED on every tick of the step, never set once: `clearControlStates()` above and anything else that
+      // resets the controls mid-step would otherwise leave the bot walking a 1-wide lane head upright (05:46:19Z)
+      for (let t = 0; t < 14 && !api.stop(); t++) { sneakOn(bot); await sleep(250); if (bot.entity.position.floored().equals(c)) break }
       bot.setControlState('forward', false)
       return bot.entity.position.distanceTo(c.offset(0.5, 0, 0.5)) < 1.2
     } catch (e_) { swallow('jobs_nether:sneakStep', e_); try { bot.setControlState('forward', false) } catch (e2_) { swallow('jobs_nether:sneakStepClear', e2_) } return false }
@@ -394,9 +403,11 @@ module.exports = ctx => {
   // unfinished cell and go again. Bounded by `until` and by api.stop(); it never scaffolds and never lets the placer walk itself
   // (`place:{noMove:true}`). Returns what was MEASURED, plus what is still left.
   async function buildCells (bot, job, api, cells, box, until, what) {
-    let placed = 0; let dug = 0; let steps = 0
-    if (netherHere(bot)) sneakOn(bot) // held for the whole build: sneaking costs a little speed and saves a bot at every edge
+    let placed = 0; let dug = 0; let steps = 0; let waits = 0
+    const held = netherHere(bot)
+    if (held) sneakHold(bot, true) // held for the WHOLE build, and no walk inside it may let go (Erika 05:46:19Z paid for the old flag)
     const done = new Set(); const tried = []; const why = {} // cells our own floor cannot reach: REPORTED with the reason, never chased round the box
+    try {
     // WAIT FOR THE WORLD BEFORE DECIDING THERE IS NOTHING TO DO (measured 14:49Z: pass after pass came home `unloaded:1330 of
     // 1330` — the chunks of the stair had simply not arrived yet, ~14 s after the gate spat the bot out). Up to 20 s, then work.
     for (let w = 0; w < 40 && !api.stop() && Date.now() < until && !cells.some(c => loadedAt(bot, c)); w++) { task(bot, 'nether ' + what + ': waiting for the world'); await sleep(500) }
@@ -406,7 +417,17 @@ module.exports = ctx => {
       // the trip has a walk to retry and a gate to catch.
       if (steps >= 40 && placed + dug === 0) break
       const todo = cells.filter(c => !done.has(c.x + ',' + c.y + ',' + c.z) && loadedAt(bot, c) && !cellOK(bot, c))
-      if (!todo.length) break
+      // AN EMPTY todo IS NOT A FINISHED JOB WHILE THE WORLD IS STILL ARRIVING (measured 09-21 05:46-05:47Z: two passes of the
+      // barter lane came home after 30 s of a 9-minute slice with `placed:0-4, unloaded:1053 of 1053`). The wait above stops as
+      // soon as ONE cell is readable — and that first cell is usually a piece of the shelf that is already right, so the loop
+      // broke while 1049 cells were still loading. Now a pass only gives up when there is nothing left to do AND nothing left to
+      // wait for; otherwise it waits out the chunks it came all this way for.
+      if (!todo.length) {
+        const waiting = cells.filter(c => !loadedAt(bot, c)).length
+        if (!waiting || Date.now() >= until - 1000 || api.stop() || ++waits > 90) break // 90 s is generous; the chunks arrive in ~14
+        task(bot, 'nether ' + what + ': waiting for ' + waiting + ' cells of the world to arrive')
+        await sleep(1000); round--; continue // a wait is not a round of work
+      }
       const me = bot.entity.position
       // FLOOR, THEN BOTH RAILS OF THAT LEG, THEN FORWARD (the head is never more than one floor cell ahead of its rails — that is
       // what a player does and what 16:53:11Z cost us). `seq` is the leg index, `rank` 0 = floor, 1 = rail, 2 = headroom.
@@ -448,7 +469,7 @@ module.exports = ctx => {
       }
       if (!moved) { tried.push([t.x, t.y, t.z]); if (!why[t.x + ',' + t.y + ',' + t.z]) why[t.x + ',' + t.y + ',' + t.z] = 'no safe stand of ours within reach of it'; done.add(t.x + ',' + t.y + ',' + t.z); continue } // this one cannot be reached from our own floor: leave it, take the next
     }
-    sneakOff(bot)
+    } finally { if (held) sneakHold(bot, false) }
     const left = cells.filter(c => loadedAt(bot, c) && !cellOK(bot, c))
     const unloaded = cells.filter(c => !loadedAt(bot, c)).length
     return { placed, dug, steps, left: left.length, unloaded, done: cells.length - left.length - unloaded, of: cells.length, leftAt: left.slice(0, 4).map(c => c.x + ',' + c.y + ',' + c.z + '=' + c.block + ' (' + (why[c.x + ',' + c.y + ',' + c.z] || '?') + ')'), unreachable: tried.length }
@@ -620,14 +641,29 @@ module.exports = ctx => {
       // 2. CLOSE TO AN EDGE: one cell at a time, by hand, sneaking — never a pathfinder route that can cut a corner over air
       if (edgeWithin(bot, tgt, 1) && bot.entity.position.distanceTo(tgt.offset(0.5, 0, 0.5)) <= 4.5) return await sneakStep(bot, { stop: (opts && opts.stop) || (() => false) }, tgt)
     }
-    // 3. ANY walk with a drop within 3 of either end holds SNEAK for its whole length (prismarine-physics stops a sneaking body
-    //    at a rim; `moves.bridgeTo` does the same and that is why it never lost a bot)
-    const risky = netherHere(bot) && (edgeWithin(bot, bot.entity.position.floored(), 3) || (tgt && edgeWithin(bot, tgt, 3)))
-    const tick = () => { try { bot.setControlState('sneak', true) } catch (e_) { swallow('jobs_nether:sneakTick', e_) } }
-    if (risky) bot.on('physicsTick', tick)
+    // 3. THE EDGE IS WHERE THE BOT IS *NOW*, NOT WHERE IT SET OFF FROM (top model 09-21, reading the 17:17-17:18Z deaths again).
+    //    Sneak used to be decided ONCE, from the two ends of the walk — so a hop that started on the middle of a wide shelf and
+    //    met a 1-wide arch nine blocks later walked it upright. That is exactly the shape of the ground that killed Aoi, Fuuka
+    //    and Koharu at -54..-55,28,-80 inside two minutes. Now the question is asked again twice a second, of the cell the bot is
+    //    standing in, for the whole length of every Nether walk: a drop within 2 -> sneak (prismarine-physics stops a sneaking
+    //    body at a rim, proven live on a 6-block drop at -328,16,-389), clear ground -> let it walk. The lava picture is refreshed
+    //    on the same beat, so lava that flows across the route mid-walk is priced out of the graph before the next step is planned.
+    // A CHECK ON A BEAT IS NOT A CHECK (Erika again): a bot walks ~1.7 blocks between two 400 ms samples, so "is there an edge
+    // within 2 of where I am NOW?" can read false and be a fall by the time it is asked again. Over there the answer is simply
+    // YES: **every Nether walk sneaks for its whole length**, and the hold is what no other walk or build may take away. It costs
+    // ~a third of the walking speed on ground that is one long rim; a death costs the kit, the iron, and the road's progress.
+    let watch = null
+    const nether = netherHere(bot)
+    if (nether) {
+      sneakHold(bot, true)
+      // re-assert, because `clearControlStates()` (sneakStep, the pathfinder's own resets) silently drops it, and refresh the
+      // lava picture on the same beat so lava that flows across the route mid-walk is priced out before the next step is planned
+      watch = setInterval(() => { try { if (bot.entity && bot.health > 0) { lavaSet(bot); bot.setControlState('sneak', true) } } catch (e_) { swallow('jobs_nether:edgeWatch', e_) } }, 400)
+      if (watch.unref) watch.unref()
+    }
     try {
       return await A.travel(bot, target, Object.assign({ anyDepth: true, quiet: true }, opts || {}))
-    } finally { if (risky) { bot.removeListener('physicsTick', tick); sneakOff(bot) } }
+    } finally { if (watch) clearInterval(watch); if (nether) sneakHold(bot, false) }
   }
   // is where we STAND safe enough to build from? (never bridge off a 1-wide ledge with lava under it)
   const safeStand = bot => { const p = bot.entity.position.floored(); return !lavaNear(p, 2, 3, 2) && A.walkableArea(bot, 60, 1) >= 8 }
@@ -694,7 +730,7 @@ module.exports = ctx => {
         for (const dy of [0, 1]) {
           const c = new Vec3(a.x + lx, a.y + dy, a.z + lz); const b = bot.blockAt(c)
           if (!b || b.boundingBox !== 'block') continue
-          if (eyeOf(bot).distanceTo(c.offset(0.5, 0.5, 0.5)) > 4.2) { await A.travel(bot, new Vec3(a.x, a.y, a.z), { range: 2, ms: 15000, stop: api.stop, quiet: true, anyDepth: true }); if (eyeOf(bot).distanceTo(c.offset(0.5, 0.5, 0.5)) > 4.5) continue }
+          if (eyeOf(bot).distanceTo(c.offset(0.5, 0.5, 0.5)) > 4.2) { await nTravel(bot, new Vec3(a.x, a.y, a.z), { range: 2, ms: 15000, stop: api.stop }); if (eyeOf(bot).distanceTo(c.offset(0.5, 0.5, 0.5)) > 4.5) continue }
           const r = await BL().digBlock(bot, c, { collect: true, requireHarvest: false, allowProtected: true, own: true }).catch(() => ({ ok: false }))
           if (r && r.ok) opened++
         }
@@ -1157,8 +1193,10 @@ module.exports = ctx => {
       const lane = laneCells(b2.route, P.width || 3, 8)
       const pad = padCells(bot, b2.at, Math.max(3, Math.min(P.pad || 4, 7)), b2.route.length + 1)
       cells = lane.concat(pad.cells); meta = { at: b2.at, route: b2.route, floorY: pad.floorY, overVoid: pad.overVoid, padBox: pad.box, lane: lane.length, pad: pad.cells.length }
+      // THE BOX MUST HOLD THE CELL THE GATE PUTS US IN (measured 14:44Z on the stair: `left:840, placed:0, steps:0` — every
+      // safeStep candidate was outside the job's own box and the squad could not walk into its own work)
       const xs2 = cells.map(c => c.x); const zs2 = cells.map(c => c.z)
-      box = [Math.min(...xs2) - 2, Math.min(...zs2) - 2, Math.max(...xs2) + 2, Math.max(...zs2) + 2]
+      box = unionBox([Math.min(...xs2) - 2, Math.min(...zs2) - 2, Math.max(...xs2) + 2, Math.max(...zs2) + 2], null, xyz(bot.entity.position))
     } else return { work, why: 'unknown params.work' }
 
     if (!cells || !cells.length) return { work, why: 'nothing to build' }

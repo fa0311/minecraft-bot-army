@@ -294,7 +294,13 @@ async function main () {
     const top = o => Object.entries(o).sort((a, b) => b[1] - a[1]).slice(0, 5).map(([k, n]) => k + ' ' + n).join(', ')
     say({ ev: 'audit_surface', key: '', alert: false, wrong: wrong.length, rubble: rubN, was: prev && prev.surface ? prev.surface : null, wrongWhere: wz, rubbleWhere: rub, examples: wrong.slice(0, 8).map(q => q.slice(0, 3).join(',') + ' ' + q[3] + '<-' + q[4]),
       text: 'SURFACE MATERIAL: ' + wrong.length + ' visible planned cells hold a SUBSTITUTE block (' + top(wz) + '; e.g. ' + wrong.slice(0, 4).map(q => q.slice(0, 3).join(',') + ' wants ' + q[3] + ' has ' + q[4]).join(' | ') + ') · ' + rubN + ' ground columns are bare stone filler where grass/dirt belongs (' + top(rub) + ')' + (prev && prev.surface ? ' · last audit: ' + prev.surface.wrong + ' / ' + prev.surface.rubble : '') + ' -> visible faces take the blueprint block ONLY; fills and cuts end with a dirt cap' })
-    surfaceStat = { wrong: wrong.length, rubble: rubN } }
+    // THE COLUMNS THEMSELVES, not only the count (terrain engineer 09-21: a `cap` migration job can claim from this list exactly as `tidy` claims
+    // from `work`; counts alone told nobody WHERE to go). Capped so base_audit.json stays small; the caps re-read it every audit round.
+    const rubCols = []
+    for (let z = box[1]; z <= box[3]; z++) for (let x = box[0]; x <= box[2]; x++) { const i = (z - box[1]) * bw + x - box[0]; if (!(cls[i] & 16) || gY[i] !== level) continue; const n = names[lvlN[i]]; if (!n || n === '?') continue
+      const pc = P.planned.get(x + ',' + level + ',' + z); if (pc && pc.block && pc.block !== 'air' && pc.block !== 'water') continue
+      if (STONE.test(n) && rubCols.length < 4000) rubCols.push([x, level, z, n]) }
+    surfaceStat = { wrong: wrong.length, rubble: rubN, wrongCols: wrong.slice(0, 4000), rubbleCols: rubCols } }
 
   // ---------- a3. FILLS (owner 09-20: "花のある位置にブロックが置けず、穴が空いている ... 何故これらの問題に気が付けない？" - the ravine is a KEEP-OUT, and keep-outs were never judged:
   // the one place where 30 bots worked for hours was the one place this audit did not look at). Per fill_void job: columns still open below grade and PINHOLES = an open

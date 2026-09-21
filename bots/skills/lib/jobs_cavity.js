@@ -147,6 +147,43 @@ function targetOf (e, P) {
   if (P.dig) return e.cells - (e.mineTouch || 0) >= 4
   return e.depth != null && e.depth <= (P.maxDepth || CAVITY_DEPTH)
 }
+// MEASURE THE VOID BEFORE YOU DECIDE WHAT TO DO WITH IT (owner 09-21 「その空洞がどれだけ大きいか、を判定するアルゴリズムを入れたほうが良い」). ONE measurement,
+// used by the cavity fill AND by the miner when a branch breaks into air: flood the connected air from the cell that was opened (6-neighbour), capped at `cap` cells
+// and `radius` blocks so it is cheap enough to run at a mine face. The decision is then a TABLE, not a guess - see `klass`:
+//   tiny   <= 8 cells, mouth <= 2x2   the shaft's own pocket: filled from above while the bot rises, no descent
+//   small  <= 120 cells, h <= 4       one bot, one column, the owner's vertical loop (dig down, fill what you reach, ride up)
+//   big    <= cap                     a GRID of columns >= 5 apart, one bot per column, each filling only what it reaches - never a walking crew
+//   cavern > cap, or open to the sky, or a natural cave that is not under our ground: NOT a fill job. It is listed, lit if it is under the base
+//          (a dark cavern is a mob farm under our feet) and left; for a MINER it is a prospect worth ore, and the branch routes around it.
+function voidSize (bot, at, opts = {}) {
+  const cap = opts.cap || 2000; const radius = opts.radius || 64; const yTop = opts.yTop == null ? 320 : opts.yTop
+  const p0 = vv(at); const seen = new Set([keyOf(p0)]); const q = [p0]; const cells = []
+  const bb = [p0.x, p0.y, p0.z, p0.x, p0.y, p0.z]
+  let lava = false; let water = false; let sky = false; let capped = false
+  const floors = new Set()
+  while (q.length) {
+    if (cells.length >= cap) { capped = true; break }
+    const p = q.pop(); cells.push(p)
+    if (p.x < bb[0]) bb[0] = p.x; if (p.y < bb[1]) bb[1] = p.y; if (p.z < bb[2]) bb[2] = p.z
+    if (p.x > bb[3]) bb[3] = p.x; if (p.y > bb[4]) bb[4] = p.y; if (p.z > bb[5]) bb[5] = p.z
+    if (isSolidB(bot.blockAt(p.offset(0, -1, 0)))) floors.add(p.x + ',' + p.z)
+    for (const [dx, dy, dz] of [[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1], [0, 1, 0], [0, -1, 0]]) {
+      const n = p.offset(dx, dy, dz); const k = keyOf(n)
+      if (seen.has(k)) continue
+      if (Math.abs(n.x - p0.x) > radius || Math.abs(n.z - p0.z) > radius || Math.abs(n.y - p0.y) > radius) { capped = true; continue }
+      const b = bot.blockAt(n); if (!b) { capped = true; continue }
+      if (b.name === 'lava') { lava = true; continue }
+      if (LIQUID_RE.test(b.name)) { water = true; continue }
+      if (!isAirB(b)) continue
+      if (n.y >= yTop) sky = true
+      seen.add(k); q.push(n)
+    }
+  }
+  const w = bb[3] - bb[0] + 1; const h = bb[4] - bb[1] + 1; const d = bb[5] - bb[2] + 1
+  const n = cells.length
+  const klass = (capped || sky) ? 'cavern' : (n <= 8 && w <= 2 && d <= 2) ? 'tiny' : (n <= 120 && h <= 4) ? 'small' : 'big'
+  return { cells: n, capped, box: bb, w, d, h, openToSky: sky, floorArea: floors.size, touchesLava: lava, touchesWater: water, klass }
+}
 function boxOfPts (pts) {
   const bb = [1e9, 1e9, 1e9, -1e9, -1e9, -1e9]
   for (const p of pts) { if (p.x < bb[0]) bb[0] = p.x; if (p.y < bb[1]) bb[1] = p.y; if (p.z < bb[2]) bb[2] = p.z; if (p.x > bb[3]) bb[3] = p.x; if (p.y > bb[4]) bb[4] = p.y; if (p.z > bb[5]) bb[5] = p.z }
@@ -852,7 +889,16 @@ module.exports = ctx => {
       if (!list.length) break
       list.sort((p1, p2) => p1.y - p2.y || p1.distanceTo(me) - p2.distanceTo(me))
       const lowest = list[0].y
-      const body = p => p.x === feet.x && p.z === feet.z && (p.y === feet.y || p.y === feet.y + 1)
+      // THE WAY OUT IS THE SHAFT YOU ARE FILLING UPWARD, AND IT IS NEVER FILLED FROM BELOW (owner 09-21 「帰り道を先に埋めてしまうんだよな」「これ複数人だったら確実に
+      // つんでる」; MEASURED today: Kokoro at -332,45,-483, `place_failed unreachable`, 19 blocks of ground over its head and walkableArea 1 - it had placed its own
+      // return column full from underneath and then tried to place into the cell it was standing in). The invariant the owner's algorithm rests on: a worker's x/z
+      // COLUMN is its own. Nothing above its feet in that column is ever placed from below - that column closes only under the feet, one block at a time, as the bot
+      // rides up through it (branch (b)). The same holds for every mate in sight, or two workers on one hole bury each other.
+      const mineCol = p => p.x === feet.x && p.z === feet.z && p.y >= feet.y
+      const mates = []
+      try { for (const e of Object.values(bot.entities || {})) { if (!e || e.id === bot.entity.id || e.type !== 'player' || !e.position) continue; const q = e.position.floored(); if (Math.abs(q.x - feet.x) > 40 || Math.abs(q.z - feet.z) > 40) continue; mates.push(q) } } catch (e_) { swallow('jobs_cavity:mates', e_) }
+      const mateCol = p => mates.some(q => p.x === q.x && p.z === q.z && p.y >= q.y)
+      const body = p => mineCol(p) || mateCol(p)
       let did = 0
       // (a) EVERYTHING IN REACH FROM HERE, lowest first - one stand, many blocks
       const near = list.filter(p => !body(p) && p.distanceTo(eye) <= 4.2).slice(0, 24)
@@ -1149,7 +1195,7 @@ module.exports = ctx => {
     free.sort((a, b) => cost(a) - cost(b))
     // ONE BOT PER COMPONENT, AND SHAFTS >= 4 APART: two bots cutting neighbouring shafts undercut each other's fill
     const busy = Object.values(claims).filter(c => !c.done && c.bot !== bot.username && now - (c.t || 0) < (c.ttl || 900000) && Array.isArray(c.at))
-    const tooClose = e => busy.some(c => Math.hypot(c.at[0] - e.at[0], c.at[2] - e.at[2]) < 4)
+    const tooClose = e => busy.some(c => Math.hypot(c.at[0] - e.at[0], c.at[2] - e.at[2]) < 5) // owner 09-21: shafts on a grid >= 5 apart, so two workers are never in reach of the same cell nor above one another
     // x50 (owner's rule 0): a 959-cell cavern is a SQUAD's hole, not one bot's 12-minute slice. One claim per ~120 cells, each bot its own
     // shaft >= 4 from the others (claimTake refuses a slot that is taken), and the lowest-first fill gives each of them its own sector.
     let ent = null; let key = null
@@ -1184,4 +1230,5 @@ module.exports.TYPES = ['cavity']
 module.exports.VERBS = []
 // ONE implementation, used by the job and by anybody else: the water-bucket descent (owner 09-20) and the census with two pairs of eyes —
 // the bot's loaded chunks (job `cavity` work:'survey') and the spectator camera (ops/cavity-census.js, full coverage). All of it pure/serverless.
-module.exports.census = { newGrid, readInto, markPlan, analyse, coder, planSets, baseBox, baseY, writeCensus, table, isTarget, gIdx, gCol, gIn, gDecode, CAV_F, CLAIM_F, C_UNKNOWN, C_AIR, C_SOLID, C_LIQUID, C_THIN, M_LAVA }
+module.exports.voidSize = voidSize
+module.exports.census = { newGrid, readInto, voidSize, markPlan, analyse, coder, planSets, baseBox, baseY, writeCensus, table, isTarget, gIdx, gCol, gIn, gDecode, CAV_F, CLAIM_F, C_UNKNOWN, C_AIR, C_SOLID, C_LIQUID, C_THIN, M_LAVA }

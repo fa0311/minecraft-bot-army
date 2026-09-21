@@ -1095,7 +1095,7 @@
    "iron_sword": 12,
    "iron_shovel": 8,
    "enchanted_book": 8,
-   "gravel": 512,
+   "gravel": 1024,
    "sand": 256
   },
   "base": {
@@ -1282,8 +1282,8 @@
     98,
     -77
    ],
-   "through": 1789969045123,
-   "scoutRev": 4,
+   "through": 1789969919816,
+   "scoutRev": 7,
    "hub": {
     "room": [
      -41,
@@ -1383,7 +1383,7 @@
    ],
    "shellY": 98,
    "returnJob": "nether_return",
-   "deaths": 2,
+   "deaths": 1,
    "deathsResetAt": 1789910779294,
    "deathsResetWhy": "owner 13:2xZ: death is an accepted cost of exploring the Nether; the brake is 6 in 30 min",
    "landing": [
@@ -1396,8 +1396,8 @@
    "landingSafe": false,
    "landingAt": 1789969045309,
    "back": 1789969057926,
-   "lastDeath": 1789964551171,
-   "lastDeathBy": "Sakura",
+   "lastDeath": 1789969593942,
+   "lastDeathBy": "Erika",
    "roads": {
     "x+": {
      "from": [
@@ -1424,8 +1424,7 @@
    "outAt": 1789915921402,
    "outBy": "Rin",
    "deathLog": [
-    1789964241661,
-    1789964551171
+    1789969593942
    ],
    "sightings": [],
    "fortress": null,
@@ -1874,6 +1873,267 @@
     ],
     "y": 98,
     "at": 1789920891695
+   },
+   "barterSpot": {
+    "at": [
+     -65,
+     110,
+     -72
+    ],
+    "stand": [
+     -65,
+     111,
+     -72
+    ],
+    "route": [
+     [
+      -50,
+      98,
+      -75
+     ],
+     [
+      -51,
+      98,
+      -75
+     ],
+     [
+      -52,
+      98,
+      -75
+     ],
+     [
+      -53,
+      98,
+      -75
+     ],
+     [
+      -54,
+      98,
+      -75
+     ],
+     [
+      -55,
+      98,
+      -75
+     ],
+     [
+      -56,
+      97,
+      -75
+     ],
+     [
+      -56,
+      97,
+      -74
+     ],
+     [
+      -56,
+      97,
+      -73
+     ],
+     [
+      -57,
+      96,
+      -73
+     ],
+     [
+      -57,
+      96,
+      -72
+     ],
+     [
+      -57,
+      96,
+      -71
+     ],
+     [
+      -57,
+      96,
+      -70
+     ],
+     [
+      -57,
+      96,
+      -69
+     ],
+     [
+      -57,
+      96,
+      -68
+     ],
+     [
+      -57,
+      96,
+      -67
+     ],
+     [
+      -57,
+      96,
+      -66
+     ],
+     [
+      -57,
+      96,
+      -65
+     ],
+     [
+      -57,
+      96,
+      -64
+     ],
+     [
+      -57,
+      96,
+      -63
+     ],
+     [
+      -57,
+      96,
+      -62
+     ],
+     [
+      -57,
+      96,
+      -61
+     ],
+     [
+      -57,
+      97,
+      -60
+     ],
+     [
+      -57,
+      98,
+      -59
+     ],
+     [
+      -58,
+      99,
+      -59
+     ],
+     [
+      -59,
+      100,
+      -59
+     ],
+     [
+      -59,
+      101,
+      -60
+     ],
+     [
+      -59,
+      102,
+      -61
+     ],
+     [
+      -60,
+      102,
+      -61
+     ],
+     [
+      -61,
+      102,
+      -61
+     ],
+     [
+      -61,
+      103,
+      -62
+     ],
+     [
+      -61,
+      104,
+      -63
+     ],
+     [
+      -61,
+      104,
+      -64
+     ],
+     [
+      -61,
+      105,
+      -65
+     ],
+     [
+      -61,
+      106,
+      -66
+     ],
+     [
+      -61,
+      107,
+      -67
+     ],
+     [
+      -60,
+      106,
+      -67
+     ],
+     [
+      -60,
+      107,
+      -68
+     ],
+     [
+      -60,
+      108,
+      -69
+     ],
+     [
+      -61,
+      109,
+      -69
+     ],
+     [
+      -62,
+      110,
+      -69
+     ],
+     [
+      -63,
+      110,
+      -69
+     ],
+     [
+      -64,
+      110,
+      -69
+     ],
+     [
+      -65,
+      110,
+      -69
+     ],
+     [
+      -65,
+      110,
+      -70
+     ],
+     [
+      -65,
+      110,
+      -71
+     ],
+     [
+      -65,
+      110,
+      -72
+     ]
+    ],
+    "pad": [
+     -70,
+     -77,
+     -60,
+     -67
+    ],
+    "floorY": 110,
+    "overVoid": 3,
+    "laneLeft": 0,
+    "padLeft": 0,
+    "built": false,
+    "t": 1789969950682
    }
   },
   "industry": {
@@ -2050,7 +2310,29 @@
      "t": 1789933526726
     }
    ]
-  }
+  },
+  "roads": [
+   {
+    "id": "road_mine",
+    "job": "road_mine",
+    "dim": "overworld",
+    "from": [
+     -367,
+     68,
+     -488
+    ],
+    "to": [
+     -330,
+     68,
+     -500
+    ],
+    "width": 5,
+    "spur": false,
+    "cells": 52,
+    "built": "2/3",
+    "checked": 1789970176408
+   }
+  ]
  },
  "enlisted": [
   "Sakura",
@@ -2287,7 +2569,7 @@
      ]
     ]
    },
-   "rev": 84,
+   "rev": 85,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789965580527
   },
@@ -2622,7 +2904,7 @@
    },
    "rev": 27,
    "bots": 1,
-   "restUntil": 1789969779286
+   "restUntil": 1789970622601
   },
   {
    "id": "sleeper",
@@ -2709,7 +2991,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789969077179
+   "restUntil": 1789970185641
   },
   {
    "id": "fill_ring_field1",
@@ -3255,7 +3537,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 8,
    "site": [
     -311,
     69,
@@ -3491,19 +3773,19 @@
      -455
     ]
    },
-   "rev": 83,
+   "rev": 87,
    "desc": "MEASURED 16:3xZ by probe: 44 columns (444 cells) still open to the sky = this job (narrow deep shafts: step off / water drop in, pillar out = the column is filled); 3172 air cells lie UNDER the crust below grade = NOT reachable from above, they belong to the cavity job (owner algorithm: shaft down, fill riding up). `left` counts both - do not judge this job by `left`, and do not raise the crew over the number of open shafts",
    "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) at -333,58,-483",
    "restUntil": 1789906650052,
    "way": {
-    "by": "Ayame",
-    "t": 1789968906263,
+    "by": "Sumire",
+    "t": 1789970189167,
     "at": [
-     -320,
-     58,
-     -482
+     -323,
+     59,
+     -481
     ],
-    "drop": 11
+    "drop": 10
    },
    "noDig": {
     "-323,42,-466": 1789983040661,
@@ -3924,7 +4206,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789969799352
+   "restUntil": 1789970411992
   },
   {
    "id": "nether_landing_2",
@@ -4337,61 +4619,6 @@
    "note": "auto-paused: plan failed"
   },
   {
-   "id": "void_fix_base_yard_pad",
-   "type": "build",
-   "priority": 70,
-   "front": "works",
-   "status": "paused",
-   "when": "any",
-   "bots": 6,
-   "site": [
-    -354,
-    68,
-    -483
-   ],
-   "plan": "void under the finished pad base_yard_pad: 33 columns of x -369..-340 / z -490..-477 are a deck over air (void_under_pad) - fill SOLID from the natural ground up to grade y68, never deck a hole; base_yard_pad is `after` this job and re-checks the columns when it is done",
-   "params": {
-    "blueprint": "fill_void",
-    "origin": [
-     -354,
-     68,
-     -483
-    ],
-    "unlid": 3,
-    "args": {
-     "box": [
-      -369,
-      -490,
-      -340,
-      -477
-     ],
-     "depth": 5,
-     "fill": "cobblestone",
-     "mats": [
-      "cobbled_deepslate",
-      "cobblestone",
-      "stone",
-      "deepslate",
-      "tuff",
-      "andesite",
-      "diorite",
-      "granite",
-      "dirt",
-      "gravel"
-     ]
-    }
-   },
-   "stuckBy": {
-    "key": "rev0",
-    "bots": [
-     "Erika",
-     "Yotsuba",
-     "Aoi"
-    ]
-   },
-   "note": "auto-paused: 9 cells nobody could do: -359,68,-490 | -359,67,-490 | -368,68,-490 | -368,67,-490 | -368,67,-489 | -368,66,-490"
-  },
-  {
    "id": "cap_base_yard_pad",
    "type": "build",
    "priority": 38,
@@ -4679,9 +4906,9 @@
    "type": "build",
    "priority": 38,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 4,
    "site": [
     -330,
     69,
@@ -4706,6 +4933,12 @@
      "dirt": 128
     },
     "order": "near"
+   },
+   "rev": 1,
+   "noDig": {
+    "-333,68,-499": 1789984296154,
+    "-330,68,-498": 1789984297173,
+    "-335,68,-500": 1789984305891
    }
   },
   {
@@ -4835,7 +5068,9 @@
      31
     ]
    },
-   "rev": 8
+   "rev": 9,
+   "bots": 1,
+   "desc": "WHEAT IS FOOD FIRST (09-21 06:5xZ: the depot went 13 141 -> 53 wheat, bread 0, 9 bots hungry while the traders sold 925 wheat a visit). Sell only what is over the bread need"
   },
   {
    "id": "nether_landing_3",
@@ -4974,7 +5209,7 @@
    "type": "portal",
    "priority": 97,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 1,
    "shiftMin": 20,
@@ -5015,54 +5250,6 @@
    "rev": 10,
    "note": "auto-paused: 2 deaths in 30 min on the far side ([-44,98,-80]). Fix the cause you can see, clear settings.nether.deathLog, re-activate - do not wait",
    "desc": "OWNER-LOCKED top model 16:3xZ, nether front: the causeway and the 15x15 partner platform at the_nether -41,-65. Deaths in this window were operator rescues, not the Nether. Do not pause, do not rescue its bot, do not add bots - the arrival is still the old 8-cell pocket until the platform stands."
-  },
-  {
-   "id": "void_fix_base_infill_minehead_mound",
-   "type": "build",
-   "priority": 70,
-   "front": "works",
-   "status": "paused",
-   "when": "any",
-   "bots": 3,
-   "site": [
-    -325,
-    68,
-    -486
-   ],
-   "plan": "void under the finished pad base_infill_minehead_mound: 1 columns of x -325..-325 / z -486..-486 are a deck over air (void_under_pad) - fill SOLID from the natural ground up to grade y68, never deck a hole; base_infill_minehead_mound is `after` this job and re-checks the columns when it is done",
-   "params": {
-    "blueprint": "fill_void",
-    "origin": [
-     -325,
-     68,
-     -486
-    ],
-    "unlid": 3,
-    "args": {
-     "box": [
-      -325,
-      -486,
-      -325,
-      -486
-     ],
-     "depth": 5,
-     "fill": "cobblestone",
-     "mats": [
-      "cobbled_deepslate",
-      "cobblestone",
-      "stone",
-      "deepslate",
-      "tuff",
-      "andesite",
-      "diorite",
-      "granite",
-      "dirt",
-      "gravel"
-     ]
-    }
-   },
-   "note": "auto-paused: build_runaway - 7 digs of the same cell in one slice (dig/place loop) - fill_ravine_s (fill_void, active) has the SAME cell in its blueprint at -325,68,-486",
-   "rev": 1
   },
   {
    "id": "enchant_fortune",
@@ -5166,65 +5353,6 @@
    "restUntil": 1789943188975
   },
   {
-   "id": "fill_buckets",
-   "type": "steps",
-   "priority": 74,
-   "status": "paused",
-   "when": "any",
-   "names": [
-    "Karin",
-    "Mashiro",
-    "Aika"
-   ],
-   "plan": "no world change: the depot holds 9 empty buckets and 0 full ones, so no bot can do a water-bucket descent into a shaft (jobs_cavity waterDescent). Fill three at the natural lake edge -408,62,-455 (never a field or the cane block, whose water the crops need) and bank them.",
-   "params": {
-    "steps": [
-     {
-      "do": "bank",
-      "keep": {
-       "torch": 16
-      }
-     },
-     {
-      "do": "withdraw",
-      "item": "bucket",
-      "n": 3
-     },
-     {
-      "do": "fill",
-      "at": [
-       -408,
-       62,
-       -455
-      ]
-     },
-     {
-      "do": "fill",
-      "at": [
-       -408,
-       62,
-       -455
-      ]
-     },
-     {
-      "do": "fill",
-      "at": [
-       -408,
-       62,
-       -455
-      ]
-     },
-     {
-      "do": "bank",
-      "keep": {
-       "torch": 16
-      }
-     }
-    ]
-   },
-   "rev": 2
-  },
-  {
    "id": "nether_gate_old_down",
    "type": "portal",
    "priority": 96,
@@ -5269,7 +5397,7 @@
    "type": "portal",
    "priority": 97,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "bots": 1,
    "names": [
@@ -5335,12 +5463,12 @@
     "legS": 300
    },
    "bots": 1,
-   "rev": 4
+   "rev": 6
   },
   {
    "id": "bake_bread_industry",
    "type": "steps",
-   "priority": 88,
+   "priority": 97,
    "status": "active",
    "when": "any",
    "bots": 6,
@@ -5350,10 +5478,16 @@
     69,
     -523
    ],
-   "plan": "industry: wheat -> bread. Traders sprint 1250 blocks a trip (one arrived on hp1/food0) and villagers breed on bread; depot bread was 34",
+   "plan": "no zone: FOOD. Depot bread 0, 9 bots hungry, food 262/448. 21 bread per craft call (craft.js splits one wheat stack over the 3 grid slots - docs/BUGS.md), so 9 calls a round; repeats",
    "params": {
     "repeat": true,
     "steps": [
+     {
+      "do": "withdraw",
+      "item": "wheat",
+      "n": 192,
+      "atLeast": 9
+     },
      {
       "do": "goto",
       "to": [
@@ -5361,44 +5495,63 @@
        69,
        -523
       ],
-      "range": 3,
-      "s": 300
-     },
-     {
-      "do": "withdraw",
-      "item": "crafting_table",
-      "n": 1,
-      "atLeast": 1
-     },
-     {
-      "do": "place",
-      "block": "crafting_table",
-      "at": [
-       -343,
-       69,
-       -524
-      ]
-     },
-     {
-      "do": "withdraw",
-      "item": "wheat",
-      "n": 60,
-      "atLeast": 3
+      "range": 3
      },
      {
       "do": "craft",
       "item": "bread",
-      "n": 10,
-      "s": 600
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
+     },
+     {
+      "do": "craft",
+      "item": "bread",
+      "n": 21
      },
      {
       "do": "bank",
-      "keep": {}
+      "keep": {
+       "bread": 8,
+       "torch": 16
+      }
      }
-    ],
-    "rev": 2
+    ]
    },
-   "rev": 99,
+   "rev": 100,
    "restUntil": 1789968980606
   },
   {
@@ -5617,16 +5770,14 @@
    "priority": 89,
    "status": "active",
    "when": "any",
-   "bots": 8,
+   "bots": 6,
    "names": [
-    "Juri",
-    "Sayaka",
-    "Kanade",
-    "Rena",
+    "Hinata",
+    "Iroha",
     "Aika",
-    "Wakana",
-    "Karin",
-    "Ume"
+    "Kurumi",
+    "Botan",
+    "Kokoro"
    ],
    "site": [
     -345,
@@ -5666,7 +5817,7 @@
      }
     ]
    },
-   "rev": 4,
+   "rev": 5,
    "restUntil": 1789970331180
   },
   {
@@ -5701,17 +5852,17 @@
      ]
     ]
    },
-   "restUntil": 1789970167978,
+   "restUntil": 1789970818231,
    "rev": 1
   },
   {
    "id": "road_mine",
    "type": "road",
-   "priority": 72,
-   "front": "roads",
-   "status": "active",
+   "priority": 86,
+   "front": "works",
+   "status": "paused",
    "when": "any",
-   "bots": 8,
+   "bots": 3,
    "site": [
     -367,
     69,
@@ -5752,7 +5903,7 @@
        -488
       ],
       "len": 27,
-      "built": false,
+      "built": true,
       "args": {
        "toX": -341,
        "toZ": -488,
@@ -5761,7 +5912,8 @@
        "clear": 3,
        "torchEvery": 8,
        "shoulder": 2
-      }
+      },
+      "at": 1789969835360
      },
      {
       "i": 1,
@@ -5786,7 +5938,8 @@
        "clear": 3,
        "torchEvery": 8,
        "shoulder": 2
-      }
+      },
+      "at": 1789969589775
      },
      {
       "i": 2,
@@ -5802,7 +5955,7 @@
        -500
       ],
       "len": 12,
-      "built": false,
+      "built": true,
       "args": {
        "toX": -330,
        "toZ": -500,
@@ -5811,11 +5964,26 @@
        "clear": 3,
        "torchEvery": 8,
        "shoulder": 2
-      }
+      },
+      "rails": [
+       [
+        -330,
+        69,
+        -502
+       ]
+      ],
+      "at": 1789970176406,
+      "leftover": [
+       "-343,68,-500=grass_block",
+       "-342,68,-500=dirt",
+       "-329,68,-502=air"
+      ],
+      "idle": 0
      }
     ]
    },
-   "restUntil": 1789969522827
+   "restUntil": 0,
+   "rev": 4
   },
   {
    "id": "base_yard_pad",
@@ -5864,8 +6032,8 @@
   {
    "id": "nether_barter_road",
    "type": "portal",
-   "status": "active",
-   "bots": 6,
+   "status": "paused",
+   "bots": 0,
    "prio": 78,
    "desc": "EYE OF ENDER, pearl half: the lane + pad that make bartering possible at all. 3-wide lit lane with kerbs + a 9x9 pad at -65,110,-72. 213 blocks to place, 22 to dig (dry run against the camera map).",
    "plan": "zone portal (docs/WORLD.md): THE BARTER SPOT IS A PLACE, NOT THE CELL WE LAND ON. The spectator camera measured this shift: (1) the arrival shelf is one connected ground of 383 standable cells (x -56..-30 / z -96..-72, y95-103) and no mob EVER spawns within 24 blocks of a player, so no piglin can appear on it - the census found 0 of 6 there; (2) all 6 piglins and 17 of 69 zombified piglins stand on ONE other ground, 291 cells at x -69..-52 / z -83..-47 / y100-116, with natural rock at y113 three cells over its y109/110 plateau (a roof no ghast shoots through); (3) the cheapest walkable line to it is 26 placed blocks (Dijkstra over the camera solid/air map). So this job lays that line as a proper road - 3 walkable cells wide, a one-block kerb on each rim so a fireball cannot shove a bot off, 3 of headroom, a torch every 8 legs - and levels a 9x9 pad at -65,110,-72 to the MEDIAN ground of its box (never a knoll: that is what left the pair platform 139 of 225 cells over void). Columns with no support within 3 below are dropped from the plan, never bridged. Pad centre is 32 blocks from the hub chest -37,98,-79, the distance paper piglins-guard-chests:true wants. Every builder sneaks (buildCells) and every walk goes through nTravel (edge doctrine). maxDeaths 2: two deaths on this design and it stops itself.",
@@ -6127,11 +6295,3125 @@
     ],
     "width": 3,
     "pad": 4,
-    "minutes": 8,
-    "cobble": 256,
-    "crossS": 30,
+    "minutes": 9,
+    "cobble": 192,
+    "crossS": 60,
     "maxDeaths": 2,
     "reach": 64
+   },
+   "restUntil": 0,
+   "rev": 8,
+   "priority": 97,
+   "zone": "base",
+   "names": [
+    "Chika"
+   ],
+   "front": "base",
+   "site": [
+    -326,
+    69,
+    -518
+   ],
+   "shiftMin": 20,
+   "note": "STOPPED 09-21 05:5xZ by the top model under its own stop rule: TWO deaths on the same design (Erika 05:46:19Z -51,27,-75 / Chika 05:52:29Z -52,27,-75, both fell ~70 blocks from the FIRST leg of the lane into the lava sea). Both passes report `unloaded:1053 of 1053` - we are placing blocks at the lip of a void on ground the client cannot read, and cellOK() treats an unreadable cell as DONE. Do not re-activate as-is: the 13-cell void span must be laid with moves.bridgeTo (proven, never lost a bot), not with hand-placed cells from a stand at the rim, and no cell may be worked while its chunk reads null."
+  },
+  {
+   "id": "road_village",
+   "type": "road",
+   "priority": 72,
+   "front": "roads",
+   "status": "paused",
+   "when": "any",
+   "bots": 12,
+   "site": [
+    -367,
+    69,
+    -488
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "TRUNK ROAD road_village (docs/ROADS.md): -367,-488 -> -714,27 in overworld, 5 wide, 863 cells in 118 straight one-height segments (1 bridged), ~4365 paving blocks. Designed from the spectator camera (ops/road-plan.js, picture /tmp/road-road_village.png): the line follows the contour, no step over 1 block, no keep-out or zone crossed.",
+   "params": {
+    "road": "road_village",
+    "dim": "overworld",
+    "width": 5,
+    "block": "stone",
+    "from": [
+     -367,
+     68,
+     -488
+    ],
+    "to": [
+     -714,
+     72,
+     27
+    ],
+    "spur": false,
+    "segments": [
+     {
+      "i": 0,
+      "kind": "road",
+      "origin": [
+       -367,
+       68,
+       -488
+      ],
+      "to": [
+       -367,
+       68,
+       -381
+      ],
+      "len": 108,
+      "built": false,
+      "args": {
+       "toX": -367,
+       "toZ": -381,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 1,
+      "kind": "road",
+      "origin": [
+       -367,
+       68,
+       -381
+      ],
+      "to": [
+       -411,
+       68,
+       -381
+      ],
+      "len": 45,
+      "built": false,
+      "args": {
+       "toX": -411,
+       "toZ": -381,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 2,
+      "kind": "road",
+      "origin": [
+       -412,
+       67,
+       -381
+      ],
+      "to": [
+       -412,
+       67,
+       -381
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -412,
+       "toZ": -381,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 3,
+      "kind": "road",
+      "origin": [
+       -413,
+       66,
+       -381
+      ],
+      "to": [
+       -413,
+       66,
+       -381
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -413,
+       "toZ": -381,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 4,
+      "kind": "road",
+      "origin": [
+       -414,
+       65,
+       -381
+      ],
+      "to": [
+       -414,
+       65,
+       -381
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -414,
+       "toZ": -381,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 5,
+      "kind": "road",
+      "origin": [
+       -414,
+       64,
+       -380
+      ],
+      "to": [
+       -414,
+       64,
+       -377
+      ],
+      "len": 4,
+      "built": false,
+      "args": {
+       "toX": -414,
+       "toZ": -377,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 6,
+      "kind": "road",
+      "origin": [
+       -414,
+       63,
+       -376
+      ],
+      "to": [
+       -414,
+       63,
+       -375
+      ],
+      "len": 2,
+      "built": false,
+      "args": {
+       "toX": -414,
+       "toZ": -375,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 7,
+      "kind": "road",
+      "origin": [
+       -414,
+       63,
+       -375
+      ],
+      "to": [
+       -418,
+       63,
+       -375
+      ],
+      "len": 5,
+      "built": false,
+      "args": {
+       "toX": -418,
+       "toZ": -375,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 8,
+      "kind": "road",
+      "origin": [
+       -419,
+       62,
+       -375
+      ],
+      "to": [
+       -429,
+       62,
+       -375
+      ],
+      "len": 11,
+      "built": false,
+      "args": {
+       "toX": -429,
+       "toZ": -375,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 9,
+      "kind": "road",
+      "origin": [
+       -430,
+       63,
+       -375
+      ],
+      "to": [
+       -442,
+       63,
+       -375
+      ],
+      "len": 13,
+      "built": false,
+      "args": {
+       "toX": -442,
+       "toZ": -375,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 10,
+      "kind": "road",
+      "origin": [
+       -443,
+       62,
+       -375
+      ],
+      "to": [
+       -449,
+       62,
+       -375
+      ],
+      "len": 7,
+      "built": false,
+      "args": {
+       "toX": -449,
+       "toZ": -375,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 11,
+      "kind": "bridge",
+      "origin": [
+       -450,
+       62,
+       -375
+      ],
+      "to": [
+       -450,
+       62,
+       -375
+      ],
+      "len": 1,
+      "built": false,
+      "width": 5
+     },
+     {
+      "i": 12,
+      "kind": "road",
+      "origin": [
+       -451,
+       62,
+       -375
+      ],
+      "to": [
+       -461,
+       62,
+       -375
+      ],
+      "len": 11,
+      "built": false,
+      "args": {
+       "toX": -461,
+       "toZ": -375,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 13,
+      "kind": "road",
+      "origin": [
+       -461,
+       62,
+       -375
+      ],
+      "to": [
+       -461,
+       62,
+       -365
+      ],
+      "len": 11,
+      "built": false,
+      "args": {
+       "toX": -461,
+       "toZ": -365,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 14,
+      "kind": "road",
+      "origin": [
+       -461,
+       63,
+       -364
+      ],
+      "to": [
+       -461,
+       63,
+       -353
+      ],
+      "len": 12,
+      "built": false,
+      "args": {
+       "toX": -461,
+       "toZ": -353,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 15,
+      "kind": "road",
+      "origin": [
+       -461,
+       63,
+       -353
+      ],
+      "to": [
+       -531,
+       63,
+       -353
+      ],
+      "len": 71,
+      "built": false,
+      "args": {
+       "toX": -531,
+       "toZ": -353,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 16,
+      "kind": "road",
+      "origin": [
+       -531,
+       63,
+       -353
+      ],
+      "to": [
+       -531,
+       63,
+       -351
+      ],
+      "len": 3,
+      "built": false,
+      "args": {
+       "toX": -531,
+       "toZ": -351,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 17,
+      "kind": "road",
+      "origin": [
+       -531,
+       64,
+       -350
+      ],
+      "to": [
+       -531,
+       64,
+       -350
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -531,
+       "toZ": -350,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 18,
+      "kind": "road",
+      "origin": [
+       -531,
+       65,
+       -349
+      ],
+      "to": [
+       -531,
+       65,
+       -349
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -531,
+       "toZ": -349,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 19,
+      "kind": "road",
+      "origin": [
+       -531,
+       66,
+       -348
+      ],
+      "to": [
+       -531,
+       66,
+       -348
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -531,
+       "toZ": -348,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 20,
+      "kind": "road",
+      "origin": [
+       -531,
+       67,
+       -347
+      ],
+      "to": [
+       -531,
+       67,
+       -347
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -531,
+       "toZ": -347,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 21,
+      "kind": "road",
+      "origin": [
+       -531,
+       68,
+       -346
+      ],
+      "to": [
+       -531,
+       68,
+       -345
+      ],
+      "len": 2,
+      "built": false,
+      "args": {
+       "toX": -531,
+       "toZ": -345,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 22,
+      "kind": "road",
+      "origin": [
+       -531,
+       69,
+       -344
+      ],
+      "to": [
+       -531,
+       69,
+       -343
+      ],
+      "len": 2,
+      "built": false,
+      "args": {
+       "toX": -531,
+       "toZ": -343,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 23,
+      "kind": "road",
+      "origin": [
+       -531,
+       70,
+       -342
+      ],
+      "to": [
+       -531,
+       70,
+       -339
+      ],
+      "len": 4,
+      "built": false,
+      "args": {
+       "toX": -531,
+       "toZ": -339,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 24,
+      "kind": "road",
+      "origin": [
+       -531,
+       71,
+       -338
+      ],
+      "to": [
+       -531,
+       71,
+       -327
+      ],
+      "len": 12,
+      "built": false,
+      "args": {
+       "toX": -531,
+       "toZ": -327,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 25,
+      "kind": "road",
+      "origin": [
+       -531,
+       72,
+       -326
+      ],
+      "to": [
+       -531,
+       72,
+       -326
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -531,
+       "toZ": -326,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 26,
+      "kind": "road",
+      "origin": [
+       -531,
+       73,
+       -325
+      ],
+      "to": [
+       -531,
+       73,
+       -324
+      ],
+      "len": 2,
+      "built": false,
+      "args": {
+       "toX": -531,
+       "toZ": -324,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 27,
+      "kind": "road",
+      "origin": [
+       -531,
+       74,
+       -323
+      ],
+      "to": [
+       -531,
+       74,
+       -323
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -531,
+       "toZ": -323,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 28,
+      "kind": "road",
+      "origin": [
+       -531,
+       75,
+       -322
+      ],
+      "to": [
+       -531,
+       75,
+       -321
+      ],
+      "len": 2,
+      "built": false,
+      "args": {
+       "toX": -531,
+       "toZ": -321,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 29,
+      "kind": "road",
+      "origin": [
+       -531,
+       76,
+       -320
+      ],
+      "to": [
+       -531,
+       76,
+       -316
+      ],
+      "len": 5,
+      "built": false,
+      "args": {
+       "toX": -531,
+       "toZ": -316,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 30,
+      "kind": "road",
+      "origin": [
+       -531,
+       77,
+       -315
+      ],
+      "to": [
+       -531,
+       77,
+       -312
+      ],
+      "len": 4,
+      "built": false,
+      "args": {
+       "toX": -531,
+       "toZ": -312,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 31,
+      "kind": "road",
+      "origin": [
+       -531,
+       78,
+       -311
+      ],
+      "to": [
+       -531,
+       78,
+       -307
+      ],
+      "len": 5,
+      "built": false,
+      "args": {
+       "toX": -531,
+       "toZ": -307,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 32,
+      "kind": "road",
+      "origin": [
+       -531,
+       78,
+       -307
+      ],
+      "to": [
+       -533,
+       78,
+       -307
+      ],
+      "len": 3,
+      "built": false,
+      "args": {
+       "toX": -533,
+       "toZ": -307,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 33,
+      "kind": "road",
+      "origin": [
+       -534,
+       79,
+       -307
+      ],
+      "to": [
+       -572,
+       79,
+       -307
+      ],
+      "len": 39,
+      "built": false,
+      "args": {
+       "toX": -572,
+       "toZ": -307,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 34,
+      "kind": "road",
+      "origin": [
+       -573,
+       80,
+       -307
+      ],
+      "to": [
+       -573,
+       80,
+       -307
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -573,
+       "toZ": -307,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 35,
+      "kind": "road",
+      "origin": [
+       -574,
+       81,
+       -307
+      ],
+      "to": [
+       -574,
+       81,
+       -307
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -574,
+       "toZ": -307,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 36,
+      "kind": "road",
+      "origin": [
+       -575,
+       82,
+       -307
+      ],
+      "to": [
+       -576,
+       82,
+       -307
+      ],
+      "len": 2,
+      "built": false,
+      "args": {
+       "toX": -576,
+       "toZ": -307,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 37,
+      "kind": "road",
+      "origin": [
+       -577,
+       83,
+       -307
+      ],
+      "to": [
+       -579,
+       83,
+       -307
+      ],
+      "len": 3,
+      "built": false,
+      "args": {
+       "toX": -579,
+       "toZ": -307,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 38,
+      "kind": "road",
+      "origin": [
+       -580,
+       84,
+       -307
+      ],
+      "to": [
+       -602,
+       84,
+       -307
+      ],
+      "len": 23,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -307,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 39,
+      "kind": "road",
+      "origin": [
+       -602,
+       84,
+       -307
+      ],
+      "to": [
+       -602,
+       84,
+       -296
+      ],
+      "len": 12,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -296,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 40,
+      "kind": "road",
+      "origin": [
+       -602,
+       85,
+       -295
+      ],
+      "to": [
+       -602,
+       85,
+       -292
+      ],
+      "len": 4,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -292,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 41,
+      "kind": "road",
+      "origin": [
+       -602,
+       86,
+       -291
+      ],
+      "to": [
+       -602,
+       86,
+       -288
+      ],
+      "len": 4,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -288,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 42,
+      "kind": "road",
+      "origin": [
+       -602,
+       87,
+       -287
+      ],
+      "to": [
+       -602,
+       87,
+       -283
+      ],
+      "len": 5,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -283,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 43,
+      "kind": "road",
+      "origin": [
+       -602,
+       88,
+       -282
+      ],
+      "to": [
+       -602,
+       88,
+       -281
+      ],
+      "len": 2,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -281,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 44,
+      "kind": "road",
+      "origin": [
+       -602,
+       89,
+       -280
+      ],
+      "to": [
+       -602,
+       89,
+       -280
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -280,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 45,
+      "kind": "road",
+      "origin": [
+       -602,
+       90,
+       -279
+      ],
+      "to": [
+       -602,
+       90,
+       -279
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -279,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 46,
+      "kind": "road",
+      "origin": [
+       -602,
+       91,
+       -278
+      ],
+      "to": [
+       -602,
+       91,
+       -277
+      ],
+      "len": 2,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -277,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 47,
+      "kind": "road",
+      "origin": [
+       -602,
+       92,
+       -276
+      ],
+      "to": [
+       -602,
+       92,
+       -276
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -276,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 48,
+      "kind": "road",
+      "origin": [
+       -602,
+       93,
+       -275
+      ],
+      "to": [
+       -602,
+       93,
+       -275
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -275,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 49,
+      "kind": "road",
+      "origin": [
+       -602,
+       94,
+       -274
+      ],
+      "to": [
+       -602,
+       94,
+       -274
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -274,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 50,
+      "kind": "road",
+      "origin": [
+       -602,
+       95,
+       -273
+      ],
+      "to": [
+       -602,
+       95,
+       -273
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -273,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 51,
+      "kind": "road",
+      "origin": [
+       -602,
+       96,
+       -272
+      ],
+      "to": [
+       -602,
+       96,
+       -271
+      ],
+      "len": 2,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -271,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 52,
+      "kind": "road",
+      "origin": [
+       -602,
+       97,
+       -270
+      ],
+      "to": [
+       -602,
+       97,
+       -268
+      ],
+      "len": 3,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -268,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 53,
+      "kind": "road",
+      "origin": [
+       -602,
+       98,
+       -267
+      ],
+      "to": [
+       -602,
+       98,
+       -265
+      ],
+      "len": 3,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -265,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 54,
+      "kind": "road",
+      "origin": [
+       -602,
+       99,
+       -264
+      ],
+      "to": [
+       -602,
+       99,
+       -259
+      ],
+      "len": 6,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -259,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 55,
+      "kind": "road",
+      "origin": [
+       -602,
+       100,
+       -258
+      ],
+      "to": [
+       -602,
+       100,
+       -248
+      ],
+      "len": 11,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -248,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 56,
+      "kind": "road",
+      "origin": [
+       -602,
+       101,
+       -247
+      ],
+      "to": [
+       -602,
+       101,
+       -208
+      ],
+      "len": 40,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -208,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 57,
+      "kind": "road",
+      "origin": [
+       -602,
+       102,
+       -207
+      ],
+      "to": [
+       -602,
+       102,
+       -197
+      ],
+      "len": 11,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -197,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 58,
+      "kind": "road",
+      "origin": [
+       -602,
+       103,
+       -196
+      ],
+      "to": [
+       -602,
+       103,
+       -182
+      ],
+      "len": 15,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -182,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 59,
+      "kind": "road",
+      "origin": [
+       -602,
+       102,
+       -181
+      ],
+      "to": [
+       -602,
+       102,
+       -172
+      ],
+      "len": 10,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -172,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 60,
+      "kind": "road",
+      "origin": [
+       -602,
+       101,
+       -171
+      ],
+      "to": [
+       -602,
+       101,
+       -167
+      ],
+      "len": 5,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -167,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 61,
+      "kind": "road",
+      "origin": [
+       -602,
+       100,
+       -166
+      ],
+      "to": [
+       -602,
+       100,
+       -165
+      ],
+      "len": 2,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -165,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 62,
+      "kind": "road",
+      "origin": [
+       -602,
+       99,
+       -164
+      ],
+      "to": [
+       -602,
+       99,
+       -164
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -164,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 63,
+      "kind": "road",
+      "origin": [
+       -602,
+       98,
+       -163
+      ],
+      "to": [
+       -602,
+       98,
+       -163
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -163,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 64,
+      "kind": "road",
+      "origin": [
+       -602,
+       97,
+       -162
+      ],
+      "to": [
+       -602,
+       97,
+       -162
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -162,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 65,
+      "kind": "road",
+      "origin": [
+       -602,
+       96,
+       -161
+      ],
+      "to": [
+       -602,
+       96,
+       -161
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -161,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 66,
+      "kind": "road",
+      "origin": [
+       -602,
+       95,
+       -160
+      ],
+      "to": [
+       -602,
+       95,
+       -155
+      ],
+      "len": 6,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -155,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 67,
+      "kind": "road",
+      "origin": [
+       -602,
+       94,
+       -154
+      ],
+      "to": [
+       -602,
+       94,
+       -150
+      ],
+      "len": 5,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -150,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 68,
+      "kind": "road",
+      "origin": [
+       -602,
+       93,
+       -149
+      ],
+      "to": [
+       -602,
+       93,
+       -146
+      ],
+      "len": 4,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -146,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 69,
+      "kind": "road",
+      "origin": [
+       -602,
+       92,
+       -145
+      ],
+      "to": [
+       -602,
+       92,
+       -142
+      ],
+      "len": 4,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -142,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 70,
+      "kind": "road",
+      "origin": [
+       -602,
+       91,
+       -141
+      ],
+      "to": [
+       -602,
+       91,
+       -104
+      ],
+      "len": 38,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -104,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 71,
+      "kind": "road",
+      "origin": [
+       -602,
+       92,
+       -103
+      ],
+      "to": [
+       -602,
+       92,
+       -94
+      ],
+      "len": 10,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -94,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 72,
+      "kind": "road",
+      "origin": [
+       -602,
+       93,
+       -93
+      ],
+      "to": [
+       -602,
+       93,
+       -90
+      ],
+      "len": 4,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -90,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 73,
+      "kind": "road",
+      "origin": [
+       -602,
+       94,
+       -89
+      ],
+      "to": [
+       -602,
+       94,
+       -87
+      ],
+      "len": 3,
+      "built": false,
+      "args": {
+       "toX": -602,
+       "toZ": -87,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 74,
+      "kind": "road",
+      "origin": [
+       -602,
+       94,
+       -87
+      ],
+      "to": [
+       -632,
+       94,
+       -87
+      ],
+      "len": 31,
+      "built": false,
+      "args": {
+       "toX": -632,
+       "toZ": -87,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 75,
+      "kind": "road",
+      "origin": [
+       -632,
+       94,
+       -87
+      ],
+      "to": [
+       -632,
+       94,
+       -84
+      ],
+      "len": 4,
+      "built": false,
+      "args": {
+       "toX": -632,
+       "toZ": -84,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 76,
+      "kind": "road",
+      "origin": [
+       -632,
+       95,
+       -83
+      ],
+      "to": [
+       -632,
+       95,
+       -75
+      ],
+      "len": 9,
+      "built": false,
+      "args": {
+       "toX": -632,
+       "toZ": -75,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 77,
+      "kind": "road",
+      "origin": [
+       -632,
+       96,
+       -74
+      ],
+      "to": [
+       -632,
+       96,
+       -69
+      ],
+      "len": 6,
+      "built": false,
+      "args": {
+       "toX": -632,
+       "toZ": -69,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 78,
+      "kind": "road",
+      "origin": [
+       -632,
+       97,
+       -68
+      ],
+      "to": [
+       -632,
+       97,
+       -56
+      ],
+      "len": 13,
+      "built": false,
+      "args": {
+       "toX": -632,
+       "toZ": -56,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 79,
+      "kind": "road",
+      "origin": [
+       -632,
+       96,
+       -55
+      ],
+      "to": [
+       -632,
+       96,
+       -52
+      ],
+      "len": 4,
+      "built": false,
+      "args": {
+       "toX": -632,
+       "toZ": -52,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 80,
+      "kind": "road",
+      "origin": [
+       -632,
+       95,
+       -51
+      ],
+      "to": [
+       -632,
+       95,
+       -36
+      ],
+      "len": 16,
+      "built": false,
+      "args": {
+       "toX": -632,
+       "toZ": -36,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 81,
+      "kind": "road",
+      "origin": [
+       -632,
+       94,
+       -35
+      ],
+      "to": [
+       -632,
+       94,
+       -21
+      ],
+      "len": 15,
+      "built": false,
+      "args": {
+       "toX": -632,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 82,
+      "kind": "road",
+      "origin": [
+       -632,
+       94,
+       -21
+      ],
+      "to": [
+       -645,
+       94,
+       -21
+      ],
+      "len": 14,
+      "built": false,
+      "args": {
+       "toX": -645,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 83,
+      "kind": "road",
+      "origin": [
+       -646,
+       93,
+       -21
+      ],
+      "to": [
+       -647,
+       93,
+       -21
+      ],
+      "len": 2,
+      "built": false,
+      "args": {
+       "toX": -647,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 84,
+      "kind": "road",
+      "origin": [
+       -648,
+       92,
+       -21
+      ],
+      "to": [
+       -650,
+       92,
+       -21
+      ],
+      "len": 3,
+      "built": false,
+      "args": {
+       "toX": -650,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 85,
+      "kind": "road",
+      "origin": [
+       -651,
+       91,
+       -21
+      ],
+      "to": [
+       -652,
+       91,
+       -21
+      ],
+      "len": 2,
+      "built": false,
+      "args": {
+       "toX": -652,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 86,
+      "kind": "road",
+      "origin": [
+       -653,
+       90,
+       -21
+      ],
+      "to": [
+       -654,
+       90,
+       -21
+      ],
+      "len": 2,
+      "built": false,
+      "args": {
+       "toX": -654,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 87,
+      "kind": "road",
+      "origin": [
+       -655,
+       89,
+       -21
+      ],
+      "to": [
+       -655,
+       89,
+       -21
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -655,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 88,
+      "kind": "road",
+      "origin": [
+       -656,
+       88,
+       -21
+      ],
+      "to": [
+       -657,
+       88,
+       -21
+      ],
+      "len": 2,
+      "built": false,
+      "args": {
+       "toX": -657,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 89,
+      "kind": "road",
+      "origin": [
+       -658,
+       87,
+       -21
+      ],
+      "to": [
+       -659,
+       87,
+       -21
+      ],
+      "len": 2,
+      "built": false,
+      "args": {
+       "toX": -659,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 90,
+      "kind": "road",
+      "origin": [
+       -660,
+       86,
+       -21
+      ],
+      "to": [
+       -660,
+       86,
+       -21
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -660,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 91,
+      "kind": "road",
+      "origin": [
+       -661,
+       85,
+       -21
+      ],
+      "to": [
+       -661,
+       85,
+       -21
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -661,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 92,
+      "kind": "road",
+      "origin": [
+       -662,
+       84,
+       -21
+      ],
+      "to": [
+       -662,
+       84,
+       -21
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -662,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 93,
+      "kind": "road",
+      "origin": [
+       -663,
+       83,
+       -21
+      ],
+      "to": [
+       -663,
+       83,
+       -21
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -663,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 94,
+      "kind": "road",
+      "origin": [
+       -664,
+       82,
+       -21
+      ],
+      "to": [
+       -670,
+       82,
+       -21
+      ],
+      "len": 7,
+      "built": false,
+      "args": {
+       "toX": -670,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 95,
+      "kind": "road",
+      "origin": [
+       -671,
+       81,
+       -21
+      ],
+      "to": [
+       -681,
+       81,
+       -21
+      ],
+      "len": 11,
+      "built": false,
+      "args": {
+       "toX": -681,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 96,
+      "kind": "road",
+      "origin": [
+       -682,
+       80,
+       -21
+      ],
+      "to": [
+       -684,
+       80,
+       -21
+      ],
+      "len": 3,
+      "built": false,
+      "args": {
+       "toX": -684,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 97,
+      "kind": "road",
+      "origin": [
+       -685,
+       79,
+       -21
+      ],
+      "to": [
+       -686,
+       79,
+       -21
+      ],
+      "len": 2,
+      "built": false,
+      "args": {
+       "toX": -686,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 98,
+      "kind": "road",
+      "origin": [
+       -687,
+       78,
+       -21
+      ],
+      "to": [
+       -687,
+       78,
+       -21
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -687,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 99,
+      "kind": "road",
+      "origin": [
+       -688,
+       77,
+       -21
+      ],
+      "to": [
+       -689,
+       77,
+       -21
+      ],
+      "len": 2,
+      "built": false,
+      "args": {
+       "toX": -689,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 100,
+      "kind": "road",
+      "origin": [
+       -690,
+       76,
+       -21
+      ],
+      "to": [
+       -706,
+       76,
+       -21
+      ],
+      "len": 17,
+      "built": false,
+      "args": {
+       "toX": -706,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 101,
+      "kind": "road",
+      "origin": [
+       -707,
+       75,
+       -21
+      ],
+      "to": [
+       -710,
+       75,
+       -21
+      ],
+      "len": 4,
+      "built": false,
+      "args": {
+       "toX": -710,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 102,
+      "kind": "road",
+      "origin": [
+       -711,
+       74,
+       -21
+      ],
+      "to": [
+       -714,
+       74,
+       -21
+      ],
+      "len": 4,
+      "built": false,
+      "args": {
+       "toX": -714,
+       "toZ": -21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 103,
+      "kind": "road",
+      "origin": [
+       -714,
+       74,
+       -21
+      ],
+      "to": [
+       -714,
+       74,
+       -20
+      ],
+      "len": 2,
+      "built": false,
+      "args": {
+       "toX": -714,
+       "toZ": -20,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 104,
+      "kind": "road",
+      "origin": [
+       -714,
+       73,
+       -19
+      ],
+      "to": [
+       -714,
+       73,
+       -19
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -714,
+       "toZ": -19,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 105,
+      "kind": "road",
+      "origin": [
+       -714,
+       72,
+       -18
+      ],
+      "to": [
+       -714,
+       72,
+       -12
+      ],
+      "len": 7,
+      "built": false,
+      "args": {
+       "toX": -714,
+       "toZ": -12,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 106,
+      "kind": "road",
+      "origin": [
+       -714,
+       73,
+       -11
+      ],
+      "to": [
+       -714,
+       73,
+       -10
+      ],
+      "len": 2,
+      "built": false,
+      "args": {
+       "toX": -714,
+       "toZ": -10,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 107,
+      "kind": "road",
+      "origin": [
+       -714,
+       74,
+       -9
+      ],
+      "to": [
+       -714,
+       74,
+       -1
+      ],
+      "len": 9,
+      "built": false,
+      "args": {
+       "toX": -714,
+       "toZ": -1,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 108,
+      "kind": "road",
+      "origin": [
+       -714,
+       73,
+       0
+      ],
+      "to": [
+       -714,
+       73,
+       1
+      ],
+      "len": 2,
+      "built": false,
+      "args": {
+       "toX": -714,
+       "toZ": 1,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 109,
+      "kind": "road",
+      "origin": [
+       -714,
+       72,
+       2
+      ],
+      "to": [
+       -714,
+       72,
+       2
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -714,
+       "toZ": 2,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 110,
+      "kind": "road",
+      "origin": [
+       -714,
+       71,
+       3
+      ],
+      "to": [
+       -714,
+       71,
+       3
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -714,
+       "toZ": 3,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 111,
+      "kind": "road",
+      "origin": [
+       -714,
+       70,
+       4
+      ],
+      "to": [
+       -714,
+       70,
+       5
+      ],
+      "len": 2,
+      "built": false,
+      "args": {
+       "toX": -714,
+       "toZ": 5,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 112,
+      "kind": "road",
+      "origin": [
+       -714,
+       69,
+       6
+      ],
+      "to": [
+       -714,
+       69,
+       10
+      ],
+      "len": 5,
+      "built": false,
+      "args": {
+       "toX": -714,
+       "toZ": 10,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 113,
+      "kind": "road",
+      "origin": [
+       -714,
+       68,
+       11
+      ],
+      "to": [
+       -714,
+       68,
+       21
+      ],
+      "len": 11,
+      "built": false,
+      "args": {
+       "toX": -714,
+       "toZ": 21,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 114,
+      "kind": "road",
+      "origin": [
+       -714,
+       69,
+       22
+      ],
+      "to": [
+       -714,
+       69,
+       22
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -714,
+       "toZ": 22,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 115,
+      "kind": "road",
+      "origin": [
+       -714,
+       70,
+       23
+      ],
+      "to": [
+       -714,
+       70,
+       23
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -714,
+       "toZ": 23,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 116,
+      "kind": "road",
+      "origin": [
+       -714,
+       71,
+       24
+      ],
+      "to": [
+       -714,
+       71,
+       26
+      ],
+      "len": 3,
+      "built": false,
+      "args": {
+       "toX": -714,
+       "toZ": 26,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     },
+     {
+      "i": 117,
+      "kind": "road",
+      "origin": [
+       -714,
+       72,
+       27
+      ],
+      "to": [
+       -714,
+       72,
+       27
+      ],
+      "len": 1,
+      "built": false,
+      "args": {
+       "toX": -714,
+       "toZ": 27,
+       "width": 5,
+       "block": "stone",
+       "clear": 3,
+       "torchEvery": 8,
+       "shoulder": 2
+      }
+     }
+    ]
+   }
+  },
+  {
+   "id": "smelt_and_buckets",
+   "type": "steps",
+   "priority": 95,
+   "status": "paused",
+   "when": "any",
+   "bots": 3,
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "no zone: IRON + BUCKETS. The army holds 9 iron_ingot and 1 bucket in the depot while the fill needs water to quench lava and every builder wants a water bucket for the landing. Smelt the raw iron the mine banks, then craft 8 buckets (3 ingots each)",
+   "params": {
+    "steps": [
+     {
+      "do": "withdraw",
+      "item": "raw_iron",
+      "n": 256,
+      "atLeast": 16
+     },
+     {
+      "do": "withdraw",
+      "item": "coal",
+      "n": 64,
+      "atLeast": 8
+     },
+     {
+      "do": "goto",
+      "to": [
+       -366,
+       69,
+       -523
+      ],
+      "range": 3
+     },
+     {
+      "do": "smelt",
+      "item": "raw_iron",
+      "n": 64
+     },
+     {
+      "do": "smelt",
+      "item": "raw_iron",
+      "n": 64
+     },
+     {
+      "do": "smelt",
+      "item": "raw_iron",
+      "n": 64
+     },
+     {
+      "do": "bank",
+      "keep": {
+       "torch": 16
+      }
+     },
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       69,
+       -523
+      ],
+      "range": 3
+     },
+     {
+      "do": "craft",
+      "item": "bucket",
+      "n": 8
+     },
+     {
+      "do": "bank",
+      "keep": {
+       "torch": 16
+      }
+     }
+    ]
+   },
+   "note": "auto-paused: plan failed"
+  },
+  {
+   "id": "base_road_1",
+   "type": "build",
+   "priority": 80,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 3,
+   "site": [
+    -339,
+    69,
+    -509
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone road 1 x -340..-338 / z -555..-462 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): 3-wide AVENUE north-south, paved at ground level",
+   "params": {
+    "blueprint": "road",
+    "origin": [
+     -339,
+     68,
+     -555
+    ],
+    "args": {
+     "toX": -339,
+     "toZ": -462,
+     "width": 3
+    }
+   },
+   "rev": 8,
+   "note": "auto-restored from the archive: 31 cells damaged",
+   "stuckBy": {
+    "key": "rev6",
+    "bots": [
+     "Aoi",
+     "Madoka",
+     "Nanami"
+    ]
    }
   }
  ]

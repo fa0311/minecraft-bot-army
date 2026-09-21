@@ -2718,7 +2718,10 @@ async function build (bot, job, api, ctx) {
   const noDigMany = (keys, why) => {
     if (!keys.length) return
     const until = Date.now() + NODIG_MS
+    // the board write below is locked and may land after the next walk; the LOCAL memory must not be re-read from the board before it does, or the cell comes back
+    // once more (measured: `road_mine#2` -335,68,-499 retired at dug 3 and taken again at dug 4, 1.5 s later). Stamping the cache keeps the entry for a full window.
     for (const k of keys) noDig().set(k, until)
+    _nd.t = Date.now()
     A.result(bot, { ev: 'build_nodig', job: job.id, at: keys[0], n: keys.length, why, hours: NODIG_MS / 3600000 })
     A.boardEdit(b => {
       const j = (b.jobs || []).find(z => z.id === job.id); if (!j) return
@@ -2857,11 +2860,29 @@ async function build (bot, job, api, ctx) {
   const cellAt = new Map(cells.map(c => [K(c), c]))
   const allKeys = new Set(cellAt.keys())
   const inHand = q => !q || q.block === 'air' || A.count(bot, q.block) > 0 || (!exact(q) && matsOf(q).some(n => A.count(bot, n) > 0))
-  const pickList = c => exact(c) ? [c.block] : matsOf(c) // what this cell may be made of, here and now
+  const pickList = c => (c.topExact || exact(c)) ? [c.block] : matsOf(c) // what this cell may be made of, here and now (`topExact` = the one block that ends up EXPOSED: never a substitute)
   const waterKeys = new Set(cells.filter(c => c.block === 'water').map(K))
   const groundFill = (cells.find(c => c.fillOnly && !c.solid && c.block !== 'air') || {}).block || null // what this blueprint's ground cells are made of (level: dirt)
   const groundKeys = new Set(cells.filter(c => c.fillOnly && !c.solid && c.block !== 'air').map(K)) // the blueprint's ground cells (pad, road sub-base, level)
   const bodyKeys = new Set(cells.filter(c => c.block !== 'air').map(K)) // cells the blueprint itself makes solid (a fill column never reaches into them)
+  // ONLY THE BLOCK THAT ENDS UP EXPOSED HAS TO BE RIGHT (owner 09-21 「地面を埋める石は何でもよいが一番上は土でなければならない / つまり、最終的に露出するブロックは
+  // こだわり、それ以外は多少雑でも良い」). Half of this already stood: TERRAIN_BP is exempt from EXACT, so a BURIED cell is done when any solid block is in it and is never
+  // dug for being the wrong sort - the body takes whatever stone the pockets hold and never waits for a material. The half that was MISSING is the skin: the one cell of
+  // each column a player will walk on - and the flank of a raised pad, which stays in sight - must be the SURFACE material, and THE FILL LAYS IT ITSELF. That is what
+  // stops the `cap_*` war growing: no second job ever has to open a column this one has finished (cap_ravine_nm -323,68,-437, cap_base_yard_pad / void_fix_base_yard_pad
+  // -368,68,-489 - each right on its own, each digging what the other had just placed). Structures and roads keep the exact rule everywhere: this is for terrain only.
+  const topMat = ((P.args || {}).top) || groundFill || 'dirt'
+  const TOPS = new Set()
+  if (A.TERRAIN_BP.test(String(P.blueprint)) && topMat && (P.args || {}).top !== false) {
+    const col = new Map()
+    for (const c of cells) { if (!c.solid && !(c.fillOnly && !c.solid && c.block !== 'air')) continue; const k = c.x + ',' + c.z; const e = col.get(k); if (!e || c.y > e.y) col.set(k, c) }
+    let x1 = Infinity; let x2 = -Infinity; let z1 = Infinity; let z2 = -Infinity
+    for (const c of col.values()) { if (c.x < x1) x1 = c.x; if (c.x > x2) x2 = c.x; if (c.z < z1) z1 = c.z; if (c.z > z2) z2 = c.z }
+    for (const c of col.values()) TOPS.add(K(c))
+    for (const c of cells) { if (!c.solid || TOPS.has(K(c))) continue; if (c.x > x1 && c.x < x2 && c.z > z1 && c.z < z2) continue; if (c.y >= c.g - 1) TOPS.add(K(c)) } // a VISIBLE FLANK is a surface too: the outer ring shows its side
+  }
+  const isTop = c => TOPS.has(K(c))
+  const topOK = name => name === topMat || (HARD_SOIL.test(topMat) && HARD_SOIL.test(name)) // grass/podzol/farmland over dirt are all "the ground is there"
   const nearWater = c => { if (!waterKeys.size) return false; for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) for (let dz = -1; dz <= 1; dz++) if (waterKeys.has((c.x + dx) + ',' + (c.y + dy) + ',' + (c.z + dz))) return true; return false }
   const revKey = 'rev' + (job.rev || 0)
   const waterBook = () => { if (!waterKeys.size) return {}; if (Date.now() - (st.wbT || 0) > 5000) { st.wbT = Date.now(); const j = ((A.readJSON(A.F.board, {}) || {}).jobs || []).find(q => q.id === job.id); st.wb = (j && j.water && j.water.key === revKey && j.water.cells) || {} } return st.wb || {} }
@@ -2914,7 +2935,14 @@ async function build (bot, job, api, ctx) {
       const foreign = () => { if (_fg === null) { const oc = b.name === 'air' ? null : A.ourBlock(b.position, b.name); _fg = !!oc && oc.job !== job.id } return _fg }
       if (c.facing && c.half != null && b.name === c.block && /chest$/.test(b.name)) { const w = chestWrong(c, b); if (w) { if (!all && redoClaimed(c)) wait++; else put.push(Object.assign({}, c, { redo: w })) } continue } // a pair that is not a DOUBLE chest is not built (see placeChest)
       if (c.solid) { // strict bottom-up: only on a solid block (lowest layer of the job: a side neighbour will do) -> nothing placed ever has air under it
-        if (solid(b)) continue
+        if (solid(b)) {
+          // THE SKIN, AND ONLY THE SKIN, IS SWAPPED (see TOPS) - and only when the swap can be FINISHED this second: the surface block must already be in the pockets,
+          // the column under it must stand, and nothing of ours or anybody's furniture may be in the way. Anything else and the cell simply stays done: a buried stone
+          // is never dug for its sort, and a top cell we cannot re-skin right now is not a hole to re-open. `noDig` still caps it at two digs, for ever.
+          if (!isTop(c) || topOK(b.name) || U.protectedBlock(b) || GROUND_TREE_RE.test(b.name) || A.count(bot, topMat) === 0 || foreign() || !solid(at(c.x, c.y - 1, c.z))) continue
+          dig.push(Object.assign({}, c, { block: 'air', then: Object.assign({}, c, { block: topMat, mats: [topMat], topExact: true }), topSwap: true }))
+          continue
+        }
         // params.unlid (true = 2, or N): a THIN roof (deck block, grass overhang: a solid run of <= N blocks, not above grade) over air of the box is taken off first,
         // sealed or not - then that column is an open shaft and is filled from its floor. Never under a chest/torch/bed, never in blueprint keepLid columns, never thick rock.
         if (P.unlid && !c.keepLid && solid(at(c.x, c.y + 1, c.z))) {
@@ -2940,7 +2968,10 @@ async function build (bot, job, api, ctx) {
         // to it - gravity puts the block on the floor, whatever is between. The rest of the column waits for that one pour instead of sending eight bots down a 1x1 hole.
         { const pc = open.pour && open.pour.get(c.x + ',' + c.z)
           if (pc) { if (c.y === pc.lo) put.push(Object.assign({}, c, { pour: pc.hi, hot })); else wait++; continue } }
-        if (solid(at(c.x, c.y - 1, c.z)) || (c.floor && side())) put.push(hot ? Object.assign({}, c, { hot: true }) : c); else wait++
+        // a top cell laid FRESH takes the surface material straight away when it is carried; with none carried it takes any stone and the skin is swapped later -
+        // the owner's rule is "the exposed block must be right", never "the column waits for dirt" (a fill must never report `put:rest:` for a material again)
+        const cT = (isTop(c) && A.count(bot, topMat) > 0 && !hot) ? Object.assign({}, c, { block: topMat, mats: [topMat], topExact: true }) : c
+        if (solid(at(c.x, c.y - 1, c.z)) || (c.floor && side())) put.push(hot ? Object.assign({}, c, { hot: true }) : cT); else wait++
         continue
       }
       if (c.block === 'water') { // WATER CELL: doable when its floor and 4 sides stand; a SOURCE that stands is never touched again
@@ -3656,6 +3687,13 @@ async function build (bot, job, api, ctx) {
   // ONE WALK OF THE BLUEPRINT SERVES A BATCH (same measurement: the loop ran `todo()` again after EVERY single block, so a 30 000-cell fill was walked once per placed
   // block, three times per pass counting the two closing walks). The list is now reused for up to 8 cells or 6 s, and a queued cell is re-read once right before it is
   // worked and dropped when the world already satisfies it - so a mate's block is never placed twice and exactly the same cells get built.
+  // THE TOP LAYER IS FETCHED BY THE STACK, THE BODY IS NOT (owner 09-21): a crew needs a couple of hundred dirt for the skin of its columns, not thousands - the body
+  // takes whatever stone the pockets already hold. One trip per slice, only while the depot can spare it, and never a reason for a cell to wait.
+  if (TOPS.size && A.count(bot, topMat) < 48 && A.stockOf(topMat) > 256 && !(st.topFetch > Date.now() - 300000)) {
+    st.topFetch = Date.now(); task(bot, 'build: getting ' + topMat + ' (the top layer)')
+    await A.withdraw(bot, topMat, 192, { stop: api.stop })
+    await A.travel(bot, { x: o.x, y: null, z: o.z }, { range: 14, ms: 120000, stop: api.stop }); task(bot, 'build ' + P.blueprint)
+  }
   let qDig = []; let qPut = []; let qUsed = 0; let qT = 0; let qSkip = 0
   const satisfied = (c, cb) => { if (!cb || c.redo || c.block === 'water') return false; if (c.block === 'air') return cb.name === 'air' || cb.name === 'cave_air'; if (c.solid) return solid(cb); if (c.fillOnly && !c.solid) return solid(cb) && !GROUND_TREE_RE.test(cb.name); return cb.name === c.block || !!(c.mats && c.mats.includes(cb.name) && !exact(c)) }
   while (!api.stop() && streak < 8 && done < 120) {
@@ -3782,7 +3820,7 @@ async function build (bot, job, api, ctx) {
     if (r && r.ok) { done++; streak = 0 } else if (r && /locked/.test(String(r.reason))) { st.lockSkip = st.lockSkip || {}; st.lockSkip[K(c)] = Date.now() + 45000; lockSpins++; if (lockSpins > 8) break } else { if (!(c.roof || c.decor || lavaFail)) streak++; if (c.roof || c.decor || lavaFail) { st.lockSkip = st.lockSkip || {}; st.lockSkip[K(c)] = Date.now() + (lavaFail ? 600000 : 180000) } else if (!c.solid) st.bad[K(c)] = (st.bad[K(c)] || 0) + 1 } // a cell another bot is working on: take the next one, it is not a failure (small sites: 3 of 4 bots burned passes on lock fights)
     // THE CUT FEEDS THE FILL (foreman 09-19 19:34Z: a level pad dug 32 cells, its dirt was banked/tossed down to 64, then 18 builders `build_blocked: no dirt`): a blueprint
     // with ground cells keeps 5 stacks of its fill block in the pockets; cobblestone per stoneKeep (never tossed while the army is short of it)
-    if (U.freeSlots(bot) <= 1) await A.bank(bot, Object.assign({ torch: 16, [P.args && P.args.block || 'cobblestone']: 128 }, waterKeys.size ? { bucket: 3, water_bucket: 3, dirt: 64 } : {}, groundFill ? { [groundFill]: 320 } : {}, cells.some(q => q.solid) ? { cobbled_deepslate: 1024, cobblestone: 1024, gravel: 128, sand: 128 } : {}, { cobblestone: stoneKeep(cells.some(q => q.solid) ? 1024 : 128) }), { job: job.id, stop: api.stop })
+    if (U.freeSlots(bot) <= 1) await A.bank(bot, Object.assign({ torch: 16, [P.args && P.args.block || "cobblestone"]: 128 }, TOPS.size ? { [topMat]: 192 } : {}, waterKeys.size ? { bucket: 3, water_bucket: 3, dirt: 64 } : {}, groundFill ? { [groundFill]: 320 } : {}, cells.some(q => q.solid) ? { cobbled_deepslate: 1024, cobblestone: 1024, gravel: 128, sand: 128 } : {}, { cobblestone: stoneKeep(cells.some(q => q.solid) ? 1024 : 128) }), { job: job.id, stop: api.stop })
   }
   // FURNITURE THAT STANDS IS REGISTERED BY THE BUILD JOB (contract) - judged on the world, every pass, idempotent (the depot works while it grows):
   //   containers with `cat` -> settings.chests[cat]. DOUBLE CHESTS: both halves open the SAME 54 slots, so a merged pair is booked ONCE - a chest whose

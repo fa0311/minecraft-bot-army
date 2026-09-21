@@ -316,10 +316,15 @@ module.exports = ctx => {
       return muster(bot, job, api, ctx2, 'road: complete')
     }
 
-    // ---- the nearest unbuilt segment nobody is on (a claim older than 15 min falls free by itself)
+    // ---- the nearest unbuilt segment nobody is on (a claim older than 15 min falls free by itself). If EVERY open segment is
+    // claimed the extra hand JOINS the nearest one instead of declining: the build handler is multi-bot by design (per-cell file
+    // locks in blocks.js) and 数の暴力 is the doctrine. MEASURED why this matters, 05:35Z on the first live road: 8 bots on a
+    // 3-segment road -> 4 `declined` in one tick -> the dispatcher's REST rule parked the WHOLE job for 10 minutes.
+    const byDist = left.slice().sort((a, b) => dist(a) - dist(b))
     let s = null
-    for (const q of left.slice().sort((a, b) => dist(a) - dist(b))) { if (take(bot, job.id, q.i)) { s = q; break } }
-    if (!s) { A.decline(bot, job, 120000, 'road: every unbuilt segment is claimed by a mate'); return muster(bot, job, api, ctx2, 'road: all ' + left.length + ' open segments are claimed') }
+    for (const q of byDist) { if (take(bot, job.id, q.i)) { s = q; break } }
+    const shared = !s
+    if (!s) s = byDist[0]
 
     let opted = false
     try {
@@ -327,7 +332,10 @@ module.exports = ctx => {
         const st0 = segState(bot, P, s)
         if (st0.seen >= st0.total * 0.8 && !st0.wrong.length) { segEdit(job.id, s.i, { built: true, at: Date.now() }); A.result(bot, { ev: 'road_seg_built', job: job.id, seg: s.i, kind: s.kind, cells: st0.total, by: 'already standing' }); return 'road: segment ' + s.i + ' already stands' }
       }
-      A.result(bot, { ev: 'road_seg_start', job: job.id, road: P.road || job.id, seg: s.i, kind: s.kind, at: s.origin, to: s.to, len: s.len, left: left.length })
+      // once per bot per segment, not once per build pass: the worker calls the handler again every ~30 s and the ledger is read
+      // by humans (`armyctl.js events`), so a start line that repeats forty times a segment hides everything else
+      const segKey = job.id + '#' + s.i + '@' + (job.rev || 0)
+      if (bot.__roadSeg !== segKey) { bot.__roadSeg = segKey; A.result(bot, { ev: 'road_seg_start', job: job.id, road: P.road || job.id, seg: s.i, kind: s.kind, at: s.origin, to: s.to, len: s.len, left: left.length, shared: shared || undefined }) }
 
       // THE SPUR'S NAMED OPT-OUT (owner 09-21): reaching the network is construction, so the pathfinder may cut a step or lay a
       // ramp here - with a REASON, a time box, and revoked in `finally`. Nowhere else in this file.
@@ -347,13 +355,43 @@ module.exports = ctx => {
       // headroom, terraces the shoulders, sets the torches and never decks a hole. One implementation, not two (CLAUDE.md rule 5).
       // The inner job carries a SYNTHETIC id (`<road>#<seg>`) that is not on the board, so every board edit build makes - pause,
       // cap, void-fix, stuckBy - finds no job and is a no-op: the road job alone owns the board.
+      const before = segState(bot, P, s)
+      // PAVING IN THE POCKETS BEFORE THE FIRST DIG (measured 05:52Z, road_mine seg 2: `build_runaway ... 3 digs of the same cell
+      // (dig/place loop)` on five cells in a row, and `banked {job:'road_mine', items:{cobblestone:128}}` a minute earlier. The
+      // slice handover banks bulk stone for every job type it does not recognise as a builder - `road` is new, so it stripped the
+      // crew of its paving every two minutes, and the blueprint's `unlid` rule then took the paving off again because the block
+      // that must replace it was not in the pockets. Until army_jobs' kit regex knows the type, the handler fetches its own.)
+      const need = Math.min(192, Math.max(64, before.wrong.length + 32))
+      if (A.count(bot, 'cobblestone') < Math.min(64, need)) {
+        const have = STONE.filter(k => A.stockOf(k) > 0).sort((a, b) => A.stockOf(b) - A.stockOf(a))[0]
+        if (have) { task(bot, 'road: fetching ' + need + ' ' + have + ' for segment ' + s.i); await A.obtain(bot, have === 'cobblestone' ? 'cobblestone' : have, need, { stop: api.stop }).catch(e_ => swallow('jobs_road:paving', e_)) }
+        else A.result(bot, { ev: 'road_blocked', job: job.id, seg: s.i, why: 'no paving stone in pockets or depot - the segment cannot be laid' })
+      }
       const inner = { id: job.id + '#' + s.i, type: 'build', rev: job.rev || 0, priority: job.priority, front: job.front, site: [s.origin[0], s.origin[1] + 1, s.origin[2]], plan: job.plan, params: { blueprint: 'road', origin: s.origin, args: argsOf(P, s), pad: false, order: 'near', walkRadius: 20 } }
       const r = await rawBuild()(bot, inner, api, ctx2)
       const st = segState(bot, P, s)
-      if (st.seen >= st.total * 0.8 && st.wrong.length <= Math.floor(st.total * 0.01)) {
+      // THE ROAD JOB REPORTS ITS OWN OUTPUT (measured 05:35Z: the inner build reports `build_pass {job:'road_mine#0'}`, so the
+      // dispatcher's output ledger, its overflow `workLeft`, the yield throttle and ops/gemba.js all saw the ROAD job produce
+      // NOTHING - it rested the job after one tick). `done` is the change the WORLD shows between the two reads, not what the
+      // builder meant to do, so one line here serves every reader that already knows `build_pass`.
+      const done = Math.max(0, before.wrong.length - st.wrong.length)
+      if (before.seen >= before.total * 0.5) A.result(bot, { ev: 'build_pass', job: job.id, blueprint: 'road', seg: s.i, done, left: st.wrong.length })
+      // A SEGMENT NOBODY CAN FINISH MUST NOT HOLD THE WHOLE ROAD (measured 05:47Z, road_mine seg 2: `build_pass done:0 left:1
+      // gaveUp:1` + `build_idle cells:""` in a loop - one cell the build handler counts as WAITING, which no number of bots
+      // resolves; and because the inner job is not on the board, build's own `build_leftover` brake - it needs `stuckBy` - can
+      // never fire). TWO passes that change NOTHING - more than that and the crew is rotated off before it counts - with a
+      // handful of cells left (under the `road_damaged` threshold, so it is not re-opened next slice), and the segment counts as built with its
+      // leftovers NAMED: the road audit keeps watching them and `road_blocked` is a line an operator can act on.
+      // the counter lives ON THE SEGMENT, not on the bot (measured 06:0xZ: with 5 bots on a 12-cell segment every bot got exactly
+      // ONE pass before the dispatcher rotated it away, so a per-bot counter never reached two and the last 3 cells span for ever)
+      const idle = done > 0 ? 0 : ((s.idle || 0) + 1)
+      if (idle !== (s.idle || 0)) { segEdit(job.id, s.i, { idle }); s.idle = idle }
+      const leftover = idle >= 3 && st.wrong.length <= Math.max(3, Math.ceil(st.total * 0.03))
+      if (st.seen >= st.total * 0.8 && (leftover || st.wrong.length <= Math.floor(st.total * 0.01))) {
+        if (leftover) A.result(bot, { ev: 'road_blocked', job: job.id, road: P.road || job.id, seg: s.i, left: st.wrong.length, of: st.total, cells: st.wrong.slice(0, 4).join(' | '), why: 'two passes changed nothing here: the segment counts as built with these cells open, and the road audit keeps watching them' })
         await railPass(bot, job, P, s, api).catch(e_ => swallow('jobs_road:rail', e_))
-        segEdit(job.id, s.i, { built: true, at: Date.now() })
-        A.result(bot, { ev: 'road_seg_built', job: job.id, road: P.road || job.id, seg: s.i, kind: s.kind, cells: st.total, left: left.length - 1 })
+        segEdit(job.id, s.i, Object.assign({ built: true, at: Date.now(), idle: 0 }, leftover ? { leftover: st.wrong.slice(0, 6) } : {}))
+        A.result(bot, { ev: 'road_seg_built', job: job.id, road: P.road || job.id, seg: s.i, kind: s.kind, cells: st.total, left: left.length - 1, leftover: leftover ? st.wrong.length : undefined })
         return 'road: segment ' + s.i + ' built (' + st.total + ' cells, ' + (left.length - 1) + ' segments left)'
       }
       return typeof r === 'string' ? r : 'road: segment ' + s.i + ' (' + st.wrong.length + '/' + st.total + ' cells still open)'
