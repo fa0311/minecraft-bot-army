@@ -82,7 +82,11 @@ east on z-84/-83 (camera: 0 lava/precious seq 0-30; sources beside the way at se
 verbs go/route/walk/place/dig/wait) shut the source from route seq 27 through the wall cell -53,111,-82 (09-21 10:0xZ; hub corner dry).
 Crew of 2 = two lanes (`laneWalkOf`, lane by crew order); a floor over a cave goes in by `moves.bridgeTo` one cell at a time (`route_bridge`);
 4 spare stone picks (a pick lasts ~130 netherrack); `params.stopAt:452` keeps the crew 16+ from the spawner (seq 463+ is 11 away and woke six
-blazes); nether bricks are never dug without `params.breach:true` - that, and the blaze fight, is the next decision (`work:'blaze'`).
+blazes); nether bricks are never dug without `params.breach:true` (approved 11:0xZ). Within `coverR` 16 of the end a step waits for a
+round with nothing left to place (walls/roof first). `work:'blaze'` (`nether_blaze`) holds seq 470 behind a shield, strikes in reach, eats
+at `den`; `core/combat.js` skips `nether route/blaze/steps` tasks (a chase off the bridge killed Sayaka). **Gates (11:0xZ):** far gate =
+z-77 (-49..-46,y97-101), relit by `steps` verb `light`; z-81 frame and the game-made overworld spare -372..-369,y67-71,z-657 are DOWN
+(`degate` `box`+`unlight`). A z-81-style frame 16 blocks from the hub exits ~130 blocks from home = past the 128 search: never relight one.
 
 ## What stands / what is paused
 | job | state |

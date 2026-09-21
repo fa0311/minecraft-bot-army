@@ -1743,7 +1743,9 @@ module.exports = ctx => {
     // lane 1 walks past it): step across to the other lane's cell beside us and carry on on that walk
     const crossOver = async () => {
       const me = bot.entity.position.floored(); const s0 = i >= 0 ? W[i].seq : -1
-      const j = WB.findIndex(w => w.seq >= s0 && Math.abs(w.p[0] - me.x) + Math.abs(w.p[2] - me.z) === 1 && Math.abs(w.p[1] - me.y) <= 1 && walkable(bot, w.p) && WB[WB.indexOf(w) + 1] && WB[WB.indexOf(w) + 1].seq >= s0)
+      if ((fails.cross = (fails.cross || 0) + 1) > 4) return false // no ping-pong between two blocked lanes (09-21 11:3xZ: 40 crossings in 100 s at the fortress wall)
+      // only onto a lane whose NEXT cell is walkable, i.e. where crossing is progress
+      const j = WB.findIndex((w, jj) => w.seq >= s0 && Math.abs(w.p[0] - me.x) + Math.abs(w.p[2] - me.z) === 1 && Math.abs(w.p[1] - me.y) <= 1 && walkable(bot, w.p) && WB[jj + 1] && WB[jj + 1].seq >= s0 && walkable(bot, WB[jj + 1].p))
       if (j < 0 || !(await routeStep(bot, api, WB[j].p))) return false
       const tmp = W; W = WB; WB = tmp; i = j
       A.result(bot, { ev: 'route_lane', job: job.id, at: xyz(bot.entity.position), seq: W[i].seq, why: 'the other lane is blocked here' })

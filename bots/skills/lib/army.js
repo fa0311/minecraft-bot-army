@@ -487,17 +487,31 @@ async function bareDown (bot, opts = {}) {
   const keep = {}
   const cargo = (j0.params && j0.params.cargo) ? new RegExp('^(' + [].concat(j0.params.cargo).join('|') + ')$') : null // a job NAMES what is not loot (Nether engineer 09-21: bare/bank silently removed the gold to trade, then the stone to bridge with - three lost crossings)
   const STONE_OK = /^(cobblestone|cobbled_deepslate|stone|deepslate|andesite|diorite|granite|tuff|netherrack|dirt|gravel|sand)$/
-  for (const i of bot.inventory.items()) if (BARE_OK.test(i.name) || (mine && mine.test(i.name)) || (cargo && cargo.test(i.name)) || STONE_OK.test(i.name) || /^gold(en)?_/.test(i.name)) keep[i.name] = (keep[i.name] || 0) + i.count
+  // `params.bare:'iron'` (top model 09-21 12:0xZ, blaze doorway: a stone-axe bot with no armour saw 14 blazes, hit 4, killed 0 and died): bare of
+  // DIAMONDS and valuables, but the iron kit stays - iron armour, an iron or stone sword, a shield, a bow and arrows.
+  const ironOK = j0.params && j0.params.bare === 'iron'
+  const IRON_KIT = /^(iron_(helmet|chestplate|leggings|boots|sword)|chainmail_.*|leather_.*|stone_sword|shield|bow|arrow)$/
+  for (const i of bot.inventory.items()) if (BARE_OK.test(i.name) || (mine && mine.test(i.name)) || (cargo && cargo.test(i.name)) || STONE_OK.test(i.name) || /^gold(en)?_/.test(i.name) || (ironOK && IRON_KIT.test(i.name))) keep[i.name] = (keep[i.name] || 0) + i.count
   const rich = bot.inventory.items().filter(i => !BARE_OK.test(i.name)).reduce((n, i) => n + i.count, 0)
-  const worn = [5, 6, 7, 8].map(sl => bot.inventory.slots[sl]).filter(Boolean).filter(i => !/^golden_/.test(i.name)) // a worn GOLD piece is the Nether's pass (piglins stay calm) and worth nothing: never stripped (09-21: every bare slice banked the golden boots and had to craft new ones)
+  const worn = [5, 6, 7, 8].map(sl => bot.inventory.slots[sl]).filter(Boolean).filter(i => !/^golden_/.test(i.name) && !(ironOK && IRON_KIT.test(i.name))) // a worn GOLD piece is the Nether's pass (piglins stay calm) and worth nothing: never stripped (09-21: every bare slice banked the golden boots and had to craft new ones)
+  const ironUp = async () => { // the iron kit is FETCHED, not hoped for: a sword, then every armour slot that is empty (worn best-first by wear())
+    if (!ironOK) return
+    if (!bot.inventory.items().some(i => /_sword$/.test(i.name) && !/diamond|netherite/.test(i.name))) for (const sw of ['iron_sword', 'stone_sword']) { if (stockOf(sw) > 0 && await withdraw(bot, sw, 1, { stop: opts.stop }).catch(() => 0) > 0) break }
+    const slot = { helmet: 5, chestplate: 6, leggings: 7, boots: 8 }
+    for (const piece of Object.keys(slot)) { const w = bot.inventory.slots[slot[piece]]; if (w && !/^golden_/.test(w.name)) continue; if (stockOf('iron_' + piece) > 0) await withdraw(bot, 'iron_' + piece, 1, { stop: opts.stop }).catch(() => 0) }
+    if (!U.count(bot, 'shield') && !(bot.inventory.slots[45] || {}).name && stockOf('shield') > 0) await withdraw(bot, 'shield', 1, { stop: opts.stop }).catch(() => 0)
+    await wear(bot).catch(e_ => swallow('army:ironWear', e_))
+  }
   if (!rich && !worn.length) { // already bare: make sure it at least has a stone pickaxe to work with
+    await ironUp()
     for (const n of ['stone_pickaxe', 'stone_shovel', 'stone_axe']) if (!U.count(bot, n) && stockOf(n) > 0) await withdraw(bot, n, 1, { stop: opts.stop }).catch(() => 0)
     return
   }
   for (const it of worn) { try { await bot.unequip(it.name.includes('helmet') ? 'head' : it.name.includes('chestplate') ? 'torso' : it.name.includes('leggings') ? 'legs' : 'feet') } catch (e_) { swallow('army:bareUnequip', e_) } }
   const moved = await bank(bot, keep, { job: ((assignment(bot) || {}).job || {}).id + ' (bare: experimental job)', stop: opts.stop, noKit: true, strip: true })
   for (const n of ['stone_pickaxe', 'stone_shovel', 'stone_axe']) if (!U.count(bot, n) && stockOf(n) > 0) await withdraw(bot, n, 1, { stop: opts.stop }).catch(() => 0)
-  result(bot, { ev: 'bare_handed', job: ((assignment(bot) || {}).job || {}).id || null, banked: moved || {}, why: 'experimental job: nothing valuable goes out there' })
+  await ironUp()
+  result(bot, { ev: 'bare_handed', job: ((assignment(bot) || {}).job || {}).id || null, banked: moved || {}, iron: ironOK || undefined, why: 'experimental job: nothing valuable goes out there' })
 }
 
 // THE WELL (blueprint `well`, built by an ordinary `build` job - its board entry IS the registration): [[4 pool cells] per well], nearest first.
