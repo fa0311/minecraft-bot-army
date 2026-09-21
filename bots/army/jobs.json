@@ -1280,7 +1280,7 @@
     98,
     -80
    ],
-   "through": 1789961470121,
+   "through": 1789963278978,
    "scoutRev": 4,
    "hub": {
     "room": [
@@ -1392,8 +1392,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789961470264,
-   "back": 1789961482602,
+   "landingAt": 1789963279124,
+   "back": 1789963291493,
    "lastDeath": 1789924669079,
    "lastDeathBy": "Fuuka",
    "roads": {
@@ -1615,10 +1615,19 @@
     "t": 1789924913245
    },
    "absorb": {
-    "iron_ingot": 96,
-    "coal": 240
+    "leather": 192,
+    "rabbit": 64,
+    "porkchop": 112,
+    "carrot": 352,
+    "wheat": 280,
+    "pumpkin": 72,
+    "melon": 48,
+    "coal": 720,
+    "iron_ingot": 192,
+    "flint": 600,
+    "diamond": 12
    },
-   "absorbT": 1789961274637
+   "absorbT": 1789963012406
   },
   "enchantTable": [
    -344,
@@ -1893,7 +1902,7 @@
    },
    "rev": 79,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
-   "restUntil": 1789961331481
+   "restUntil": 1789963736848
   },
   {
    "id": "farm_1",
@@ -2037,8 +2046,8 @@
    },
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 8,
-   "rev": 67,
-   "restUntil": 1789962428631
+   "rev": 68,
+   "restUntil": 1789964804322
   },
   {
    "id": "base_dorm",
@@ -2224,9 +2233,9 @@
     "radius": 250,
     "bankAt": 32
    },
-   "rev": 25,
+   "rev": 26,
    "bots": 1,
-   "restUntil": 1789961671938
+   "restUntil": 1789963741872
   },
   {
    "id": "sleeper",
@@ -2313,7 +2322,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789961532765
+   "restUntil": 1789963444312
   },
   {
    "id": "fill_ring_field1",
@@ -3367,7 +3376,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789962438671
+   "restUntil": 1789964258050
   },
   {
    "id": "nether_landing_2",
@@ -4841,7 +4850,7 @@
     "rev": 1
    },
    "rev": 105,
-   "restUntil": 1789960000247
+   "restUntil": 1789963858512
   },
   {
    "id": "mine_sweep",
@@ -4878,8 +4887,8 @@
     "radius": 150,
     "bankAt": 48
    },
-   "restUntil": 1789961987584,
-   "rev": 16
+   "restUntil": 1789964067626,
+   "rev": 17
   },
   {
    "id": "craft_gold_boots",
@@ -5102,7 +5111,7 @@
    "type": "build",
    "priority": 88,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 13,
    "site": [
@@ -5126,20 +5135,66 @@
      "d": 35
     }
    },
-   "rev": 6,
-   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -345,67,-515",
+   "rev": 7,
+   "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -345,66,-515",
    "cap": {
     "id": "cap_base_core_pad",
     "cols": 1225,
     "t": 1789926449257
    },
-   "restUntil": 1789959069426,
+   "restUntil": 1789963308637,
    "stuckBy": {
-    "key": "rev6",
+    "key": "rev7",
     "bots": [
-     "Aika",
-     "Botan",
-     "Kurumi"
+     "Akari",
+     "Hinata"
+    ]
+   }
+  },
+  {
+   "id": "op_bank_wheat",
+   "type": "steps",
+   "priority": 89,
+   "status": "paused",
+   "when": "any",
+   "bots": 4,
+   "names": [
+    "Hotaru",
+    "Chino",
+    "Kurumi",
+    "Sayaka"
+   ],
+   "site": [
+    -345,
+    69,
+    -523
+   ],
+   "plan": "no world change: carried wheat (550+) never reaches the depot, so the bakery starves and miners get no food kit. Bank it once, then the job pauses itself.",
+   "params": {
+    "repeat": false,
+    "steps": [
+     {
+      "do": "goto",
+      "to": [
+       -345,
+       69,
+       -523
+      ],
+      "range": 3,
+      "s": 300
+     },
+     {
+      "do": "bank",
+      "keep": {
+       "iron_axe": 1,
+       "diamond_pickaxe": 1,
+       "stone_pickaxe": 1,
+       "iron_pickaxe": 1,
+       "shield": 1,
+       "stone_hoe": 1,
+       "bread": 4
+      }
+     }
     ]
    }
   }
