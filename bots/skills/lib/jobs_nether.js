@@ -1204,10 +1204,10 @@ module.exports = ctx => {
     // THE HEARTBEAT TAKES IT OFF AGAIN (09-21 12:5xZ: Aoi reached the barter post in four IRON pieces with the golden helmet in her
     // pocket - army.js `wear()` runs every heartbeat and puts the better-ranked iron piece back on). Its own busy flag is held while a
     // gold piece must stay on; `goldRelease` (back in the overworld) lets go. Request filed: wear() should keep a worn golden piece.
-    if (goldWorn(bot)) { bot.__nGoldHold = true; bot.__armyWearing = true }
+    // (army.js `wear()` keeps a worn golden_* piece in the Nether / on a portal job since 13:4xZ - `goldKept`; no hold needed any more)
     return goldWorn(bot)
   }
-  const goldRelease = bot => { if (bot.__nGoldHold) { bot.__nGoldHold = false; bot.__armyWearing = false } }
+  const goldRelease = bot => { if (bot.__nGoldHold) { bot.__nGoldHold = false; bot.__armyWearing = false } } // clears a hold taken by the old code
   async function barter (bot, job, api, P, until) {
     // 1. THE GOLD THAT KEEPS THEM NEUTRAL: any worn gold piece will do
     if (!await wearGold(bot, api)) return { work: 'barter', why: 'no gold armour piece to wear - every piglin in sight would turn hostile' }
@@ -2209,7 +2209,8 @@ module.exports = ctx => {
     const N = netherOf(); const R = N.route || {}
     const legs = routeLegs(Object.assign({ routeJob: 'nether_route' }, P, { work: 'blaze' }))
     if (!legs) return { work: 'blaze', why: 'no route job ' + (P.routeJob || 'nether_route') + ' with params.legs on the board' }
-    const meta = bpCells('nether_route', [0, 0, 0], { legs }).meta
+    const rb = bpCells('nether_route', [0, 0, 0], { legs }); const meta = rb.meta
+    const W0b = routeWalkOf(meta, rb.cells); const walkBoth = W0b.concat(laneWalkOf(W0b, new Set(rb.cells.filter(c => c.block !== 'stone').map(c => K3(c.x, c.y, c.z)))))
     const L = meta.length
     const postSeq = Math.max(0, L - 1 - (P.back == null ? 2 : P.back)) // the covered doorway, `back` cells inside the tunnel
     const denSeq = Math.max(0, L - 1 - (P.den || 12)) // out of their line of fire, to eat
@@ -2239,6 +2240,9 @@ module.exports = ctx => {
             await sleep(1000)
           }
           await arm()
+          // NO FOOD, NO REGENERATION (09-21 13:1xZ: Mio sat at the den on 5.7 hp with food 17 and no bread left - hp only regrows at
+          // food >= 18): a hurt bot without food goes home with its rods instead of back to the doorway
+          if (bot.health < 16 && !bot.inventory.items().some(i => bot.registry.foodsByName[i.name])) { st.noFood = true; break }
           if (Date.now() >= until - 90000) break
           await routeWalkSeq(bot, api, legs, postSeq, 'back to the blaze doorway'); continue
         }
@@ -2269,7 +2273,13 @@ module.exports = ctx => {
         // quiet: pick up what fell within the tunnel (never onto their platform), then back to the post
         const drops = Object.values(bot.entities).filter(e => e && e.name === 'item' && e.position && e.position.distanceTo(me) <= 6)
         let picked = false
-        for (const d of drops) { const c = d.position.floored(); const k = [c.x, c.y, c.z].join(); if (meta.path.some(f => f.join() === k) && walkable(bot, [c.x, c.y, c.z])) { const sq = meta.path.findIndex(f => f.join() === k); await routeWalkSeq(bot, api, legs, sq, 'picking up a drop'); await sleep(600); picked = true } else st.rodsLeft = Math.max(st.rodsLeft, drops.length) }
+        // a drop counts as ours when it lies in the tunnel - on a cell of EITHER lane (09-21 13:2xZ: Mio left 20 drops, most of them
+        // one lane over from the lane-0 path) - never on their platform
+        for (const d of drops) {
+          const c = d.position.floored(); const k = [c.x, c.y, c.z].join()
+          const w = walkBoth.find(q => q.p.join() === k)
+          if (w && walkable(bot, w.p)) { await routeWalkSeq(bot, api, legs, w.seq, 'picking up a drop'); await sleep(600); picked = true } else st.rodsLeft = Math.max(st.rodsLeft, drops.length)
+        }
         if (picked || bot.entity.position.floored().distanceTo(v(post)) > 0.5) await routeWalkSeq(bot, api, legs, postSeq, 'back to the blaze doorway')
         task(bot, 'nether blaze: holding the doorway (' + st.kills + ' killed, ' + (A.count(bot, 'blaze_rod') - rods0) + ' rods)')
         await sleep(400)
@@ -2277,7 +2287,7 @@ module.exports = ctx => {
     } finally { bot.removeListener('entityDead', onDead); shieldUp(false) }
     // home end: the walk back is the caller's (comeHome walks the route from anywhere on it)
     const rods = A.count(bot, 'blaze_rod') - rods0
-    const out = { work: 'blaze', kills: st.kills, rods, hits: st.hits, arrows: st.arrows || 0, retreats: st.retreats, seen: st.seen.size, hpLow: Math.round(st.hpLow), ate: st.ate, dropsOutOfReach: st.rodsLeft, hp: Math.round(bot.health), carried: A.count(bot, 'blaze_rod') }
+    const out = { work: 'blaze', noFood: !!st.noFood, kills: st.kills, rods, hits: st.hits, arrows: st.arrows || 0, retreats: st.retreats, seen: st.seen.size, hpLow: Math.round(st.hpLow), ate: st.ate, dropsOutOfReach: st.rodsLeft, hp: Math.round(bot.health), carried: A.count(bot, 'blaze_rod') }
     A.result(bot, Object.assign({ ev: 'blaze_pass', job: job.id, at: xyz(bot.entity.position) }, out))
     await routeWalkSeq(bot, api, legs, 0).catch(e_ => swallow('jobs_nether:blazeHome', e_))
     return out
@@ -2766,6 +2776,7 @@ module.exports = ctx => {
       }
       // a shield is the difference between a ghast fireball and a death (top model 12:4xZ)
       if (!A.count(bot, 'shield') && !(bot.inventory.slots[45] || {}).name) await A.obtain(bot, 'shield', 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:shield', e_))
+      if (P.work === 'blaze' && A.count(bot, 'bread') < 24) await A.obtain(bot, 'bread', 32, { stop: api.stop }).catch(e_ => swallow('jobs_nether:blazeBread', e_)) // a blaze fight is eaten through: 4 retreats x 2-3 breads
       if (!bot.registry.foodsByName || !bot.inventory.items().some(i => bot.registry.foodsByName[i.name])) await A.obtain(bot, 'bread', 16, { stop: api.stop }).catch(e_ => swallow('jobs_nether:food', e_))
       // THE KIT IS FETCHED, NOT HOPED FOR (16:4xZ: Sakura came back from a death and declined her own job with 'no sword, no
       // diamond pickaxe' while the depot held both). A sword is the difference between a piglin and a funeral.
@@ -2784,7 +2795,7 @@ module.exports = ctx => {
       const spareArmour = bot.inventory.items().filter(i => /_(helmet|chestplate|leggings|boots)$/.test(i.name)).reduce((n, i) => n + i.count, 0) // worn pieces are not in items()
       const treasure = ['diamond', 'emerald', 'gold_ingot', 'iron_ingot', 'netherite_ingot'].reduce((n, k) => n + (P.work === 'barter' && k === 'gold_ingot' ? 0 : A.count(bot, k)), 0)
       if (spareTools > 5 || spareArmour > 0 || treasure > 0) {
-        const keep = { torch: 64, shield: 1, flint_and_steel: 1, bread: 16, cooked_beef: 16, cooked_mutton: 16, cooked_porkchop: 16, cooked_cod: 16, cooked_chicken: 16, baked_potato: 16 }
+        const keep = { torch: 64, shield: 1, flint_and_steel: 1, bread: P.work === 'blaze' ? 32 : 16, cooked_beef: 16, cooked_mutton: 16, cooked_porkchop: 16, cooked_cod: 16, cooked_chicken: 16, baked_potato: 16 }
         for (const k of SHELL_STONE) keep[k] = Math.max(64, P.cobble || 128)
         if (P.work === 'pair') keep.obsidian = Math.max(10, P.obsidian || 14)
         if (P.work === 'hub') { keep.chest = 1; keep.crafting_table = 1; keep.oak_fence_gate = 1; keep.spruce_fence_gate = 1; keep.birch_fence_gate = 1 }

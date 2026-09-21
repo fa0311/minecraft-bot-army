@@ -88,6 +88,15 @@ at `den`; `core/combat.js` skips `nether route/blaze/steps` tasks (a chase off t
 z-77 (-49..-46,y97-101), relit by `steps` verb `light`; z-81 frame and the game-made overworld spare -372..-369,y67-71,z-657 are DOWN
 (`degate` `box`+`unlight`). A z-81-style frame 16 blocks from the hub exits ~130 blocks from home = past the 128 search: never relight one.
 
+## THE BARTER POST (`nether_barterpost` builds, `nether_barter` trades; Nether engineer 09-21 13:xZ)
+A side route (`params.routeKey:'barterPost'`, its own head) off the v3 stair top: 3 steps up SOUTH through the stair wall to a roofed booth
+-67..-66,112,-78 whose south face opens 1 above the piglin plateau (x-70..-52, z-79..-44, floor y110-111). `work:'barter'` with `params.post`
+walks our own route to it cell by cell, never builds a stair, never follows a piglin, tosses at adults within `post.reach` 10, picks loot up
+within 3. Routes that touch declare `params.yieldTo` (air wins across routes: the first post pass walled the main corner because its legs
+repeated the main stair). Gold: army.js `wear()` re-dresses iron over a gold piece every heartbeat; `wearGold` holds the heartbeat's busy
+flag while a gold piece must stay on (`goldRelease` at home) - REQUEST: wear() should keep a worn golden_* piece itself.
+Measured: 2 passes, 82 ingots -> 5 pearls (3.9 per 64; the book says ~4.4), 4-6 adult piglins seen per pass, 0 deaths.
+
 ## What stands / what is paused
 | job | state |
 |---|---|

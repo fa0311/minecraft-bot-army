@@ -375,13 +375,17 @@ const weaponOf = name => { const m = /^(\w+)_(sword|axe)$/.exec(name); return m 
 const toolOf = name => { const m = /^(\w+)_(pickaxe|shovel|axe|hoe)$/.exec(name); return m && TIER[m[1]] ? { rank: TIER[m[1]], kind: m[2] } : null }
 function wornRank (bot, piece) { const cur = bot.inventory.slots[bot.getEquipmentDestSlot(ARMOR_SLOT[piece])]; const a = cur && armorOf(cur.name); return a ? a.rank : 0 }
 function offHand (bot) { return bot.inventory.slots[bot.getEquipmentDestSlot('off-hand')] || null }
+// A WORN GOLD PIECE IS THE NETHER'S PASS (piglins stay calm) - never swapped for a better tier while the bot is in the Nether or on a
+// `portal` job (Nether engineer 09-21 13:4xZ: wear() put the iron helmet back over the gold one every heartbeat; Aoi reached the barter
+// booth in four iron pieces). In the overworld a gold piece is just weak armour and the usual best-first rule applies.
+function goldKept (bot) { try { return /nether/.test(String((bot.game && bot.game.dimension) || '')) || String(((assignment(bot) || {}).job || {}).type || '') === 'portal' } catch (e_) { return false } }
 async function wear (bot) {
   if (bot.__armyWearing || bot.currentWindow || bot.__armyEating) return
   bot.__armyWearing = true
   try {
     for (const it of bot.inventory.items().slice().sort((a, b) => ((armorOf(b.name) || {}).rank || 0) - ((armorOf(a.name) || {}).rank || 0))) {
       const a = armorOf(it.name)
-      if (a) { if (a.rank > wornRank(bot, a.piece)) await U.withTimeout(bot.equip(it, ARMOR_SLOT[a.piece]), 4000, 'armor').catch(e_ => swallow('army:wearArmor', e_)) } else if (it.name === 'shield' && !offHand(bot)) await U.withTimeout(bot.equip(it, 'off-hand'), 4000, 'shield').catch(e_ => swallow('army:wearShield', e_))
+      if (a) { const cur = bot.inventory.slots[bot.getEquipmentDestSlot(ARMOR_SLOT[a.piece])]; if (cur && /^golden_/.test(cur.name) && goldKept(bot)) continue; if (a.rank > wornRank(bot, a.piece)) await U.withTimeout(bot.equip(it, ARMOR_SLOT[a.piece]), 4000, 'armor').catch(e_ => swallow('army:wearArmor', e_)) } else if (it.name === 'shield' && !offHand(bot)) await U.withTimeout(bot.equip(it, 'off-hand'), 4000, 'shield').catch(e_ => swallow('army:wearShield', e_))
     }
   } catch (e_) { swallow('army:wear', e_) } finally { bot.__armyWearing = false }
 }
@@ -500,6 +504,10 @@ async function bareDown (bot, opts = {}) {
     const slot = { helmet: 5, chestplate: 6, leggings: 7, boots: 8 }
     for (const piece of Object.keys(slot)) { const w = bot.inventory.slots[slot[piece]]; if (w && !/^golden_/.test(w.name)) continue; if (stockOf('iron_' + piece) > 0) await withdraw(bot, 'iron_' + piece, 1, { stop: opts.stop }).catch(() => 0) }
     if (!U.count(bot, 'shield') && !(bot.inventory.slots[45] || {}).name && stockOf('shield') > 0) await withdraw(bot, 'shield', 1, { stop: opts.stop }).catch(() => 0)
+    // the bow is the blaze weapon (Nether engineer 13:4xZ: 5 kills in one pass with a bow; Kanade crossed with a stone axe only)
+    if (!U.count(bot, 'bow') && stockOf('bow') > 0) await withdraw(bot, 'bow', 1, { stop: opts.stop }).catch(() => 0)
+    if (U.count(bot, 'bow') && U.count(bot, 'arrow') < 32 && stockOf('arrow') > 0) await withdraw(bot, 'arrow', 64 - U.count(bot, 'arrow'), { stop: opts.stop }).catch(() => 0)
+    if (!bot.inventory.items().some(i => /_sword$/.test(i.name))) await obtain(bot, 'stone_sword', 1, { stop: opts.stop }).catch(() => false) // no sword on the shelf: a stone one is crafted
     await wear(bot).catch(e_ => swallow('army:ironWear', e_))
   }
   if (!rich && !worn.length) { // already bare: make sure it at least has a stone pickaxe to work with
@@ -727,7 +735,10 @@ function fieldCost (bot, mv) {
   const jt = String(((assignment(bot) || {}).job || {}).type || '')
   const mineToo = /^(farm|cane|tidy)$/.test(jt) // the farmer, the groundskeeper and the cane crew belong there
   const boxes = fieldBoxes()
-  const f = b => { if (mineToo || !b || !b.position) return 0; const { x, z } = b.position; for (const q of boxes) if (x >= q[0] - 1 && x <= q[2] + 1 && z >= q[1] - 1 && z <= q[3] + 1) return 40; return 0 }
+  // TRAPS THE ARMY KNOWS (09-21 13:3xZ): `settings.avoid = [{box:[x1,z1,x2,z2], why}]` - ground every bot walks round, e.g. the lake W of the
+  // base whose cliffs let a bot in but never out (Hazuki, Fuuka, Riko, Chika, Riko again: frozen or stranded in it today). A weight, not a veto.
+  const avoid = ((settings().avoid) || []).map(a => a && a.box).filter(q => Array.isArray(q) && q.length === 4)
+  const f = b => { if (!b || !b.position) return 0; const { x, z } = b.position; for (const q of avoid) if (x >= q[0] && x <= q[2] && z >= q[1] && z <= q[3]) return 60; if (mineToo) return 0; for (const q of boxes) if (x >= q[0] - 1 && x <= q[2] + 1 && z >= q[1] - 1 && z <= q[3] + 1) return 40; return 0 }
   mv.exclusionAreasStep = (mv.exclusionAreasStep || []).filter(g => !g.__armyField).concat(Object.assign(f, { __armyField: true }))
   return mv
 }
