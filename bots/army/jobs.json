@@ -1274,13 +1274,13 @@
    ],
    "axis": "x",
    "lit": 1789916622472,
-   "by": "Misaki",
+   "by": "Chika",
    "portal": [
-    -44,
+    -48,
     98,
-    -80
+    -77
    ],
-   "through": 1789963278978,
+   "through": 1789965104340,
    "scoutRev": 4,
    "hub": {
     "room": [
@@ -1381,21 +1381,21 @@
    ],
    "shellY": 98,
    "returnJob": "nether_return",
-   "deaths": 3,
+   "deaths": 2,
    "deathsResetAt": 1789910779294,
    "deathsResetWhy": "owner 13:2xZ: death is an accepted cost of exploring the Nether; the brake is 6 in 30 min",
    "landing": [
-    -50,
-    -87,
-    -36,
-    -73
+    -54,
+    -84,
+    -40,
+    -70
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789963279124,
-   "back": 1789963291493,
-   "lastDeath": 1789924669079,
-   "lastDeathBy": "Fuuka",
+   "landingAt": 1789965106430,
+   "back": 1789965119116,
+   "lastDeath": 1789964551171,
+   "lastDeathBy": "Sakura",
    "roads": {
     "x+": {
      "from": [
@@ -1422,9 +1422,8 @@
    "outAt": 1789915921402,
    "outBy": "Rin",
    "deathLog": [
-    1789923209104,
-    1789924651756,
-    1789924669079
+    1789964241661,
+    1789964551171
    ],
    "sightings": [],
    "fortress": null,
@@ -1615,19 +1614,21 @@
     "t": 1789924913245
    },
    "absorb": {
-    "leather": 192,
+    "iron_ingot": 240,
     "rabbit": 64,
     "porkchop": 112,
-    "carrot": 352,
-    "wheat": 280,
-    "pumpkin": 72,
-    "melon": 48,
-    "coal": 720,
-    "iron_ingot": 192,
+    "gray_wool": 288,
+    "coal": 960,
+    "leather": 192,
     "flint": 600,
-    "diamond": 12
+    "carrot": 352,
+    "wheat": 320,
+    "pumpkin": 144,
+    "melon": 96,
+    "diamond": 12,
+    "beetroot": 240
    },
-   "absorbT": 1789963012406
+   "absorbT": 1789964749683
   },
   "enchantTable": [
    -344,
@@ -1818,7 +1819,7 @@
     "maxDist": 220,
     "first": "sheep"
    },
-   "rev": 29,
+   "rev": 30,
    "bots": 4,
    "note": "owner 09-20: sheep are culled actively (wool 10 328 / 150, TPS). ONLY sheep: the hunt handler has NO pen exclusion - with kinds sheep/pig/cow/chicken and leave 0 the hunters emptied pen 1 (69 sheep) within the hour; cows, chickens and pigs are left alone until the handler spares penned animals (BUGS)"
   },
@@ -1902,7 +1903,7 @@
    },
    "rev": 79,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
-   "restUntil": 1789963736848
+   "restUntil": 1789965580527
   },
   {
    "id": "farm_1",
@@ -1936,8 +1937,8 @@
     "forage": true,
     "bankAt": 64
    },
-   "rev": 9,
-   "bots": 1
+   "rev": 11,
+   "bots": 2
   },
   {
    "id": "lumber_base",
@@ -2235,7 +2236,7 @@
    },
    "rev": 26,
    "bots": 1,
-   "restUntil": 1789963741872
+   "restUntil": 1789965761943
   },
   {
    "id": "sleeper",
@@ -2322,7 +2323,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789963444312
+   "restUntil": 1789965069132
   },
   {
    "id": "fill_ring_field1",
@@ -3376,7 +3377,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789964258050
+   "restUntil": 1789966158372
   },
   {
    "id": "nether_landing_2",
@@ -3963,7 +3964,7 @@
    "type": "build",
    "priority": 60,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 1,
    "site": [
@@ -3990,9 +3991,9 @@
     },
     "order": "near"
    },
-   "rev": 18,
-   "note": "auto-paused: 17 cells nobody could do: -343,68,-537 | -343,68,-538 | -343,68,-539 | -343,68,-542 | -343,68,-543 | -344,68,-537",
-   "restUntil": 1789950143852,
+   "rev": 22,
+   "note": "needs: dirt (17 cells wait; every cell whose material exists is done or in work)",
+   "restUntil": 1789964587034,
    "stuckBy": {
     "key": "rev18",
     "bots": [
@@ -4849,8 +4850,8 @@
     ],
     "rev": 1
    },
-   "rev": 105,
-   "restUntil": 1789963858512
+   "rev": 106,
+   "restUntil": 1789965520385
   },
   {
    "id": "mine_sweep",
@@ -4887,7 +4888,7 @@
     "radius": 150,
     "bankAt": 48
    },
-   "restUntil": 1789964067626,
+   "restUntil": 1789966233664,
    "rev": 17
   },
   {
@@ -5061,108 +5062,16 @@
    }
   },
   {
-   "id": "base_pen_2_pad",
-   "type": "build",
-   "priority": 57,
-   "front": "base",
-   "status": "paused",
-   "when": "any",
-   "bots": 1,
-   "site": [
-    -389,
-    69,
-    -549
-   ],
-   "requires": {
-    "minHp": 10
-   },
-   "plan": "BASE PLAN zone pen_2 x -403..-375 / z -556..-542 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. animal pen 27x13: fence ring, ONE gate onto the road beside it",
-   "params": {
-    "blueprint": "level",
-    "origin": [
-     -389,
-     68,
-     -549
-    ],
-    "args": {
-     "w": 29,
-     "d": 15
-    }
-   },
-   "rev": 11,
-   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -402,65,-548",
-   "restUntil": 1789935147159,
-   "cap": {
-    "id": "cap_base_pen_2_pad",
-    "cols": 435,
-    "t": 1789927911282
-   },
-   "stuckBy": {
-    "key": "rev11",
-    "bots": [
-     "Hinata",
-     "Honoka",
-     "Sakura"
-    ]
-   }
-  },
-  {
-   "id": "base_core_pad",
-   "type": "build",
-   "priority": 88,
-   "front": "base",
-   "status": "active",
-   "when": "any",
-   "bots": 13,
-   "site": [
-    -356,
-    69,
-    -508
-   ],
-   "requires": {
-    "minHp": 10
-   },
-   "plan": "BASE PLAN zone core x -373..-339 / z -525..-491 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. core 32x32: THE craft table + furnace bank (north strip 32x10), depot rows of double chests by category (south 32x20; grow them with len/high + rev)",
-   "params": {
-    "blueprint": "level",
-    "origin": [
-     -356,
-     68,
-     -508
-    ],
-    "args": {
-     "w": 35,
-     "d": 35
-    }
-   },
-   "rev": 7,
-   "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -345,66,-515",
-   "cap": {
-    "id": "cap_base_core_pad",
-    "cols": 1225,
-    "t": 1789926449257
-   },
-   "restUntil": 1789963308637,
-   "stuckBy": {
-    "key": "rev7",
-    "bots": [
-     "Akari",
-     "Hinata"
-    ]
-   }
-  },
-  {
    "id": "op_bank_wheat",
    "type": "steps",
    "priority": 89,
-   "status": "paused",
+   "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 3,
    "names": [
-    "Hotaru",
-    "Chino",
-    "Kurumi",
-    "Sayaka"
+    "Wakana",
+    "Rena",
+    "Riko"
    ],
    "site": [
     -345,
@@ -5188,15 +5097,22 @@
       "keep": {
        "iron_axe": 1,
        "diamond_pickaxe": 1,
+       "diamond_sword": 1,
+       "diamond_axe": 1,
        "stone_pickaxe": 1,
        "iron_pickaxe": 1,
        "shield": 1,
        "stone_hoe": 1,
-       "bread": 4
+       "water_bucket": 1,
+       "torch": 16,
+       "bread": 4,
+       "wheat_seeds": 999
       }
      }
     ]
-   }
+   },
+   "rev": 2,
+   "restUntil": 1789966230638
   }
  ]
 }
