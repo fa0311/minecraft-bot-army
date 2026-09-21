@@ -332,7 +332,10 @@ module.exports = ctx => {
   async function stairDown (bot, api, P, job) {
     const B = BL()
     const dirs = [[1, 0], [0, 1], [-1, 0], [0, -1]]
-    const d = dirs[seat(bot) % 4]
+    // THE STAIR TURNS WHERE THE WATER IS (top model 09-21 14:4xZ: Hina stood on the fix 96,61,1514 - the confirm eye DIPPED - and the
+    // stair stopped at step 0 on 'water in the tread' in its one fixed bearing). Each step tries its bearing first, then the other three.
+    let di = seat(bot) % 4; let d = dirs[di]
+    const wet = c => { const b = bot.blockAt(c); return !!(b && /water|lava/.test(b.name)) }
     const floorY = P.toY == null ? 10 : P.toY
     let steps = 0; let torches = 0
     const endT = now() + (P.minutes || 10) * 60000
@@ -341,6 +344,8 @@ module.exports = ctx => {
       if (me.y <= floorY) return { ok: false, why: 'reached y' + me.y + ' without a stronghold wall', steps }
       const hit = sniffStronghold(bot, 22)
       if (hit.length) return { ok: true, at: xyz(hit[0]), steps, torches }
+      // pick a bearing whose three tread cells hold no liquid (the current one first)
+      for (let k = 0; k < 4; k++) { const dd = dirs[(di + k) % 4]; const cs = [[0, -1], [0, 0], [0, 1]].map(([, dy]) => new Vec3(me.x + dd[0], me.y + dy, me.z + dd[1])); if (!cs.some(wet)) { di = (di + k) % 4; d = dd; break } }
       // the next tread: one forward, one down. Body + head cell of the tread, and the head cell of the step we stand on.
       const cells = [
         new Vec3(me.x + d[0], me.y - 1, me.z + d[1]),
@@ -376,7 +381,10 @@ module.exports = ctx => {
     // torches and bread - that is what kept every throw at the base. Out there the bot works with what it carries.
     const mp = A.musterPos(); const farOut = mp && Math.hypot(bot.entity.position.x - mp.x, bot.entity.position.z - mp.z) > 200
     const short = farOut ? [] : await need(bot, api, { ender_eye: want, torch: 32, bread: 12, cobblestone: 32 })
-    if (A.count(bot, 'ender_eye') < 1) {
+    // A FIX ON THE BOARD NEEDS NO EYE (top model 14:5xZ: Hina stood on the fix, the confirm eye DIPPED and was lost, and the next slice
+    // declined 'no eye_of_ender' and walked the 2 000 blocks home) - walking the legs and cutting the stair are eyeless work.
+    const fix0 = endS().fix
+    if (A.count(bot, 'ender_eye') < 1 && !(fix0 && Number.isFinite(fix0.x))) {
       A.result(bot, { ev: 'sh_blocked', job: job.id, why: 'no eye_of_ender to throw', short })
       A.decline(bot, job, 8 * 60000, 'stronghold: no eyes yet')
       return muster(bot, job, api, ctx2, 'stronghold: no eye_of_ender (stock ' + A.stockOf('ender_eye') + ') — staff work:"eyes" first')
@@ -400,10 +408,13 @@ module.exports = ctx => {
         await noteFrames(bot, job)
         return 'stronghold: stronghold blocks at ' + xyz(hit[0]).join(',')
       }
-      // one confirming throw before we cut into the ground: an eye that DIPS says we are within ~12 blocks
-      const th = await throwEye(bot, api)
+      // one confirming throw before we cut into the ground: an eye that DIPS says we are within ~12 blocks (none carried, or it already
+      // dipped here once = go straight to the stair)
+      const dipped = endS().dipped && Math.hypot(me().x - endS().dipped[0], me().z - endS().dipped[2]) < 30
+      const th = (A.count(bot, 'ender_eye') > 0 && !dipped) ? await throwEye(bot, api) : { ok: true, dy: -1, dir: [0, 0], from: xyz(me()), skipped: true }
+      if (th.ok && !th.skipped && th.dy < -0.02) endEdit(e => { e.dipped = th.from })
       if (th.ok) {
-        A.result(bot, { ev: 'eye_thrown', job: job.id, at: th.from, dir: th.dir.map(round1), dy: th.dy, phase: 'confirm' })
+        if (!th.skipped) A.result(bot, { ev: 'eye_thrown', job: job.id, at: th.from, dir: th.dir.map(round1), dy: th.dy, phase: 'confirm' })
         if (th.dy < -0.02) { /* it is under us */ } else {
           const step = Math.min(P.step || 40, 60)
           const to = { x: Math.round(me().x + th.dir[0] * step), y: null, z: Math.round(me().z + th.dir[1] * step) }
@@ -417,6 +428,9 @@ module.exports = ctx => {
       task(bot, 'stronghold: cutting the staircase')
       const r = await stairDown(bot, api, P, job)
       A.result(bot, { ev: r.ok ? 'sh_found' : 'sh_stairs', job: job.id, ok: !!r.ok, steps: r.steps, torches: r.torches || 0, at: r.at || xyz(me()), why: r.why || null })
+      if (!r.ok && !r.steps && /water|lava/.test(String(r.why || ''))) { // every bearing wet from here: step 8 off to dry ground (the fix is ~20-50 wide) and cut from there next slice
+        for (const [dx, dz] of [[8, 0], [0, 8], [-8, 0], [0, -8]]) { const q = { x: Math.floor(me().x) + dx, y: null, z: Math.floor(me().z) + dz }; if (await A.travel(bot, q, { range: 1, ms: 30000, stop: api.stop, quiet: true })) { const f = bot.blockAt(bot.entity.position.floored()); if (!(f && /water/.test(f.name))) break } }
+      }
       if (r.ok) { endEdit(e => { e.found = { at: r.at, by: bot.username, t: now() } }); await noteFrames(bot, job) }
       return 'stronghold: staircase ' + r.steps + ' steps' + (r.ok ? ' — stronghold reached' : '')
     }

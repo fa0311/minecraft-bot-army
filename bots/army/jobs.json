@@ -1357,7 +1357,7 @@
     98,
     -77
    ],
-   "through": 1790001492507,
+   "through": 1790003313144,
    "scoutRev": 6,
    "hub": {
     "room": [
@@ -1470,7 +1470,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789969045309,
-   "back": 1790001446042,
+   "back": 1790003259375,
    "lastDeath": 1789997242231,
    "lastDeathBy": "Kanade",
    "roads": {
@@ -1932,7 +1932,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1790000964298,
+   "gatesAt": 1790002763503,
    "pairRoad": {
     "from": [
      -43,
@@ -2430,23 +2430,22 @@
       28
      ]
     },
-    "t": 1790000876981
+    "t": 1790001656069
    },
    "absorb": {
-    "carrot": 704,
-    "wheat": 320,
+    "coal": 720,
+    "iron_ingot": 192,
+    "gray_wool": 288,
+    "flint": 888,
+    "diamond": 12,
+    "string": 320,
+    "leather": 192,
+    "carrot": 352,
     "pumpkin": 144,
     "melon": 96,
-    "string": 320,
-    "coal": 960,
-    "iron_ingot": 240,
-    "chicken": 224,
-    "flint": 1176,
-    "diamond": 24,
-    "leather": 192,
-    "gray_wool": 288
+    "beetroot": 240
    },
-   "absorbT": 1790001050435
+   "absorbT": 1790001742494
   },
   "enchantTable": [
    -344,
@@ -2455,162 +2454,6 @@
   ],
   "mine": {
    "veins": [
-    {
-     "key": "-15,-7,-89/tuff_cluster",
-     "at": [
-      -113,
-      -53,
-      -706
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Suzu",
-     "t": 1789999755776
-    },
-    {
-     "key": "-14,-7,-89/tuff_cluster",
-     "at": [
-      -112,
-      -54,
-      -708
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Suzu",
-     "t": 1789999759824
-    },
-    {
-     "key": "-64,-7,-89/tuff_cluster",
-     "at": [
-      -508,
-      -54,
-      -705
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Sayaka",
-     "t": 1789999907639
-    },
-    {
-     "key": "-64,-7,-88/tuff_cluster",
-     "at": [
-      -510,
-      -54,
-      -704
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Sayaka",
-     "t": 1789999910160
-    },
-    {
-     "key": "-10,-7,-92/tuff_cluster",
-     "at": [
-      -73,
-      -54,
-      -732
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Botan",
-     "t": 1790000032365
-    },
-    {
-     "key": "-9,-7,-92/tuff_cluster",
-     "at": [
-      -72,
-      -55,
-      -732
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Botan",
-     "t": 1790000034980
-    },
-    {
-     "key": "-10,-7,-88/tuff_cluster",
-     "at": [
-      -75,
-      -55,
-      -699
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Suzu",
-     "t": 1790000191488
-    },
-    {
-     "key": "-9,-7,-88/tuff_cluster",
-     "at": [
-      -72,
-      -53,
-      -700
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Suzu",
-     "t": 1790000194819
-    },
-    {
-     "key": "-60,-7,-65/tuff_cluster",
-     "at": [
-      -477,
-      -54,
-      -516
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Suzu",
-     "t": 1790000567662
-    },
-    {
-     "key": "-61,-7,-65/tuff_cluster",
-     "at": [
-      -481,
-      -53,
-      -515
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Suzu",
-     "t": 1790000572689
-    },
-    {
-     "key": "-59,-7,-67/tuff_cluster",
-     "at": [
-      -468,
-      -54,
-      -529
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Botan",
-     "t": 1790000658938
-    },
-    {
-     "key": "-72,-7,-65/tuff_cluster",
-     "at": [
-      -576,
-      -53,
-      -515
-     ],
-     "kind": "tuff_cluster",
-     "seen": 6,
-     "raw": 0,
-     "by": "Suzu",
-     "t": 1790000768409
-    },
     {
      "key": "-73,-7,-65/tuff_cluster",
      "at": [
@@ -2766,22 +2609,486 @@
      "raw": 0,
      "by": "Suzu",
      "t": 1790001396282
+    },
+    {
+     "key": "-28,-7,-82/tuff_cluster",
+     "at": [
+      -222,
+      -54,
+      -655
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Nozomi",
+     "t": 1790002138655
+    },
+    {
+     "key": "-21,-7,-82/tuff_cluster",
+     "at": [
+      -167,
+      -54,
+      -651
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1790002188969
+    },
+    {
+     "key": "-20,-7,-82/tuff_cluster",
+     "at": [
+      -159,
+      -54,
+      -651
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1790002197293
+    },
+    {
+     "key": "-19,-7,-82/tuff_cluster",
+     "at": [
+      -152,
+      -53,
+      -650
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1790002206158
+    },
+    {
+     "key": "-15,-7,-82/tuff_cluster",
+     "at": [
+      -113,
+      -54,
+      -650
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1790002286399
+    },
+    {
+     "key": "-14,-7,-82/tuff_cluster",
+     "at": [
+      -112,
+      -53,
+      -650
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1790002286969
+    },
+    {
+     "key": "-10,-7,-82/tuff_cluster",
+     "at": [
+      -74,
+      -52,
+      -651
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1790002346077
+    },
+    {
+     "key": "-9,-7,-82/tuff_cluster",
+     "at": [
+      -72,
+      -53,
+      -650
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Suzu",
+     "t": 1790002348436
+    },
+    {
+     "key": "-13,-7,-86/tuff_cluster",
+     "at": [
+      -102,
+      -52,
+      -684
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Botan",
+     "t": 1790002465481
+    },
+    {
+     "key": "-12,-7,-86/tuff_cluster",
+     "at": [
+      -95,
+      -53,
+      -685
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Botan",
+     "t": 1790002474418
+    },
+    {
+     "key": "-60,-7,-90/tuff_cluster",
+     "at": [
+      -475,
+      -54,
+      -714
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Nozomi",
+     "t": 1790003210406
+    },
+    {
+     "key": "-61,-7,-90/tuff_cluster",
+     "at": [
+      -482,
+      -55,
+      -715
+     ],
+     "kind": "tuff_cluster",
+     "seen": 6,
+     "raw": 0,
+     "by": "Nozomi",
+     "t": 1790003227401
     }
    ],
    "caves": [
     {
-     "key": "-27,-4,-45",
+     "key": "-25,-4,-39",
      "at": [
-      -417,
+      -395,
       -54,
-      -714
+      -609
      ],
-     "cells": 406,
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Suzu",
+     "t": 1790001562864
+    },
+    {
+     "key": "-23,-4,-39",
+     "at": [
+      -356,
+      -54,
+      -621
+     ],
+     "cells": 206,
      "klass": "big",
      "ores": 0,
      "iron": 0,
+     "by": "Suzu",
+     "t": 1790001612831
+    },
+    {
+     "key": "-30,-4,-40",
+     "at": [
+      -465,
+      -54,
+      -627
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 1,
+     "iron": 0,
+     "by": "Suzu",
+     "t": 1790001661487
+    },
+    {
+     "key": "-15,-4,-40",
+     "at": [
+      -230,
+      -54,
+      -633
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 1,
+     "iron": 1,
+     "by": "Suzu",
+     "t": 1790001731831
+    },
+    {
+     "key": "-36,-4,-38",
+     "at": [
+      -567,
+      -54,
+      -600
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 2,
+     "iron": 0,
+     "by": "Nozomi",
+     "t": 1790001797015
+    },
+    {
+     "key": "-34,-4,-40",
+     "at": [
+      -542,
+      -54,
+      -639
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Suzu",
+     "t": 1790001832260
+    },
+    {
+     "key": "-28,-4,-40",
+     "at": [
+      -435,
+      -54,
+      -636
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
      "by": "Botan",
-     "t": 1790000107025
+     "t": 1790001833223
+    },
+    {
+     "key": "-23,-4,-41",
+     "at": [
+      -361,
+      -54,
+      -642
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Nozomi",
+     "t": 1790001854479
+    },
+    {
+     "key": "-35,-4,-41",
+     "at": [
+      -554,
+      -54,
+      -648
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Suzu",
+     "t": 1790001914441
+    },
+    {
+     "key": "-17,-4,-42",
+     "at": [
+      -268,
+      -54,
+      -657
+     ],
+     "cells": 136,
+     "klass": "big",
+     "ores": 1,
+     "iron": 0,
+     "by": "Botan",
+     "t": 1790001943536
+    },
+    {
+     "key": "-14,-4,-42",
+     "at": [
+      -218,
+      -54,
+      -660
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Botan",
+     "t": 1790001975855
+    },
+    {
+     "key": "-14,-4,-41",
+     "at": [
+      -217,
+      -54,
+      -654
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Nozomi",
+     "t": 1790002145577
+    },
+    {
+     "key": "-22,-4,-43",
+     "at": [
+      -348,
+      -54,
+      -684
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 1,
+     "iron": 0,
+     "by": "Nozomi",
+     "t": 1790002189701
+    },
+    {
+     "key": "-26,-4,-43",
+     "at": [
+      -401,
+      -54,
+      -687
+     ],
+     "cells": 40,
+     "klass": "big",
+     "ores": 0,
+     "iron": 0,
+     "by": "Suzu",
+     "t": 1790002428007
+    },
+    {
+     "key": "-14,-4,-44",
+     "at": [
+      -215,
+      -54,
+      -693
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Nozomi",
+     "t": 1790002608511
+    },
+    {
+     "key": "-35,-4,-44",
+     "at": [
+      -558,
+      -54,
+      -693
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 2,
+     "iron": 0,
+     "by": "Botan",
+     "t": 1790002668853
+    },
+    {
+     "key": "-12,-4,-44",
+     "at": [
+      -189,
+      -54,
+      -696
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 2,
+     "iron": 1,
+     "by": "Nozomi",
+     "t": 1790002729056
+    },
+    {
+     "key": "-28,-4,-44",
+     "at": [
+      -445,
+      -54,
+      -699
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Botan",
+     "t": 1790002733412
+    },
+    {
+     "key": "-13,-4,-45",
+     "at": [
+      -195,
+      -54,
+      -708
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Nozomi",
+     "t": 1790002834503
+    },
+    {
+     "key": "-31,-4,-45",
+     "at": [
+      -486,
+      -54,
+      -708
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Nozomi",
+     "t": 1790002887342
+    },
+    {
+     "key": "-36,-4,-44",
+     "at": [
+      -562,
+      -54,
+      -690
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Suzu",
+     "t": 1790002921661
+    },
+    {
+     "key": "-24,-4,-45",
+     "at": [
+      -373,
+      -54,
+      -717
+     ],
+     "cells": 2000,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Nozomi",
+     "t": 1790002974893
+    },
+    {
+     "key": "-17,-4,-46",
+     "at": [
+      -257,
+      -54,
+      -726
+     ],
+     "cells": 181,
+     "klass": "cavern",
+     "ores": 0,
+     "iron": 0,
+     "by": "Suzu",
+     "t": 1790003106287
     },
     {
      "key": "-15,-4,-46",
@@ -2794,316 +3101,8 @@
      "klass": "big",
      "ores": 0,
      "iron": 0,
-     "by": "Sayaka",
-     "t": 1790000118082
-    },
-    {
-     "key": "-26,-4,-47",
-     "at": [
-      -409,
-      -54,
-      -738
-     ],
-     "cells": 1114,
-     "klass": "big",
-     "ores": 1,
-     "iron": 0,
-     "by": "Botan",
-     "t": 1790000170548
-    },
-    {
-     "key": "-21,-4,-32",
-     "at": [
-      -321,
-      -54,
-      -501
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 1,
-     "iron": 0,
-     "by": "Sayaka",
-     "t": 1790000184126
-    },
-    {
-     "key": "-24,-4,-32",
-     "at": [
-      -372,
-      -54,
-      -501
-     ],
-     "cells": 978,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Botan",
-     "t": 1790000244429
-    },
-    {
-     "key": "-25,-4,-32",
-     "at": [
-      -396,
-      -54,
-      -504
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Sayaka",
-     "t": 1790000244646
-    },
-    {
-     "key": "-20,-4,-32",
-     "at": [
-      -319,
-      -54,
-      -507
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 1,
-     "iron": 0,
      "by": "Suzu",
-     "t": 1790000291747
-    },
-    {
-     "key": "-9,-4,-32",
-     "at": [
-      -143,
-      -54,
-      -510
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Sayaka",
-     "t": 1790000292082
-    },
-    {
-     "key": "-28,-4,-33",
-     "at": [
-      -434,
-      -54,
-      -513
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Suzu",
-     "t": 1790000317976
-    },
-    {
-     "key": "-7,-4,-33",
-     "at": [
-      -111,
-      -54,
-      -516
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Botan",
-     "t": 1790000366053
-    },
-    {
-     "key": "-9,-4,-33",
-     "at": [
-      -142,
-      -54,
-      -513
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 1,
-     "iron": 0,
-     "by": "Sayaka",
-     "t": 1790000386240
-    },
-    {
-     "key": "-8,-4,-33",
-     "at": [
-      -127,
-      -54,
-      -519
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Botan",
-     "t": 1790000445742
-    },
-    {
-     "key": "-30,-4,-34",
-     "at": [
-      -473,
-      -54,
-      -531
-     ],
-     "cells": 1664,
-     "klass": "big",
-     "ores": 2,
-     "iron": 0,
-     "by": "Sayaka",
-     "t": 1790000636030
-    },
-    {
-     "key": "-30,-4,-33",
-     "at": [
-      -471,
-      -54,
-      -528
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 2,
-     "iron": 0,
-     "by": "Botan",
-     "t": 1790000788771
-    },
-    {
-     "key": "-19,-4,-34",
-     "at": [
-      -301,
-      -54,
-      -534
-     ],
-     "cells": 873,
-     "klass": "big",
-     "ores": 0,
-     "iron": 0,
-     "by": "Nozomi",
-     "t": 1790000814254
-    },
-    {
-     "key": "-16,-4,-35",
-     "at": [
-      -251,
-      -54,
-      -546
-     ],
-     "cells": 1121,
-     "klass": "big",
-     "ores": 0,
-     "iron": 0,
-     "by": "Nozomi",
-     "t": 1790000835766
-    },
-    {
-     "key": "-32,-4,-35",
-     "at": [
-      -502,
-      -54,
-      -546
-     ],
-     "cells": 784,
-     "klass": "big",
-     "ores": 0,
-     "iron": 0,
-     "by": "Nozomi",
-     "t": 1790000881173
-    },
-    {
-     "key": "-17,-4,-35",
-     "at": [
-      -259,
-      -54,
-      -552
-     ],
-     "cells": 1115,
-     "klass": "big",
-     "ores": 0,
-     "iron": 0,
-     "by": "Suzu",
-     "t": 1790001013953
-    },
-    {
-     "key": "-27,-4,-37",
-     "at": [
-      -419,
-      -54,
-      -579
-     ],
-     "cells": 308,
-     "klass": "big",
-     "ores": 0,
-     "iron": 0,
-     "by": "Nozomi",
-     "t": 1790001066469
-    },
-    {
-     "key": "-25,-4,-37",
-     "at": [
-      -397,
-      -54,
-      -588
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Nozomi",
-     "t": 1790001447573
-    },
-    {
-     "key": "-25,-4,-38",
-     "at": [
-      -398,
-      -54,
-      -594
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Nozomi",
-     "t": 1790001477655
-    },
-    {
-     "key": "-24,-4,-38",
-     "at": [
-      -369,
-      -54,
-      -597
-     ],
-     "cells": 351,
-     "klass": "big",
-     "ores": 0,
-     "iron": 0,
-     "by": "Suzu",
-     "t": 1790001491821
-    },
-    {
-     "key": "-29,-4,-37",
-     "at": [
-      -454,
-      -54,
-      -585
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 2,
-     "iron": 0,
-     "by": "Botan",
-     "t": 1790001520393
-    },
-    {
-     "key": "-28,-4,-38",
-     "at": [
-      -446,
-      -54,
-      -603
-     ],
-     "cells": 2000,
-     "klass": "cavern",
-     "ores": 0,
-     "iron": 0,
-     "by": "Suzu",
-     "t": 1790001527020
+     "t": 1790003335533
     }
    ]
   },
@@ -3146,7 +3145,7 @@
     "spur": false,
     "cells": 997,
     "built": "14/24",
-    "checked": 1790001411501
+    "checked": 1790003266407
    }
   ],
   "dash": true,
@@ -3155,10 +3154,10 @@
     "box": [
      -560,
      -352,
-     -515,
-     -290
+     -495,
+     -250
     ],
-    "why": "lake lobe W of the base: cliffs let a bot in, never out (Hazuki, Fuuka, Riko x2, Chika stranded/frozen 09-21) - top model 13:3xZ | 14:1xZ: Aika + Yuzu (hp1 f0) caught at -526,59,-300 = the E dead end of an UNDERGROUND water passage (y57-59, roof y63) after the +60 weight; raised to 400",
+    "why": "lake lobe W of the base: cliffs let a bot in, never out (Hazuki, Fuuka, Riko x2, Chika stranded/frozen 09-21) - top model 13:3xZ | 14:1xZ: Aika + Yuzu (hp1 f0) caught at -526,59,-300 = the E dead end of an UNDERGROUND water passage (y57-59, roof y63) after the +60 weight; raised to 400 | 14:5xZ: widened E+S over the cherry-grove hill -520..-505,-280..-260 - an island with NO route to the base; escapes from it fall 19 blocks into the water cave (Iroha 13:42 -520,78,-278 -> -526,59,-301; 9 bots there)",
     "w": 400
    }
   ],
@@ -3325,7 +3324,12 @@
     "t": 1789999912488,
     "legs": 2,
     "den": 0.2
-   }
+   },
+   "dipped": [
+    96,
+    61,
+    1514
+   ]
   }
  },
  "enlisted": [
@@ -3888,7 +3892,7 @@
    },
    "rev": 28,
    "bots": 0,
-   "restUntil": 1789984805856
+   "restUntil": 1790002513002
   },
   {
    "id": "sleeper",
@@ -3975,7 +3979,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1790001470941
+   "restUntil": 1790003438261
   },
   {
    "id": "fill_ring_field1",
@@ -6633,7 +6637,7 @@
      ]
     ]
    },
-   "restUntil": 1790001652575,
+   "restUntil": 1790003087984,
    "rev": 3
   },
   {
@@ -7456,7 +7460,7 @@
        "shoulder": 2,
        "toY": 94
       },
-      "idle": 1,
+      "idle": 0,
       "blocked": null
      },
      {
@@ -7960,7 +7964,7 @@
     "target": 16,
     "bare": true
    },
-   "restUntil": 1790001676733,
+   "restUntil": 1790003732857,
    "rev": 1
   },
   {
@@ -8125,7 +8129,7 @@
     "shear": false,
     "cull": false
    },
-   "restUntil": 1790001721026
+   "restUntil": 1790003396785
   },
   {
    "id": "end_stronghold",
@@ -8154,7 +8158,7 @@
     "toY": 10,
     "bare": true
    },
-   "rev": 3
+   "rev": 5
   },
   {
    "id": "end_portal",
@@ -8419,7 +8423,7 @@
      "d": 35
     }
    },
-   "rev": 12,
+   "rev": 13,
    "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -345,67,-515",
    "cap": {
     "id": "cap_base_core_pad",
@@ -8428,11 +8432,11 @@
    },
    "restUntil": 1789963308637,
    "stuckBy": {
-    "key": "rev12",
+    "key": "rev13",
     "bots": [
-     "Sakura",
-     "Aoi",
-     "Mio"
+     "Mashiro",
+     "Hinata",
+     "Fuuka"
     ]
    }
   },
@@ -9645,7 +9649,7 @@
    "front": "base",
    "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 2,
    "site": [
     -288,
     69,
@@ -9673,7 +9677,7 @@
     "key": "rev1",
     "cells": {}
    },
-   "rev": 4,
+   "rev": 5,
    "after": "void_fix_base_field_2",
    "voidFix": {
     "n": 1,
@@ -9690,7 +9694,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 1,
+   "bots": 2,
    "site": [
     -288,
     68,
@@ -9729,8 +9733,8 @@
     }
    },
    "way": {
-    "by": "Himari",
-    "t": 1789999473055,
+    "by": "Riko",
+    "t": 1790002967589,
     "at": [
      -302,
      61,
@@ -9738,7 +9742,7 @@
     ],
     "drop": 8
    },
-   "rev": 3
+   "rev": 4
   },
   {
    "id": "cap_base_field_2_pad",
@@ -9957,7 +9961,7 @@
    "front": "base",
    "status": "paused",
    "when": "any",
-   "bots": 13,
+   "bots": 1,
    "site": [
     -390,
     69,
@@ -9979,7 +9983,7 @@
      "d": 31
     }
    },
-   "rev": 7,
+   "rev": 9,
    "voidFix": {
     "n": 2,
     "id": "void_fix_base_field_4_pad",
@@ -9991,7 +9995,7 @@
     "cols": 961,
     "t": 1789935260724
    },
-   "note": "auto-paused: build complete - BUT 26 columns are a deck over air (void_under_pad): -403,67,-504 | -397,67,-505 | -395,67,-510 | -395,65,-492 | -394,67,-492 | -392,65,-510"
+   "note": "auto-paused: build complete - BUT 27 columns are a deck over air (void_under_pad): -403,67,-504 | -399,65,-509 | -397,67,-505 | -395,67,-510 | -395,65,-492 | -394,67,-492"
   },
   {
    "id": "void_fix_base_field_4_pad",
@@ -10184,7 +10188,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 2,
+   "bots": 1,
    "site": [
     -382,
     68,
@@ -10222,7 +10226,7 @@
      ]
     }
    },
-   "rev": 1
+   "rev": 2
   },
   {
    "id": "cap_base_pen_1_pad",

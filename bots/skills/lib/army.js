@@ -1592,7 +1592,10 @@ async function travel (bot, target, opts = {}) {
   // overworld coordinates are meaningless in the Nether (a bot "walked" towards the depot under the Nether roof, 12:1xZ).
   if (opts.dim && dimOf(bot) !== opts.dim) { offWorld(bot, 'travel:' + opts.dim); return false }
   const range = opts.range == null ? 2 : opts.range
-  const end = Date.now() + (opts.ms || 240000)
+  // THE DEFAULT TIME SCALES WITH THE WALK (09-21 14:5xZ: hourly `travel_fail timeout/stop` storms of 40-56, d 200-550 = road crews walking the 400-block
+  // commute on a flat 240 s): 1 s per block, never under 240 s. An explicit opts.ms stays the caller's word.
+  const dist0 = (() => { try { const p = bot.entity.position; return Math.hypot((target.x == null ? p.x : target.x) - p.x, (target.z == null ? p.z : target.z) - p.z) } catch (e_) { return 0 } })()
+  const end = Date.now() + (opts.ms || Math.max(240000, Math.round(dist0) * 1000))
   const stop = () => U.cancelled(bot) || (opts.stop && opts.stop()) || Date.now() > end
   for (const w of (opts.via || [])) {
     if (stop()) return false
