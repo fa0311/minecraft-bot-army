@@ -1280,7 +1280,7 @@
     98,
     -77
    ],
-   "through": 1789965104340,
+   "through": 1789966843561,
    "scoutRev": 4,
    "hub": {
     "room": [
@@ -1392,8 +1392,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789965106430,
-   "back": 1789965119116,
+   "landingAt": 1789966843701,
+   "back": 1789966856287,
    "lastDeath": 1789964551171,
    "lastDeathBy": "Sakura",
    "roads": {
@@ -1614,21 +1614,18 @@
     "t": 1789924913245
    },
    "absorb": {
-    "iron_ingot": 240,
     "rabbit": 64,
     "porkchop": 112,
-    "gray_wool": 288,
-    "coal": 960,
+    "coal": 240,
+    "iron_ingot": 48,
     "leather": 192,
-    "flint": 600,
+    "flint": 312,
     "carrot": 352,
-    "wheat": 320,
-    "pumpkin": 144,
-    "melon": 96,
-    "diamond": 12,
-    "beetroot": 240
+    "wheat": 280,
+    "pumpkin": 72,
+    "melon": 48
    },
-   "absorbT": 1789964749683
+   "absorbT": 1789966443806
   },
   "enchantTable": [
    -344,
@@ -1819,7 +1816,7 @@
     "maxDist": 220,
     "first": "sheep"
    },
-   "rev": 30,
+   "rev": 31,
    "bots": 4,
    "note": "owner 09-20: sheep are culled actively (wool 10 328 / 150, TPS). ONLY sheep: the hunt handler has NO pen exclusion - with kinds sheep/pig/cow/chicken and leave 0 the hunters emptied pen 1 (69 sheep) within the hour; cows, chickens and pigs are left alone until the handler spares penned animals (BUGS)"
   },
@@ -1865,7 +1862,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 4,
+   "bots": 2,
    "site": [
     -367,
     69,
@@ -1901,7 +1898,7 @@
      ]
     ]
    },
-   "rev": 79,
+   "rev": 81,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789965580527
   },
@@ -2048,7 +2045,7 @@
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 8,
    "rev": 68,
-   "restUntil": 1789964804322
+   "restUntil": 1789966965975
   },
   {
    "id": "base_dorm",
@@ -2234,9 +2231,9 @@
     "radius": 250,
     "bankAt": 32
    },
-   "rev": 26,
+   "rev": 27,
    "bots": 1,
-   "restUntil": 1789965761943
+   "restUntil": 1789967753067
   },
   {
    "id": "sleeper",
@@ -2323,7 +2320,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789965069132
+   "restUntil": 1789967044529
   },
   {
    "id": "fill_ring_field1",
@@ -3377,7 +3374,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789966158372
+   "restUntil": 1789967973771
   },
   {
    "id": "nether_landing_2",
@@ -3993,12 +3990,11 @@
    },
    "rev": 22,
    "note": "needs: dirt (17 cells wait; every cell whose material exists is done or in work)",
-   "restUntil": 1789964587034,
+   "restUntil": 1789966768758,
    "stuckBy": {
-    "key": "rev18",
+    "key": "rev22",
     "bots": [
-     "Kotori",
-     "Mashiro",
+     "Nanami",
      "Misaki"
     ]
    }
@@ -4848,10 +4844,10 @@
       "keep": {}
      }
     ],
-    "rev": 1
+    "rev": 2
    },
-   "rev": 106,
-   "restUntil": 1789965520385
+   "rev": 100,
+   "restUntil": 0
   },
   {
    "id": "mine_sweep",
@@ -4888,8 +4884,8 @@
     "radius": 150,
     "bankAt": 48
    },
-   "restUntil": 1789966233664,
-   "rev": 17
+   "restUntil": 1789968420323,
+   "rev": 18
   },
   {
    "id": "craft_gold_boots",
@@ -5067,11 +5063,16 @@
    "priority": 89,
    "status": "active",
    "when": "any",
-   "bots": 3,
+   "bots": 8,
    "names": [
-    "Wakana",
+    "Juri",
+    "Sayaka",
+    "Kanade",
     "Rena",
-    "Riko"
+    "Aika",
+    "Wakana",
+    "Karin",
+    "Ume"
    ],
    "site": [
     -345,
@@ -5111,8 +5112,8 @@
      }
     ]
    },
-   "rev": 2,
-   "restUntil": 1789966230638
+   "rev": 4,
+   "restUntil": 1789968525755
   }
  ]
 }
