@@ -1280,7 +1280,7 @@
     98,
     -80
    ],
-   "through": 1789959683234,
+   "through": 1789961470121,
    "scoutRev": 4,
    "hub": {
     "room": [
@@ -1392,8 +1392,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789959683376,
-   "back": 1789959695699,
+   "landingAt": 1789961470264,
+   "back": 1789961482602,
    "lastDeath": 1789924669079,
    "lastDeathBy": "Fuuka",
    "roads": {
@@ -1615,20 +1615,10 @@
     "t": 1789924913245
    },
    "absorb": {
-    "coal": 720,
-    "iron_ingot": 240,
-    "rabbit": 64,
-    "porkchop": 112,
-    "flint": 600,
-    "diamond": 12,
-    "carrot": 704,
-    "wheat": 440,
-    "pumpkin": 216,
-    "melon": 144,
-    "leather": 192,
-    "beetroot": 240
+    "iron_ingot": 96,
+    "coal": 240
    },
-   "absorbT": 1789958368769
+   "absorbT": 1789961274637
   },
   "enchantTable": [
    -344,
@@ -1865,7 +1855,7 @@
    "front": "works",
    "status": "active",
    "when": "any",
-   "bots": 16,
+   "bots": 4,
    "site": [
     -367,
     69,
@@ -1901,7 +1891,7 @@
      ]
     ]
    },
-   "rev": 78,
+   "rev": 79,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
    "restUntil": 1789961331481
   },
@@ -2048,7 +2038,7 @@
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 8,
    "rev": 67,
-   "restUntil": 1789960060377
+   "restUntil": 1789962428631
   },
   {
    "id": "base_dorm",
@@ -2236,7 +2226,7 @@
    },
    "rev": 25,
    "bots": 1,
-   "restUntil": 1789959356996
+   "restUntil": 1789961671938
   },
   {
    "id": "sleeper",
@@ -2323,7 +2313,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789959735778
+   "restUntil": 1789961532765
   },
   {
    "id": "fill_ring_field1",
@@ -2579,7 +2569,7 @@
    "type": "cane",
    "priority": 84,
    "front": "cane",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "site": [
     -272,
@@ -2644,7 +2634,7 @@
       "facing": "north"
      },
      "job": "obsidian",
-     "want": 40,
+     "want": 80,
      "waterFrom": [
       -441,
       62,
@@ -2652,8 +2642,8 @@
      ]
     }
    },
-   "rev": 8,
-   "note": "03:10Z engineer: 40 obsidian banked (want reached) - paused. Re-activate with a higher params.args.want when more is needed; open spot on record: -54/29:-1 (37 cast obsidian left)",
+   "rev": 9,
+   "note": "op_nether 03:25Z: depot obsidian 6, nether_pair needs 10+ (declined x6) - want raised 40->80 (37 cast obsidian left at -54/29:-1)",
    "restUntil": 1789920160291,
    "names": []
   },
@@ -3377,7 +3367,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789960605273
+   "restUntil": 1789962438671
   },
   {
    "id": "nether_landing_2",
@@ -4575,7 +4565,7 @@
    "id": "cavity_base",
    "type": "cavity",
    "priority": 73,
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "site": [
@@ -4888,7 +4878,7 @@
     "radius": 150,
     "bankAt": 48
    },
-   "restUntil": 1789959903617,
+   "restUntil": 1789961987584,
    "rev": 16
   },
   {
