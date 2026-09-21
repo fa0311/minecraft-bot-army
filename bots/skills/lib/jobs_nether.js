@@ -1566,8 +1566,10 @@ module.exports = ctx => {
     if (!walkable(bot, p) || !knownRing(bot, to, 1)) return false
     if (dy > 0 && !bodyClear(bot.blockAt(here.offset(0, 2, 0)))) return false // no room to jump
     if (dy < 0 && !bodyClear(bot.blockAt(to.offset(0, 2, 0)))) return false
-    const rim = rimAt(bot, to) || rimAt(bot, here)
-    if (rim && dy < 0) return false
+    // a step DOWN cannot be taken crouched (the crouch holds a body at the lip), so it is taken upright - and only onto a cell whose
+    // own surroundings are safe; where we come FROM does not matter when we are leaving it
+    if (dy < 0 && rimAt(bot, to)) return false
+    const rim = dy < 0 ? false : (rimAt(bot, to) || rimAt(bot, here))
     const crouch = () => { try { bot.setControlState('sneak', rim || (bot.__netherHold > 0)) } catch (e_) { swallow('jobs_nether:routeCrouch', e_) } }
     try {
       bot.pathfinder.setGoal(null); bot.clearControlStates(); crouch()
@@ -1590,6 +1592,47 @@ module.exports = ctx => {
     await sleep(100)
     return bot.entity.position.floored().equals(to)
   }
+  // can an eye see a face that closes lava cell L, once cell X (solid now, about to be dug) is open? Traced with X and L as air.
+  function plugSight (bot, eyeP, L, X) {
+    for (const d of [[1, 0, 0], [-1, 0, 0], [0, 1, 0], [0, -1, 0], [0, 0, 1], [0, 0, -1]]) {
+      const nb = L.offset(d[0], d[1], d[2]); if (nb.equals(X)) continue
+      const b = bot.blockAt(nb); if (!b || b.boundingBox !== 'block') continue
+      const n = new Vec3(-d[0], -d[1], -d[2]) // the face of nb that touches L
+      for (const [u, w] of [[0, 0], [0.3, 0.3], [-0.3, 0.3], [0.3, -0.3], [-0.3, -0.3]]) {
+        const off = n.x ? new Vec3(0, u, w) : n.y ? new Vec3(u, 0, w) : new Vec3(u, w, 0)
+        const pt = nb.offset(0.5 + n.x * 0.5 + off.x, 0.5 + n.y * 0.5 + off.y, 0.5 + n.z * 0.5 + off.z)
+        if ((eyeP.x - pt.x) * n.x + (eyeP.y - pt.y) * n.y + (eyeP.z - pt.z) * n.z < 0.02) break
+        const dist = eyeP.distanceTo(pt); if (dist > 4.3) continue
+        let hit = null
+        try { hit = bot.world.raycast(eyeP, pt.minus(eyeP).normalize(), dist + 0.3, blk => !blk.position.equals(X) && !blk.position.equals(L) && blk.boundingBox === 'block') } catch (e_) { swallow('jobs_nether:plugSight', e_) }
+        if (hit && hit.position.equals(nb)) return true
+      }
+    }
+    return false
+  }
+  // the legs of the route this job walks: its own (work:'route') or its route job's (work:'blaze', params.routeJob)
+  function routeLegs (P) {
+    if (Array.isArray(P.legs) && P.legs.length) return P.legs
+    if (String(P.work) !== 'blaze' && !P.routeJob) return null
+    const rj = ((A.readJSON(A.F.board, {}) || {}).jobs || []).find(j => j.id === (P.routeJob || 'nether_route'))
+    return (rj && rj.params && Array.isArray(rj.params.legs) && rj.params.legs.length) ? rj.params.legs : null
+  }
+  // back along the route to its start, from wherever on it we stand (nothing done if we are not on it)
+  async function routeHome (bot, api, legs) {
+    const r = bpCells('nether_route', [0, 0, 0], { legs }); const W = routeWalkOf(r.meta, r.cells)
+    const me = bot.entity.position; let best = 2.5; let i = -1
+    for (let k = 0; k < W.length; k++) { const d = Math.hypot(W[k].p[0] + 0.5 - me.x, W[k].p[1] - me.y, W[k].p[2] + 0.5 - me.z); if (d < best) { best = d; i = k } }
+    const from = xyz(me); let walked = 0
+    if (i < 0) return { ok: false, from, walked }
+    if (!bot.entity.position.floored().equals(v(W[i].p)) && !(await routeStep(bot, api, W[i].p)) && !(await nTravel(bot, v(W[i].p), { range: 0, ms: 10000, stop: api.stop }))) return { ok: false, from, walked }
+    for (let k = i - 1; k >= 0 && !api.stop(); k--) {
+      task(bot, 'nether route: walking home along the route (' + W[k].seq + ')')
+      if (await routeStep(bot, api, W[k].p)) { walked++; continue }
+      if (!await nTravel(bot, v(W[k].p), { range: 0, ms: 15000, stop: api.stop })) return { ok: false, from, walked }
+      walked++
+    }
+    return { ok: true, from, walked }
+  }
   const routeItem = bot => ['cobblestone', 'cobbled_deepslate', 'blackstone', 'andesite', 'diorite', 'granite', 'tuff', 'stone', 'deepslate', 'netherrack', 'dirt'].find(k => A.count(bot, k) >= 1) || null
   async function routeTunnel (bot, job, api, P, meta, allR, head, body, until) {
     const t0 = Date.now()
@@ -1598,13 +1641,22 @@ module.exports = ctx => {
     const cells = allR.filter(c => !gate.has(K3(c.x, c.y, c.z)))
     const bySeq = new Map(); for (const c of cells) { if (!bySeq.has(c.seq)) bySeq.set(c.seq, []); bySeq.get(c.seq).push(c) }
     const W = routeWalkOf(meta, allR)
+    const interior = new Set(allR.filter(c => c.block !== 'stone').map(c => K3(c.x, c.y, c.z)))
     const feetY = s => meta.path[Math.max(0, Math.min(meta.length - 1, s))][1]
     let placed = 0; let dug = 0; let steps = 0; let back = 0; let waited = 0; const why = {}; const fails = {}
     let i = -1; let stuck = null
     // ON TO THE WALK at its start (the gate puts us 5 cells from it; the finished way is then walked cell by cell, read-only, and
     // whatever is still open behind the head is worked on the way - that is how the walls and roof get finished)
-    const k0 = 0
+    // ...unless we are already ON it (a slice that ends in the tunnel - a board edit, a restart - starts the next one where we stand)
+    let k0 = 0
+    {
+      const me = bot.entity.position; let best = 2.5; let kk = -1
+      for (let k = 1; k < W.length; k++) { const d = Math.hypot(W[k].p[0] + 0.5 - me.x, W[k].p[1] - me.y, W[k].p[2] + 0.5 - me.z); if (d < best && walkable(bot, W[k].p)) { best = d; kk = k } }
+      if (kk > 0 && (bot.entity.position.floored().equals(v(W[kk].p)) || (await routeStep(bot, api, W[kk].p)) || (await nTravel(bot, v(W[kk].p), { range: 0, ms: 10000, stop: api.stop }) && bot.entity.position.floored().equals(v(W[kk].p))))) k0 = kk
+    }
+    if (k0 > 0) i = k0
     task(bot, 'nether route: onto the way (' + W[k0].p.join(',') + ')')
+    if (k0 > 0) { /* standing on the walk already */ } else
     if (walkable(bot, W[k0].p)) { if (await nTravel(bot, v(W[k0].p), { range: 0, ms: 30000, stop: api.stop }) && bot.entity.position.floored().equals(v(W[k0].p))) i = k0 }
     else await nTravel(bot, v(W[k0].p), { range: 2, ms: 30000, stop: api.stop })
     const lastI = () => i
@@ -1622,6 +1674,7 @@ module.exports = ctx => {
     }
     while (Date.now() < until - reserve() && !api.stop()) {
       if (bot.health < 8) { stuck = 'hurt (' + Math.round(bot.health) + ' hp)'; break }
+      if (!bot.inventory.items().some(it => /_pickaxe$/.test(it.name))) { stuck = 'no pickaxe left (netherrack by hand is 13x slower): home for spares'; break }
       // LAVA IN OUR OWN CELLS: one step back down the finished way, before anything else
       const burn = () => [0, 1].some(dy => { const b = bot.blockAt(bot.entity.position.floored().offset(0, dy, 0)); return !!b && /^(lava|fire)$/.test(b.name) })
       if (burn() && i > 0) { A.result(bot, { ev: 'route_burn', job: job.id, at: xyz(bot.entity.position), hp: Math.round(bot.health) }); if (await routeStep(bot, api, W[i - 1].p)) i--; else { stuck = 'lava at my feet and no step back'; break } continue }
@@ -1652,13 +1705,22 @@ module.exports = ctx => {
             lv = hot()
             if (lv.length) {
               if (bot.health < 16 || !routeItem(bot) || P.lavaDig === false) { why[k] = 'lava behind it (' + lv.length + '), hp ' + Math.round(bot.health); fails[k] = 9; continue }
+              // WHERE TO STAND FOR THE PLUG: the ray to a face beside the lava must pass through the hole we are about to make, so it is
+              // traced NOW with that cell counted as open (09-21 09:5xZ: from the walk cell behind it the ray clipped the wall corner,
+              // twice, `plugged 0`). Our own cell first, then one step into the tunnel beside it.
+              const here0 = bot.entity.position.floored()
+              const stands = [here0].concat([[1, 0, 0], [-1, 0, 0], [0, 0, 1], [0, 0, -1]].map(d => here0.offset(d[0], 0, d[2])).filter(sp => !sp.equals(q) && interior.has(K3(sp.x, sp.y, sp.z)) && walkable(bot, [sp.x, sp.y, sp.z]) && !lv.some(L => L.distanceTo(sp) < 1.5)))
+              const stand = stands.find(sp => lv.every(L => plugSight(bot, sp.equals(here0) ? eye() : sp.offset(0.5, 1.62, 0.5), L, q)))
+              if (!stand) { why[k] = 'lava behind it and no stand of ours sees a face to close it with'; fails[k] = 9; A.result(bot, { ev: 'route_lava', job: job.id, cell: [c.x, c.y, c.z], lava: lv.map(xyz), plugged: 0, why: 'no stand sees it', hp: Math.round(bot.health) }); continue }
+              if (!stand.equals(here0) && !await routeStep(bot, api, [stand.x, stand.y, stand.z])) { why[k] = 'could not step to the plug stand'; fails[k] = (fails[k] || 0) + 1; continue }
               const r0 = await BL().digBlock(bot, q, { collect: false, requireHarvest: false, noMove: true, plug: false }).catch(e => ({ ok: false, reason: String(e && e.message) }))
               if (!(r0 && r0.ok)) { why[k] = 'dig: ' + String((r0 || {}).reason).slice(0, 40); fails[k] = (fails[k] || 0) + 1; continue }
               dug++; prog++
               for (const n of lv) for (let t = 0; t < 3; t++) { const nb = bot.blockAt(n); const it = routeItem(bot); if (!nb || nb.name !== 'lava' || !it) break; await placeStill(bot, api, n, it) }
               const still = lv.filter(n => { const nb = bot.blockAt(n); return !!nb && nb.name === 'lava' })
               if (still.length) { const it = routeItem(bot); if (it) await placeStill(bot, api, q, it); fails[k] = 9; why[k] = 'lava behind it would not close' }
-              A.result(bot, { ev: 'route_lava', job: job.id, cell: [c.x, c.y, c.z], lava: lv.map(xyz), plugged: lv.length - still.length, still: still.map(xyz), hp: Math.round(bot.health) })
+              A.result(bot, { ev: 'route_lava', job: job.id, cell: [c.x, c.y, c.z], lava: lv.map(xyz), plugged: lv.length - still.length, still: still.map(xyz), stand: xyz(stand), moved: !stand.equals(here0), hp: Math.round(bot.health) })
+              if (!stand.equals(here0)) { await sleep(1500); await routeStep(bot, api, [here0.x, here0.y, here0.z]) } // back onto the walk once the cut-off flow has drained
               continue
             }
           }
@@ -1710,11 +1772,13 @@ module.exports = ctx => {
     try { bot.setControlState('sneak', bot.__netherHold > 0) } catch (e_) { swallow('jobs_nether:routeEnd', e_) }
     // THE HEAD = HOW FAR THE WAY IS WALKABLE, as the world shows it (walls and roofs do not hold it; they are worked 6 seq behind
     // whoever passes). Read from the old head forward over the cells that are loaded.
-    let head2 = head
-    while (head2 < meta.length) {
-      const f = meta.path[head2]
-      if (!loadedAt(bot, { x: f[0], y: f[1] - 1, z: f[2] }) || !walkable(bot, f)) break
-      head2++
+    // Read over the WALK, corner cells included (09-21 09:4xZ: the head read 16 while the corner cell between seq 12 and 13 had no
+    // floor - the path's own cells stood, the way between them did not).
+    let head2 = head; let kW = W.findIndex(w => w.seq >= Math.max(0, head - 1)); if (kW < 0) kW = W.length
+    for (; kW < W.length; kW++) {
+      const f = W[kW].p
+      if (!loadedAt(bot, { x: f[0], y: f[1] - 1, z: f[2] }) || !walkable(bot, f)) { head2 = W[kW].seq; break }
+      head2 = W[kW].seq + 1
     }
     const done = head2 >= meta.length
     netherEdit({ route: { legsKey: JSON.stringify(P.legs), head: head2, length: meta.length, end: meta.end, headAt: meta.path[Math.min(head2, meta.length - 1)], done, reached, at: Date.now(), by: bot.username } })
@@ -1745,7 +1809,17 @@ module.exports = ctx => {
       task(bot, 'nether steps: ' + (n + 1) + '/' + plan.length + ' ' + s2.do)
       try {
         if (s2.do === 'go') { r.ok = !!await nTravel(bot, v(s2.at), { range: s2.range || 0, ms: 60000, stop: api.stop }) && bot.entity.position.distanceTo(v(s2.at).offset(0.5, 0, 0.5)) <= (s2.range || 0) + 1.2 }
-        else if (s2.do === 'walk') { let k = 0; for (const c of (s2.cells || [])) { const from = xyz(bot.entity.position); if (!await routeStep(bot, api, c)) break; trail.push(from); k++ } r.walked = k; r.ok = k === (s2.cells || []).length }
+        else if (s2.do === 'route') {
+          // along the route job's walk (params.routeJob, default nether_route) to seq N, one hand-driven cell at a time
+          const legs = routeLegs(Object.assign({ routeJob: 'nether_route' }, P)); if (!legs) throw new Error('no route legs on the board')
+          const rr = bpCells('nether_route', [0, 0, 0], { legs }); const W = routeWalkOf(rr.meta, rr.cells)
+          const me = bot.entity.position; let k0 = -1; let best = 2.5
+          for (let k = 0; k < W.length; k++) { const d = Math.hypot(W[k].p[0] + 0.5 - me.x, W[k].p[1] - me.y, W[k].p[2] + 0.5 - me.z); if (d < best) { best = d; k0 = k } }
+          if (k0 < 0) { if (await nTravel(bot, v(W[0].p), { range: 0, ms: 30000, stop: api.stop })) k0 = 0 }
+          const to = W.findIndex(w => w.seq >= (s2.seq || 0)); let k = k0
+          if (k0 >= 0 && to >= 0) for (; k < to && !api.stop(); k++) { const from = xyz(bot.entity.position); if (!await routeStep(bot, api, W[k + 1].p)) break; trail.push(from) }
+          r.ok = k0 >= 0 && k === to; r.seq = k >= 0 && W[k] ? W[k].seq : null
+        } else if (s2.do === 'walk') { let k = 0; for (const c of (s2.cells || [])) { const from = xyz(bot.entity.position); if (!await routeStep(bot, api, c)) break; trail.push(from); k++ } r.walked = k; r.ok = k === (s2.cells || []).length }
         else if (s2.do === 'place') {
           let k = 0
           for (const c of (s2.cells || [])) {
@@ -1789,7 +1863,8 @@ module.exports = ctx => {
   const _wpM = {}
   async function doWork (bot, job, api, st, P, body, landed) {
     if (!netherHere(bot)) return { work: String(P.work || ''), why: 'not in the Nether - no far-side work runs from the overworld' }
-    const until = Date.now() + Math.min(Math.max(1, P.minutes || 6), 10) * 60000
+    // a ROUTE pass may run to 18 min: the walk along the finished way grows with the head (`reserve` keeps the walk back inside it); the job's `shiftMin` must cover it
+    const until = Date.now() + Math.min(Math.max(1, P.minutes || 6), String(P.work) === 'route' ? 18 : 10) * 60000
     const t0 = Date.now()
     const N = netherOf()
     const y0 = body.length ? Math.min(...body.map(p => p.y)) : Math.floor(bot.entity.position.y)
@@ -2117,6 +2192,17 @@ module.exports = ctx => {
     await sleep(1500)
     let far = bot.findBlock({ matching: b => !!b && b.name === 'nether_portal', maxDistance: 32 })
     const body = far ? portalBody(bot, far.position, 10) : []
+    // A SLICE THAT BEGINS INSIDE OUR OWN TUNNEL (a board edit or a restart ended the last one there, 75+ blocks from the gate): the
+    // way home is the route itself, walked back cell by cell - then the gate is in sight again and the trip goes on as usual.
+    if (!far) {
+      const legs = routeLegs(P)
+      if (legs) {
+        const hb = await routeHome(bot, api, legs)
+        A.result(bot, { ev: 'route_home', job: job.id, from: hb.from, to: xyz(bot.entity.position), walked: hb.walked, ok: hb.ok })
+        far = bot.findBlock({ matching: b => !!b && b.name === 'nether_portal', maxDistance: 32 })
+        if (far) body.push(...portalBody(bot, far.position, 10))
+      }
+    }
     // OUT OF THE FRAME BEFORE ANYTHING ELSE (owner 15:3xZ): no look, no place, no dig, no window while feet or head are a portal
     // cell - a bot cannot place from there and it is what every rescue was about. Then spread off the arrival cell for the next one.
     await clearOfGate(bot, api, body, 2)
@@ -2126,7 +2212,9 @@ module.exports = ctx => {
     if (!st.through) {
       st.through = Date.now()
       A.result(bot, { ev: 'portal_through', job: job.id, from: st.fromDim || 'overworld', to: dimOf(bot), pos: xyz(me), portal: far ? xyz(far.position) : null, cells: body.length, offCellS, offCell: !inGateNow(bot), hp: bot.health })
-      netherEdit({ portal: far ? xyz(far.position) : xyz(me), through: Date.now(), scoutRev: job.rev || 0, by: bot.username })
+      // the registered far gate is a GATE we saw, never where we happen to stand (09-21 10:0xZ: a slice that began 75 blocks down the
+      // route wrote the bot's own cell here, and every `comeHome` without a gate in view would have walked to it)
+      netherEdit(Object.assign(far ? { portal: xyz(far.position) } : {}, { through: Date.now(), scoutRev: job.rev || 0, by: bot.username }))
     }
     // STILL ON A CELL = THE TRIP IS OVER BEFORE IT STARTS: the cooldown will send this bot home under its own feet, and anything
     // it "measures" or "builds" from here belongs to the wrong world. Say so and let the gate do it, rather than work on a lie.
@@ -2425,6 +2513,9 @@ module.exports = ctx => {
         await A.obtain(bot, k, Math.min(A.count(bot, k) + (want - real()), 256), { stop: api.stop }).catch(e_ => swallow('jobs_nether:obtain', e_))
       }
       if (A.count(bot, 'torch') < 16) await A.obtain(bot, 'torch', 32, { stop: api.stop }).catch(e_ => swallow('jobs_nether:torch', e_))
+      // A ROUTE PASS DIGS 300-500 NETHERRACK and a stone pickaxe lasts 131 (09-21 10:1xZ: both route bots worked the face BARE-HANDED
+      // after their only pick broke - 2 s a block instead of 0.15, the head crawled at 3 seq/min). Spares ride along; the depot holds hundreds.
+      if (/^(route|steps)$/.test(String(P.work))) { const want = P.picks || 4; const have = bot.inventory.items().filter(i => /_pickaxe$/.test(i.name)).length; if (have < want) await A.obtain(bot, 'stone_pickaxe', A.count(bot, 'stone_pickaxe') + (want - have), { stop: api.stop }).catch(e_ => swallow('jobs_nether:picks', e_)) }
       // the hub's furniture is CARRIED OVER (there is no depot on the far side and there must not be one in the overworld's books)
       if (P.work === 'hub') for (const it of ['chest', 'crafting_table', 'fence_gate']) if (!A.count(bot, it) && !bot.inventory.items().some(i => /_fence_gate$/.test(i.name) && it === 'fence_gate')) await A.obtain(bot, it, 1, { stop: api.stop }).catch(e_ => swallow('jobs_nether:furniture', e_))
       // a scout that finds the fortress must be able to say so from 100 blocks out and get home: bow + arrows when the depot has them
@@ -2467,6 +2558,7 @@ module.exports = ctx => {
         // this trip is meant to build with is kept through every banking step, exactly like the barter gold.
         for (const k of SHELL_STONE) if (A.count(bot, k)) keep[k] = Math.max(keep[k] || 0, A.count(bot, k))
         keep.torch = Math.max(keep.torch || 0, A.count(bot, 'torch'))
+        if (/^(route|steps)$/.test(String(P.work))) keep.stone_pickaxe = Math.max(P.picks || 4, A.count(bot, 'stone_pickaxe')) // the spare picks ARE the trip
         if (P.work === 'fortress') { keep.bow = 1; keep.arrow = 64 }
         task(bot, 'portal: banking what this trip does not need')
         await A.bank(bot, keep, { job: job.id, stop: api.stop }).catch(e_ => swallow('jobs_nether:trim', e_))

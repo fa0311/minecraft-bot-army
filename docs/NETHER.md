@@ -62,11 +62,24 @@ it is a road we may still want for a 50-bot squad, but it is not what buys the e
 ## Job type `portal` — one type, `params.work` picks the work
 `params {origin, args:{axis}, buildJob, go, landing, work, at/from/route/bearing/length/width/pad, minutes, cobble, crossS, maxDeaths, obsidian, ingots, roam, stairs, maxPlace, cargo}`
 * **frame** · **light** (`strike`) · **go** (banks, kits, refuses under-equipped) · **arrival** (rules 1-3, `sealNear`, `nether_look`) · **home** (`comeHome` = all of `nether_return`).
-* **work**: `pair` · `stair` (RETIRED, owner: bridge/gravel, do not dig) · `hub` · `road` · `scout` · `fortress` · **`barterspot`** · **`barter`** · `degate`. One round trip per slice; the trip always ends at the gate.
+* **work**: `pair` · `stair` (RETIRED, owner: bridge/gravel, do not dig) · `hub` · `road` · `scout` · `fortress` · **`barterspot`** · **`barter`** · `degate` · **`route`** · `blaze` · `steps`. Route/steps/blaze bots wear a gold piece (`wearGold`, boots from 4 ingots). One round trip per slice; the trip always ends at the gate.
 * **death rule**: `maxDeaths` deaths in 30 min and the job pauses itself. A bot that died declines 3 min.
 * EVENTS: `portal_lit · portal_through · gate_stuck · nether_sealed · nether_look · nether_landing · nether_refused · pair_built · nether_pass · portal_back · gate_removed · nether_scout · nether_sighting · **nether_barter** · **barter_chest_near**`.
 * **A `portal` job needs `priority` (not `prio`) or the dispatcher never staffs it** — 09-21 05:4xZ cost 15 min to that.
 * **The gate is a queue.** 4+ bots on one portal job jam each other at the frame (`portal_light_failed {sharingCell:1, why:"stood in the gate for 30 s and stayed in overworld"}`, `cannot reach the gate`). 2-3 bots per portal job, `crossS:60`. Six cells at ~4.5 s each should carry 6 bots per 4.5 s — the measured throughput does not, and that is the next code gap for x50.
+
+## THE ROUTE TO THE BLAZES (`work:'route'`, job `nether_route`, Nether engineer 09-21) — a tunnel is cut from INSIDE it
+Blueprint `nether_route` (legs on the board, `seq` = distance along the way). Driver `routeTunnel`, not `buildCells`: the bot stands only on
+the WALK (path feet cells, leg corners joined), works every cell of seq [here-6, here+3] within 4.4, then ONE hand step (`routeStep`: up =
+one jump pulse, down = walk off, crouched only at a rim = no wall and no floor within 3 beside it; a crouched body cannot step down).
+A solid block in a walkway/torch cell is DUG (v2's torch cells held v1's wall blocks: head 0 for hours). The head (`settings.nether.route.head`)
+is read over the walk. Every pass ends by walking back to seq 0 (`reserve`), a slice that begins inside the tunnel walks home first (`route_home`).
+**LAVA RULE** (`route_lava`): a cell with lava on a side/top face is dug only from a stand whose ray to a face beside the lava passes through the
+new hole (`plugSight`, traced before the dig), the lava is plugged at once, and a hole that will not close is closed again. Never dig with hp < 16.
+**The v2 stair flooded the hub corner** (09-21 09:09Z): a lava SOURCE -53,111,-81 in its leg-2 wall; the stream runs down the v2 stair
+(z-75/-74) into x-44..-37 z-75..-73 at y98. v3 legs start at -55,98,-82 and climb WEST in the solid core (z-82/-81) to -67,110,-82, then
+east on z-84/-83 (camera: 0 lava/precious seq 0-30; sources beside the way at seq 57, 255, 356, 377, 449). `nether_unflood` (`work:'steps'`,
+verbs go/route/walk/place/dig/wait) shuts the source from route seq 27 through the wall cell -53,111,-82.
 
 ## What stands / what is paused
 | job | state |
