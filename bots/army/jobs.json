@@ -1280,7 +1280,7 @@
     98,
     -80
    ],
-   "through": 1789957903267,
+   "through": 1789959683234,
    "scoutRev": 4,
    "hub": {
     "room": [
@@ -1392,8 +1392,8 @@
    ],
    "landingY": 98,
    "landingSafe": false,
-   "landingAt": 1789957903411,
-   "back": 1789957915769,
+   "landingAt": 1789959683376,
+   "back": 1789959695699,
    "lastDeath": 1789924669079,
    "lastDeathBy": "Fuuka",
    "roads": {
@@ -1615,16 +1615,20 @@
     "t": 1789924913245
    },
    "absorb": {
-    "leather": 192,
-    "flint": 888,
+    "coal": 720,
     "iron_ingot": 240,
-    "coal": 960,
     "rabbit": 64,
     "porkchop": 112,
-    "gray_wool": 288,
-    "diamond": 24
+    "flint": 600,
+    "diamond": 12,
+    "carrot": 704,
+    "wheat": 440,
+    "pumpkin": 216,
+    "melon": 144,
+    "leather": 192,
+    "beetroot": 240
    },
-   "absorbT": 1789957742128
+   "absorbT": 1789958368769
   },
   "enchantTable": [
    -344,
@@ -1899,7 +1903,7 @@
    },
    "rev": 78,
    "note": "foreman 11:2xZ: bots 8->14 - the audit work list (273 off-level columns in 57 clusters, 90 stray blocks, 1 float cluster at -334,-369 y80) is this sponge job and overflow now drains into fill_ravine_s (pri 70 > 60); toolsmith_picks_fix re-activated so bump units stop skipping on no pickaxe",
-   "restUntil": 1789959457321
+   "restUntil": 1789961331481
   },
   {
    "id": "farm_1",
@@ -2044,7 +2048,7 @@
    "note": "03:1xZ engineer: growth rule live (branches to 256, trunk to 80 pairs, iron-rich levels first while iron is short) - rev bump voids the no-branch declines",
    "bots": 8,
    "rev": 67,
-   "restUntil": 1789958463092
+   "restUntil": 1789960060377
   },
   {
    "id": "base_dorm",
@@ -2319,7 +2323,7 @@
     "bank": true
    },
    "rev": 2,
-   "restUntil": 1789957902658
+   "restUntil": 1789959735778
   },
   {
    "id": "fill_ring_field1",
@@ -3373,7 +3377,7 @@
     "crossS": 45
    },
    "rev": 1,
-   "restUntil": 1789958785342
+   "restUntil": 1789960605273
   },
   {
    "id": "nether_landing_2",
@@ -4844,10 +4848,10 @@
       "keep": {}
      }
     ],
-    "rev": 0
+    "rev": 1
    },
-   "rev": 103,
-   "restUntil": 1789956482367
+   "rev": 105,
+   "restUntil": 1789960000247
   },
   {
    "id": "mine_sweep",
@@ -4884,8 +4888,8 @@
     "radius": 150,
     "bankAt": 48
    },
-   "restUntil": 1789957391535,
-   "rev": 15
+   "restUntil": 1789959903617,
+   "rev": 16
   },
   {
    "id": "craft_gold_boots",
@@ -5086,7 +5090,7 @@
      "d": 15
     }
    },
-   "rev": 10,
+   "rev": 11,
    "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -402,65,-548",
    "restUntil": 1789935147159,
    "cap": {
@@ -5095,11 +5099,57 @@
     "t": 1789927911282
    },
    "stuckBy": {
-    "key": "rev10",
+    "key": "rev11",
     "bots": [
-     "Aoi",
      "Hinata",
-     "Mio"
+     "Honoka",
+     "Sakura"
+    ]
+   }
+  },
+  {
+   "id": "base_core_pad",
+   "type": "build",
+   "priority": 88,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 13,
+   "site": [
+    -356,
+    69,
+    -508
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone core x -373..-339 / z -525..-491 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. core 32x32: THE craft table + furnace bank (north strip 32x10), depot rows of double chests by category (south 32x20; grow them with len/high + rev)",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -356,
+     68,
+     -508
+    ],
+    "args": {
+     "w": 35,
+     "d": 35
+    }
+   },
+   "rev": 6,
+   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -345,67,-515",
+   "cap": {
+    "id": "cap_base_core_pad",
+    "cols": 1225,
+    "t": 1789926449257
+   },
+   "restUntil": 1789959069426,
+   "stuckBy": {
+    "key": "rev6",
+    "bots": [
+     "Aika",
+     "Botan",
+     "Kurumi"
     ]
    }
   }
