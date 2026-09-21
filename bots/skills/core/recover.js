@@ -203,6 +203,11 @@ module.exports = {
     if (burn) return skip('items burned: ' + burn)
     const ko = keepOutAt(A, pos)
     if (ko) return skip('death spot is inside keep-out ' + ko)
+    // A TRAP IS NOT WORTH A KIT (top model 09-21 16:3xZ): the bots rescued (killed) out of the underground water cave -528,59,-300 respawned and
+    // RAN BACK for their kits - straight into the same cave (the 15 in it at 15:5xZ included bots rescued an hour earlier). A death inside a
+    // `settings.avoid` box is written off.
+    const av = ((A.settings().avoid) || []).find(a => a && Array.isArray(a.box) && pos[0] >= a.box[0] && pos[0] <= a.box[2] && pos[2] >= a.box[1] && pos[2] <= a.box[3])
+    if (av) return skip('death spot is inside an avoid box (' + String(av.why || '').slice(0, 40) + ')')
     if ((st.hist || []).some(h => h.t !== t && t - h.t < KILL_ZONE_MS && dist3(h.pos, pos) <= KILL_ZONE_R)) return skip('kill zone')
     st.want = rec
   },

@@ -1521,7 +1521,9 @@ async function digOut (bot, pit, opts = {}) {
     if (FILLERS.reduce((n, f) => n + count(bot, f), 0) < 3 && !gone()) await digFiller(bot)
     // CAPPED AND NO SIDE EXIT (09-21): no staircase either - it would climb into the same roof and end in the next sealed pocket; the bot stays and says so
     if (!esc.capped && pit && wallsAround(bot, 4)) for (let i = 0; i < 8 && !gone() && !U.cancelled(bot) && (i === 0 || !out()); i++) { const y0 = Math.floor(bot.entity.position.y); await U.withTimeout(stairUp(bot, y0 + 4, 90000, out), 90000 + 115000, 'stairUp'); if (Math.floor(bot.entity.position.y) <= y0) break }
-    for (let i = 0; i < 12 && !esc.capped && !skyAbove(bot) && !U.cancelled(bot) && !gone() && !insideOurs(bot); i++) await U.withTimeout(stairUp(bot, Math.floor(bot.entity.position.y) + 3, 60000, out), 60000 + 115000, 'stairUp')
+    // a flight that gains no height ends it, as in the loop above (09-21 16:1xZ engineer: 15 bots in the water cave -528,59,-300 ran 12 flights of ~75 s with
+    // dug:0 each = `escaped how:stair dug:0 tookS:901-908` and a worker with no heartbeat (STALE) for 15 min, over and over)
+    for (let i = 0; i < 12 && !esc.capped && !skyAbove(bot) && !U.cancelled(bot) && !gone() && !insideOurs(bot); i++) { const y0 = Math.floor(bot.entity.position.y); await U.withTimeout(stairUp(bot, y0 + 3, 60000, out), 60000 + 115000, 'stairUp'); if (Math.floor(bot.entity.position.y) <= y0) break }
     // the staircase stops under a roof of ours (insideOurs) or a block it may not dig: that is a sealed pocket, not an exit (09-21) - sideways at depth instead
     if (!esc.capped && !skyAbove(bot) && !U.cancelled(bot) && !gone() && islandOf(bot).size < TRAP_ISLAND) { const p = bot.entity.position.floored(); const cap = capAbove(bot, p.x, p.y, p.z); if (cap && cap.at[1] - p.y <= 4) { bot.__armySideT = Date.now(); await sideExit(bot) } }
   } catch (e_) { swallow('army:373', e_) }

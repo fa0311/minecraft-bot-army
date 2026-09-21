@@ -581,7 +581,6 @@ module.exports = ctx => {
     if (!farOut && P.bare) await A.kitUp(bot, { force: true, why: job.id + ' (bare)', stop: api.stop }).catch(e_ => swallow('jobs_end:wayBare', e_))
     const short = farOut ? [] : await need(bot, api, { cobblestone: P.stone || 96, stone_pickaxe: P.picks || 4, torch: 32, bread: 12 })
     if (!bot.inventory.items().some(i => /_pickaxe$/.test(i.name))) { A.decline(bot, job, 10 * 60000, 'end way: no pickaxe'); return muster(bot, job, api, ctx2, 'end way: no pickaxe to cut with (' + short.join(', ') + ')') }
-    const until = t0 + Math.min(Math.max(4, P.minutes || 14), 18) * 60000
     const W = wayOf() || {}
     if (!onWay(bot, plan)) {
       const at = await toDoor(bot, api, door, t0 + 20 * 60000)
@@ -599,6 +598,8 @@ module.exports = ctx => {
       if (ok) { endEdit(e => { e.way = Object.assign({}, e.way, { walked: { t: now(), by: bot.username, downS, upS } }) }); pauseSelf(job, 'auto-paused: the way is cut and walked door -> portal room -> door by ' + bot.username + ' (' + downS + ' s down, ' + upS + ' s up)') }
       return 'end way: proof walk ' + (ok ? 'OK' : 'FAILED') + ' (down ' + downS + ' s, room ' + inRoom + ', up ' + upS + ' s)'
     }
+    // the pass budget starts AT THE DOOR (09-21 16:0xZ: counted from the depot, the 10-min commute ate a 14-min pass - Kotori cut 12 seq)
+    const until = now() + Math.min(Math.max(4, P.minutes || 14), 18) * 60000
     const r = await R.work(bot, job, api, Object.assign({ routeKey: 'way' }, P), until, wayIO)
     A.result(bot, Object.assign({ ev: 'end_way', job: job.id }, r, { at: xyz(bot.entity.position), hp: Math.round(bot.health) }))
     return 'end way: head ' + r.head + '/' + r.length + (r.done ? ' DONE' : '') + ', ' + r.dug + ' dug, ' + r.placed + ' placed' + (r.stuck ? ' - ' + r.stuck : '')
