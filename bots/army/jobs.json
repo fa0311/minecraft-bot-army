@@ -1368,7 +1368,7 @@
     98,
     -77
    ],
-   "through": 1790033961636,
+   "through": 1790035542596,
    "scoutRev": 2,
    "hub": {
     "room": [
@@ -1481,7 +1481,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789969045309,
-   "back": 1790033899454,
+   "back": 1790035485285,
    "lastDeath": 1790032623993,
    "lastDeathBy": "Kokoro",
    "roads": {
@@ -1921,7 +1921,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1790033592078,
+   "gatesAt": 1790035393527,
    "pairRoad": {
     "from": [
      -43,
@@ -2301,10 +2301,10 @@
     ],
     "y": 98,
     "h": 4,
-    "left": 124,
-    "unloaded": 0,
+    "left": 0,
+    "unloaded": 2120,
     "done": false,
-    "at": 1790033887356,
+    "at": 1790035946408,
     "by": "Nanami"
    }
   },
@@ -2436,7 +2436,7 @@
       28
      ]
     },
-    "t": 1790033651663
+    "t": 1790035621365
    },
    "absorb": {
     "gray_wool": 288,
@@ -3844,7 +3844,7 @@
    "type": "hunt",
    "priority": 93,
    "front": "herd",
-   "status": "active",
+   "status": "paused",
    "when": "day",
    "produces": [
     "food"
@@ -3870,8 +3870,8 @@
     "maxDist": 220,
     "first": "sheep"
    },
-   "rev": 31,
-   "bots": 4,
+   "rev": 32,
+   "bots": 0,
    "note": "owner 09-20: sheep are culled actively (wool 10 328 / 150, TPS). ONLY sheep: the hunt handler has NO pen exclusion - with kinds sheep/pig/cow/chicken and leave 0 the hunters emptied pen 1 (69 sheep) within the hour; cows, chickens and pigs are left alone until the handler spares penned animals (BUGS)"
   },
   {
@@ -4099,7 +4099,7 @@
    "note": "06:3xZ mine engineer: readiness no longer hands a WELL-FED miner back when the depot cannot give 8 food units (48 mine_not_ready from 24 bots in 20 min left the squad at ZERO); caves at a branch face are now harvested, not walled off. rev bump voids the stale not-ready declines",
    "bots": 4,
    "rev": 95,
-   "restUntil": 1790034963873
+   "restUntil": 1790037155599
   },
   {
    "id": "base_dorm",
@@ -4279,7 +4279,7 @@
    },
    "rev": 33,
    "bots": 0,
-   "restUntil": 1790033983001
+   "restUntil": 1790036249922
   },
   {
    "id": "sleeper",
@@ -4369,7 +4369,7 @@
     "everyMs": 15000
    },
    "rev": 4,
-   "restUntil": 1790034181536
+   "restUntil": 1790035972219
   },
   {
    "id": "fill_ring_field1",
@@ -5578,7 +5578,7 @@
     "crossS": 45
    },
    "rev": 5,
-   "restUntil": 1790034873791,
+   "restUntil": 1790036695259,
    "exclude": []
   },
   {
@@ -6052,10 +6052,11 @@
     "dryMin": 10
    },
    "desc": "OFF-ROAD BARTER: walks to the nearest adult piglin and builds a <=24-block STAIR to it (nether_stair). The 48-cell lane is not needed.",
-   "rev": 73,
+   "rev": 74,
    "maxDeaths": 2,
    "restUntil": 0,
-   "note": "Nether engineer 12:xZ: trades from the covered barter post (params.post) once nether_barterpost reports done; re-activate then."
+   "note": "Nether engineer 12:xZ: trades from the covered barter post (params.post) once nether_barterpost reports done; re-activate then.",
+   "names": []
   },
   {
    "id": "nether_gate_spare_n607",
@@ -6566,7 +6567,7 @@
     "bare": true
    },
    "rev": 18,
-   "restUntil": 1790034674640
+   "restUntil": 1790036205791
   },
   {
    "id": "nether_gate_old_down",
@@ -6885,7 +6886,7 @@
      ]
     ]
    },
-   "restUntil": 1790035474334,
+   "restUntil": 1790037390776,
    "rev": 3
   },
   {
@@ -8212,7 +8213,7 @@
     "target": 16,
     "bare": true
    },
-   "restUntil": 1790034382508,
+   "restUntil": 1790036386599,
    "rev": 1
   },
   {
@@ -11117,6 +11118,52 @@
      "Koharu",
      "Mio",
      "Kokoro"
+    ]
+   }
+  },
+  {
+   "id": "base_core_pad",
+   "type": "build",
+   "priority": 88,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 1,
+   "site": [
+    -356,
+    69,
+    -508
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone core x -373..-339 / z -525..-491 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. core 32x32: THE craft table + furnace bank (north strip 32x10), depot rows of double chests by category (south 32x20; grow them with len/high + rev)",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -356,
+     68,
+     -508
+    ],
+    "args": {
+     "w": 35,
+     "d": 35
+    }
+   },
+   "rev": 17,
+   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -345,67,-515",
+   "cap": {
+    "id": "cap_base_core_pad",
+    "cols": 1225,
+    "t": 1789926449257
+   },
+   "restUntil": 1789963308637,
+   "stuckBy": {
+    "key": "rev17",
+    "bots": [
+     "Kokoro",
+     "Rin",
+     "Honoka"
     ]
    }
   }
