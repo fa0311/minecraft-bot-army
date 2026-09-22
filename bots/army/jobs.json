@@ -1368,7 +1368,7 @@
     98,
     -77
    ],
-   "through": 1790042820544,
+   "through": 1790044640135,
    "scoutRev": 2,
    "hub": {
     "room": [
@@ -1481,7 +1481,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789969045309,
-   "back": 1790042768423,
+   "back": 1790044593571,
    "lastDeath": 1790032623993,
    "lastDeathBy": "Kokoro",
    "roads": {
@@ -1921,7 +1921,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1790042593636,
+   "gatesAt": 1790044392723,
    "pairRoad": {
     "from": [
      -43,
@@ -2304,7 +2304,7 @@
     "left": 0,
     "unloaded": 2120,
     "done": false,
-    "at": 1790042733060,
+    "at": 1790044559627,
     "by": "Nanami"
    }
   },
@@ -2436,7 +2436,7 @@
       28
      ]
     },
-    "t": 1790042682174
+    "t": 1790044618702
    },
    "absorb": {
     "coal": 480,
@@ -4097,7 +4097,7 @@
    "note": "06:3xZ mine engineer: readiness no longer hands a WELL-FED miner back when the depot cannot give 8 food units (48 mine_not_ready from 24 bots in 20 min left the squad at ZERO); caves at a branch face are now harvested, not walled off. rev bump voids the stale not-ready declines",
    "bots": 4,
    "rev": 95,
-   "restUntil": 1790043761035
+   "restUntil": 1790045607441
   },
   {
    "id": "base_dorm",
@@ -4277,7 +4277,7 @@
    },
    "rev": 33,
    "bots": 0,
-   "restUntil": 1790043070540
+   "restUntil": 1790045112056
   },
   {
    "id": "sleeper",
@@ -4367,7 +4367,7 @@
     "everyMs": 15000
    },
    "rev": 4,
-   "restUntil": 1790043164709
+   "restUntil": 1790044986017
   },
   {
    "id": "fill_ring_field1",
@@ -5576,7 +5576,7 @@
     "crossS": 45
    },
    "rev": 5,
-   "restUntil": 1790044251410,
+   "restUntil": 1790046072797,
    "exclude": []
   },
   {
@@ -6565,7 +6565,7 @@
     "bare": true
    },
    "rev": 18,
-   "restUntil": 1790044911909
+   "restUntil": 1790046723327
   },
   {
    "id": "nether_gate_old_down",
@@ -6884,7 +6884,7 @@
      ]
     ]
    },
-   "restUntil": 1790043560885,
+   "restUntil": 1790045502360,
    "rev": 3
   },
   {
@@ -8211,7 +8211,7 @@
     "target": 16,
     "bare": true
    },
-   "restUntil": 1790043304263,
+   "restUntil": 1790045339703,
    "rev": 1
   },
   {
@@ -9063,7 +9063,7 @@
     "bare": true
    },
    "rev": 1,
-   "restUntil": 1790042450948
+   "restUntil": 1790044182270
   },
   {
    "id": "nether_bridge_roof",
@@ -11078,7 +11078,7 @@
    "type": "build",
    "priority": 57,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 1,
    "site": [
@@ -11102,8 +11102,8 @@
      "d": 15
     }
    },
-   "rev": 19,
-   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -402,65,-548",
+   "rev": 20,
+   "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -402,64,-548",
    "restUntil": 1789935147159,
    "cap": {
     "id": "cap_base_pen_2_pad",
@@ -11111,11 +11111,9 @@
     "t": 1789927911282
    },
    "stuckBy": {
-    "key": "rev19",
+    "key": "rev20",
     "bots": [
-     "Sakura",
-     "Hinata",
-     "Shiori"
+     "Sayaka"
     ]
    }
   },
@@ -11148,7 +11146,7 @@
      "d": 35
     }
    },
-   "rev": 18,
+   "rev": 19,
    "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -345,67,-515",
    "cap": {
     "id": "cap_base_core_pad",
@@ -11157,10 +11155,10 @@
    },
    "restUntil": 1789963308637,
    "stuckBy": {
-    "key": "rev18",
+    "key": "rev19",
     "bots": [
-     "Akari",
-     "Yui",
+     "Kaede",
+     "Mio",
      "Kanade"
     ]
    }
@@ -11216,7 +11214,7 @@
    "type": "build",
    "priority": 62,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 5,
    "site": [
@@ -11241,15 +11239,28 @@
     }
    },
    "rev": 3,
-   "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -311,66,-519",
-   "restUntil": 1790043346629
+   "note": "auto-paused: build complete - BUT 2 cells are left that 3 builders could not do (build_leftover): -311,65,-504 | -311,67,-519",
+   "restUntil": 1790044592119,
+   "stuckBy": {
+    "key": "rev3",
+    "bots": [
+     "Hina",
+     "Koharu",
+     "Kotori"
+    ]
+   },
+   "cap": {
+    "id": "cap_base_infill_n314_n527",
+    "cols": 279,
+    "t": 1790043410737
+   }
   },
   {
    "id": "base_yard_pad",
    "type": "build",
    "priority": 85,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 2,
    "site": [
@@ -11286,13 +11297,48 @@
     "cols": 465,
     "t": 1789912978111
    },
-   "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -368,65,-478",
+   "note": "auto-paused: build complete - BUT 6 columns are a deck over air (void_under_pad): -370,66,-477 | -369,66,-478 | -369,66,-477 | -369,66,-476 | -368,65,-489 | -343,65,-480",
    "stuckBy": {
     "key": "rev22",
     "bots": [
-     "Fuuka"
+     "Fuuka",
+     "Akari"
     ]
    }
+  },
+  {
+   "id": "cap_base_infill_n314_n527",
+   "type": "build",
+   "priority": 38,
+   "front": "base",
+   "status": "paused",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -310,
+    69,
+    -512
+   ],
+   "plan": "the finished level of base_infill_n314_n527 is bare stone: cap the grade layer y68 of x -314..-306 / z -527..-497 with DIRT (grass spreads by itself). Only where bare stone, gravel or air stands - never paving, a field, a crop or another blueprint of ours - and only out of the dirt SURPLUS over targets.dirt 128",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -310,
+     68,
+     -512
+    ],
+    "args": {
+     "w": 9,
+     "d": 31,
+     "cap": true,
+     "fill": "dirt"
+    },
+    "needStock": {
+     "dirt": 128
+    },
+    "order": "near"
+   },
+   "note": "auto-paused: build complete"
   }
  ]
 }
