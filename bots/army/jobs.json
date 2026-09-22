@@ -1368,7 +1368,7 @@
     98,
     -77
    ],
-   "through": 1790040677091,
+   "through": 1790042820544,
    "scoutRev": 2,
    "hub": {
     "room": [
@@ -1481,7 +1481,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789969045309,
-   "back": 1790041309034,
+   "back": 1790042768423,
    "lastDeath": 1790032623993,
    "lastDeathBy": "Kokoro",
    "roads": {
@@ -1921,7 +1921,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1790040792928,
+   "gatesAt": 1790042593636,
    "pairRoad": {
     "from": [
      -43,
@@ -2301,10 +2301,10 @@
     ],
     "y": 98,
     "h": 4,
-    "left": 124,
-    "unloaded": 0,
+    "left": 0,
+    "unloaded": 2120,
     "done": false,
-    "at": 1790041296095,
+    "at": 1790042733060,
     "by": "Nanami"
    }
   },
@@ -2436,23 +2436,20 @@
       28
      ]
     },
-    "t": 1790041229653
+    "t": 1790042682174
    },
    "absorb": {
+    "coal": 480,
+    "iron_ingot": 96,
+    "flint": 600,
+    "diamond": 12,
     "gray_wool": 288,
-    "coal": 720,
-    "iron_ingot": 144,
-    "paper": 984,
+    "paper": 384,
+    "ink_sac": 60,
     "leather": 192,
-    "flint": 888,
-    "diamond": 24,
-    "beetroot": 480,
-    "carrot": 352,
-    "pumpkin": 144,
-    "melon": 96,
-    "ink_sac": 60
+    "carrot": 352
    },
-   "absorbT": 1790039408621
+   "absorbT": 1790042551782
   },
   "enchantTable": [
    -344,
@@ -4100,7 +4097,7 @@
    "note": "06:3xZ mine engineer: readiness no longer hands a WELL-FED miner back when the depot cannot give 8 food units (48 mine_not_ready from 24 bots in 20 min left the squad at ZERO); caves at a branch face are now harvested, not walled off. rev bump voids the stale not-ready declines",
    "bots": 4,
    "rev": 95,
-   "restUntil": 1790041303948
+   "restUntil": 1790043761035
   },
   {
    "id": "base_dorm",
@@ -4370,7 +4367,7 @@
     "everyMs": 15000
    },
    "rev": 4,
-   "restUntil": 1790041305788
+   "restUntil": 1790043164709
   },
   {
    "id": "fill_ring_field1",
@@ -5579,7 +5576,7 @@
     "crossS": 45
    },
    "rev": 5,
-   "restUntil": 1790042434983,
+   "restUntil": 1790044251410,
    "exclude": []
   },
   {
@@ -6568,7 +6565,7 @@
     "bare": true
    },
    "rev": 18,
-   "restUntil": 1790043095558
+   "restUntil": 1790044911909
   },
   {
    "id": "nether_gate_old_down",
@@ -6887,7 +6884,7 @@
      ]
     ]
    },
-   "restUntil": 1790041148812,
+   "restUntil": 1790043560885,
    "rev": 3
   },
   {
@@ -8214,7 +8211,7 @@
     "target": 16,
     "bare": true
    },
-   "restUntil": 1790041828474,
+   "restUntil": 1790043304263,
    "rev": 1
   },
   {
@@ -9066,7 +9063,7 @@
     "bare": true
    },
    "rev": 1,
-   "restUntil": 1790040519310
+   "restUntil": 1790042450948
   },
   {
    "id": "nether_bridge_roof",
@@ -11081,7 +11078,7 @@
    "type": "build",
    "priority": 57,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "site": [
@@ -11106,7 +11103,7 @@
     }
    },
    "rev": 19,
-   "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -402,64,-548",
+   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -402,65,-548",
    "restUntil": 1789935147159,
    "cap": {
     "id": "cap_base_pen_2_pad",
@@ -11117,7 +11114,8 @@
     "key": "rev19",
     "bots": [
      "Sakura",
-     "Hinata"
+     "Hinata",
+     "Shiori"
     ]
    }
   },
@@ -11172,7 +11170,7 @@
    "type": "build",
    "priority": 62,
    "front": "base",
-   "status": "active",
+   "status": "paused",
    "when": "any",
    "bots": 1,
    "site": [
@@ -11197,7 +11195,7 @@
      "clear": 6
     }
    },
-   "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -323,64,-510",
+   "note": "auto-paused: build complete - BUT 6 cells are left that 3 builders could not do (build_leftover): -327,71,-518 | -326,71,-518 | -327,70,-518 | -326,70,-518 | -327,69,-518 | -326,69,-518",
    "rev": 3,
    "cap": {
     "id": "cap_base_infill_n337_n524",
@@ -11208,7 +11206,91 @@
     "key": "rev3",
     "bots": [
      "Honoka",
-     "Ayame"
+     "Ayame",
+     "Himari"
+    ]
+   }
+  },
+  {
+   "id": "base_infill_n314_n527",
+   "type": "build",
+   "priority": 62,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 5,
+   "site": [
+    -310,
+    69,
+    -512
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone infill x -314..-306 / z -527..-497 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): INFILL between the zones: the whole base is ONE level - cut what stands above y68, fill dents from the natural ground up, 4 headroom; nothing is built on it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -310,
+     68,
+     -512
+    ],
+    "args": {
+     "w": 9,
+     "d": 31
+    }
+   },
+   "rev": 3,
+   "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -311,66,-519",
+   "restUntil": 1790043346629
+  },
+  {
+   "id": "base_yard_pad",
+   "type": "build",
+   "priority": 85,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 2,
+   "site": [
+    -355,
+    69,
+    -483
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone yard x -370..-340 / z -490..-476 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): LEVEL the pad first (one site = one height): cut above, fill holes, 4 headroom. muster yard 29x13 (settings.muster): a level pad, nothing built on it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -355,
+     68,
+     -483
+    ],
+    "args": {
+     "w": 31,
+     "d": 15
+    }
+   },
+   "rev": 22,
+   "restUntil": 1789912916108,
+   "voidFix": {
+    "n": 2,
+    "id": "void_fix_base_yard_pad",
+    "cols": 4,
+    "t": 1789913775086
+   },
+   "cap": {
+    "id": "cap_base_yard_pad",
+    "cols": 465,
+    "t": 1789912978111
+   },
+   "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -368,65,-478",
+   "stuckBy": {
+    "key": "rev22",
+    "bots": [
+     "Fuuka"
     ]
    }
   }
