@@ -1368,7 +1368,7 @@
     98,
     -77
    ],
-   "through": 1790039327826,
+   "through": 1790040677091,
    "scoutRev": 2,
    "hub": {
     "room": [
@@ -1481,7 +1481,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789969045309,
-   "back": 1790039263432,
+   "back": 1790041309034,
    "lastDeath": 1790032623993,
    "lastDeathBy": "Kokoro",
    "roads": {
@@ -1921,7 +1921,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1790038992312,
+   "gatesAt": 1790040792928,
    "pairRoad": {
     "from": [
      -43,
@@ -2301,10 +2301,10 @@
     ],
     "y": 98,
     "h": 4,
-    "left": 0,
-    "unloaded": 2120,
+    "left": 124,
+    "unloaded": 0,
     "done": false,
-    "at": 1790039230244,
+    "at": 1790041296095,
     "by": "Nanami"
    }
   },
@@ -2436,7 +2436,7 @@
       28
      ]
     },
-    "t": 1790039525749
+    "t": 1790041229653
    },
    "absorb": {
     "gray_wool": 288,
@@ -4280,7 +4280,7 @@
    },
    "rev": 33,
    "bots": 0,
-   "restUntil": 1790040878577
+   "restUntil": 1790043070540
   },
   {
    "id": "sleeper",
@@ -4370,7 +4370,7 @@
     "everyMs": 15000
    },
    "rev": 4,
-   "restUntil": 1790039495479
+   "restUntil": 1790041305788
   },
   {
    "id": "fill_ring_field1",
@@ -5579,7 +5579,7 @@
     "crossS": 45
    },
    "rev": 5,
-   "restUntil": 1790040328101,
+   "restUntil": 1790042434983,
    "exclude": []
   },
   {
@@ -6568,7 +6568,7 @@
     "bare": true
    },
    "rev": 18,
-   "restUntil": 1790041278926
+   "restUntil": 1790043095558
   },
   {
    "id": "nether_gate_old_down",
@@ -8214,7 +8214,7 @@
     "target": 16,
     "bare": true
    },
-   "restUntil": 1790039875968,
+   "restUntil": 1790041828474,
    "rev": 1
   },
   {
@@ -9066,7 +9066,7 @@
     "bare": true
    },
    "rev": 1,
-   "restUntil": 1790039137616
+   "restUntil": 1790040519310
   },
   {
    "id": "nether_bridge_roof",
@@ -11081,7 +11081,7 @@
    "type": "build",
    "priority": 57,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 1,
    "site": [
@@ -11105,8 +11105,8 @@
      "d": 15
     }
    },
-   "rev": 18,
-   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -402,65,-548",
+   "rev": 19,
+   "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -402,64,-548",
    "restUntil": 1789935147159,
    "cap": {
     "id": "cap_base_pen_2_pad",
@@ -11114,11 +11114,10 @@
     "t": 1789927911282
    },
    "stuckBy": {
-    "key": "rev18",
+    "key": "rev19",
     "bots": [
-     "Chino",
-     "Yui",
-     "Riko"
+     "Sakura",
+     "Hinata"
     ]
    }
   },
@@ -11151,7 +11150,7 @@
      "d": 35
     }
    },
-   "rev": 17,
+   "rev": 18,
    "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -345,67,-515",
    "cap": {
     "id": "cap_base_core_pad",
@@ -11160,11 +11159,56 @@
    },
    "restUntil": 1789963308637,
    "stuckBy": {
-    "key": "rev17",
+    "key": "rev18",
     "bots": [
-     "Kokoro",
-     "Rin",
-     "Honoka"
+     "Akari",
+     "Yui",
+     "Kanade"
+    ]
+   }
+  },
+  {
+   "id": "base_infill_n337_n524",
+   "type": "build",
+   "priority": 62,
+   "front": "base",
+   "status": "active",
+   "when": "any",
+   "bots": 1,
+   "site": [
+    -326,
+    69,
+    -517
+   ],
+   "requires": {
+    "minHp": 10
+   },
+   "plan": "BASE PLAN zone infill x -337..-315 / z -524..-510 on the base level y68 (armyctl plan-base, docs/PLAN-world2.md §2): INFILL between the zones: the whole base is ONE level - cut what stands above y68, fill dents from the natural ground up, 4 headroom; nothing is built on it",
+   "params": {
+    "blueprint": "level",
+    "origin": [
+     -326,
+     68,
+     -517
+    ],
+    "args": {
+     "w": 23,
+     "d": 15,
+     "clear": 6
+    }
+   },
+   "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -323,64,-510",
+   "rev": 3,
+   "cap": {
+    "id": "cap_base_infill_n337_n524",
+    "cols": 345,
+    "t": 1790006980665
+   },
+   "stuckBy": {
+    "key": "rev3",
+    "bots": [
+     "Honoka",
+     "Ayame"
     ]
    }
   }
