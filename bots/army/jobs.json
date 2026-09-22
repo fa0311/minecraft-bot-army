@@ -1368,7 +1368,7 @@
     98,
     -77
    ],
-   "through": 1790035542596,
+   "through": 1790037613632,
    "scoutRev": 2,
    "hub": {
     "room": [
@@ -1481,7 +1481,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789969045309,
-   "back": 1790035485285,
+   "back": 1790037562318,
    "lastDeath": 1790032623993,
    "lastDeathBy": "Kokoro",
    "roads": {
@@ -1921,7 +1921,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1790035393527,
+   "gatesAt": 1790037192105,
    "pairRoad": {
     "from": [
      -43,
@@ -2304,7 +2304,7 @@
     "left": 0,
     "unloaded": 2120,
     "done": false,
-    "at": 1790035946408,
+    "at": 1790037529111,
     "by": "Nanami"
    }
   },
@@ -2436,7 +2436,7 @@
       28
      ]
     },
-    "t": 1790035621365
+    "t": 1790037356799
    },
    "absorb": {
     "gray_wool": 288,
@@ -4099,7 +4099,7 @@
    "note": "06:3xZ mine engineer: readiness no longer hands a WELL-FED miner back when the depot cannot give 8 food units (48 mine_not_ready from 24 bots in 20 min left the squad at ZERO); caves at a branch face are now harvested, not walled off. rev bump voids the stale not-ready declines",
    "bots": 4,
    "rev": 95,
-   "restUntil": 1790037155599
+   "restUntil": 1790039457376
   },
   {
    "id": "base_dorm",
@@ -4279,7 +4279,7 @@
    },
    "rev": 33,
    "bots": 0,
-   "restUntil": 1790036249922
+   "restUntil": 1790038491607
   },
   {
    "id": "sleeper",
@@ -4369,7 +4369,7 @@
     "everyMs": 15000
    },
    "rev": 4,
-   "restUntil": 1790035972219
+   "restUntil": 1790037758416
   },
   {
    "id": "fill_ring_field1",
@@ -5578,7 +5578,7 @@
     "crossS": 45
    },
    "rev": 5,
-   "restUntil": 1790036695259,
+   "restUntil": 1790038511611,
    "exclude": []
   },
   {
@@ -6567,7 +6567,7 @@
     "bare": true
    },
    "rev": 18,
-   "restUntil": 1790036205791
+   "restUntil": 1790039472389
   },
   {
    "id": "nether_gate_old_down",
@@ -6886,7 +6886,7 @@
      ]
     ]
    },
-   "restUntil": 1790037390776,
+   "restUntil": 1790039292238,
    "rev": 3
   },
   {
@@ -8213,7 +8213,7 @@
     "target": 16,
     "bare": true
    },
-   "restUntil": 1790036386599,
+   "restUntil": 1790037852614,
    "rev": 1
   },
   {
@@ -9065,7 +9065,7 @@
     "bare": true
    },
    "rev": 1,
-   "restUntil": 1790034643589
+   "restUntil": 1790037636872
   },
   {
    "id": "nether_bridge_roof",
@@ -11080,7 +11080,7 @@
    "type": "build",
    "priority": 57,
    "front": "base",
-   "status": "paused",
+   "status": "active",
    "when": "any",
    "bots": 1,
    "site": [
@@ -11104,8 +11104,8 @@
      "d": 15
     }
    },
-   "rev": 17,
-   "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -402,65,-548",
+   "rev": 18,
+   "note": "auto-reactivated: 1 columns below pad level (pad_uneven): -402,64,-548",
    "restUntil": 1789935147159,
    "cap": {
     "id": "cap_base_pen_2_pad",
@@ -11113,11 +11113,10 @@
     "t": 1789927911282
    },
    "stuckBy": {
-    "key": "rev17",
+    "key": "rev18",
     "bots": [
-     "Koharu",
-     "Mio",
-     "Kokoro"
+     "Chino",
+     "Yui"
     ]
    }
   },
