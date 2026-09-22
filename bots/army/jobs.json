@@ -1368,7 +1368,7 @@
     98,
     -77
    ],
-   "through": 1790051762093,
+   "through": 1790053777169,
    "scoutRev": 2,
    "hub": {
     "room": [
@@ -1481,7 +1481,7 @@
    "landingY": 98,
    "landingSafe": false,
    "landingAt": 1789969045309,
-   "back": 1790051714129,
+   "back": 1790053722334,
    "lastDeath": 1790032623993,
    "lastDeathBy": "Kokoro",
    "roads": {
@@ -1921,7 +1921,7 @@
      "state": "DEAD"
     }
    ],
-   "gatesAt": 1790051594160,
+   "gatesAt": 1790053394837,
    "pairRoad": {
     "from": [
      -43,
@@ -2304,7 +2304,7 @@
     "left": 124,
     "unloaded": 0,
     "done": false,
-    "at": 1790051701129,
+    "at": 1790053708635,
     "by": "Nanami"
    }
   },
@@ -2436,7 +2436,7 @@
       28
      ]
     },
-    "t": 1790051920776
+    "t": 1790053921537
    },
    "absorb": {
     "gray_wool": 288,
@@ -4096,7 +4096,7 @@
    "note": "06:3xZ mine engineer: readiness no longer hands a WELL-FED miner back when the depot cannot give 8 food units (48 mine_not_ready from 24 bots in 20 min left the squad at ZERO); caves at a branch face are now harvested, not walled off. rev bump voids the stale not-ready declines",
    "bots": 4,
    "rev": 95,
-   "restUntil": 1790051852663
+   "restUntil": 1790054279560
   },
   {
    "id": "base_dorm",
@@ -4276,7 +4276,7 @@
    },
    "rev": 33,
    "bots": 0,
-   "restUntil": 1790053423876
+   "restUntil": 1790055460589
   },
   {
    "id": "sleeper",
@@ -4366,7 +4366,7 @@
     "everyMs": 15000
    },
    "rev": 4,
-   "restUntil": 1790052116368
+   "restUntil": 1790053960870
   },
   {
    "id": "fill_ring_field1",
@@ -5575,7 +5575,7 @@
     "crossS": 45
    },
    "rev": 5,
-   "restUntil": 1790053413869,
+   "restUntil": 1790055230394,
    "exclude": []
   },
   {
@@ -6564,7 +6564,7 @@
     "bare": true
    },
    "rev": 18,
-   "restUntil": 1790052192912
+   "restUntil": 1790054014361
   },
   {
    "id": "nether_gate_old_down",
@@ -6883,7 +6883,7 @@
      ]
     ]
    },
-   "restUntil": 1790053438891,
+   "restUntil": 1790055360503,
    "rev": 3
   },
   {
@@ -8210,7 +8210,7 @@
     "target": 16,
     "bare": true
    },
-   "restUntil": 1790052317388,
+   "restUntil": 1790054335706,
    "rev": 1
   },
   {
@@ -11101,7 +11101,7 @@
      "d": 15
     }
    },
-   "rev": 21,
+   "rev": 22,
    "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -402,65,-548",
    "restUntil": 1789935147159,
    "cap": {
@@ -11110,11 +11110,11 @@
     "t": 1789927911282
    },
    "stuckBy": {
-    "key": "rev21",
+    "key": "rev22",
     "bots": [
-     "Hina",
+     "Sakura",
      "Hinata",
-     "Sakura"
+     "Aoi"
     ]
    }
   },
@@ -11147,7 +11147,7 @@
      "d": 35
     }
    },
-   "rev": 20,
+   "rev": 21,
    "note": "auto-paused: build complete - BUT 1 cells are left that 3 builders could not do (build_leftover): -345,67,-515",
    "cap": {
     "id": "cap_base_core_pad",
@@ -11156,11 +11156,11 @@
    },
    "restUntil": 1789963308637,
    "stuckBy": {
-    "key": "rev20",
+    "key": "rev21",
     "bots": [
-     "Kotori",
-     "Aoi",
-     "Yui"
+     "Yuzu",
+     "Akari",
+     "Aoi"
     ]
    }
   },
